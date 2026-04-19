@@ -1497,19 +1497,19 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort" style="width:32px">⭐</th>
               <th class="no-sort">Stock</th>
               <th class="no-sort">Sector</th>
+              <th class="no-sort" title="Last 5 days price action — ↑ green day (closed higher), ↓ red day (closed lower). Read left to right, oldest to newest">Last 5</th>
               <th onclick="sortMomTable('scanner','ltp')">LTP ↕</th>
               <th onclick="sortMomTable('scanner','day_chg_pct')">Day % ↕</th>
               <th onclick="sortMomTable('scanner','week_chg_pct')">Week % ↕</th>
               <th onclick="sortMomTable('scanner','month_chg_pct')">Month % ↕</th>
               <th class="no-sort">Daily EMA</th>
               <th class="no-sort">Weekly EMA</th>
-              <th onclick="sortMomTable('scanner','pct_from_ema9_daily')" title="% distance from daily 9 EMA — IN ZONE: &lt;3%, NEAR: 3-5%, FAR: &gt;5%">% 9 EMA ↕</th>
-              <th onclick="sortMomTable('scanner','high_52w')" title="52 Week High and % away from it">52W High ↕</th>
-              <th onclick="sortMomTable('scanner','days_in_uptrend')">Trend Days ↕</th>
-              <th onclick="sortMomTable('scanner','consecutive_green')">🟢 Days ↕</th>
-              <th onclick="sortMomTable('scanner','momentum_score')" title="Momentum Score 0-100: combines category, trend duration, volume, breakout, sector strength">Score ↕</th>
-              <th class="no-sort">Signal</th>
-              <th class="no-sort">Last 5</th>
+              <th onclick="sortMomTable('scanner','pct_from_ema9_daily')" title="% distance from daily 9 EMA — IN ZONE: within 3%, NEAR: 3-5%, FAR: more than 5%">% 9 EMA ↕</th>
+              <th onclick="sortMomTable('scanner','high_52w')" title="52 Week High price and % away from it — closer to 0% = near breakout">52W High ↕</th>
+              <th onclick="sortMomTable('scanner','days_in_uptrend')" title="Days in Uptrend — number of days the stock has been continuously above both 9 and 20 EMA">Trend Days ↕</th>
+              <th onclick="sortMomTable('scanner','consecutive_green')" title="Consecutive Green Days — number of days in a row the stock closed higher than the previous day. 3+ = strong momentum">🟢 Days ↕</th>
+              <th onclick="sortMomTable('scanner','momentum_score')" title="Momentum Score 0-100: combines category, trend duration, volume, breakout, sector strength. 80+ = High, 60+ = Building, 40+ = Watch">Score ↕</th>
+              <th class="no-sort" title="Signal type — Cross: 9 EMA crossed above 20 EMA | Breakout: price broke 52W or ATH high | Sharp: 20%+ in 3 days or 30%+ in 1 month | Re-entry: returned above 9 EMA after brief dip">Signal</th>
             </tr></thead>
             <tbody id="scanner-body">
               <tr><td colspan="16"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">Loading momentum data...</div><div class="mom-empty-sub">Fetching from Supabase</div></div></td></tr>
@@ -4614,6 +4614,7 @@ function renderScanner() {
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)" title="${starred?'Remove from My Picks':'Add to My Picks'}">${starred?'⭐':'☆'}</button></td>
       <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span> ${getCatBadge(s.category)}</td>
       <td><span style="font-size:11px;color:var(--muted)">${s.sector||'—'}</span></td>
+      <td class="l5-summary">${getLast5(s.last5_summary)}</td>
       <td><span style="font-weight:600">₹${(s.ltp||0).toLocaleString('en-IN')}</span></td>
       <td>${fmtChg(s.day_chg_pct)}</td>
       <td>${fmtChg(s.week_chg_pct)}</td>
@@ -4623,10 +4624,9 @@ function renderScanner() {
       <td>${getZoneTag(s.pct_from_ema9_daily)}</td>
       <td>${get52wDisplay(s.ltp, s.high_52w)}</td>
       <td style="color:var(--cyan);font-weight:600">${s.days_in_uptrend||0}d</td>
-      <td style="color:var(--green);font-weight:600">${s.consecutive_green||0}</td>
+      <td style="color:var(--green);font-weight:600" title="Consecutive green candles — ${s.consecutive_green||0} days in a row closed higher">${s.consecutive_green||0}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
-      <td>${sig}</td>
-      <td class="l5-summary">${getLast5(s.last5_summary)}</td>
+      <td title="${s.breakout_type?'Breakout: price broke '+s.breakout_type+' level':s.is_sharp_mover?'Sharp Mover: 20%+ in 3 days or 30%+ in 1 month':s.is_reentry?'Re-entry: returned above 9 EMA after brief dip':s.daily_crossover_date?'EMA Cross: 9 EMA crossed above 20 EMA on '+s.daily_crossover_date:'No signal'}">${sig}</td>
     </tr>`;
   }).join('');
 }
@@ -4938,8 +4938,13 @@ function exportMomTV(tab) {
 function exportMomCSV(tab) {
   const data = getVisibleMomData(tab);
   if (!data.length) { showToast('No data to export', 'info'); return; }
-  const keys = Object.keys(data[0]).filter(k => !['id','created_at'].includes(k));
-  const csv = [keys.join(','), ...data.map(r => keys.map(k => JSON.stringify(r[k]??'')).join(','))].join('\n');
+  // Add calculated pct_from_52w column
+  const enriched = data.map(r => ({
+    ...r,
+    pct_from_52w: (r.ltp && r.high_52w) ? parseFloat(((r.high_52w - r.ltp) / r.high_52w * 100).toFixed(2)) : null
+  }));
+  const keys = Object.keys(enriched[0]).filter(k => !['id','created_at'].includes(k));
+  const csv = [keys.join(','), ...enriched.map(r => keys.map(k => JSON.stringify(r[k]??'')).join(','))].join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   a.download = `TrueFlow_${tab}_${new Date().toISOString().slice(0,10)}.csv`;
