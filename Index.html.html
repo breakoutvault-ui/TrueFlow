@@ -4948,7 +4948,31 @@ function exportMomCSV(tab) {
 }
 
 function getVisibleMomData(tab) {
-  if (tab === 'scanner') return momData.scanner.filter(s => !momFilters.scanner.star || momStarred.has(s.symbol));
+  if (tab === 'scanner') {
+    // Apply same filters as renderScanner
+    const f = momFilters.scanner;
+    let data = [...momData.scanner];
+    if (f.period !== 'all') {
+      const now = new Date();
+      const days = f.period === 'today' ? 1 : f.period === 'week' ? 7 : 30;
+      data = data.filter(s => {
+        const sig = s.daily_crossover_date || s.breakout_date;
+        if (!sig) return false;
+        return (now - new Date(sig)) / 86400000 <= days;
+      });
+    }
+    if (f.cat !== 'all') data = data.filter(s => s.category === f.cat);
+    if (f.score !== 'all') data = data.filter(s => scoreFilter(s.momentum_score || 0, f.score));
+    if (f.signal !== 'all') {
+      if (f.signal === 'crossover') data = data.filter(s => s.daily_crossover_date || s.weekly_crossover_date);
+      if (f.signal === 'breakout')  data = data.filter(s => s.breakout_type);
+      if (f.signal === 'sharp')     data = data.filter(s => s.is_sharp_mover);
+      if (f.signal === 'reentry')   data = data.filter(s => s.is_reentry);
+    }
+    if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
+    if (f.star) data = data.filter(s => momStarred.has(s.symbol));
+    return data;
+  }
   if (tab === 'ema')     return momData.ema;
   if (tab === 'sharp')   return momData.sharp.filter(s => !momExcluded.has(s.symbol));
   if (tab === 'picks')   return momData.picks;
