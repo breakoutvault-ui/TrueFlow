@@ -120,8 +120,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .fo-sec-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
 .fo-sec-title{font-size:13px;font-weight:600;color:var(--text)}
 .fo-tbl{width:100%;border-collapse:collapse;font-size:12px}
-.fo-tbl th{padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--bg2);white-space:nowrap}
+.fo-tbl th{padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--bg2);white-space:nowrap;position:sticky;top:0;z-index:10}
 .fo-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
+.tbl-scroll{max-height:calc(100vh - 220px);overflow:auto;position:relative}
+.tbl-scroll::-webkit-scrollbar{height:8px;width:8px}
+.tbl-scroll::-webkit-scrollbar-track{background:var(--bg2)}
+.tbl-scroll::-webkit-scrollbar-thumb{background:var(--border3);border-radius:4px}
+.tbl-scroll::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
 .fo-tbl tr:hover td{background:var(--bg2)}
 .fo-tbl tr:last-child td{border-bottom:none}
 .bull-row td{background:rgba(34,197,94,.04)!important}
@@ -129,9 +134,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sortable-th{cursor:pointer;user-select:none;white-space:nowrap}
 .sortable-th:hover{color:var(--cyan);background:var(--cyan-dim)}
 .sort-arrow{font-size:10px;opacity:.6;margin-left:2px}
-.star-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;opacity:.35;transition:all .15s;line-height:1}
+.star-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;opacity:.5;transition:all .15s;line-height:1;font-weight:900}
 .star-btn:hover{opacity:1;transform:scale(1.2)}
-.star-btn.starred{opacity:1;filter:drop-shadow(0 0 4px #FFD700)}
+.star-btn.starred{opacity:1;filter:drop-shadow(0 0 4px #FFD700);font-weight:900}
 .tag{font-size:10px;padding:2px 6px;border-radius:20px;font-weight:600;display:inline-block;white-space:nowrap}
 .tag-bull{background:rgba(34,197,94,.12);color:#22C55E}
 .tag-bear{background:rgba(239,68,68,.12);color:#EF4444}
@@ -219,7 +224,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .zone-near{background:rgba(245,158,11,.15);color:var(--amber)}
 .zone-far{background:rgba(255,68,102,.1);color:var(--red)}
 .mom-tbl{width:100%;border-collapse:collapse;font-size:12px}
-.mom-tbl th{padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--bg2);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:58px;z-index:10}
+.mom-tbl th{padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--bg2);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:10}
 .mom-tbl th:hover{color:var(--cyan);background:var(--cyan-dim)}
 .mom-tbl th.no-sort{cursor:default}
 .mom-tbl th.no-sort:hover{color:var(--muted);background:var(--bg2)}
@@ -692,7 +697,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
     <div class="mode-toggle" style="flex-shrink:0">
       <button class="mode-btn active" id="mode-fo" onclick="switchMode('fo')">⚡ F&O</button>
-      <button class="mode-btn" id="mode-eod" onclick="switchMode('eod')">📊 EOD</button>
+      <button class="mode-btn" id="mode-eod" onclick="switchMode('eod')">📊 Market Pulse</button>
       <button class="mode-btn" id="mode-momentum" onclick="switchMode('momentum')">🚀 Momentum</button>
     </div>
     <div class="nav-tabs" id="fo-tabs" style="flex:1;min-width:0;overflow:hidden">
@@ -705,7 +710,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="nav-tabs" id="eod-tabs" style="display:none;flex:1;min-width:0;overflow:hidden">
       <button class="nav-tab active" onclick="switchTab('sector',this,'eod')">🏭 Sectors</button>
       <button class="nav-tab" onclick="switchTab('industry',this,'eod')">🏗️ Industries</button>
-      <button class="nav-tab" onclick="switchTab('stocks',this,'eod')">📈 Trending Stocks</button>
       <button class="nav-tab" onclick="switchTab('deals',this,'eod')">💰 Trending Deals</button>
       <button class="nav-tab" onclick="switchTab('premarket',this,'eod')">🌅 Pre-Market</button>
       <button class="nav-tab" onclick="switchTab('tracker',this,'eod')">📊 Trend Tracker</button>
@@ -830,14 +834,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div class="fo-section">
         <div class="fo-sec-hdr">
           <span class="fo-sec-title">F&O Watchlist — Pre-Market Snapshot</span>
+          <span style="font-size:11px;color:var(--cyan);font-weight:600" id="mb-count">—</span>
           <span style="font-size:11px;color:var(--muted)" id="mb-timestamp">15 Apr · EOD</span>
         </div>
-        <div style="overflow-x:auto">
-          <table class="fo-tbl" style="min-width:1020px">
+        <div class="tbl-scroll">
+          <table class="fo-tbl" style="min-width:1120px">
             <thead><tr>
               <th style="width:32px">⭐</th>
               <th>Stock</th>
               <th>Sector</th>
+              <th>Industry</th>
               <th>LTP / Chg</th>
               <th>Daily EMA</th>
               <th>OI Buildup</th>
@@ -849,7 +855,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="sortable-th" onclick="setMBSort('conviction')" title="Sort by Conviction Score">Score <span class="sort-arrow" id="mba-conviction">↓</span></th>
             </tr></thead>
             <tbody id="mb-body">
-              <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">
+              <tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">
                 Loading EMA data...
               </td></tr>
             </tbody>
@@ -1045,7 +1051,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <!-- Strike Table -->
       <div class="fo-section" id="oc-table-view" style="display:none">
         <div class="fo-sec-hdr"><span class="fo-sec-title">Strike-wise Option Chain</span></div>
-        <div style="overflow-x:auto">
+        <div class="tbl-scroll">
           <table class="fo-tbl" style="min-width:780px" id="oc-strike-table">
             <thead><tr>
               <th style="color:#EF4444">OI Signal</th><th style="color:#EF4444">OI Chg</th>
@@ -1138,7 +1144,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
       <!-- Alert history table -->
       <div class="fo-section">
-        <div style="overflow-x:auto">
+        <div class="tbl-scroll">
           <table class="fo-tbl" style="min-width:900px">
             <thead><tr>
               <th>Stock</th>
@@ -1484,6 +1490,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <button class="sort-btn" id="scanner-star-filter" onclick="toggleMomStarFilter('scanner',this)" title="Show only starred stocks">⭐ Starred</button>
         </div>
         <div class="mom-export-btns">
+          <span class="mom-updated" id="scanner-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="scanner-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('scanner')" title="Copy stock list for TradingView watchlist">📊 TradingView</button>
           <button class="mom-export-btn" onclick="exportMomCSV('scanner')" title="Download all visible data as CSV">⬇ CSV</button>
@@ -1491,12 +1498,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
       <!-- Table -->
       <div class="mom-section">
-        <div style="overflow-x:auto">
+        <div class="tbl-scroll">
           <table class="mom-tbl" id="scanner-tbl">
             <thead><tr>
               <th class="no-sort" style="width:32px">⭐</th>
               <th class="no-sort">Stock</th>
               <th class="no-sort">Sector</th>
+              <th class="no-sort">Industry</th>
               <th class="no-sort" title="Last 5 days price action — ↑ green day (closed higher), ↓ red day (closed lower). Read left to right, oldest to newest">Last 5</th>
               <th onclick="sortMomTable('scanner','ltp')">LTP ↕</th>
               <th onclick="sortMomTable('scanner','day_chg_pct')">Day % ↕</th>
@@ -1506,13 +1514,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Weekly EMA</th>
               <th onclick="sortMomTable('scanner','pct_from_ema9_daily')" title="% distance from daily 9 EMA — IN ZONE: within 3%, NEAR: 3-5%, FAR: more than 5%">% 9 EMA ↕</th>
               <th onclick="sortMomTable('scanner','high_52w')" title="52 Week High price and % away from it — closer to 0% = near breakout">52W High ↕</th>
+              <th onclick="sortMomTable('scanner','pct_from_52w')" title="% away from 52W High — closer to 0% = near breakout">% from 52W ↕</th>
               <th onclick="sortMomTable('scanner','days_in_uptrend')" title="Days in Uptrend — number of days the stock has been continuously above both 9 and 20 EMA">Trend Days ↕</th>
               <th onclick="sortMomTable('scanner','consecutive_green')" title="Consecutive Green Days — number of days in a row the stock closed higher than the previous day. 3+ = strong momentum">🟢 Days ↕</th>
               <th onclick="sortMomTable('scanner','momentum_score')" title="Momentum Score 0-100: combines category, trend duration, volume, breakout, sector strength. 80+ = High, 60+ = Building, 40+ = Watch">Score ↕</th>
               <th class="no-sort" title="Signal type — Cross: 9 EMA crossed above 20 EMA | Breakout: price broke 52W or ATH high | Sharp: 20%+ in 3 days or 30%+ in 1 month | Re-entry: returned above 9 EMA after brief dip">Signal</th>
             </tr></thead>
             <tbody id="scanner-body">
-              <tr><td colspan="16"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">Loading momentum data...</div><div class="mom-empty-sub">Fetching from Supabase</div></div></td></tr>
+              <tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">Loading momentum data...</div><div class="mom-empty-sub">Fetching from Supabase</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1561,13 +1570,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <button class="sort-btn" id="ema-star-filter" onclick="toggleMomStarFilter('ema',this)" title="Show only starred stocks">⭐ Starred</button>
         </div>
         <div class="mom-export-btns">
+          <span class="mom-updated" id="ema-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="ema-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('ema')">📊 TradingView</button>
           <button class="mom-export-btn" onclick="exportMomCSV('ema')">⬇ CSV</button>
         </div>
       </div>
       <div class="mom-section">
-        <div style="overflow-x:auto">
+        <div class="tbl-scroll">
           <table class="mom-tbl" id="ema-tbl">
             <thead><tr>
               <th class="no-sort" style="width:32px">⭐</th>
@@ -1624,18 +1634,20 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <button class="sort-btn" id="sharp-star-filter" onclick="toggleMomStarFilter('sharp',this)" title="Show only starred stocks">⭐ Starred</button>
         </div>
         <div class="mom-export-btns">
+          <span class="mom-updated" id="sharp-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="sharp-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('sharp')">📊 TradingView</button>
           <button class="mom-export-btn" onclick="exportMomCSV('sharp')">⬇ CSV</button>
         </div>
       </div>
       <div class="mom-section">
-        <div style="overflow-x:auto">
+        <div class="tbl-scroll">
           <table class="mom-tbl" id="sharp-tbl">
             <thead><tr>
               <th class="no-sort" style="width:32px">⭐</th>
               <th class="no-sort">Stock · Category</th>
               <th class="no-sort">Sector</th>
+              <th class="no-sort">Industry</th>
               <th onclick="sortMomTable('sharp','move_pct')">Move % ↕</th>
               <th class="no-sort">Period</th>
               <th onclick="sortMomTable('sharp','ltp')">LTP ↕</th>
@@ -1652,7 +1664,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Exclude</th>
             </tr></thead>
             <tbody id="sharp-body">
-              <tr><td colspan="17"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">Loading sharp movers...</div></div></td></tr>
+              <tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">Loading sharp movers...</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1684,17 +1696,19 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           </div>
         </div>
         <div class="mom-export-btns">
+          <span class="mom-updated" id="picks-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="picks-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('picks')">📊 TradingView</button>
           <button class="mom-export-btn" onclick="exportMomCSV('picks')">⬇ CSV</button>
         </div>
       </div>
       <div class="mom-section">
-        <div style="overflow-x:auto">
+        <div class="tbl-scroll">
           <table class="mom-tbl" id="picks-tbl">
             <thead><tr>
               <th class="no-sort">Stock · Category</th>
               <th class="no-sort">Sector</th>
+              <th class="no-sort">Industry</th>
               <th onclick="sortMomTable('picks','starred_at')">Starred ↕</th>
               <th onclick="sortMomTable('picks','days_starred')">Days ↕</th>
               <th onclick="sortMomTable('picks','ref_price')">Ref Price ↕</th>
@@ -1703,6 +1717,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Daily EMA</th>
               <th class="no-sort">Weekly EMA</th>
               <th onclick="sortMomTable('picks','pct_from_ema9_daily')" title="Entry Zone — IN ZONE: &lt;3% from daily 9 EMA (ideal entry), NEAR: 3-5%, FAR: &gt;5% (extended)">Zone ↕</th>
+              <th class="no-sort" title="% away from 52 week high — closer to 0 = near breakout">% from 52W</th>
               <th onclick="sortMomTable('picks','day_chg_pct')">Day % ↕</th>
               <th onclick="sortMomTable('picks','week_chg_pct')">Week % ↕</th>
               <th onclick="sortMomTable('picks','month_chg_pct')">Month % ↕</th>
@@ -1714,7 +1729,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Remove</th>
             </tr></thead>
             <tbody id="picks-body">
-              <tr><td colspan="19"><div class="mom-empty"><div class="mom-empty-icon">⭐</div><div class="mom-empty-text">No stocks in your picks yet</div><div class="mom-empty-sub">Star any stock from Scanner or EMA Signals to add it here</div></div></td></tr>
+              <tr><td colspan="21"><div class="mom-empty"><div class="mom-empty-icon">⭐</div><div class="mom-empty-text">No stocks in your picks yet</div><div class="mom-empty-sub">Star any stock from Scanner or EMA Signals to add it here</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1730,18 +1745,20 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <span style="font-size:12px;color:var(--muted)">Stocks that closed below daily 9 EMA for 2 consecutive days</span>
         </div>
         <div class="mom-export-btns">
+          <span class="mom-updated" id="exited-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="exited-updated">—</span>
           <button class="mom-export-btn" onclick="bulkDeleteExited()" style="color:var(--red);border-color:rgba(255,68,102,.3)">🗑 Bulk Delete</button>
           <button class="mom-export-btn" onclick="exportMomCSV('exited')">⬇ CSV</button>
         </div>
       </div>
       <div class="mom-section">
-        <div style="overflow-x:auto">
+        <div class="tbl-scroll">
           <table class="mom-tbl" id="exited-tbl">
             <thead><tr>
               <th class="no-sort"><input type="checkbox" id="exited-select-all" onclick="toggleSelectAll()" style="cursor:pointer"></th>
               <th class="no-sort">Stock · Category</th>
               <th class="no-sort">Sector</th>
+              <th class="no-sort">Industry</th>
               <th onclick="sortMomTable('exited','exit_date')">Exit Date ↕</th>
               <th onclick="sortMomTable('exited','days_since_exit')">Days Since ↕</th>
               <th class="no-sort">Weekly EMA</th>
@@ -1751,7 +1768,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Action</th>
             </tr></thead>
             <tbody id="exited-body">
-              <tr><td colspan="10"><div class="mom-empty"><div class="mom-empty-icon">🚪</div><div class="mom-empty-text">No exited stocks</div><div class="mom-empty-sub">Stocks that break below daily 9 EMA for 2 days appear here</div></div></td></tr>
+              <tr><td colspan="11"><div class="mom-empty"><div class="mom-empty-icon">🚪</div><div class="mom-empty-text">No exited stocks</div><div class="mom-empty-sub">Stocks that break below daily 9 EMA for 2 days appear here</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -3390,7 +3407,7 @@ async function loadMorningBrief() {
     const dateResp = await fetch(dateUrl, { headers });
     const dateData = await dateResp.json();
     if (!dateData || dateData.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     const latestDate = dateData[0].session_date;
@@ -3399,7 +3416,7 @@ async function loadMorningBrief() {
     const resp = await fetch(url, { headers });
     const data = await resp.json();
     if (!data || data.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     mbData = data;
@@ -3464,8 +3481,12 @@ function renderMBTable() {
   const activeArrow = document.getElementById('mba-' + mbSort);
   if (activeArrow) activeArrow.textContent = '↓';
 
+  // Update count
+  const mbCntEl = document.getElementById('mb-count');
+  if (mbCntEl) mbCntEl.textContent = `Showing ${filtered.length} of ${mbData.length}`;
+
   if (filtered.length === 0) {
-    document.getElementById('mb-body').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
+    document.getElementById('mb-body').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
     return;
   }
   const rows = filtered.map(s => {
@@ -3500,10 +3521,12 @@ function renderMBTable() {
     const setup    = trend === 'bull' ? 'Watch Call' : trend === 'bear' ? 'Watch Put' : 'Skip';
     const isStarred = starredStocks.has(s.symbol);
     const sector   = s.sector || '—';
+    const industry = s.industry || '—';
     return `<tr>
       <td style="text-align:center"><button class="star-btn${isStarred?' starred':''}" onclick="toggleStar('${s.symbol}',this)" title="${isStarred?'Remove from watchlist':'Add to watchlist'}">${isStarred?'⭐':'☆'}</button></td>
       <td><span style="font-weight:600;color:var(--text)">${s.symbol}</span>${zoneTag}</td>
       <td><span style="font-size:11px;color:var(--muted)">${sector}</span></td>
+      <td><span style="font-size:11px;color:var(--muted)">${industry}</span></td>
       <td><span style="font-weight:600">${ltp}</span> ${chgStr}</td>
       <td><span style="color:${tc};font-weight:700">${ti} ${tLabel}</span><br>
           <span style="font-size:10px;color:var(--muted)">9E:${ema9} 20E:${ema20}</span></td>
@@ -3779,7 +3802,7 @@ async function spClickSecLive(sec) {
           <span class="fo-sec-title">${sec} — ${latest.length} stocks · ${latestDate} EOD</span>
           <span style="cursor:pointer;color:var(--muted);font-size:18px;line-height:1" onclick="document.getElementById('sp-drill').innerHTML='';spActiveSec=null;">✕</span>
         </div>
-        <div style="overflow-x:auto">
+        <div class="tbl-scroll">
           <table class="fo-tbl" style="min-width:780px">
             <thead><tr>
               <th>Stock</th><th>LTP</th><th>Chg %</th><th>Trend</th>
@@ -3901,7 +3924,7 @@ function spClickSec(sec) {
         <span class="fo-sec-title">${sec} — ${stks.length} stocks</span>
         <span style="cursor:pointer;color:var(--muted);font-size:18px;line-height:1" onclick="spClickSec('${sec.replace(/'/g,"\\'")}')">✕</span>
       </div>
-      <div style="overflow-x:auto">
+      <div class="tbl-scroll">
         <table class="fo-tbl" style="min-width:740px">
           <thead><tr><th>Stock</th><th>LTP</th><th>Chg %</th><th>OI Trend</th><th>PCR</th><th>ORB Status</th><th>Alert</th><th>Vol ×avg</th></tr></thead>
           <tbody>${rows}</tbody>
@@ -4429,7 +4452,7 @@ async function loadMomScanner() {
     const resp = await fetch(url, { headers });
     const data = await resp.json();
     if (!data || data.length === 0) {
-      document.getElementById('scanner-body').innerHTML = '<tr><td colspan="16"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">No momentum data yet</div><div class="mom-empty-sub">Backfill is running — check back after Telegram notification</div></div></td></tr>';
+      document.getElementById('scanner-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">No momentum data yet</div><div class="mom-empty-sub">Backfill is running — check back after Telegram notification</div></div></td></tr>';
       return;
     }
     // Get latest date only
@@ -4483,7 +4506,7 @@ async function loadMomSharp() {
     const resp = await fetch(url, { headers });
     const data = await resp.json();
     if (!data || !data.length) {
-      document.getElementById('sharp-body').innerHTML = '<tr><td colspan="17"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers yet</div></div></td></tr>';
+      document.getElementById('sharp-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers yet</div></div></td></tr>';
       return;
     }
     const latestDate = data[0].session_date;
@@ -4510,7 +4533,7 @@ async function loadMomPicks() {
     const resp = await fetch(url, { headers });
     const picks = await resp.json();
     if (!picks || !picks.length) {
-      document.getElementById('picks-body').innerHTML = '<tr><td colspan="19"><div class="mom-empty"><div class="mom-empty-icon">⭐</div><div class="mom-empty-text">No stocks in your picks yet</div><div class="mom-empty-sub">Star any stock from Scanner or EMA Signals to add it here</div></div></td></tr>';
+      document.getElementById('picks-body').innerHTML = '<tr><td colspan="21"><div class="mom-empty"><div class="mom-empty-icon">⭐</div><div class="mom-empty-text">No stocks in your picks yet</div><div class="mom-empty-sub">Star any stock from Scanner or EMA Signals to add it here</div></div></td></tr>';
       document.getElementById('picks-updated').textContent = '—';
       return;
     }
@@ -4597,6 +4620,9 @@ function renderScanner() {
   }
   if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
   if (f.star) data = data.filter(s => momStarred.has(s.symbol));
+  // Update count
+  const cntEl = document.getElementById('scanner-count');
+  if (cntEl) cntEl.textContent = `Showing ${data.length} of ${momData.scanner.length}`;
   // Sort
   const { key, dir } = momSort.scanner;
   data.sort((a, b) => {
@@ -4604,16 +4630,20 @@ function renderScanner() {
     return typeof av === 'string' ? av.localeCompare(bv) * dir : (av - bv) * dir;
   });
   if (!data.length) {
-    document.getElementById('scanner-body').innerHTML = '<tr><td colspan="16"><div class="mom-empty"><div class="mom-empty-icon">🔍</div><div class="mom-empty-text">No stocks match filter</div></div></td></tr>';
+    document.getElementById('scanner-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">🔍</div><div class="mom-empty-text">No stocks match filter</div></div></td></tr>';
     return;
   }
   document.getElementById('scanner-body').innerHTML = data.map(s => {
     const starred = momStarred.has(s.symbol);
     const sig = s.breakout_type ? `<span class="breakout-badge">${s.breakout_type}</span>` : s.is_sharp_mover ? '<span style="color:var(--amber);font-size:10px;font-weight:600">⚡ Sharp</span>' : s.is_reentry ? '<span style="color:#6366F1;font-size:10px;font-weight:600">🔁 Re-entry</span>' : s.daily_crossover_date ? '<span style="color:var(--green);font-size:10px;font-weight:600">🔄 Cross</span>' : '—';
+    const pct52  = (s.ltp && s.high_52w) ? ((s.high_52w - s.ltp)/s.high_52w*100) : null;
+    const pct52str = pct52!==null ? pct52.toFixed(1)+'%' : '—';
+    const pct52col = pct52!==null ? (pct52<5?'var(--green)':pct52<10?'var(--amber)':pct52<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)" title="${starred?'Remove from My Picks':'Add to My Picks'}">${starred?'⭐':'☆'}</button></td>
       <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span> ${getCatBadge(s.category)}</td>
       <td><span style="font-size:11px;color:var(--muted)">${s.sector||'—'}</span></td>
+      <td><span style="font-size:11px;color:var(--muted)">${s.industry||'—'}</span></td>
       <td class="l5-summary">${getLast5(s.last5_summary)}</td>
       <td><span style="font-weight:600">₹${(s.ltp||0).toLocaleString('en-IN')}</span></td>
       <td>${fmtChg(s.day_chg_pct)}</td>
@@ -4623,6 +4653,7 @@ function renderScanner() {
       <td>${getEMAStatus(s.above_ema9_weekly, s.above_ema20_weekly)}</td>
       <td>${getZoneTag(s.pct_from_ema9_daily)}</td>
       <td>${get52wDisplay(s.ltp, s.high_52w)}</td>
+      <td style="color:${pct52col};font-weight:600">${pct52str}</td>
       <td style="color:var(--cyan);font-weight:600">${s.days_in_uptrend||0}d</td>
       <td style="color:var(--green);font-weight:600" title="Consecutive green candles — ${s.consecutive_green||0} days in a row closed higher">${s.consecutive_green||0}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
@@ -4657,6 +4688,9 @@ function renderEMA() {
   // Deduplicate by symbol
   const seen = new Set();
   data = data.filter(s => { if (seen.has(s.symbol)) return false; seen.add(s.symbol); return true; });
+  // Update count
+  const emaCntEl = document.getElementById('ema-count');
+  if (emaCntEl) emaCntEl.textContent = `Showing ${data.length} of ${momData.ema.length}`;
   // Sort
   const { key, dir } = momSort.ema;
   data.sort((a,b) => {
@@ -4707,10 +4741,13 @@ function renderSharp() {
   if (f.star)             data = data.filter(s => momStarred.has(s.symbol));
   // Add computed move_pct
   data = data.map(s => ({ ...s, move_pct: Math.max(Math.abs(s.move_3d_pct||0), Math.abs(s.move_1m_pct||0)) }));
+  // Update count
+  const sharpCntEl = document.getElementById('sharp-count');
+  if (sharpCntEl) sharpCntEl.textContent = `Showing ${data.length} of ${momData.sharp.length}`;
   const { key, dir } = momSort.sharp;
   data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
   if (!data.length) {
-    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="17"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers match filter</div></div></td></tr>';
+    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers match filter</div></div></td></tr>';
     return;
   }
   document.getElementById('sharp-body').innerHTML = data.map(s => {
@@ -4724,6 +4761,7 @@ function renderSharp() {
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button></td>
       <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td><span style="color:${movePct>=0?'#22C55E':'#EF4444'};font-weight:700;font-size:13px">${movePct>=0?'+':''}${movePct?.toFixed(1)}%</span></td>
       <td><span style="font-size:10px;color:var(--muted)">${period}</span></td>
       <td>₹${(s.ltp||0).toLocaleString('en-IN')}</td>
@@ -4766,17 +4804,24 @@ function renderPicks() {
   }
   const { key, dir } = momSort.picks;
   data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
+  // Update count
+  const picksCntEl = document.getElementById('picks-count');
+  if (picksCntEl) picksCntEl.textContent = `Showing ${data.length} of ${momData.picks.length}`;
   if (!data.length) {
-    document.getElementById('picks-body').innerHTML = '<tr><td colspan="19"><div class="mom-empty"><div class="mom-empty-icon">⭐</div><div class="mom-empty-text">No stocks match filter</div></div></td></tr>';
+    document.getElementById('picks-body').innerHTML = '<tr><td colspan="21"><div class="mom-empty"><div class="mom-empty-icon">⭐</div><div class="mom-empty-text">No stocks match filter</div></div></td></tr>';
     return;
   }
   document.getElementById('picks-body').innerHTML = data.map(s => {
     const moveSince = s.move_since_star;
     const moveColor = moveSince !== null ? (moveSince >= 0 ? '#22C55E' : '#EF4444') : 'var(--muted)';
     const moveStr = moveSince !== null ? `<span style="color:${moveColor};font-weight:700">${moveSince>=0?'+':''}${moveSince.toFixed(2)}%</span>` : '—';
+    const pct52p  = (s.ltp && s.high_52w) ? ((s.high_52w - s.ltp)/s.high_52w*100) : null;
+    const pct52pstr = pct52p!==null ? pct52p.toFixed(1)+'%' : '—';
+    const pct52pcol = pct52p!==null ? (pct52p<5?'var(--green)':pct52p<10?'var(--amber)':pct52p<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
       <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.starred_at?new Date(s.starred_at).toLocaleDateString('en-IN'):'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${s.days_starred!==null?s.days_starred+'d':'—'}</td>
       <td>₹${(s.ref_price||0).toLocaleString('en-IN')}</td>
@@ -4785,6 +4830,7 @@ function renderPicks() {
       <td>${getEMAStatus(s.above_ema9_daily, s.above_ema20_daily)}</td>
       <td>${getEMAStatus(s.above_ema9_weekly, s.above_ema20_weekly)}</td>
       <td>${getZoneTag(s.pct_from_ema9_daily)}</td>
+      <td style="color:${pct52pcol};font-weight:600">${pct52pstr}</td>
       <td>${fmtChg(s.day_chg_pct)}</td>
       <td>${fmtChg(s.week_chg_pct)}</td>
       <td>${fmtChg(s.month_chg_pct)}</td>
@@ -4806,8 +4852,11 @@ function renderExited() {
     const av = a[key] ?? '', bv = b[key] ?? '';
     return typeof av === 'string' ? av.localeCompare(bv) * dir : ((av||0) - (bv||0)) * dir;
   });
+  // Update count
+  const exitCntEl = document.getElementById('exited-count');
+  if (exitCntEl) exitCntEl.textContent = `Showing ${data.length} of ${momData.exited.length}`;
   if (!data.length) {
-    document.getElementById('exited-body').innerHTML = '<tr><td colspan="10"><div class="mom-empty"><div class="mom-empty-icon">🚪</div><div class="mom-empty-text">No exited stocks</div></div></td></tr>';
+    document.getElementById('exited-body').innerHTML = '<tr><td colspan="11"><div class="mom-empty"><div class="mom-empty-icon">🚪</div><div class="mom-empty-text">No exited stocks</div></div></td></tr>';
     return;
   }
   document.getElementById('exited-body').innerHTML = data.map(s => {
@@ -4817,6 +4866,7 @@ function renderExited() {
       <td style="text-align:center"><input type="checkbox" class="exited-check" data-symbol="${s.symbol}" style="cursor:pointer"></td>
       <td><span style="font-weight:600">${s.symbol}</span>${catB?'<br><span style="font-size:9px;color:var(--amber)">⚠️ Still above Weekly EMA</span>':''}<br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.exit_date||'—'}</td>
       <td style="font-size:11px;color:var(--red)">${daysSinceExit!==null?daysSinceExit+'d':'—'}</td>
       <td>${getEMAStatus(s.above_ema9_weekly, s.above_ema20_weekly)}</td>
