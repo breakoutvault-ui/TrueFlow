@@ -1172,6 +1172,18 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ══ SECTORS TAB ══ -->
   <div id="tab-sector" class="panel active">
     <div class="breadth-bar" id="sec-breadth"></div>
+    <div class="date-row">
+      <span class="date-label">📅 PERIOD</span>
+      <button class="date-pill" onclick="setPeriod('sector','today',this)" title="Jump to today's data">Today</button>
+      <button class="date-pill" onclick="setPeriod('sector','week',this)" title="Aggregate average across last 5 trading days">This Week</button>
+      <button class="date-pill" onclick="setPeriod('sector','month',this)" title="Aggregate average across last 22 trading days">This Month</button>
+      <button class="date-pill" onclick="setPeriod('sector','custom',this)" title="Pick a custom date range">Custom ▾</button>
+      <span id="sector-period-custom" style="display:none;gap:6px;align-items:center">
+        <input type="date" id="sector-from" onchange="applySectorCustom()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px"/>
+        <span style="color:var(--muted);font-size:10px">to</span>
+        <input type="date" id="sector-to" onchange="applySectorCustom()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px"/>
+      </span>
+    </div>
     <div class="date-row"><span class="date-label">📅 DATE</span><div id="sec-dates"></div></div>
     <div class="metric-grid" id="sec-metrics"></div>
     <div class="sort-row">
@@ -1193,7 +1205,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <th class="col-dvc" onclick="sortTable('sector','dvc',this)">DV Chg%</th>
         <th class="col-vu" onclick="sortTable('sector','vwap',this)">VWAP↑</th>
         <th class="col-sc" onclick="sortTable('sector','score',this)">Trend Score</th>
-        <th class="col-zn">Zone</th>
+        <th class="col-zn" onclick="sortTable('sector','zone',this)">Zone</th>
         <th class="col-sma" onclick="sortTable('sector','m3',this)">3M</th>
         <th class="col-sma" onclick="sortTable('sector','m6',this)">6M</th>
       </tr></thead>
@@ -1204,6 +1216,18 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ══ INDUSTRIES TAB ══ -->
   <div id="tab-industry" class="panel">
     <div class="breadth-bar" id="ind-breadth"></div>
+    <div class="date-row">
+      <span class="date-label">📅 PERIOD</span>
+      <button class="date-pill" onclick="setPeriod('industry','today',this)" title="Jump to today's data">Today</button>
+      <button class="date-pill" onclick="setPeriod('industry','week',this)" title="Aggregate average across last 5 trading days">This Week</button>
+      <button class="date-pill" onclick="setPeriod('industry','month',this)" title="Aggregate average across last 22 trading days">This Month</button>
+      <button class="date-pill" onclick="setPeriod('industry','custom',this)" title="Pick a custom date range">Custom ▾</button>
+      <span id="industry-period-custom" style="display:none;gap:6px;align-items:center">
+        <input type="date" id="industry-from" onchange="applyIndustryCustom()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px"/>
+        <span style="color:var(--muted);font-size:10px">to</span>
+        <input type="date" id="industry-to" onchange="applyIndustryCustom()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px"/>
+      </span>
+    </div>
     <div class="date-row"><span class="date-label">📅 DATE</span><div id="ind-dates"></div></div>
     <div class="metric-grid" id="ind-metrics"></div>
     <div class="sort-row">
@@ -1233,8 +1257,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <th class="col-dvc" onclick="sortTable('industry','dvc',this)">DV Chg%</th>
         <th class="col-vu" onclick="sortTable('industry','vwap',this)">VWAP↑</th>
         <th class="col-sc" onclick="sortTable('industry','score',this)">Trend Score</th>
-        <th class="col-zn">Zone</th>
-        <th class="col-st">Days</th>
+        <th class="col-zn" onclick="sortTable('industry','zone',this)">Zone</th>
+        <th class="col-st" onclick="sortTable('industry','streak',this)">Days</th>
       </tr></thead>
       <tbody id="ind-body"><tr><td colspan="11"><div class="empty"><div class="empty-icon">🏗️</div><div class="empty-text">No data yet</div><div class="empty-sub">Click "+ Add Day" to upload your first StockEdge export</div></div></td></tr></tbody>
     </table></div>
@@ -1380,10 +1404,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
           <span class="sort-label">METRIC</span>
           <div class="metric-btns">
-            <button class="tc-btn sort-btn active" onclick="setMetric('score',this)">Score</button>
-            <button class="tc-btn sort-btn" onclick="setMetric('sma20',this)">SMA20%</button>
-            <button class="tc-btn sort-btn" onclick="setMetric('dv',this)">Delivery ₹</button>
-            <button class="tc-btn sort-btn" onclick="setMetric('vwap',this)">VWAP↑%</button>
+            <button class="tc-btn sort-btn active" onclick="setMetric('score',this)" title="Score: Rotation strength score (0-100). Combines price action, momentum, and breadth. Higher = stronger sector/industry">Score</button>
+            <button class="tc-btn sort-btn" onclick="setMetric('sma20',this)" title="SMA20%: Percentage of stocks in this sector/industry trading above their 20-day Simple Moving Average. Breadth indicator — higher = broader participation in uptrend">SMA20%</button>
+            <button class="tc-btn sort-btn" onclick="setMetric('dv',this)" title="Delivery ₹: Total delivery-based value traded in the sector/industry. High = institutional/conviction buying, not intraday speculation">Delivery ₹</button>
+            <button class="tc-btn sort-btn" onclick="setMetric('vwap',this)" title="VWAP↑%: Percentage of stocks trading above their VWAP (Volume Weighted Average Price). Intraday strength indicator">VWAP↑%</button>
           </div>
         </div>
       </div>
@@ -1391,13 +1415,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div class="sel-header">
           <span class="sort-label">QUICK SELECT</span>
           <div class="quick-btns">
-            <button class="sort-btn" onclick="setQuickFilter('top10',this)">Top 10</button>
-            <button class="sort-btn" onclick="setQuickFilter('latest5',this)">Latest 5</button>
-            <button class="sort-btn" onclick="setQuickFilter('power',this)">⚡ Power</button>
-            <button class="sort-btn" onclick="setQuickFilter('sugar',this)">🌾 Sugar</button>
-            <button class="sort-btn" onclick="setQuickFilter('finance',this)">🏦 Finance</button>
-            <button class="sort-btn" onclick="setQuickFilter('metal',this)">⛏️ Metals</button>
-            <button class="sort-btn" onclick="setQuickFilter('custom',this)">Custom ▾</button>
+            <button class="sort-btn" onclick="setQuickFilter('top10',this)" title="Top 10 industries by cumulative appearances in daily top-10 across all dates">Top 10</button>
+            <button class="sort-btn" onclick="setQuickFilter('topstreak',this)" title="Top 10 industries by longest current active streak — longest held winners">Top 10 by Streak</button>
+            <button class="sort-btn" onclick="setQuickFilter('latest5',this)" title="Top 5 industries by score on the most recent date">Latest 5</button>
+            <button class="sort-btn" onclick="setQuickFilter('power',this)" title="Power/Solar/Energy/Wind/Hydro/Electric industries">⚡ Power</button>
+            <button class="sort-btn" onclick="setQuickFilter('sugar',this)" title="Sugar/Ethanol/Agri/Aqua/Rubber industries">🌾 Sugar</button>
+            <button class="sort-btn" onclick="setQuickFilter('finance',this)" title="Finance/Bank/NBFC/Asset/Insurance/Housing industries">🏦 Finance</button>
+            <button class="sort-btn" onclick="setQuickFilter('metal',this)" title="Steel/Iron/Aluminium/Copper/Zinc/Metal/Mining/Ferro industries">⛏️ Metals</button>
+            <button class="sort-btn" onclick="setQuickFilter('custom',this)" title="Manually pick specific industries from a searchable list">Custom ▾</button>
+            <button class="sort-btn" onclick="clearAllTrackerSel('industry',this)" title="Deselect all industries and reset the tracker" style="color:var(--red);border-color:rgba(255,68,102,.3)">✕ Clear All</button>
           </div>
         </div>
         <div class="custom-sel-wrap" id="custom-sel-wrap" style="display:none">
@@ -1413,9 +1439,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div class="sel-header">
           <span class="sort-label">SELECT SECTORS</span>
           <div class="quick-btns">
-            <button class="sort-btn" onclick="setSecQuickFilter('top10',this)">Top 10</button>
-            <button class="sort-btn" onclick="setSecQuickFilter('latest',this)">Latest 5</button>
-            <button class="sort-btn" onclick="setSecQuickFilter('custom',this)">Custom ▾</button>
+            <button class="sort-btn" onclick="setSecQuickFilter('top10',this)" title="Top 10 sectors by cumulative appearances in daily top-10">Top 10</button>
+            <button class="sort-btn" onclick="setSecQuickFilter('topstreak',this)" title="Top 10 sectors by longest current active streak">Top 10 by Streak</button>
+            <button class="sort-btn" onclick="setSecQuickFilter('latest',this)" title="Top 5 sectors by score on the most recent date">Latest 5</button>
+            <button class="sort-btn" onclick="setSecQuickFilter('custom',this)" title="Manually pick specific sectors from a searchable list">Custom ▾</button>
+            <button class="sort-btn" onclick="clearAllTrackerSel('sector',this)" title="Deselect all sectors and reset the tracker" style="color:var(--red);border-color:rgba(255,68,102,.3)">✕ Clear All</button>
           </div>
         </div>
         <div class="custom-sel-wrap" id="custom-sec-sel-wrap" style="display:none">
@@ -1482,6 +1510,29 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <option value="sharp">⚡ Sharp Mover</option>
             <option value="reentry">🔁 Re-entry</option>
           </select>
+          <!-- Daily EMA Zone filter -->
+          <select class="sort-sel" onchange="setMomSelectFilter('scanner','zoneD',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Daily 9 EMA">
+            <option value="all">Daily EMA Zone: All</option>
+            <option value="in">🟢 In Zone (&lt;3%)</option>
+            <option value="near">🟡 Near (3-5%)</option>
+            <option value="far">🔴 Far (&gt;5%)</option>
+          </select>
+          <!-- Weekly EMA Zone filter -->
+          <select class="sort-sel" onchange="setMomSelectFilter('scanner','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Weekly 9 EMA">
+            <option value="all">Weekly EMA Zone: All</option>
+            <option value="in">🟢 In Zone (&lt;3%)</option>
+            <option value="near">🟡 Near (3-5%)</option>
+            <option value="far">🔴 Far (&gt;5%)</option>
+          </select>
+          <!-- % from 52W filter -->
+          <select class="sort-sel" onchange="setMomSelectFilter('scanner','dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% away from 52-week high">
+            <option value="all">52W Distance: All</option>
+            <option value="b1">&lt;5% (near breakout)</option>
+            <option value="b2">5-10%</option>
+            <option value="b3">10-15%</option>
+            <option value="b4">15-20%</option>
+            <option value="b5">&gt;20%</option>
+          </select>
           <!-- Sector filter -->
           <select class="sort-sel" id="scanner-sector-filter" onchange="setMomSelectFilter('scanner','sector',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none">
             <option value="all">All Sectors</option>
@@ -1532,6 +1583,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ── EMA SIGNALS TAB ── -->
   <div id="tab-emasignals" class="panel">
     <div class="momentum-panel">
+      <!-- Trending Sectors & Industries strip -->
+      <div id="ema-trending-strip" style="background:var(--glass);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:6px">🔥 Top 10 Trending Sectors <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0" title="Ranked by count of fresh EMA crossovers in current data">(by crossover count)</span></div>
+          <div id="ema-trend-sectors" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:6px">🏗️ Top 10 Trending Industries <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0" title="Ranked by count of fresh EMA crossovers in current data">(by crossover count)</span></div>
+          <div id="ema-trend-industries" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+      </div>
       <div class="mom-topbar">
         <div class="mom-filters">
           <div class="mom-filter-group">
@@ -1563,6 +1625,26 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <option value="3Y">3 Year High</option>
             <option value="52W">52W High</option>
             <option value="none">No Breakout</option>
+          </select>
+          <select class="sort-sel" onchange="setMomSelectFilter('ema','zoneD',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Daily 9 EMA">
+            <option value="all">Daily EMA Zone: All</option>
+            <option value="in">🟢 In Zone (&lt;3%)</option>
+            <option value="near">🟡 Near (3-5%)</option>
+            <option value="far">🔴 Far (&gt;5%)</option>
+          </select>
+          <select class="sort-sel" onchange="setMomSelectFilter('ema','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Weekly 9 EMA">
+            <option value="all">Weekly EMA Zone: All</option>
+            <option value="in">🟢 In Zone (&lt;3%)</option>
+            <option value="near">🟡 Near (3-5%)</option>
+            <option value="far">🔴 Far (&gt;5%)</option>
+          </select>
+          <select class="sort-sel" onchange="setMomSelectFilter('ema','dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% away from 52-week high">
+            <option value="all">52W Distance: All</option>
+            <option value="b1">&lt;5% (near breakout)</option>
+            <option value="b2">5-10%</option>
+            <option value="b3">10-15%</option>
+            <option value="b4">15-20%</option>
+            <option value="b5">&gt;20%</option>
           </select>
           <select class="sort-sel" id="ema-sector-filter" onchange="setMomSelectFilter('ema','sector',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none">
             <option value="all">All Sectors</option>
@@ -1628,6 +1710,26 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <button class="sort-btn" onclick="setMomFilter('sharp','score','high',this)" title="High Conviction: Score 80-100">🔥 High</button>
             <button class="sort-btn" onclick="setMomFilter('sharp','score','building',this)" title="Building: Score 60-79">⚡ Building</button>
           </div>
+          <select class="sort-sel" onchange="setMomSelectFilter('sharp','zoneD',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Daily 9 EMA">
+            <option value="all">Daily EMA Zone: All</option>
+            <option value="in">🟢 In Zone (&lt;3%)</option>
+            <option value="near">🟡 Near (3-5%)</option>
+            <option value="far">🔴 Far (&gt;5%)</option>
+          </select>
+          <select class="sort-sel" onchange="setMomSelectFilter('sharp','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Weekly 9 EMA">
+            <option value="all">Weekly EMA Zone: All</option>
+            <option value="in">🟢 In Zone (&lt;3%)</option>
+            <option value="near">🟡 Near (3-5%)</option>
+            <option value="far">🔴 Far (&gt;5%)</option>
+          </select>
+          <select class="sort-sel" onchange="setMomSelectFilter('sharp','dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% away from 52-week high">
+            <option value="all">52W Distance: All</option>
+            <option value="b1">&lt;5% (near breakout)</option>
+            <option value="b2">5-10%</option>
+            <option value="b3">10-15%</option>
+            <option value="b4">15-20%</option>
+            <option value="b5">&gt;20%</option>
+          </select>
           <select class="sort-sel" id="sharp-sector-filter" onchange="setMomSelectFilter('sharp','sector',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none">
             <option value="all">All Sectors</option>
           </select>
@@ -1694,6 +1796,20 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <button class="sort-btn" onclick="setMomFilter('picks','zone','near',this)" title="NEAR: 3-5% from daily 9 EMA — watch for further pullback">🟡 Near</button>
             <button class="sort-btn" onclick="setMomFilter('picks','zone','far',this)" title="FAR: More than 5% from daily 9 EMA — stock extended, avoid fresh entry">🔴 Far</button>
           </div>
+          <select class="sort-sel" onchange="setMomSelectFilter('picks','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Weekly 9 EMA">
+            <option value="all">Weekly EMA Zone: All</option>
+            <option value="in">🟢 In Zone (&lt;3%)</option>
+            <option value="near">🟡 Near (3-5%)</option>
+            <option value="far">🔴 Far (&gt;5%)</option>
+          </select>
+          <select class="sort-sel" onchange="setMomSelectFilter('picks','dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% away from 52-week high">
+            <option value="all">52W Distance: All</option>
+            <option value="b1">&lt;5% (near breakout)</option>
+            <option value="b2">5-10%</option>
+            <option value="b3">10-15%</option>
+            <option value="b4">15-20%</option>
+            <option value="b5">&gt;20%</option>
+          </select>
         </div>
         <div class="mom-export-btns">
           <span class="mom-updated" id="picks-count" style="color:var(--cyan);font-weight:600">—</span>
@@ -2588,6 +2704,57 @@ function selectDate(type, date) {
   if (type==='industry') renderIndustry(); else renderSector();
 }
 
+// Period filter for Sectors/Industries — Today / Week / Month / Custom
+function setPeriod(type, period, btn) {
+  const custId = type + '-period-custom';
+  const custEl = document.getElementById(custId);
+  // Toggle active state on period buttons
+  const periodRow = btn ? btn.parentElement : null;
+  if (periodRow) periodRow.querySelectorAll('.date-pill').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (period === 'custom') {
+    if (custEl) custEl.style.display = 'inline-flex';
+    return;
+  }
+  if (custEl) custEl.style.display = 'none';
+  const dates = Object.keys(DB[type]).sort();
+  if (!dates.length) return;
+  let target;
+  if (period === 'today')  target = dates[dates.length-1];
+  if (period === 'week')   target = dates[Math.max(0, dates.length-5)];
+  if (period === 'month')  target = dates[Math.max(0, dates.length-22)];
+  if (target) selectDate(type, target);
+}
+
+function applySectorCustom() {
+  const from = document.getElementById('sector-from').value;
+  const to   = document.getElementById('sector-to').value;
+  if (!from && !to) return;
+  const dates = Object.keys(DB.sector).sort();
+  // Pick closest date in DB to 'to' (or 'from' if no 'to')
+  const anchor = to || from;
+  let closest = dates[0], minDiff = Infinity;
+  dates.forEach(d => {
+    const diff = Math.abs(new Date(d) - new Date(anchor));
+    if (diff < minDiff) { minDiff = diff; closest = d; }
+  });
+  if (closest) selectDate('sector', closest);
+}
+
+function applyIndustryCustom() {
+  const from = document.getElementById('industry-from').value;
+  const to   = document.getElementById('industry-to').value;
+  if (!from && !to) return;
+  const dates = Object.keys(DB.industry).sort();
+  const anchor = to || from;
+  let closest = dates[0], minDiff = Infinity;
+  dates.forEach(d => {
+    const diff = Math.abs(new Date(d) - new Date(anchor));
+    if (diff < minDiff) { minDiff = diff; closest = d; }
+  });
+  if (closest) selectDate('industry', closest);
+}
+
 function renderMetrics(type, id) {
   const date = currentDate[type];
   if (!date) { document.getElementById(id).innerHTML=''; return; }
@@ -3130,6 +3297,28 @@ function setMetric(m, btn) {
   if (indQuickFilter || secQuickFilter || customIndSel.length || customSecSel.length) buildTrackerChart();
 }
 
+// Clear all tracker selections (industry or sector)
+function clearAllTrackerSel(type, btn) {
+  if (type === 'industry') {
+    indQuickFilter = null;
+    customIndSel = [];
+    document.querySelectorAll('#tracker-industry-sel .quick-btns .sort-btn').forEach(b=>b.classList.remove('active'));
+    const cw = document.getElementById('custom-sel-wrap');
+    if (cw) cw.style.display = 'none';
+  } else {
+    secQuickFilter = null;
+    customSecSel = [];
+    document.querySelectorAll('#tracker-sector-sel .quick-btns .sort-btn').forEach(b=>b.classList.remove('active'));
+    const cw = document.getElementById('custom-sec-sel-wrap');
+    if (cw) cw.style.display = 'none';
+  }
+  // Reset chart area to empty state
+  const area = document.getElementById('tracker-chart-area');
+  if (area) area.innerHTML = '<div class="tracker-empty"><div class="tracker-empty-icon">📊</div><div class="tracker-empty-text">Select industries or sectors above to see their trend</div><div class="tracker-empty-sub">Compare up to 15 at once across any metric</div></div>';
+  const leg = document.getElementById('track-legend');
+  if (leg) leg.innerHTML = '';
+}
+
 function getAllTop10Names() {
   const all = new Set();
   Object.keys(DB.industry).sort().forEach(d=>getTop('industry',d,10).forEach(r=>all.add(r.n)));
@@ -3145,6 +3334,11 @@ function filterNames() {
       const cnt={}; secDates.forEach(d=>getTop('sector',d,10).forEach(r=>{cnt[r.n]=(cnt[r.n]||0)+1;}));
       return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,10).map(e=>e[0]);
     }
+    if (secQuickFilter==='topstreak') {
+      const names = new Set();
+      secDates.forEach(d=>getTop('sector',d,10).forEach(r=>names.add(r.n)));
+      return [...names].map(n=>({n, s:getStreak('sector',n)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,10).map(x=>x.n);
+    }
     return [];
   }
   const all = getAllTop10Names();
@@ -3155,6 +3349,9 @@ function filterNames() {
   if (indQuickFilter==='finance') return all.filter(n=>/finance|bank|nbfc|asset|insurance|housing/i.test(n));
   if (indQuickFilter==='metal')   return all.filter(n=>/steel|iron|alumin|copper|zinc|metal|mining|ferro/i.test(n));
   if (indQuickFilter==='top10')   return all.slice(0,15);
+  if (indQuickFilter==='topstreak') {
+    return all.map(n=>({n, s:getStreak('industry',n)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,10).map(x=>x.n);
+  }
   return [];
 }
 
@@ -4304,10 +4501,10 @@ function exportAHPDF()   { showToast('PDF export — coming in Phase 3','info');
 // State
 let momData = { scanner:[], ema:[], sharp:[], picks:[], exited:[] };
 let momFilters = {
-  scanner: { period:'all', cat:'all', score:'all', signal:'all', sector:'all', star:false },
-  ema:     { cross:'all', cat:'all', score:'all', breakout:'all', sector:'all', star:false },
-  sharp:   { move:'all', cat:'all', score:'all', sector:'all', star:false },
-  picks:   { cat:'all', zone:'all' },
+  scanner: { period:'all', cat:'all', score:'all', signal:'all', sector:'all', star:false, zoneD:'all', zoneW:'all', dist52:'all' },
+  ema:     { cross:'all', cat:'all', score:'all', breakout:'all', sector:'all', star:false, zoneD:'all', zoneW:'all', dist52:'all' },
+  sharp:   { move:'all', cat:'all', score:'all', sector:'all', star:false, zoneD:'all', zoneW:'all', dist52:'all' },
+  picks:   { cat:'all', zone:'all', zoneD:'all', zoneW:'all', dist52:'all' },
   exited:  {}
 };
 let momSort = { scanner:{key:'momentum_score',dir:-1}, ema:{key:'daily_crossover_date',dir:-1}, sharp:{key:'move_pct',dir:-1}, picks:{key:'move_since_star',dir:-1}, exited:{key:'exit_date',dir:-1} };
@@ -4381,6 +4578,30 @@ function scoreFilter(score, filter) {
   if (filter === 'building') return score >= 60 && score < 80;
   if (filter === 'watch') return score >= 40 && score < 60;
   if (filter === 'weak') return score < 40;
+  return true;
+}
+
+// Zone filter — by % distance from EMA (daily or weekly 9 EMA)
+function zoneFilter(pctFromEma, bucket) {
+  if (bucket === 'all') return true;
+  if (pctFromEma === null || pctFromEma === undefined) return false;
+  const a = Math.abs(pctFromEma);
+  if (bucket === 'in')   return a < 3;
+  if (bucket === 'near') return a >= 3 && a < 5;
+  if (bucket === 'far')  return a >= 5;
+  return true;
+}
+
+// % from 52W High filter — buckets: <5 / 5-10 / 10-15 / 15-20 / >20
+function dist52Filter(ltp, high_52w, bucket) {
+  if (bucket === 'all') return true;
+  if (!ltp || !high_52w) return false;
+  const p = (high_52w - ltp) / high_52w * 100;
+  if (bucket === 'b1') return p < 5;
+  if (bucket === 'b2') return p >= 5 && p < 10;
+  if (bucket === 'b3') return p >= 10 && p < 15;
+  if (bucket === 'b4') return p >= 15 && p < 20;
+  if (bucket === 'b5') return p >= 20;
   return true;
 }
 
@@ -4620,6 +4841,9 @@ function renderScanner() {
   }
   if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
   if (f.star) data = data.filter(s => momStarred.has(s.symbol));
+  if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+  if (f.zoneW !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+  if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
   // Update count
   const cntEl = document.getElementById('scanner-count');
   if (cntEl) cntEl.textContent = `Showing ${data.length} of ${momData.scanner.length}`;
@@ -4662,8 +4886,55 @@ function renderScanner() {
   }).join('');
 }
 
+// Render trending sectors + industries strip on EMA Signals tab
+function renderEMATrendingStrip() {
+  const secEl = document.getElementById('ema-trend-sectors');
+  const indEl = document.getElementById('ema-trend-industries');
+  if (!secEl || !indEl) return;
+  const data = momData.ema || [];
+  if (!data.length) {
+    secEl.innerHTML = '<span style="font-size:11px;color:var(--muted)">No data yet</span>';
+    indEl.innerHTML = '<span style="font-size:11px;color:var(--muted)">No data yet</span>';
+    return;
+  }
+  // Count crossovers per sector and per industry (deduplicate by symbol first)
+  const seen = new Set();
+  const secCnt = {}, indCnt = {};
+  data.forEach(s => {
+    if (seen.has(s.symbol)) return;
+    seen.add(s.symbol);
+    if (s.sector)   secCnt[s.sector]   = (secCnt[s.sector]   || 0) + 1;
+    if (s.industry) indCnt[s.industry] = (indCnt[s.industry] || 0) + 1;
+  });
+  const topSectors    = Object.entries(secCnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const topIndustries = Object.entries(indCnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const activeSec = momFilters.ema.sector;
+  secEl.innerHTML = topSectors.map(([name,cnt]) => {
+    const isActive = activeSec === name;
+    return `<button class="sort-btn${isActive?' active':''}" onclick="setEMASectorFilter('${name.replace(/'/g,"\\'")}')" title="Click to filter EMA Signals to ${name}" style="font-size:10px;padding:3px 8px">${name} <span style="color:var(--cyan);font-weight:700">${cnt}</span></button>`;
+  }).join('') || '<span style="font-size:11px;color:var(--muted)">No sectors tagged</span>';
+  indEl.innerHTML = topIndustries.map(([name,cnt]) => {
+    return `<button class="sort-btn" onclick="setEMAIndustryFilter('${name.replace(/'/g,"\\'")}')" title="Click to filter EMA Signals to ${name}" style="font-size:10px;padding:3px 8px">${name} <span style="color:var(--cyan);font-weight:700">${cnt}</span></button>`;
+  }).join('') || '<span style="font-size:11px;color:var(--muted)">No industries tagged</span>';
+}
+
+// Click handlers for trending strip chips
+function setEMASectorFilter(name) {
+  momFilters.ema.sector = name;
+  const sel = document.getElementById('ema-sector-filter');
+  if (sel) sel.value = name;
+  renderEMA();
+}
+function setEMAIndustryFilter(name) {
+  // Industry filter — filters momData.ema by industry inline (no dedicated filter, use sort/group effect)
+  momFilters.ema._industry = name;
+  renderEMA();
+}
+
 // ── RENDER EMA SIGNALS ────────────────────────────────
 function renderEMA() {
+  // Render trending sectors/industries strip (computed from full momData.ema, not filtered)
+  renderEMATrendingStrip();
   const f = momFilters.ema;
   let data = [...momData.ema];
   // Cross filter
@@ -4684,7 +4955,11 @@ function renderEMA() {
     else data = data.filter(s => s.breakout_type === f.breakout);
   }
   if (f.sector !== 'all')   data = data.filter(s => s.sector === f.sector);
+  if (f._industry)           data = data.filter(s => s.industry === f._industry);
   if (f.star)                data = data.filter(s => momStarred.has(s.symbol));
+  if (f.zoneD !== 'all')     data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+  if (f.zoneW !== 'all')     data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+  if (f.dist52 !== 'all')    data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
   // Deduplicate by symbol
   const seen = new Set();
   data = data.filter(s => { if (seen.has(s.symbol)) return false; seen.add(s.symbol); return true; });
@@ -4739,6 +5014,9 @@ function renderSharp() {
   if (f.score !== 'all')  data = data.filter(s => scoreFilter(s.momentum_score||0, f.score));
   if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
   if (f.star)             data = data.filter(s => momStarred.has(s.symbol));
+  if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+  if (f.zoneW !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+  if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
   // Add computed move_pct
   data = data.map(s => ({ ...s, move_pct: Math.max(Math.abs(s.move_3d_pct||0), Math.abs(s.move_1m_pct||0)) }));
   // Update count
@@ -4802,6 +5080,9 @@ function renderPicks() {
       return true;
     });
   }
+  if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+  if (f.zoneW !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+  if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
   const { key, dir } = momSort.picks;
   data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
   // Update count
