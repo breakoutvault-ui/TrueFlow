@@ -59,6 +59,7 @@ body.theme-navy{
 ══════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
+html,body{margin:0;padding:0}
 body{background:var(--bg0);color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 40% at 50% 0%,var(--cyan-glow) 0%,transparent 65%);pointer-events:none;z-index:0}
 ::-webkit-scrollbar{width:4px;height:4px}
@@ -137,6 +138,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .star-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;opacity:.5;transition:all .15s;line-height:1;font-weight:900}
 .star-btn:hover{opacity:1;transform:scale(1.2)}
 .star-btn.starred{opacity:1;filter:drop-shadow(0 0 4px #FFD700);font-weight:900}
+.fresh-x-badge{display:inline-block;font-size:11px;margin-left:5px;cursor:help;filter:drop-shadow(0 0 4px rgba(0,212,255,.5));animation:pulseFade 2s ease-in-out infinite}
+@keyframes pulseFade{0%,100%{opacity:.7}50%{opacity:1}}
+.conv-bar-wrap{width:50px;height:3px;background:var(--bg2);border-radius:2px;margin:2px 0;overflow:hidden}
+.conv-bar-fill{height:100%;transition:width .3s;border-radius:2px}
 .tag{font-size:10px;padding:2px 6px;border-radius:20px;font-weight:600;display:inline-block;white-space:nowrap}
 .tag-bull{background:rgba(34,197,94,.12);color:#22C55E}
 .tag-bear{background:rgba(239,68,68,.12);color:#EF4444}
@@ -704,7 +709,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <button class="nav-tab active" onclick="switchTab('morning',this,'fo')">🌅 Morning Brief</button>
       <button class="nav-tab" onclick="switchTab('sectorpulse',this,'fo')">📡 Sector Pulse</button>
       <button class="nav-tab" onclick="switchTab('alerts',this,'fo')">🔔 Live Alerts</button>
-      <button class="nav-tab" onclick="switchTab('optchain',this,'fo')">🔗 Option Chain</button>
       <button class="nav-tab" onclick="switchTab('alerthistory',this,'fo')">📋 Alert History</button>
     </div>
     <div class="nav-tabs" id="eod-tabs" style="display:none;flex:1;min-width:0;overflow:hidden">
@@ -821,11 +825,19 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <select class="sort-sel" onchange="setMBSort(this.value)" style="background:var(--bg2);border:none;color:var(--text);font-size:12px;outline:none;width:100%"
               title="Sort the watchlist — Conviction Score ranks stocks by combined EMA zone + OI + Volume + Delivery signals">
               <option value="conviction">Conviction Score ↓</option>
+              <option value="gap">Gap % ↓</option>
               <option value="ema_dist">% from 9 EMA ↑ (closest first)</option>
               <option value="dist52">52W High Distance ↑ (nearest first)</option>
               <option value="chg">Change % ↓</option>
               <option value="vol">Volume ×avg ↓</option>
               <option value="del">Delivery % ↓</option>
+            </select>
+          </div>
+          <!-- Row 3: Sector filter (full width) -->
+          <div style="display:flex;flex-direction:column;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;grid-column:span 2">
+            <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">Sector</span>
+            <select class="sort-sel" id="mb-sector-filter" onchange="setMBFilter('sector',this.value)" style="background:var(--bg2);border:none;color:var(--text);font-size:12px;outline:none;width:100%" title="Filter the watchlist by sector">
+              <option value="all">All Sectors</option>
             </select>
           </div>
         </div>
@@ -845,6 +857,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th>Sector</th>
               <th>Industry</th>
               <th>LTP / Chg</th>
+              <th class="sortable-th" onclick="setMBSort('gap')" title="Sort by Gap % from previous close">Gap % <span class="sort-arrow" id="mba-gap">↕</span></th>
               <th>Daily EMA</th>
               <th>OI Buildup</th>
               <th>PDH / PDL</th>
@@ -852,10 +865,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="sortable-th" onclick="setMBSort('dist52')" title="Sort by 52W High distance">52W High / Away <span class="sort-arrow" id="mba-dist52">↕</span></th>
               <th class="sortable-th" onclick="setMBSort('vol')" title="Sort by Volume">Vol ×avg <span class="sort-arrow" id="mba-vol">↕</span></th>
               <th class="sortable-th" onclick="setMBSort('del')" title="Sort by Delivery %">Del % <span class="sort-arrow" id="mba-del">↕</span></th>
-              <th class="sortable-th" onclick="setMBSort('conviction')" title="Sort by Conviction Score">Score <span class="sort-arrow" id="mba-conviction">↓</span></th>
+              <th class="sortable-th" onclick="setMBSort('conviction')" title="Conviction Score 0-100: combines EMA trend, OI buildup, volume, delivery %, 52W proximity. Higher = better setup">Score <span class="sort-arrow" id="mba-conviction">↓</span></th>
             </tr></thead>
             <tbody id="mb-body">
-              <tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">
+              <tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">
                 Loading EMA data...
               </td></tr>
             </tbody>
@@ -962,6 +975,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               </select>
               <span style="font-size:10px;color:var(--muted);margin-left:auto" id="alerts-last-updated"></span>
               <button class="sort-btn" id="wl-filter-btn" onclick="toggleWatchlistFilter(this)" title="Show only alerts from your starred stocks" style="margin-left:4px">⭐ Watchlist</button>
+              <button class="sort-btn" id="audio-ping-btn" onclick="toggleAudioPing(this)" title="Play a beep when a new Stage 2 alert arrives. Requires browser tab to be open. Preference saved locally." style="margin-left:4px">🔕 Audio</button>
             </div>
           </div>
           <div id="alert-list" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:540px">
@@ -984,7 +998,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ══════════════════════════════════════
        TAB 4: OPTION CHAIN
   ══════════════════════════════════════ -->
-  <div id="tab-optchain" class="panel">
+  <div id="tab-optchain" class="panel" style="display:none!important">
     <div class="fo-panel">
       <!-- Top strip -->
       <div class="fo-strip">
@@ -1120,8 +1134,41 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <div class="fo-card-sub fo-neu">high conviction</div>
         </div>
       </div>
-      <!-- Pattern insights -->
-      <div id="ah-insights" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"></div>
+      <!-- Pattern insights — Stage comparison + Best/Worst strip -->
+      <div id="ah-insights" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <!-- Stage 1 vs Stage 2 comparison card -->
+        <div class="fo-card" style="padding:12px 14px">
+          <div class="fo-card-label" style="margin-bottom:8px">Stage 1 vs Stage 2 · Performance</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+            <div style="border-right:1px solid var(--border);padding-right:8px" title="Stage 1: ORB confirmed on 5-min EMA only">
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">⚡ Stage 1</div>
+              <div style="font-size:20px;font-weight:700;color:var(--amber)" id="ah-s1wr-strip">—</div>
+              <div style="font-size:10px;color:var(--muted)" id="ah-s1breakdown">— alerts · — wins · — losses</div>
+            </div>
+            <div title="Stage 2: ORB confirmed on BOTH 5-min AND 15-min EMA — high conviction">
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">🔥 Stage 2</div>
+              <div style="font-size:20px;font-weight:700;color:var(--green)" id="ah-s2wr-strip">—</div>
+              <div style="font-size:10px;color:var(--muted)" id="ah-s2breakdown">— alerts · — wins · — losses</div>
+            </div>
+          </div>
+        </div>
+        <!-- Best / Worst trade card -->
+        <div class="fo-card" style="padding:12px 14px">
+          <div class="fo-card-label" style="margin-bottom:8px">Best · Worst Trades</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+            <div style="border-right:1px solid var(--border);padding-right:8px" title="Trade with highest points captured in this period">
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">🏆 Best</div>
+              <div style="font-size:14px;font-weight:700;color:var(--green)" id="ah-best-stock">—</div>
+              <div style="font-size:11px;color:var(--green)" id="ah-best-pts">—</div>
+            </div>
+            <div title="Trade with largest loss in this period">
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">📉 Worst</div>
+              <div style="font-size:14px;font-weight:700;color:var(--red)" id="ah-worst-stock">—</div>
+              <div style="font-size:11px;color:var(--red)" id="ah-worst-pts">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <!-- Filters -->
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <select class="sort-sel" onchange="filterAH()" id="ah-stage-filter" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:12px;outline:none">
@@ -3563,7 +3610,7 @@ const SERVER_IP = '143.244.129.48';
 // ═══════════════════════════════════════════════════
 // F&O TAB 1: MORNING BRIEF
 // ═══════════════════════════════════════════════════
-let mbFilters = { ema:'all', oi:'all', zone:'all' };
+let mbFilters = { ema:'all', oi:'all', zone:'all', sector:'all' };
 let mbSort = 'conviction';
 let mbData = [];
 
@@ -3604,7 +3651,7 @@ async function loadMorningBrief() {
     const dateResp = await fetch(dateUrl, { headers });
     const dateData = await dateResp.json();
     if (!dateData || dateData.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     const latestDate = dateData[0].session_date;
@@ -3613,11 +3660,18 @@ async function loadMorningBrief() {
     const resp = await fetch(url, { headers });
     const data = await resp.json();
     if (!data || data.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     mbData = data;
     document.getElementById('mb-timestamp').textContent = latestDate + ' · EOD';
+    // Populate Sector filter dropdown
+    const mbSel = document.getElementById('mb-sector-filter');
+    if (mbSel) {
+      const currentVal = mbFilters.sector;
+      const sectors = [...new Set(data.map(s => s.sector).filter(Boolean))].sort();
+      mbSel.innerHTML = '<option value="all">All Sectors</option>' + sectors.map(s => `<option value="${s}"${s===currentVal?' selected':''}>${s}</option>`).join('');
+    }
     renderMBTable();
   } catch(e) { console.error('MB load error:', e); }
 }
@@ -3656,9 +3710,15 @@ function renderMBTable() {
   if (mbFilters.zone === 'in')   filtered = filtered.filter(s => getEMAZone(s) === 'in');
   else if (mbFilters.zone === 'near') filtered = filtered.filter(s => getEMAZone(s) === 'near');
   else if (mbFilters.zone === 'far')  filtered = filtered.filter(s => getEMAZone(s) === 'far');
+  if (mbFilters.sector && mbFilters.sector !== 'all') filtered = filtered.filter(s => s.sector === mbFilters.sector);
 
   // Sorting
   if (mbSort === 'conviction') filtered.sort((a,b) => calcConviction(b)-calcConviction(a));
+  else if (mbSort === 'gap') filtered.sort((a,b) => {
+    const ga = a.ltp&&a.prev_close ? ((parseFloat(a.ltp)-parseFloat(a.prev_close))/parseFloat(a.prev_close)*100) : 0;
+    const gb = b.ltp&&b.prev_close ? ((parseFloat(b.ltp)-parseFloat(b.prev_close))/parseFloat(b.prev_close)*100) : 0;
+    return gb - ga;
+  });
   else if (mbSort === 'ema_dist') filtered.sort((a,b) => {
     const pa = a.ltp&&a.ema9 ? Math.abs((parseFloat(a.ltp)-parseFloat(a.ema9))/parseFloat(a.ema9)*100) : 99;
     const pb = b.ltp&&b.ema9 ? Math.abs((parseFloat(b.ltp)-parseFloat(b.ema9))/parseFloat(b.ema9)*100) : 99;
@@ -3683,7 +3743,7 @@ function renderMBTable() {
   if (mbCntEl) mbCntEl.textContent = `Showing ${filtered.length} of ${mbData.length}`;
 
   if (filtered.length === 0) {
-    document.getElementById('mb-body').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
+    document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
     return;
   }
   const rows = filtered.map(s => {
@@ -3715,16 +3775,25 @@ function renderMBTable() {
     const oiIcon   = oiRaw === 'Long Buildup' ? '▲' : oiRaw === 'Short Buildup' ? '▼' : oiRaw === 'Short Covering' ? '↑' : oiRaw === 'Long Unwinding' ? '↓' : '';
     const conv     = calcConviction(s);
     const convCol  = conv >= 70 ? 'var(--green)' : conv >= 40 ? 'var(--amber)' : 'var(--muted)';
+    const convBarCol = conv >= 80 ? '#22C55E' : conv >= 60 ? '#F59E0B' : conv >= 40 ? '#6B7280' : '#404040';
     const setup    = trend === 'bull' ? 'Watch Call' : trend === 'bear' ? 'Watch Put' : 'Skip';
     const isStarred = starredStocks.has(s.symbol);
     const sector   = s.sector || '—';
     const industry = s.industry || '—';
+    // Gap % from prev close
+    const gapRaw  = s.ltp && s.prev_close ? ((parseFloat(s.ltp)-parseFloat(s.prev_close))/parseFloat(s.prev_close)*100) : null;
+    const gapCol  = gapRaw !== null ? (Math.abs(gapRaw) < 0.15 ? 'var(--muted)' : gapRaw > 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
+    const gapStr  = gapRaw !== null ? `<span style="color:${gapCol};font-weight:700;font-size:12px">${gapRaw>=0?'+':''}${gapRaw.toFixed(2)}%</span>` : '—';
+    // Fresh crossover badge — check momCrossoverMap (populated once when momData.scanner loads)
+    const freshX  = (window.momCrossoverMap && window.momCrossoverMap[s.symbol]) || null;
+    const freshXBadge = freshX ? `<span class="fresh-x-badge" title="Daily 9 EMA crossover on ${freshX}">🔄</span>` : '';
     return `<tr>
       <td style="text-align:center"><button class="star-btn${isStarred?' starred':''}" onclick="toggleStar('${s.symbol}',this)" title="${isStarred?'Remove from watchlist':'Add to watchlist'}">${isStarred?'⭐':'☆'}</button></td>
-      <td><span style="font-weight:600;color:var(--text)">${s.symbol}</span>${zoneTag}</td>
+      <td><span style="font-weight:600;color:var(--text)">${s.symbol}</span>${freshXBadge}${zoneTag}</td>
       <td><span style="font-size:11px;color:var(--muted)">${sector}</span></td>
       <td><span style="font-size:11px;color:var(--muted)">${industry}</span></td>
       <td><span style="font-weight:600">${ltp}</span> ${chgStr}</td>
+      <td>${gapStr}</td>
       <td><span style="color:${tc};font-weight:700">${ti} ${tLabel}</span><br>
           <span style="font-size:10px;color:var(--muted)">9E:${ema9} 20E:${ema20}</span></td>
       <td><span style="color:${oiCol};font-size:11px;font-weight:600">${oiIcon} ${oiRaw||'—'}</span></td>
@@ -3735,7 +3804,8 @@ function renderMBTable() {
           <span style="font-size:10px;color:var(--muted)">${dist52}</span></td>
       <td style="color:${volCol};font-weight:600">${volR}</td>
       <td style="color:var(--text)">${delPct}</td>
-      <td><span style="color:${convCol};font-size:13px;font-weight:700">${conv}</span><br>
+      <td title="Conviction Score 0-100: combines EMA trend, OI buildup, volume, delivery %, 52W proximity. Higher = better setup"><span style="color:${convCol};font-size:13px;font-weight:700">${conv}</span><br>
+          <div class="conv-bar-wrap"><div class="conv-bar-fill" style="width:${conv}%;background:${convBarCol}"></div></div>
           <span style="color:${tc};font-size:10px">${setup}</span></td>
     </tr>`;
   }).join('');
@@ -4224,6 +4294,37 @@ function selectAlert(i) {
     </div>`;
 }
 
+// ── Audio ping on new Stage 2 alerts ──────────────────
+let audioPingEnabled = false;
+let lastSeenAlertIds = new Set();
+function toggleAudioPing(btn) {
+  audioPingEnabled = !audioPingEnabled;
+  try { localStorage.setItem('tf_audio_ping', audioPingEnabled ? '1' : '0'); } catch(e) {}
+  if (btn) {
+    btn.textContent = audioPingEnabled ? '🔔 Audio' : '🔕 Audio';
+    btn.classList.toggle('active', audioPingEnabled);
+    btn.style.color = audioPingEnabled ? 'var(--cyan)' : '';
+  }
+  if (audioPingEnabled) playAlertBeep(); // test ping when enabling
+}
+function playAlertBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.15);
+    g.gain.setValueAtTime(0.001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.3);
+  } catch(e) { console.warn('Audio beep failed:', e); }
+}
+// Restore saved preference on load
+(function(){ try { if (localStorage.getItem('tf_audio_ping') === '1') audioPingEnabled = true; } catch(e) {} })();
+
 // Load live alerts from Supabase
 async function loadLiveAlerts() {
   try {
@@ -4232,6 +4333,19 @@ async function loadLiveAlerts() {
     const today = new Date().toISOString().slice(0,10);
     const {data} = await sb.from('fo_alerts').select('*').eq('session_date',today).order('fired_at',{ascending:false});
     if (data) {
+      // Audio ping check — beep if NEW Stage 2 alert arrived
+      if (audioPingEnabled && lastSeenAlertIds.size > 0) {
+        const newStage2 = data.filter(a => !lastSeenAlertIds.has(a.id) && parseInt(a.stage) === 2);
+        if (newStage2.length > 0) playAlertBeep();
+      }
+      lastSeenAlertIds = new Set(data.map(a => a.id));
+      // Sync audio button state to current preference (in case tab rendered before preference loaded)
+      const apBtn = document.getElementById('audio-ping-btn');
+      if (apBtn) {
+        apBtn.textContent = audioPingEnabled ? '🔔 Audio' : '🔕 Audio';
+        apBtn.classList.toggle('active', audioPingEnabled);
+        apBtn.style.color = audioPingEnabled ? 'var(--cyan)' : '';
+      }
       liveAlerts = data;
       // Update last updated time
       const upd = document.getElementById('alerts-last-updated');
@@ -4444,15 +4558,50 @@ function renderAHTable() {
   const total=list.length;
   const wins=list.filter(a=>a.outcome==='win').length;
   const wr=total>0?Math.round(wins/total*100)+'%':'—';
-  const pts=list.filter(a=>a.points_captured).map(a=>a.points_captured);
+  const pts=list.filter(a=>a.points_captured!=null).map(a=>a.points_captured);
   const avgPts=pts.length>0?(pts.reduce((a,b)=>a+b,0)/pts.length).toFixed(1):'—';
-  const s2=list.filter(a=>a.stage===2);
+  // Stage 1 stats
+  const s1=list.filter(a=>parseInt(a.stage)===1);
+  const s1wins=s1.filter(a=>a.outcome==='win').length;
+  const s1losses=s1.filter(a=>a.outcome==='loss').length;
+  const s1wr=s1.length>0?Math.round(s1wins/s1.length*100)+'%':'—';
+  // Stage 2 stats
+  const s2=list.filter(a=>parseInt(a.stage)===2);
   const s2wins=s2.filter(a=>a.outcome==='win').length;
+  const s2losses=s2.filter(a=>a.outcome==='loss').length;
   const s2wr=s2.length>0?Math.round(s2wins/s2.length*100)+'%':'—';
   document.getElementById('ah-total').textContent=total;
   document.getElementById('ah-winrate').textContent=wr;
   document.getElementById('ah-avgpts').textContent=avgPts;
   document.getElementById('ah-s2win').textContent=s2wr;
+  // New strip — Stage 1 vs Stage 2
+  const s1wrEl = document.getElementById('ah-s1wr-strip');
+  if (s1wrEl) s1wrEl.textContent = s1wr;
+  const s2wrEl = document.getElementById('ah-s2wr-strip');
+  if (s2wrEl) s2wrEl.textContent = s2wr;
+  const s1bEl = document.getElementById('ah-s1breakdown');
+  if (s1bEl) s1bEl.textContent = `${s1.length} alerts · ${s1wins} wins · ${s1losses} losses`;
+  const s2bEl = document.getElementById('ah-s2breakdown');
+  if (s2bEl) s2bEl.textContent = `${s2.length} alerts · ${s2wins} wins · ${s2losses} losses`;
+  // Best / Worst trade by points captured
+  const withPts = list.filter(a => a.points_captured != null);
+  const bestEl = document.getElementById('ah-best-stock');
+  const bestPtsEl = document.getElementById('ah-best-pts');
+  const worstEl = document.getElementById('ah-worst-stock');
+  const worstPtsEl = document.getElementById('ah-worst-pts');
+  if (withPts.length > 0) {
+    const best  = withPts.reduce((a,b) => (a.points_captured > b.points_captured ? a : b));
+    const worst = withPts.reduce((a,b) => (a.points_captured < b.points_captured ? a : b));
+    if (bestEl) bestEl.textContent = best.symbol || '—';
+    if (bestPtsEl) bestPtsEl.textContent = (best.points_captured>=0?'+':'') + best.points_captured + ' pts';
+    if (worstEl) worstEl.textContent = worst.symbol || '—';
+    if (worstPtsEl) worstPtsEl.textContent = (worst.points_captured>=0?'+':'') + worst.points_captured + ' pts';
+  } else {
+    if (bestEl) bestEl.textContent = '—';
+    if (bestPtsEl) bestPtsEl.textContent = '—';
+    if (worstEl) worstEl.textContent = '—';
+    if (worstPtsEl) worstPtsEl.textContent = '—';
+  }
   if(!list.length){
     document.getElementById('ah-body').innerHTML='<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">No alerts recorded yet.</td></tr>';
     return;
@@ -4680,6 +4829,17 @@ async function loadMomScanner() {
     const latestDate = data[0].session_date;
     momData.scanner = data.filter(s => s.session_date === latestDate);
     document.getElementById('scanner-updated').textContent = 'Updated: ' + latestDate;
+    // Build Fresh Crossover map — stocks with daily 9 EMA crossover in last 5 days
+    const now = new Date();
+    window.momCrossoverMap = {};
+    momData.scanner.forEach(s => {
+      if (s.daily_crossover_date) {
+        const ageDays = (now - new Date(s.daily_crossover_date)) / 86400000;
+        if (ageDays <= 5) window.momCrossoverMap[s.symbol] = s.daily_crossover_date;
+      }
+    });
+    // Re-render Morning Brief if it's already loaded so fresh-X badges appear
+    if (typeof mbData !== 'undefined' && mbData && mbData.length && typeof renderMBTable === 'function') renderMBTable();
     // Populate sector dropdown
     const sectors = [...new Set(momData.scanner.map(s => s.sector).filter(Boolean))].sort();
     const sel = document.getElementById('scanner-sector-filter');
