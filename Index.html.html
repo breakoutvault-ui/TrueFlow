@@ -727,6 +727,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
       <div class="live-pill" id="live-pill" style="display:none"><div class="live-dot"></div>LIVE</div>
+      <div style="position:relative;margin-left:auto">
+        <input type="text" id="global-search" placeholder="🔍 Search stock..." oninput="globalSearch(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:5px 12px 5px 12px;color:var(--text);font-size:12px;outline:none;width:160px;font-family:'Barlow',sans-serif" title="Search by stock symbol across all visible tabs">
+      </div>
       <button class="kite-btn disconnected" id="kite-btn" onclick="openKiteModal()">⚡ Kite</button>
       <div class="theme-picker">
         <div class="theme-dot td-dark active" title="Dark" onclick="setTheme('dark',this)"></div>
@@ -850,7 +853,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <span style="font-size:11px;color:var(--muted)" id="mb-timestamp">15 Apr · EOD</span>
         </div>
         <div class="tbl-scroll">
-          <table class="fo-tbl" style="min-width:1120px">
+          <table class="fo-tbl" style="min-width:1200px">
             <thead><tr>
               <th style="width:32px">⭐</th>
               <th>Stock</th>
@@ -862,13 +865,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th>OI Buildup</th>
               <th>PDH / PDL</th>
               <th class="sortable-th" onclick="setMBSort('ema_dist')" title="Sort by % from 9 EMA">% from 9 EMA <span class="sort-arrow" id="mba-ema_dist">↕</span></th>
-              <th class="sortable-th" onclick="setMBSort('dist52')" title="Sort by 52W High distance">52W High / Away <span class="sort-arrow" id="mba-dist52">↕</span></th>
+              <th class="sortable-th" onclick="setMBSort('dist52')" title="Sort by 52W High distance">52W High <span class="sort-arrow" id="mba-dist52">↕</span></th>
+              <th class="sortable-th" onclick="setMBSort('pct52')" title="Sort by % away from 52 week high — closer to 0% = near breakout">% from 52W <span class="sort-arrow" id="mba-pct52">↕</span></th>
               <th class="sortable-th" onclick="setMBSort('vol')" title="Sort by Volume">Vol ×avg <span class="sort-arrow" id="mba-vol">↕</span></th>
               <th class="sortable-th" onclick="setMBSort('del')" title="Sort by Delivery %">Del % <span class="sort-arrow" id="mba-del">↕</span></th>
               <th class="sortable-th" onclick="setMBSort('conviction')" title="Conviction Score 0-100: combines EMA trend, OI buildup, volume, delivery %, 52W proximity. Higher = better setup">Score <span class="sort-arrow" id="mba-conviction">↓</span></th>
             </tr></thead>
             <tbody id="mb-body">
-              <tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">
+              <tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)">
                 Loading EMA data...
               </td></tr>
             </tbody>
@@ -3651,7 +3655,7 @@ async function loadMorningBrief() {
     const dateResp = await fetch(dateUrl, { headers });
     const dateData = await dateResp.json();
     if (!dateData || dateData.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     const latestDate = dateData[0].session_date;
@@ -3660,7 +3664,7 @@ async function loadMorningBrief() {
     const resp = await fetch(url, { headers });
     const data = await resp.json();
     if (!data || data.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     mbData = data;
@@ -3729,6 +3733,11 @@ function renderMBTable() {
     const db = b.ltp&&b.high_52w ? (parseFloat(b.high_52w)-parseFloat(b.ltp))/parseFloat(b.high_52w)*100 : 99;
     return da - db;
   });
+  else if (mbSort === 'pct52') filtered.sort((a,b) => {
+    const da = a.ltp&&a.high_52w ? (parseFloat(a.high_52w)-parseFloat(a.ltp))/parseFloat(a.high_52w)*100 : 99;
+    const db = b.ltp&&b.high_52w ? (parseFloat(b.high_52w)-parseFloat(b.ltp))/parseFloat(b.high_52w)*100 : 99;
+    return da - db;
+  });
   else if (mbSort === 'chg') filtered.sort((a,b) => Math.abs(parseFloat(b.ltp||0)-parseFloat(b.prev_close||0)) - Math.abs(parseFloat(a.ltp||0)-parseFloat(a.prev_close||0)));
   else if (mbSort === 'vol') filtered.sort((a,b) => (parseFloat(b.vol_ratio)||0)-(parseFloat(a.vol_ratio)||0));
   else if (mbSort === 'del') filtered.sort((a,b) => (parseFloat(b.del_pct)||0)-(parseFloat(a.del_pct)||0));
@@ -3743,7 +3752,7 @@ function renderMBTable() {
   if (mbCntEl) mbCntEl.textContent = `Showing ${filtered.length} of ${mbData.length}`;
 
   if (filtered.length === 0) {
-    document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
+    document.getElementById('mb-body').innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
     return;
   }
   const rows = filtered.map(s => {
@@ -3766,7 +3775,7 @@ function renderMBTable() {
                    : zone === 'near' ? '<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--amber);border-radius:4px;padding:1px 4px;margin-left:4px">NEAR</span>'
                    : '<span style="font-size:9px;background:rgba(255,68,102,.1);color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px">FAR</span>';
     const h52w     = s.high_52w ? parseFloat(s.high_52w).toFixed(1) : '—';
-    const dist52   = s.ltp && s.high_52w ? ((parseFloat(s.high_52w)-parseFloat(s.ltp))/parseFloat(s.high_52w)*100).toFixed(1)+'% away' : '';
+    const dist52n  = s.ltp && s.high_52w ? ((parseFloat(s.high_52w)-parseFloat(s.ltp))/parseFloat(s.high_52w)*100) : null;
     const volR     = s.vol_ratio ? parseFloat(s.vol_ratio).toFixed(1)+'x' : '—';
     const volCol   = s.vol_ratio ? (parseFloat(s.vol_ratio) >= 2 ? 'var(--amber)' : parseFloat(s.vol_ratio) >= 1 ? 'var(--green)' : 'var(--muted)') : 'var(--muted)';
     const delPct   = s.del_pct ? parseFloat(s.del_pct).toFixed(1)+'%' : '—';
@@ -3800,8 +3809,8 @@ function renderMBTable() {
       <td><span style="font-size:12px">${pdh}</span><br>
           <span style="font-size:10px;color:var(--muted)">${pdl}</span></td>
       <td style="color:${tc};font-weight:600">${pct9str}</td>
-      <td><span style="font-size:12px">${h52w}</span><br>
-          <span style="font-size:10px;color:var(--muted)">${dist52}</span></td>
+      <td><span style="font-size:12px">${h52w}</span></td>
+      <td><span style="color:${dist52n!==null?(dist52n<5?'var(--green)':dist52n<10?'var(--amber)':dist52n<20?'var(--text)':'var(--muted)'):'var(--muted)'};font-weight:600">${dist52n!==null?dist52n.toFixed(1)+'%':'—'}</span></td>
       <td style="color:${volCol};font-weight:600">${volR}</td>
       <td style="color:var(--text)">${delPct}</td>
       <td title="Conviction Score 0-100: combines EMA trend, OI buildup, volume, delivery %, 52W proximity. Higher = better setup"><span style="color:${convCol};font-size:13px;font-weight:700">${conv}</span><br>
@@ -4325,21 +4334,22 @@ function playAlertBeep() {
 // Restore saved preference on load
 (function(){ try { if (localStorage.getItem('tf_audio_ping') === '1') audioPingEnabled = true; } catch(e) {} })();
 
-// Load live alerts from Supabase
+// Load live alerts from Supabase (using raw fetch — reliable)
 async function loadLiveAlerts() {
   try {
-    const sb = window._supabase;
-    if (!sb) return;
     const today = new Date().toISOString().slice(0,10);
-    const {data} = await sb.from('fo_alerts').select('*').eq('session_date',today).order('fired_at',{ascending:false});
-    if (data) {
+    const url = CONFIG.supabaseUrl + `/rest/v1/fo_alerts?select=*&session_date=eq.${today}&order=fired_at.desc`;
+    const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+    const resp = await fetch(url, { headers });
+    const data = await resp.json();
+    if (data && Array.isArray(data)) {
       // Audio ping check — beep if NEW Stage 2 alert arrived
       if (audioPingEnabled && lastSeenAlertIds.size > 0) {
         const newStage2 = data.filter(a => !lastSeenAlertIds.has(a.id) && parseInt(a.stage) === 2);
         if (newStage2.length > 0) playAlertBeep();
       }
       lastSeenAlertIds = new Set(data.map(a => a.id));
-      // Sync audio button state to current preference (in case tab rendered before preference loaded)
+      // Sync audio button state
       const apBtn = document.getElementById('audio-ping-btn');
       if (apBtn) {
         apBtn.textContent = audioPingEnabled ? '🔔 Audio' : '🔕 Audio';
@@ -4510,22 +4520,22 @@ function setAHPeriod(p, btn) {
 
 async function loadAlertHistory() {
   try {
-    const sb = window._supabase;
-    if (!sb) { renderAHDemoData(); return; }
-    let q = sb.from('fo_alerts').select('*').order('fired_at',{ascending:false});
+    const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+    let url = CONFIG.supabaseUrl + '/rest/v1/fo_alerts?select=*&order=fired_at.desc';
     const today = new Date().toISOString().slice(0,10);
-    if (ahPeriod==='today') q=q.eq('session_date',today);
+    if (ahPeriod==='today') url += `&session_date=eq.${today}`;
     else if (ahPeriod==='week') {
       const w=new Date(); w.setDate(w.getDate()-7);
-      q=q.gte('session_date',w.toISOString().slice(0,10));
+      url += `&session_date=gte.${w.toISOString().slice(0,10)}`;
     } else if (ahPeriod==='month') {
       const m=new Date(); m.setMonth(m.getMonth()-1);
-      q=q.gte('session_date',m.toISOString().slice(0,10));
+      url += `&session_date=gte.${m.toISOString().slice(0,10)}`;
     }
-    const {data} = await q;
-    ahData = data||[];
+    const resp = await fetch(url, { headers });
+    const data = await resp.json();
+    ahData = Array.isArray(data) ? data : [];
     renderAHTable();
-  } catch(e) { renderAHDemoData(); }
+  } catch(e) { console.error('AH load error:', e); renderAHDemoData(); }
 }
 
 function renderAHDemoData() {
@@ -4769,6 +4779,17 @@ function daysSince(dateStr) {
   const d = new Date(dateStr);
   const now = new Date();
   return Math.floor((now - d) / 86400000);
+}
+
+// ── GLOBAL SEARCH ────────────────────────────────────
+function globalSearch(query) {
+  const q = (query||'').trim().toUpperCase();
+  // Search across all visible tables by filtering rows
+  document.querySelectorAll('.mom-tbl tbody tr, .fo-tbl tbody tr, .tbl tbody tr').forEach(row => {
+    if (!q) { row.style.display = ''; return; }
+    const text = row.textContent.toUpperCase();
+    row.style.display = text.includes(q) ? '' : 'none';
+  });
 }
 
 // ── FILTER / SORT CONTROLS ────────────────────────────
