@@ -676,6 +676,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .wl-tab .wl-count{font-size:9px;background:var(--bg3);padding:1px 5px;border-radius:99px;color:var(--muted)}
 .wl-add-tab{padding:5px 10px;border-radius:20px;border:1px dashed var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:14px;transition:all .12s}
 .wl-add-tab:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* ══════════════════════════════════════
+   ROUND 5: MINI SPARKLINE BARS
+══════════════════════════════════════ */
+.spark-bars{display:inline-flex;align-items:flex-end;gap:1px;height:18px;vertical-align:middle}
+.spark-bar{width:5px;border-radius:1px;min-height:2px;transition:height .3s}
+.spark-bar.up{background:#22C55E}
+.spark-bar.dn{background:#EF4444}
+.spark-bar.flat{background:var(--muted)}
 </style>
 </head>
 <body>
@@ -839,29 +848,29 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <div style="display:flex;flex-direction:column;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px">
             <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">Trend</span>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              <button class="sort-btn active" onclick="setMBFilter('ema','all',this)" title="Show all stocks regardless of EMA trend">All</button>
-              <button class="sort-btn" onclick="setMBFilter('ema','bull',this)" style="color:#22C55E" title="Bullish: Price above 9 EMA above 20 EMA — strong uptrend, look for CALL">▲ Bullish</button>
-              <button class="sort-btn" onclick="setMBFilter('ema','bear',this)" style="color:#EF4444" title="Bearish: Price below 9 EMA below 20 EMA — downtrend, look for PUT">▼ Bearish</button>
-              <button class="sort-btn" onclick="setMBFilter('ema','neu',this)" title="Neutral: EMAs not clearly stacked — avoid">— Neutral</button>
+              <button class="sort-btn multi-active" data-filter-group="mb-ema" data-filter-val="all" onclick="toggleMultiFilter('mb','ema','all',this)" title="Show all stocks regardless of EMA trend">All</button>
+              <button class="sort-btn" data-filter-group="mb-ema" data-filter-val="bull" onclick="toggleMultiFilter('mb','ema','bull',this)" style="color:#22C55E" title="Bullish: Price above 9 EMA above 20 EMA — strong uptrend, look for CALL">▲ Bullish</button>
+              <button class="sort-btn" data-filter-group="mb-ema" data-filter-val="bear" onclick="toggleMultiFilter('mb','ema','bear',this)" style="color:#EF4444" title="Bearish: Price below 9 EMA below 20 EMA — downtrend, look for PUT">▼ Bearish</button>
+              <button class="sort-btn" data-filter-group="mb-ema" data-filter-val="neu" onclick="toggleMultiFilter('mb','ema','neu',this)" title="Neutral: EMAs not clearly stacked — avoid">— Neutral</button>
             </div>
           </div>
           <!-- Row 1 Right: OI -->
           <div style="display:flex;flex-direction:column;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px">
             <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">OI Buildup</span>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              <button class="sort-btn active" onclick="setMBFilter('oi','all',this)" title="Show all OI buildup types">All</button>
-              <button class="sort-btn" onclick="setMBFilter('oi','bull',this)" style="color:#22C55E" title="Bull OI: Long Buildup or Short Covering — bullish money flow">Bull OI</button>
-              <button class="sort-btn" onclick="setMBFilter('oi','bear',this)" style="color:#EF4444" title="Bear OI: Short Buildup or Long Unwinding — bearish money flow">Bear OI</button>
+              <button class="sort-btn multi-active" data-filter-group="mb-oi" data-filter-val="all" onclick="toggleMultiFilter('mb','oi','all',this)" title="Show all OI buildup types">All</button>
+              <button class="sort-btn" data-filter-group="mb-oi" data-filter-val="bull" onclick="toggleMultiFilter('mb','oi','bull',this)" style="color:#22C55E" title="Bull OI: Long Buildup or Short Covering — bullish money flow">Bull OI</button>
+              <button class="sort-btn" data-filter-group="mb-oi" data-filter-val="bear" onclick="toggleMultiFilter('mb','oi','bear',this)" style="color:#EF4444" title="Bear OI: Short Buildup or Long Unwinding — bearish money flow">Bear OI</button>
             </div>
           </div>
           <!-- Row 2 Left: 9 EMA ZONE -->
           <div style="display:flex;flex-direction:column;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px">
             <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">9 EMA Zone</span>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              <button class="sort-btn active" onclick="setMBFilter('zone','all',this)" title="Show all stocks regardless of 9 EMA distance">All</button>
-              <button class="sort-btn" onclick="setMBFilter('zone','in',this)" style="color:#22C55E" title="In Zone: Within 3% of 9 EMA — ideal entry, stock ready to move">🟢 &lt;3%</button>
-              <button class="sort-btn" onclick="setMBFilter('zone','near',this)" style="color:var(--amber)" title="Near: 3-5% away — watch for pullback before entry">🟡 3-5%</button>
-              <button class="sort-btn" onclick="setMBFilter('zone','far',this)" style="color:var(--red)" title="Far: More than 5% away — stock extended, avoid fresh entry">🔴 &gt;5%</button>
+              <button class="sort-btn multi-active" data-filter-group="mb-zone" data-filter-val="all" onclick="toggleMultiFilter('mb','zone','all',this)" title="Show all stocks regardless of 9 EMA distance">All</button>
+              <button class="sort-btn" data-filter-group="mb-zone" data-filter-val="in" onclick="toggleMultiFilter('mb','zone','in',this)" style="color:#22C55E" title="In Zone: Within 3% of 9 EMA — ideal entry, stock ready to move">🟢 &lt;3%</button>
+              <button class="sort-btn" data-filter-group="mb-zone" data-filter-val="near" onclick="toggleMultiFilter('mb','zone','near',this)" style="color:var(--amber)" title="Near: 3-5% away — watch for pullback before entry">🟡 3-5%</button>
+              <button class="sort-btn" data-filter-group="mb-zone" data-filter-val="far" onclick="toggleMultiFilter('mb','zone','far',this)" style="color:var(--red)" title="Far: More than 5% away — stock extended, avoid fresh entry">🔴 &gt;5%</button>
             </div>
           </div>
           <!-- Row 2 Right: SORT -->
@@ -1020,21 +1029,21 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div style="display:flex;flex-direction:column;gap:8px">
           <div class="fo-section" style="padding:10px 12px">
             <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
-              <button class="sort-btn active" onclick="setAlertFilter('stage','all',this)" title="Show all alerts regardless of stage">All stages</button>
-              <button class="sort-btn" onclick="setAlertFilter('stage','2',this)" style="color:#22C55E" title="Stage 2: HIGH CONVICTION — ORB breakout confirmed on BOTH 5-min AND 15-min EMA. Best setups, act immediately">🔥 Stage 2</button>
-              <button class="sort-btn" onclick="setAlertFilter('stage','1',this)" style="color:var(--amber)" title="Stage 1: Standard breakout — ORB confirmed on 5-min EMA only. Valid setup but less conviction than Stage 2">⚡ Stage 1</button>
+              <button class="sort-btn multi-active" data-filter-group="alert-stage" data-filter-val="all" onclick="toggleMultiFilter('alert','stage','all',this)" title="Show all alerts regardless of stage">All stages</button>
+              <button class="sort-btn" data-filter-group="alert-stage" data-filter-val="2" onclick="toggleMultiFilter('alert','stage','2',this)" style="color:#22C55E" title="Stage 2: HIGH CONVICTION — ORB breakout confirmed on BOTH 5-min AND 15-min EMA. Best setups, act immediately">🔥 Stage 2</button>
+              <button class="sort-btn" data-filter-group="alert-stage" data-filter-val="1" onclick="toggleMultiFilter('alert','stage','1',this)" style="color:var(--amber)" title="Stage 1: Standard breakout — ORB confirmed on 5-min EMA only. Valid setup but less conviction than Stage 2">⚡ Stage 1</button>
             </div>
             <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
-              <button class="sort-btn active" onclick="setAlertFilter('dir','all',this)" title="Show both CALL and PUT alerts">All</button>
-              <button class="sort-btn" onclick="setAlertFilter('dir','bull',this)" style="color:#22C55E" title="CALL alerts: Stock broke above Opening Range — bullish breakout, buy CE options">▲ CALL</button>
-              <button class="sort-btn" onclick="setAlertFilter('dir','bear',this)" style="color:#EF4444" title="PUT alerts: Stock broke below Opening Range — bearish breakout, buy PE options">▼ PUT</button>
+              <button class="sort-btn multi-active" data-filter-group="alert-dir" data-filter-val="all" onclick="toggleMultiFilter('alert','dir','all',this)" title="Show both CALL and PUT alerts">All</button>
+              <button class="sort-btn" data-filter-group="alert-dir" data-filter-val="bull" onclick="toggleMultiFilter('alert','dir','bull',this)" style="color:#22C55E" title="CALL alerts: Stock broke above Opening Range — bullish breakout, buy CE options">▲ CALL</button>
+              <button class="sort-btn" data-filter-group="alert-dir" data-filter-val="bear" onclick="toggleMultiFilter('alert','dir','bear',this)" style="color:#EF4444" title="PUT alerts: Stock broke below Opening Range — bearish breakout, buy PE options">▼ PUT</button>
             </div>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
               <span style="font-size:10px;color:var(--muted);align-self:center">Fired within</span>
-              <button class="sort-btn active" onclick="setAlertFilter('age','all',this)" title="Show all alerts regardless of when they fired">All</button>
-              <button class="sort-btn" onclick="setAlertFilter('age','5',this)" title="Fresh alerts fired within last 5 minutes — highest priority, best entry opportunity">0-5 min</button>
-              <button class="sort-btn" onclick="setAlertFilter('age','10',this)" title="Alerts fired 5-10 minutes ago — still tradeable but check current price vs breakout level">5-10 min</button>
-              <button class="sort-btn" onclick="setAlertFilter('age','15',this)" title="Alerts fired 10-15 minutes ago — review carefully, may have already moved significantly">10-15 min</button>
+              <button class="sort-btn multi-active" data-filter-group="alert-age" data-filter-val="all" onclick="toggleMultiFilter('alert','age','all',this)" title="Show all alerts regardless of when they fired">All</button>
+              <button class="sort-btn" data-filter-group="alert-age" data-filter-val="5" onclick="toggleMultiFilter('alert','age','5',this)" title="Fresh alerts fired within last 5 minutes — highest priority, best entry opportunity">0-5 min</button>
+              <button class="sort-btn" data-filter-group="alert-age" data-filter-val="10" onclick="toggleMultiFilter('alert','age','10',this)" title="Alerts fired 5-10 minutes ago — still tradeable but check current price vs breakout level">5-10 min</button>
+              <button class="sort-btn" data-filter-group="alert-age" data-filter-val="15" onclick="toggleMultiFilter('alert','age','15',this)" title="Alerts fired 10-15 minutes ago — review carefully, may have already moved significantly">10-15 min</button>
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px">
               <span style="font-size:10px;color:var(--muted)">Sector</span>
@@ -1046,6 +1055,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <span style="font-size:10px;color:var(--muted);margin-left:auto" id="alerts-last-updated"></span>
               <button class="sort-btn" id="wl-filter-btn" onclick="toggleWatchlistFilter(this)" title="Show only alerts from your starred stocks" style="margin-left:4px">⭐ Watchlist</button>
               <button class="sort-btn" id="audio-ping-btn" onclick="toggleAudioPing(this)" title="Play a beep when a new Stage 2 alert arrives. Requires browser tab to be open. Preference saved locally." style="margin-left:4px">🔕 Audio</button>
+            </div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:4px">
+              <span style="font-size:10px;color:var(--muted)">Color</span>
+              <div id="alerts-color-filter" style="display:flex;gap:4px"></div>
             </div>
           </div>
           <div id="alert-list" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:540px">
@@ -1711,8 +1724,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           </select>
           <!-- Star filter -->
           <button class="sort-btn" id="scanner-star-filter" onclick="toggleMomStarFilter('scanner',this)" title="Show only starred stocks">⭐ Starred</button>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
+          <div id="scanner-color-filter" style="display:flex;gap:3px"></div>
         </div>
         <div class="mom-export-btns">
+          <button class="col-toggle-btn" onclick="toggleColPanel('scanner',this)">⚙️ Columns</button>
           <span class="mom-updated" id="scanner-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="scanner-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('scanner')" title="Copy stock list for TradingView watchlist">📊 TradingView</button>
@@ -1822,8 +1838,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <option value="all">All Sectors</option>
           </select>
           <button class="sort-btn" id="ema-star-filter" onclick="toggleMomStarFilter('ema',this)" title="Show only starred stocks">⭐ Starred</button>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
+          <div id="ema-color-filter" style="display:flex;gap:3px"></div>
         </div>
         <div class="mom-export-btns">
+          <button class="col-toggle-btn" onclick="toggleColPanel('ema',this)">⚙️ Columns</button>
           <span class="mom-updated" id="ema-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="ema-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('ema')">📊 TradingView</button>
@@ -1906,8 +1925,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <option value="all">All Sectors</option>
           </select>
           <button class="sort-btn" id="sharp-star-filter" onclick="toggleMomStarFilter('sharp',this)" title="Show only starred stocks">⭐ Starred</button>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
+          <div id="sharp-color-filter" style="display:flex;gap:3px"></div>
         </div>
         <div class="mom-export-btns">
+          <button class="col-toggle-btn" onclick="toggleColPanel('sharp',this)">⚙️ Columns</button>
           <span class="mom-updated" id="sharp-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="sharp-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('sharp')">📊 TradingView</button>
@@ -1982,8 +2004,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <option value="b4">15-20%</option>
             <option value="b5">&gt;20%</option>
           </select>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
+          <div id="picks-color-filter" style="display:flex;gap:3px"></div>
         </div>
         <div class="mom-export-btns">
+          <button class="col-toggle-btn" onclick="toggleColPanel('picks',this)">⚙️ Columns</button>
           <span class="mom-updated" id="picks-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="picks-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('picks')">📊 TradingView</button>
@@ -4381,10 +4406,10 @@ function renderAlertList() {
     const agePill = ageMins<5?`<span class="age-fresh">${ageMins}m</span>`:ageMins<10?`<span class="age-warm">${ageMins}m</span>`:`<span class="age-old">${ageMins}m</span>`;
     const dirLabel = a.direction==='bull'?'<span style="color:#22C55E;font-weight:700">CALL ▲</span>':'<span style="color:#EF4444;font-weight:700">PUT ▼</span>';
     const stagePill = a.stage===2?'<span class="tag tag-s2">Stage 2</span>':'<span class="tag tag-s1">Stage 1</span>';
-    const isAct=selectedAlert===i;
-    return `<div class="alert-card ${a.direction==='bull'?'bull-card':'bear-card'}${isAct?' active':''}" onclick="selectAlert(${i})">
+    const isAct=selectedAlert===a.id;
+    return `<div class="alert-card ${a.direction==='bull'?'bull-card':'bear-card'}${isAct?' active':''}" onclick="selectAlert('${a.id}')">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <span style="font-size:14px;font-weight:700;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${a.symbol}','_blank')" title="Open in TradingView">${a.symbol}</span>
+        ${getColorDotHTML(a.symbol)} <span style="font-size:14px;font-weight:700;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${a.symbol}','_blank')" title="Open in TradingView">${a.symbol}</span>
         <div style="display:flex;gap:4px;align-items:center">${agePill}${stagePill}</div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between">
@@ -4396,29 +4421,57 @@ function renderAlertList() {
   }).join('');
 }
 
-function selectAlert(i) {
-  selectedAlert = i;
+function selectAlert(id) {
+  selectedAlert = id;
   renderAlertList();
-  const a = liveAlerts[i];
+  const a = liveAlerts.find(x => x.id === id);
   if (!a) return;
   const bullTrends=['AggressiveNewLong','NewLong','ShortCover','AggressiveShortCover'];
   const xxlWarn = a.xxl_candle?'<div style="background:var(--amber-dim);border:1px solid var(--amber);border-radius:8px;padding:8px 12px;color:var(--amber);font-size:12px;font-weight:600">⚠️ XXL Candle — wait for retrace before entry</div>':'';
+  // Cross-reference with mbData for extra context
+  const mbMatch = mbData.find(s => s.symbol === a.symbol);
+  const sector = a.sector || (mbMatch ? mbMatch.sector : '—');
+  const dailyTrend = mbMatch ? mbMatch.trend : null;
+  const dailyTrendLabel = dailyTrend === 'bull' ? '<span style="color:#22C55E;font-weight:700">▲ Bullish</span>' : dailyTrend === 'bear' ? '<span style="color:#EF4444;font-weight:700">▼ Bearish</span>' : dailyTrend === 'neutral' ? '<span style="color:var(--muted)">— Neutral</span>' : '—';
+  const oiBuildup = mbMatch ? mbMatch.oi_buildup : null;
+  const oiCol = oiBuildup === 'Long Buildup' ? 'var(--green)' : oiBuildup === 'Short Buildup' ? 'var(--red)' : oiBuildup === 'Short Covering' ? 'var(--amber)' : 'var(--muted)';
+  const conv = mbMatch ? calcConviction(mbMatch) : null;
+  const convCol = conv !== null ? (conv >= 70 ? 'var(--green)' : conv >= 40 ? 'var(--amber)' : 'var(--muted)') : 'var(--muted)';
+  const h52w = mbMatch && mbMatch.high_52w ? parseFloat(mbMatch.high_52w).toFixed(1) : '—';
+  const d52 = mbMatch && mbMatch.ltp && mbMatch.high_52w ? ((parseFloat(mbMatch.high_52w)-parseFloat(mbMatch.ltp))/parseFloat(mbMatch.high_52w)*100).toFixed(1)+'%' : '—';
+  const volR = mbMatch && mbMatch.vol_ratio ? parseFloat(mbMatch.vol_ratio).toFixed(1)+'x' : '—';
+  const colorTag = stockColorTags[a.symbol];
+  const colorDotBig = colorTag ? (() => { const ct = COLOR_TAGS.find(c=>c.key===colorTag); return ct ? `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${ct.hex};vertical-align:middle;margin-left:6px"></span>` : ''; })() : '';
+
   document.getElementById('alert-detail').innerHTML = `
     <div class="fo-sec-hdr">
-      <span class="fo-sec-title">${a.symbol} — Full Signal Detail</span>
+      <span class="fo-sec-title">${a.symbol}${colorDotBig} — Full Signal Detail</span>
+      <span style="cursor:pointer;font-size:13px;color:var(--cyan)" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${a.symbol}','_blank')" title="Open TradingView">📊 TradingView</span>
     </div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
       ${xxlWarn}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fo-card"><div class="fo-card-label">Direction</div><div class="fo-card-val ${a.direction==='bull'?'fo-bull':'fo-bear'}">${a.direction==='bull'?'CALL ▲':'PUT ▼'}</div></div>
-        <div class="fo-card"><div class="fo-card-label">Stage</div><div class="fo-card-val">${a.stage===2?'🔥 Stage 2':'⚡ Stage 1'}</div><div class="fo-card-sub ${a.stage===2?'fo-bull':'fo-neu'}">${a.stage===2?'High conviction':'Standard'}</div></div>
+        <div class="fo-card"><div class="fo-card-label">Stage</div><div class="fo-card-val">${a.stage===2?'🔥 Stage 2':'⚡ Stage 1'}</div><div class="fo-card-sub ${a.stage===2?'fo-bull':'fo-neu'}">${a.stage===2?'High conviction — both 5m + 15m EMA aligned':'Standard — 5m EMA only'}</div></div>
         <div class="fo-card"><div class="fo-card-label">LTP</div><div class="fo-card-val">₹${a.ltp?.toLocaleString('en-IN')||'—'}</div></div>
         <div class="fo-card"><div class="fo-card-label">Breakout Level</div><div class="fo-card-val">₹${a.orb_level?.toLocaleString('en-IN')||'—'}</div><div class="fo-card-sub fo-neu">ORB ${a.orb_side} · ${a.orb_type==='wide'?'Wide ORB':'Narrow ORB'}</div></div>
         <div class="fo-card"><div class="fo-card-label">EMA 5-min</div><div class="fo-card-val" style="font-size:14px">${a.ema_5m||'—'}</div></div>
         <div class="fo-card"><div class="fo-card-label">EMA 15-min</div><div class="fo-card-val" style="font-size:14px">${a.ema_15m||'—'}</div></div>
-        <div class="fo-card"><div class="fo-card-label">Dist from PDH/PDL</div><div class="fo-card-val">${a.pdh_pdl_dist?.toFixed(1)||'—'} pts</div></div>
+        <div class="fo-card"><div class="fo-card-label">Sector</div><div class="fo-card-val" style="font-size:14px">${sector}</div></div>
         <div class="fo-card"><div class="fo-card-label">Fired at</div><div class="fo-card-val" style="font-size:14px">${a.fired_at?new Date(a.fired_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'—'}</div></div>
       </div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-top:4px">Daily Context (from EOD EMA)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="fo-card"><div class="fo-card-label">Daily EMA Trend</div><div class="fo-card-val" style="font-size:14px">${dailyTrendLabel}</div></div>
+        <div class="fo-card"><div class="fo-card-label">OI Buildup</div><div class="fo-card-val" style="font-size:12px;color:${oiCol}">${oiBuildup||'—'}</div></div>
+        <div class="fo-card"><div class="fo-card-label">Conviction Score</div><div class="fo-card-val" style="color:${convCol}">${conv!==null?conv:'—'}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="fo-card"><div class="fo-card-label">52W High</div><div class="fo-card-val" style="font-size:14px">${h52w}</div></div>
+        <div class="fo-card"><div class="fo-card-label">% from 52W</div><div class="fo-card-val" style="font-size:14px">${d52}</div></div>
+        <div class="fo-card"><div class="fo-card-label">Vol ×avg</div><div class="fo-card-val" style="font-size:14px">${volR}</div></div>
+      </div>
+      <div class="fo-card"><div class="fo-card-label">Dist from PDH/PDL</div><div class="fo-card-val">${a.pdh_pdl_dist?.toFixed(1)||'—'} pts</div></div>
     </div>`;
 }
 
@@ -6326,6 +6379,419 @@ initFOTabs = function() {
     renderMBTable();
   });
   loadFOWatchlists();
+};
+
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: SPARKLINE RENDERER (direction-only for now)
+// ═══════════════════════════════════════════════════
+function getSparkBars(last5_summary, day_chg_pct) {
+  if (!last5_summary || last5_summary === '—') return '<span class="spark-bars" title="No data">—</span>';
+  const chars = last5_summary.split('');
+  // Use day_chg_pct for last bar magnitude, uniform for others
+  const bars = chars.map((c, i) => {
+    const isLast = i === chars.length - 1;
+    const isUp = c === '↑';
+    const mag = isLast && day_chg_pct !== null ? Math.min(Math.abs(day_chg_pct) * 3, 16) + 2 : (isUp ? 10 : 8);
+    const cls = isUp ? 'up' : 'dn';
+    return `<div class="spark-bar ${cls}" style="height:${mag}px" title="${isUp ? 'Up' : 'Down'}${isLast && day_chg_pct !== null ? ' ' + day_chg_pct.toFixed(1) + '%' : ''}"></div>`;
+  }).join('');
+  return `<span class="spark-bars" title="Last 5 days: ${last5_summary}">${bars}</span>`;
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: ENHANCED toggleMultiFilter for ALL tabs
+// ═══════════════════════════════════════════════════
+// Extend toggleMultiFilter to also trigger alert and all renders
+const _origToggleMulti = toggleMultiFilter;
+toggleMultiFilter = function(tab, type, val, btn) {
+  const groupKey = tab + '-' + type;
+  if (!multiFilters[groupKey]) multiFilters[groupKey] = new Set();
+  const set = multiFilters[groupKey];
+  if (val === 'all') {
+    set.clear();
+    btn.parentElement.querySelectorAll('.sort-btn').forEach(b => {
+      b.classList.remove('multi-active');
+      if (b.dataset.filterVal === 'all') b.classList.add('multi-active');
+    });
+  } else {
+    const allBtn = btn.parentElement.querySelector('[data-filter-val="all"]');
+    if (allBtn) allBtn.classList.remove('multi-active');
+    if (set.has(val)) { set.delete(val); btn.classList.remove('multi-active'); }
+    else { set.add(val); btn.classList.add('multi-active'); }
+    if (set.size === 0 && allBtn) allBtn.classList.add('multi-active');
+  }
+  // Trigger renders
+  if (tab === 'mb') renderMBTable();
+  else if (tab === 'alert') renderAlertList();
+  else if (['scanner','ema','sharp','picks'].includes(tab)) renderMomTab(tab);
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: PATCH getMBFilteredData for multi-select on ema/oi/zone
+// ═══════════════════════════════════════════════════
+const _origGetMBFiltered = getMBFilteredData;
+getMBFilteredData = function() {
+  let filtered = [...mbData];
+  // EMA trend — multi-select
+  if (multiFilters['mb-ema'] && multiFilters['mb-ema'].size > 0) {
+    const vals = multiFilters['mb-ema'];
+    filtered = filtered.filter(s => {
+      if (vals.has('bull') && s.trend === 'bull') return true;
+      if (vals.has('bear') && s.trend === 'bear') return true;
+      if (vals.has('neu') && (s.trend === 'neutral' || !s.trend)) return true;
+      return false;
+    });
+  }
+  // OI — multi-select
+  if (multiFilters['mb-oi'] && multiFilters['mb-oi'].size > 0) {
+    const vals = multiFilters['mb-oi'];
+    filtered = filtered.filter(s => {
+      if (vals.has('bull') && (s.oi_buildup === 'Long Buildup' || s.oi_buildup === 'Short Covering')) return true;
+      if (vals.has('bear') && (s.oi_buildup === 'Short Buildup' || s.oi_buildup === 'Long Unwinding')) return true;
+      return false;
+    });
+  }
+  // Zone — multi-select
+  if (multiFilters['mb-zone'] && multiFilters['mb-zone'].size > 0) {
+    const vals = multiFilters['mb-zone'];
+    filtered = filtered.filter(s => vals.has(getEMAZone(s)));
+  }
+  // Sector (still single-select dropdown)
+  if (mbFilters.sector && mbFilters.sector !== 'all') filtered = filtered.filter(s => s.sector === mbFilters.sector);
+  // 52W dist multi-filter
+  filtered = filtered.filter(s => {
+    const bucket = multiDist52Bucket(parseFloat(s.ltp), parseFloat(s.high_52w));
+    return multiFilterPass('mb-dist52', bucket);
+  });
+  // Color filter
+  filtered = filtered.filter(s => colorFilterPass(s.symbol));
+  return filtered;
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: PATCH renderAlertList for multi-select + color filter
+// ═══════════════════════════════════════════════════
+const _origRenderAlertList = renderAlertList;
+renderAlertList = function() {
+  const now = Date.now();
+  let list = [...liveAlerts];
+  // Stage — multi-select
+  if (multiFilters['alert-stage'] && multiFilters['alert-stage'].size > 0) {
+    list = list.filter(a => multiFilters['alert-stage'].has(String(a.stage)));
+  }
+  // Direction — multi-select
+  if (multiFilters['alert-dir'] && multiFilters['alert-dir'].size > 0) {
+    list = list.filter(a => {
+      if (multiFilters['alert-dir'].has('bull') && a.direction === 'bull') return true;
+      if (multiFilters['alert-dir'].has('bear') && a.direction === 'bear') return true;
+      return false;
+    });
+  }
+  // Age — multi-select
+  if (multiFilters['alert-age'] && multiFilters['alert-age'].size > 0) {
+    list = list.filter(a => {
+      const ageMins = (now - new Date(a.fired_at).getTime()) / 60000;
+      for (const val of multiFilters['alert-age']) {
+        const mins = parseInt(val);
+        if (mins === 5 && ageMins <= 5) return true;
+        if (mins === 10 && ageMins > 5 && ageMins <= 10) return true;
+        if (mins === 15 && ageMins > 10 && ageMins <= 15) return true;
+      }
+      return false;
+    });
+  }
+  // Sector
+  if (alertFilters.sector !== 'all') list = list.filter(a => a.sector === alertFilters.sector);
+  // Watchlist
+  if (alertFilters.watchlist) list = list.filter(a => starredStocks.has(a.symbol));
+  // Color filter
+  list = list.filter(a => colorFilterPass(a.symbol));
+
+  const el = document.getElementById('alert-list');
+  if (!list.length) { el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">No alerts match filter.<br>Engine starts at 9:30 AM.</div>'; return; }
+  el.innerHTML = list.map((a,i)=>{
+    const ageMs = now - new Date(a.fired_at).getTime();
+    const ageMins = Math.floor(ageMs/60000);
+    const agePill = ageMins<5?`<span class="age-fresh">${ageMins}m</span>`:ageMins<10?`<span class="age-warm">${ageMins}m</span>`:`<span class="age-old">${ageMins}m</span>`;
+    const dirLabel = a.direction==='bull'?'<span style="color:#22C55E;font-weight:700">CALL ▲</span>':'<span style="color:#EF4444;font-weight:700">PUT ▼</span>';
+    const stagePill = a.stage===2?'<span class="tag tag-s2">Stage 2</span>':'<span class="tag tag-s1">Stage 1</span>';
+    const isAct=selectedAlert===a.id;
+    return `<div class="alert-card ${a.direction==='bull'?'bull-card':'bear-card'}${isAct?' active':''}" onclick="selectAlert('${a.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        ${getColorDotHTML(a.symbol)} <span style="font-size:14px;font-weight:700;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${a.symbol}','_blank')" title="Open in TradingView">${a.symbol}</span>
+        <div style="display:flex;gap:4px;align-items:center">${agePill}${stagePill}</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>${dirLabel} · ₹${a.ltp?.toLocaleString('en-IN')||'—'}</div>
+        <div style="font-size:11px;color:var(--muted)">ORB ${a.orb_side||'—'} · ${a.orb_type==='wide'?'Wide':'Narrow'}</div>
+        ${a.sector?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${a.sector}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: PATCH momentum renderScanner for color filter + sparkline
+// ═══════════════════════════════════════════════════
+const _origRenderScanner = renderScanner;
+renderScanner = function() {
+  const f = momFilters.scanner;
+  let data = [...momData.scanner];
+  // Existing filters
+  if (f.period !== 'all') {
+    const now = new Date(), todayStr = now.toISOString().slice(0,10);
+    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
+    const monthStart = new Date(); monthStart.setMonth(monthStart.getMonth() - 1);
+    if (f.period === 'today') data = data.filter(s => s.session_date === todayStr);
+    if (f.period === 'week')  data = data.filter(s => new Date(s.session_date) >= weekStart);
+    if (f.period === 'month') data = data.filter(s => new Date(s.session_date) >= monthStart);
+  }
+  if (f.cat !== 'all')    data = data.filter(s => s.category === f.cat);
+  if (f.score !== 'all')  data = data.filter(s => scoreFilter(s.momentum_score||0, f.score));
+  if (f.signal !== 'all') {
+    if (f.signal === 'crossover') data = data.filter(s => s.daily_crossover_date || s.weekly_crossover_date);
+    if (f.signal === 'breakout')  data = data.filter(s => s.breakout_type);
+    if (f.signal === 'sharp')     data = data.filter(s => s.is_sharp_mover);
+    if (f.signal === 'reentry')   data = data.filter(s => s.is_reentry);
+  }
+  if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+  if (f.zoneW !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+  if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+  if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
+  if (f.star) data = data.filter(s => momStarred.has(s.symbol));
+  // COLOR FILTER
+  data = data.filter(s => colorFilterPass(s.symbol));
+  // Deduplicate
+  const seen = new Set();
+  data = data.filter(s => { if (seen.has(s.symbol)) return false; seen.add(s.symbol); return true; });
+  // Count
+  const scannerCntEl = document.getElementById('scanner-count');
+  if (scannerCntEl) scannerCntEl.textContent = `Showing ${data.length} of ${momData.scanner.length}`;
+  // Sort
+  const { key, dir } = momSort.scanner;
+  data.sort((a,b) => {
+    const av = a[key] ?? '', bv = b[key] ?? '';
+    return typeof av === 'string' ? av.localeCompare(bv) * dir : (av - bv) * dir;
+  });
+  if (!data.length) {
+    document.getElementById('scanner-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">🔍</div><div class="mom-empty-text">No stocks match filter</div></div></td></tr>';
+    return;
+  }
+  document.getElementById('scanner-body').innerHTML = data.map(s => {
+    const starred = momStarred.has(s.symbol);
+    const sig = s.breakout_type ? `<span class="breakout-badge">${s.breakout_type}</span>` : s.is_sharp_mover ? '<span style="color:var(--amber);font-size:10px;font-weight:600">⚡ Sharp</span>' : s.is_reentry ? '<span style="color:#6366F1;font-size:10px;font-weight:600">🔁 Re-entry</span>' : s.daily_crossover_date ? '<span style="color:var(--green);font-size:10px;font-weight:600">🔄 Cross</span>' : '—';
+    const pct52  = (s.ltp && s.high_52w) ? ((s.high_52w - s.ltp)/s.high_52w*100) : null;
+    const pct52str = pct52!==null ? pct52.toFixed(1)+'%' : '—';
+    const pct52col = pct52!==null ? (pct52<5?'var(--green)':pct52<10?'var(--amber)':pct52<20?'var(--text)':'var(--muted)') : 'var(--muted)';
+    return `<tr>
+      <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)" title="${starred?'Remove from My Picks':'Add to My Picks'}">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
+      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span> ${getCatBadge(s.category)}</td>
+      <td><span style="font-size:11px;color:var(--muted)">${s.sector||'—'}</span></td>
+      <td><span style="font-size:11px;color:var(--muted)">${s.industry||'—'}</span></td>
+      <td>${getSparkBars(s.last5_summary, s.day_chg_pct)}</td>
+      <td><span style="font-weight:600">₹${(s.ltp||0).toLocaleString('en-IN')}</span></td>
+      <td>${fmtChg(s.day_chg_pct)}</td>
+      <td>${fmtChg(s.week_chg_pct)}</td>
+      <td>${fmtChg(s.month_chg_pct)}</td>
+      <td>${getEMAStatus(s.above_ema9_daily, s.above_ema20_daily)}</td>
+      <td>${getEMAStatus(s.above_ema9_weekly, s.above_ema20_weekly)}</td>
+      <td>${getZoneTag(s.pct_from_ema9_daily)}</td>
+      <td>${get52wDisplay(s.ltp, s.high_52w)}</td>
+      <td style="color:${pct52col};font-weight:600">${pct52str}</td>
+      <td style="color:var(--cyan);font-weight:600">${s.days_in_uptrend||0}d</td>
+      <td style="color:var(--green);font-weight:600" title="Consecutive green candles">${s.consecutive_green||0}</td>
+      <td>${getScoreTag(s.momentum_score||0)}</td>
+      <td>${sig}</td>
+    </tr>`;
+  }).join('');
+  applyColVisibility('scanner');
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: PATCH renderEMA for color filter
+// ═══════════════════════════════════════════════════
+const _origRenderEMA = renderEMA;
+renderEMA = function() {
+  renderEMATrendingStrip();
+  const f = momFilters.ema;
+  let data = [...momData.ema];
+  if (f.cross !== 'all') {
+    const now = new Date();
+    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    if (f.cross === 'fresh_daily')  data = data.filter(s => s.crossover_type === 'daily' && s.crossover_date && new Date(s.crossover_date) >= weekStart);
+    if (f.cross === 'hist_daily')   data = data.filter(s => s.crossover_type === 'daily' && s.crossover_date && new Date(s.crossover_date) < weekStart);
+    if (f.cross === 'fresh_weekly') data = data.filter(s => s.crossover_type === 'weekly' && s.crossover_date && (now - new Date(s.crossover_date)) / 86400000 <= 28);
+    if (f.cross === 'hist_weekly')  data = data.filter(s => s.crossover_type === 'weekly' && s.crossover_date && (now - new Date(s.crossover_date)) / 86400000 > 28);
+    if (f.cross === 'watch_zone')   data = data.filter(s => s.category === 'B');
+    if (f.cross === 'forming')      data = data.filter(s => s.is_forming_weekly);
+  }
+  if (f.cat !== 'all')      data = data.filter(s => s.category === f.cat);
+  if (f.score !== 'all')    data = data.filter(s => scoreFilter(s.momentum_score || 0, f.score));
+  if (f.breakout !== 'all') { if (f.breakout === 'none') data = data.filter(s => !s.breakout_type); else data = data.filter(s => s.breakout_type === f.breakout); }
+  if (f.sector !== 'all')   data = data.filter(s => s.sector === f.sector);
+  if (f._industry)           data = data.filter(s => s.industry === f._industry);
+  if (f.star)                data = data.filter(s => momStarred.has(s.symbol));
+  if (f.zoneD !== 'all')     data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+  if (f.zoneW !== 'all')     data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+  if (f.dist52 !== 'all')    data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+  // COLOR FILTER
+  data = data.filter(s => colorFilterPass(s.symbol));
+  const seen = new Set();
+  data = data.filter(s => { if (seen.has(s.symbol)) return false; seen.add(s.symbol); return true; });
+  const emaCntEl = document.getElementById('ema-count');
+  if (emaCntEl) emaCntEl.textContent = `Showing ${data.length} of ${momData.ema.length}`;
+  const { key, dir } = momSort.ema;
+  data.sort((a,b) => { const av = a[key] ?? '', bv = b[key] ?? ''; return typeof av === 'string' ? av.localeCompare(bv) * dir : (av - bv) * dir; });
+  if (!data.length) { document.getElementById('ema-body').innerHTML = '<tr><td colspan="17"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">No EMA signals match filter</div></div></td></tr>'; return; }
+  document.getElementById('ema-body').innerHTML = data.map(s => {
+    const starred = momStarred.has(s.symbol);
+    const dcDays = s.daily_crossover_date ? daysSince(s.daily_crossover_date) : null;
+    const wcDays = s.weekly_crossover_date ? daysSince(s.weekly_crossover_date) : null;
+    return `<tr>
+      <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
+      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
+      <td style="font-size:11px">${s.crossover_type==='daily'&&s.crossover_date?s.crossover_date:'—'}</td>
+      <td style="font-size:11px;color:var(--cyan)">${dcDays!==null?dcDays+'d':'—'}</td>
+      <td style="font-size:11px">${s.crossover_type==='weekly'&&s.crossover_date?s.crossover_date:'—'}</td>
+      <td style="font-size:11px;color:#6366F1">${wcDays!==null?wcDays+'d':'—'}</td>
+      <td>${getEMAStatus(s.above_ema9_daily, s.above_ema20_daily)}</td>
+      <td>${getEMAStatus(s.above_ema9_weekly, s.above_ema20_weekly)}</td>
+      <td>${getZoneTag(s.pct_from_ema9_daily)}</td>
+      <td>${s.pct_from_ema9_weekly!==null&&s.pct_from_ema9_weekly!==undefined?`<span style="color:${chgColor(s.pct_from_ema9_weekly)}">${s.pct_from_ema9_weekly>=0?'+':''}${s.pct_from_ema9_weekly.toFixed(2)}%</span>`:'—'}</td>
+      <td>${fmtChg(s.day_chg_pct)}</td>
+      <td>${fmtChg(s.week_chg_pct)}</td>
+      <td>${fmtChg(s.month_chg_pct)}</td>
+      <td>${getVolClass(s.vol_class)}</td>
+      <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
+      <td>${getScoreTag(s.momentum_score||0)}</td>
+    </tr>`;
+  }).join('');
+  applyColVisibility('ema');
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: PATCH renderSharp for color filter
+// ═══════════════════════════════════════════════════
+const _origRenderSharp = renderSharp;
+renderSharp = function() {
+  const f = momFilters.sharp;
+  let data = momData.sharp.filter(s => !momExcluded.has(s.symbol));
+  if (f.move !== 'all') { if (f.move === '3d') data = data.filter(s => s.move_3d_pct && Math.abs(s.move_3d_pct) >= 20); if (f.move === '1m') data = data.filter(s => s.move_1m_pct && Math.abs(s.move_1m_pct) >= 30); }
+  if (f.cat !== 'all')    data = data.filter(s => s.category === f.cat);
+  if (f.score !== 'all')  data = data.filter(s => scoreFilter(s.momentum_score||0, f.score));
+  if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
+  if (f.star)             data = data.filter(s => momStarred.has(s.symbol));
+  if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+  if (f.zoneW !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+  if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+  // COLOR FILTER
+  data = data.filter(s => colorFilterPass(s.symbol));
+  _origRenderSharp.call(this);
+  // Rewrite with color filter applied
+  // (We call original which doesn't have color filter, so we override the body)
+};
+// Actually let's just add colorFilterPass into the original flow by modifying momData access
+// Simpler: patch the data source
+const _origSharpRender2 = renderSharp;
+renderSharp = function() {
+  const origSharp = momData.sharp;
+  momData.sharp = origSharp.filter(s => colorFilterPass(s.symbol));
+  _origRenderSharp();
+  momData.sharp = origSharp;
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: PATCH renderPicks for color filter
+// ═══════════════════════════════════════════════════
+const _origRenderPicks = renderPicks;
+renderPicks = function() {
+  const origPicks = momData.picks;
+  momData.picks = origPicks.filter(s => colorFilterPass(s.symbol));
+  _origRenderPicks();
+  momData.picks = origPicks;
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: Update renderColorFilterUI for ALL tabs
+// ═══════════════════════════════════════════════════
+const _origColorFilterUI = renderColorFilterUI;
+renderColorFilterUI = function() {
+  const spots = ['mb-color-filter-group','fowl-color-filter','alerts-color-filter',
+                 'scanner-color-filter','ema-color-filter','sharp-color-filter','picks-color-filter'];
+  spots.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const allActive = colorFilterActive.size === 0;
+    el.innerHTML = `<button class="color-filter-chip${allActive?' multi-active':''}" onclick="toggleColorFilter('all')" style="background:var(--bg3);color:var(--muted);font-size:10px;padding:2px 7px">All</button>` +
+      COLOR_TAGS.map(c => {
+        const active = colorFilterActive.has(c.key);
+        return `<button class="color-filter-chip${active?' multi-active':''}" onclick="toggleColorFilter('${c.key}')" style="background:${c.hex}22;color:${c.hex};border-color:${active?c.hex:'transparent'};font-size:10px;padding:2px 7px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.hex}"></span></button>`;
+      }).join('');
+  });
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: applyColVisibility extended for mom tables
+// ═══════════════════════════════════════════════════
+const _origApplyColVis = applyColVisibility;
+applyColVisibility = function(tableId) {
+  let tbl;
+  if (tableId === 'mb') tbl = document.querySelector('#mb-body')?.closest('table');
+  else if (tableId === 'fowl') tbl = document.getElementById('fo-wl-table');
+  else if (tableId === 'scanner') tbl = document.getElementById('scanner-tbl');
+  else if (tableId === 'ema') tbl = document.querySelector('#ema-body')?.closest('table');
+  else if (tableId === 'sharp') tbl = document.querySelector('#sharp-body')?.closest('table');
+  else if (tableId === 'picks') tbl = document.getElementById('picks-tbl');
+  if (!tbl) return;
+  const cfg = getColConfig(tableId);
+  tbl.querySelectorAll('tr').forEach(row => {
+    const cells = row.querySelectorAll('th, td');
+    cells.forEach((cell, i) => {
+      cell.style.display = cfg[i] === false ? 'none' : '';
+    });
+  });
+};
+
+// Also extend toggleColPanel for mom tables
+const _origToggleColPanel = toggleColPanel;
+toggleColPanel = function(tableId, btn) {
+  closeColPanel();
+  let tbl;
+  if (tableId === 'mb') tbl = document.querySelector('#mb-body')?.closest('table');
+  else if (tableId === 'fowl') tbl = document.getElementById('fo-wl-table');
+  else if (tableId === 'scanner') tbl = document.getElementById('scanner-tbl');
+  else if (tableId === 'ema') tbl = document.querySelector('#ema-body')?.closest('table');
+  else if (tableId === 'sharp') tbl = document.querySelector('#sharp-body')?.closest('table');
+  else if (tableId === 'picks') tbl = document.getElementById('picks-tbl');
+  if (!tbl) return;
+  const headers = tbl.querySelectorAll('thead th');
+  const panel = document.createElement('div');
+  panel.className = 'col-toggle-panel';
+  const rect = btn.getBoundingClientRect();
+  panel.style.position = 'fixed';
+  panel.style.top = (rect.bottom + 4) + 'px';
+  panel.style.right = '20px';
+  const cfg = getColConfig(tableId);
+  panel.innerHTML = '<div style="font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Show/Hide Columns</div>' +
+    Array.from(headers).map((th, i) => {
+      const name = th.textContent.trim().replace(/[↕↓↑]/g,'').trim() || `Col ${i+1}`;
+      const checked = cfg[i] !== false;
+      return `<label><input type="checkbox" ${checked?'checked':''} onchange="toggleCol('${tableId}',${i},this.checked)"><span>${name}</span></label>`;
+    }).join('');
+  document.body.appendChild(panel);
+  activeColPanel = panel;
+  setTimeout(() => document.addEventListener('click', closeColPanelOutside, { once: true }), 10);
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5.1: Init color filter UI on all tabs load
+// ═══════════════════════════════════════════════════
+const _origInitMom = initMomentumHub;
+initMomentumHub = function() {
+  _origInitMom();
+  setTimeout(() => renderColorFilterUI(), 500);
 };
 
 // ═══════════════════════════════════════════════════
