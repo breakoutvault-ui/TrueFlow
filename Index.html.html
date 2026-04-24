@@ -635,6 +635,47 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   .topbar{padding:0 10px;height:auto;min-height:56px}
   .metric-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ══════════════════════════════════════
+   ROUND 5: MULTI-SELECT TOGGLE FILTERS
+══════════════════════════════════════ */
+.sort-btn.multi-active{background:var(--cyan-dim);border-color:var(--border3);color:var(--cyan);box-shadow:inset 0 0 0 1px var(--border3)}
+
+/* ══════════════════════════════════════
+   ROUND 5: COLOR TAGS
+══════════════════════════════════════ */
+.color-tag-dot{width:12px;height:12px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .12s;flex-shrink:0;display:inline-block;vertical-align:middle}
+.color-tag-dot:hover{transform:scale(1.3);border-color:rgba(255,255,255,.4)}
+.color-tag-dot.no-tag{background:var(--bg3);border:2px dashed var(--border2)}
+.color-tag-picker{position:absolute;z-index:50;background:var(--bg1);border:1px solid var(--border2);border-radius:10px;padding:8px;display:flex;gap:5px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:fadeUp .15s ease}
+.color-tag-picker .ctag-opt{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .1s}
+.color-tag-picker .ctag-opt:hover{transform:scale(1.25);border-color:#fff}
+.color-tag-picker .ctag-clear{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px dashed var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);transition:all .1s}
+.color-tag-picker .ctag-clear:hover{border-color:var(--red);color:var(--red)}
+.color-filter-chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .12s;display:inline-flex;align-items:center;gap:4px}
+.color-filter-chip:hover{transform:translateY(-1px)}
+.color-filter-chip.multi-active{box-shadow:inset 0 0 0 1px var(--border3)}
+
+/* ══════════════════════════════════════
+   ROUND 5: COLUMN TOGGLE
+══════════════════════════════════════ */
+.col-toggle-btn{padding:4px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.col-toggle-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.col-toggle-panel{position:absolute;z-index:50;background:var(--bg1);border:1px solid var(--border2);border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.5);max-height:340px;overflow-y:auto;min-width:200px;animation:fadeUp .15s ease}
+.col-toggle-panel label{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text);transition:background .1s}
+.col-toggle-panel label:hover{background:var(--bg3)}
+.col-toggle-panel input[type="checkbox"]{accent-color:var(--cyan)}
+
+/* ══════════════════════════════════════
+   ROUND 5: F&O WATCHLIST TAB
+══════════════════════════════════════ */
+.wl-tabs-strip{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.wl-tab{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:all .12s;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.wl-tab:hover{border-color:var(--border2);color:var(--text)}
+.wl-tab.active{background:var(--cyan-dim);border-color:var(--border3);color:var(--cyan)}
+.wl-tab .wl-count{font-size:9px;background:var(--bg3);padding:1px 5px;border-radius:99px;color:var(--muted)}
+.wl-add-tab{padding:5px 10px;border-radius:20px;border:1px dashed var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:14px;transition:all .12s}
+.wl-add-tab:hover{border-color:var(--cyan);color:var(--cyan)}
 </style>
 </head>
 <body>
@@ -710,6 +751,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <button class="nav-tab" onclick="switchTab('sectorpulse',this,'fo')">📡 Sector Pulse</button>
       <button class="nav-tab" onclick="switchTab('alerts',this,'fo')">🔔 Live Alerts</button>
       <button class="nav-tab" onclick="switchTab('alerthistory',this,'fo')">📋 Alert History</button>
+      <button class="nav-tab" onclick="switchTab('fowatchlist',this,'fo')">📌 Watchlists</button>
     </div>
     <div class="nav-tabs" id="eod-tabs" style="display:none;flex:1;min-width:0;overflow:hidden">
       <button class="nav-tab active" onclick="switchTab('sector',this,'eod')">🏭 Sectors</button>
@@ -817,8 +859,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">9 EMA Zone</span>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
               <button class="sort-btn active" onclick="setMBFilter('zone','all',this)" title="Show all stocks regardless of 9 EMA distance">All</button>
-              <button class="sort-btn" onclick="setMBFilter('zone','in',this)" style="color:#22C55E" title="In Zone: Within 2% of 9 EMA — ideal entry, stock ready to move">🟢 &lt;2%</button>
-              <button class="sort-btn" onclick="setMBFilter('zone','near',this)" style="color:var(--amber)" title="Near: 2-5% away — watch for pullback before entry">🟡 2-5%</button>
+              <button class="sort-btn" onclick="setMBFilter('zone','in',this)" style="color:#22C55E" title="In Zone: Within 3% of 9 EMA — ideal entry, stock ready to move">🟢 &lt;3%</button>
+              <button class="sort-btn" onclick="setMBFilter('zone','near',this)" style="color:var(--amber)" title="Near: 3-5% away — watch for pullback before entry">🟡 3-5%</button>
               <button class="sort-btn" onclick="setMBFilter('zone','far',this)" style="color:var(--red)" title="Far: More than 5% away — stock extended, avoid fresh entry">🔴 &gt;5%</button>
             </div>
           </div>
@@ -843,6 +885,30 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <option value="all">All Sectors</option>
             </select>
           </div>
+          <!-- Row 4 Left: 52W Distance -->
+          <div style="display:flex;flex-direction:column;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px">
+            <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">52W High Distance</span>
+            <div style="display:flex;gap:4px;flex-wrap:wrap" id="mb-dist52-group">
+              <button class="sort-btn multi-active" data-filter-group="mb-dist52" data-filter-val="all" onclick="toggleMultiFilter('mb','dist52','all',this)" title="Show all stocks">All</button>
+              <button class="sort-btn" data-filter-group="mb-dist52" data-filter-val="b1" onclick="toggleMultiFilter('mb','dist52','b1',this)" style="color:#22C55E" title="Less than 5% away from 52W high — near breakout">&lt;5%</button>
+              <button class="sort-btn" data-filter-group="mb-dist52" data-filter-val="b2" onclick="toggleMultiFilter('mb','dist52','b2',this)" title="5-10% from 52W high">5-10%</button>
+              <button class="sort-btn" data-filter-group="mb-dist52" data-filter-val="b3" onclick="toggleMultiFilter('mb','dist52','b3',this)" title="10-15% from 52W high">10-15%</button>
+              <button class="sort-btn" data-filter-group="mb-dist52" data-filter-val="b4" onclick="toggleMultiFilter('mb','dist52','b4',this)" title="15-20% from 52W high">15-20%</button>
+              <button class="sort-btn" data-filter-group="mb-dist52" data-filter-val="b5" onclick="toggleMultiFilter('mb','dist52','b5',this)" title="More than 20% from 52W high">&gt;20%</button>
+            </div>
+          </div>
+          <!-- Row 4 Right: Color Tag Filter -->
+          <div style="display:flex;flex-direction:column;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px">
+            <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">Color Tag</span>
+            <div style="display:flex;gap:4px;flex-wrap:wrap" id="mb-color-filter-group"></div>
+          </div>
+          <!-- Row 5: Export buttons (full width) -->
+          <div style="display:flex;gap:8px;align-items:center;grid-column:span 2;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px">
+            <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-right:auto">Export Filtered</span>
+            <button class="mom-export-btn" onclick="exportMBTradingView()" title="Copy filtered stock symbols for TradingView watchlist">📊 TradingView</button>
+            <button class="mom-export-btn" onclick="exportMBExcel()" title="Download filtered stocks as CSV">⬇ Excel</button>
+            <button class="col-toggle-btn" onclick="toggleColPanel('mb',this)" title="Show/hide columns">⚙️ Columns</button>
+          </div>
         </div>
       </div>
       <!-- Stock table -->
@@ -856,9 +922,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <table class="fo-tbl" style="min-width:1200px">
             <thead><tr>
               <th style="width:32px">⭐</th>
+              <th style="width:20px" title="Color tag — click dot to assign a color label">🏷️</th>
               <th>Stock</th>
               <th>Sector</th>
-              <th>Industry</th>
               <th>LTP / Chg</th>
               <th class="sortable-th" onclick="setMBSort('gap')" title="Sort by Gap % from previous close">Gap % <span class="sort-arrow" id="mba-gap">↕</span></th>
               <th>Daily EMA</th>
@@ -872,7 +938,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="sortable-th" onclick="setMBSort('conviction')" title="Conviction Score 0-100: combines EMA trend, OI buildup, volume, delivery %, 52W proximity. Higher = better setup">Score <span class="sort-arrow" id="mba-conviction">↓</span></th>
             </tr></thead>
             <tbody id="mb-body">
-              <tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)">
+              <tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">
                 Loading EMA data...
               </td></tr>
             </tbody>
@@ -1211,6 +1277,61 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <tbody id="ah-body">
               <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">
                 No alerts recorded yet. Alerts will appear here once the engine fires during market hours.
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 6: F&O WATCHLISTS
+  ══════════════════════════════════════ -->
+  <div id="tab-fowatchlist" class="panel">
+    <div class="fo-panel">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div class="wl-tabs-strip" id="fo-wl-tabs-strip"></div>
+        <button class="wl-add-tab" onclick="addFOWatchlist()" title="Create new watchlist">＋</button>
+        <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+          <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">Color Filter</span>
+          <div id="fowl-color-filter" style="display:flex;gap:4px"></div>
+        </div>
+      </div>
+      <div id="fo-wl-manage" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+        <input id="fo-wl-add-stock" class="mom-note-input" placeholder="Add stock symbol..." style="width:180px" onkeydown="if(event.key==='Enter')addStockToFOWL(this.value)">
+        <button class="sort-btn" onclick="addStockToFOWL(document.getElementById('fo-wl-add-stock').value)" title="Add a stock to this watchlist">+ Add</button>
+        <button class="sort-btn" onclick="renameFOWatchlist()" title="Rename this watchlist" style="margin-left:auto">✏️ Rename</button>
+        <button class="sort-btn" onclick="deleteFOWatchlist()" title="Delete this watchlist" style="color:var(--red)">🗑 Delete</button>
+        <button class="mom-export-btn" onclick="exportFOWLTV()" title="Copy symbols for TradingView">📊 TradingView</button>
+        <button class="mom-export-btn" onclick="exportFOWLCSV()" title="Download as CSV">⬇ CSV</button>
+        <button class="col-toggle-btn" onclick="toggleColPanel('fowl',this)" title="Show/hide columns">⚙️ Columns</button>
+      </div>
+      <div class="fo-section">
+        <div class="fo-sec-hdr">
+          <span class="fo-sec-title" id="fo-wl-title">Select or create a watchlist</span>
+          <span style="font-size:11px;color:var(--cyan);font-weight:600" id="fo-wl-count">—</span>
+        </div>
+        <div class="tbl-scroll">
+          <table class="fo-tbl" style="min-width:1000px" id="fo-wl-table">
+            <thead><tr id="fo-wl-thead">
+              <th style="width:20px">🏷️</th>
+              <th>Stock</th>
+              <th>Sector</th>
+              <th>LTP / Chg</th>
+              <th>Daily EMA</th>
+              <th>OI Buildup</th>
+              <th>% from 9 EMA</th>
+              <th>52W High</th>
+              <th>% from 52W</th>
+              <th>Vol ×avg</th>
+              <th>Del %</th>
+              <th>Score</th>
+              <th style="width:40px">✕</th>
+            </tr></thead>
+            <tbody id="fo-wl-body">
+              <tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">
+                Select or create a watchlist to see stocks here
               </td></tr>
             </tbody>
           </table>
@@ -3655,7 +3776,7 @@ async function loadMorningBrief() {
     const dateResp = await fetch(dateUrl, { headers });
     const dateData = await dateResp.json();
     if (!dateData || dateData.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     const latestDate = dateData[0].session_date;
@@ -3664,7 +3785,7 @@ async function loadMorningBrief() {
     const resp = await fetch(url, { headers });
     const data = await resp.json();
     if (!data || data.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     mbData = data;
@@ -3684,7 +3805,7 @@ function calcConviction(s) {
   // Conviction Score 0-100 based on: EMA zone, OI buildup, Vol ratio, Del pct, trend
   let score = 0;
   const pct9 = s.ltp && s.ema9 ? Math.abs((parseFloat(s.ltp)-parseFloat(s.ema9))/parseFloat(s.ema9)*100) : 99;
-  if (pct9 < 2) score += 30;
+  if (pct9 < 3) score += 30;
   else if (pct9 < 5) score += 15;
   const oi = s.oi_buildup || '';
   if (oi === 'Long Buildup' || oi === 'Short Buildup') score += 25;
@@ -3699,7 +3820,7 @@ function calcConviction(s) {
 function getEMAZone(s) {
   if (!s.ltp || !s.ema9) return 'far';
   const pct = Math.abs((parseFloat(s.ltp)-parseFloat(s.ema9))/parseFloat(s.ema9)*100);
-  if (pct < 2) return 'in';
+  if (pct < 3) return 'in';
   if (pct < 5) return 'near';
   return 'far';
 }
@@ -3752,7 +3873,7 @@ function renderMBTable() {
   if (mbCntEl) mbCntEl.textContent = `Showing ${filtered.length} of ${mbData.length}`;
 
   if (filtered.length === 0) {
-    document.getElementById('mb-body').innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
+    document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
     return;
   }
   const rows = filtered.map(s => {
@@ -3788,7 +3909,6 @@ function renderMBTable() {
     const setup    = trend === 'bull' ? 'Watch Call' : trend === 'bear' ? 'Watch Put' : 'Skip';
     const isStarred = starredStocks.has(s.symbol);
     const sector   = s.sector || '—';
-    const industry = s.industry || '—';
     // Gap % from prev close
     const gapRaw  = s.ltp && s.prev_close ? ((parseFloat(s.ltp)-parseFloat(s.prev_close))/parseFloat(s.prev_close)*100) : null;
     const gapCol  = gapRaw !== null ? (Math.abs(gapRaw) < 0.15 ? 'var(--muted)' : gapRaw > 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
@@ -3800,7 +3920,6 @@ function renderMBTable() {
       <td style="text-align:center"><button class="star-btn${isStarred?' starred':''}" onclick="toggleStar('${s.symbol}',this)" title="${isStarred?'Remove from watchlist':'Add to watchlist'}">${isStarred?'⭐':'☆'}</button></td>
       <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span>${freshXBadge}${zoneTag}</td>
       <td><span style="font-size:11px;color:var(--muted)">${sector}</span></td>
-      <td><span style="font-size:11px;color:var(--muted)">${industry}</span></td>
       <td><span style="font-weight:600">${ltp}</span> ${chgStr}</td>
       <td>${gapStr}</td>
       <td><span style="color:${tc};font-weight:700">${ti} ${tLabel}</span><br>
@@ -5045,7 +5164,7 @@ function renderScanner() {
     const pct52str = pct52!==null ? pct52.toFixed(1)+'%' : '—';
     const pct52col = pct52!==null ? (pct52<5?'var(--green)':pct52<10?'var(--amber)':pct52<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
-      <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)" title="${starred?'Remove from My Picks':'Add to My Picks'}">${starred?'⭐':'☆'}</button></td>
+      <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)" title="${starred?'Remove from My Picks':'Add to My Picks'}">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
       <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span> ${getCatBadge(s.category)}</td>
       <td><span style="font-size:11px;color:var(--muted)">${s.sector||'—'}</span></td>
       <td><span style="font-size:11px;color:var(--muted)">${s.industry||'—'}</span></td>
@@ -5162,7 +5281,7 @@ function renderEMA() {
     const dcDays = s.daily_crossover_date ? daysSince(s.daily_crossover_date) : null;
     const wcDays = s.weekly_crossover_date ? daysSince(s.weekly_crossover_date) : null;
     return `<tr>
-      <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button></td>
+      <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
       <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
       <td style="font-size:11px">${s.crossover_type==='daily'&&s.crossover_date?s.crossover_date:'—'}</td>
@@ -5217,7 +5336,7 @@ function renderSharp() {
     const period = is3d ? '3-Day' : '1-Month';
     const away52 = s.ltp && s.high_52w ? ((s.high_52w - s.ltp) / s.high_52w * 100).toFixed(1) + '%' : '—';
     return `<tr>
-      <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button></td>
+      <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
       <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
@@ -5281,7 +5400,7 @@ function renderPicks() {
     const pct52pstr = pct52p!==null ? pct52p.toFixed(1)+'%' : '—';
     const pct52pcol = pct52p!==null ? (pct52p<5?'var(--green)':pct52p<10?'var(--amber)':pct52p<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
-      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.starred_at?new Date(s.starred_at).toLocaleDateString('en-IN'):'—'}</td>
@@ -5614,6 +5733,600 @@ function showToast(msg, type='info') {
 function initParticles() {
   // Just a subtle glow on the app background — no heavy animation
 }
+
+// ═══════════════════════════════════════════════════
+// ROUND 5: UNIVERSAL MULTI-SELECT TOGGLE FILTERS
+// ═══════════════════════════════════════════════════
+// Multi-filter state: { groupKey: Set of active values }  —  empty Set = show all
+const multiFilters = {};
+
+function toggleMultiFilter(tab, type, val, btn) {
+  const groupKey = tab + '-' + type;
+  if (!multiFilters[groupKey]) multiFilters[groupKey] = new Set();
+  const set = multiFilters[groupKey];
+  if (val === 'all') {
+    // Clear all selections
+    set.clear();
+    btn.parentElement.querySelectorAll('.sort-btn').forEach(b => {
+      b.classList.remove('multi-active');
+      if (b.dataset.filterVal === 'all') b.classList.add('multi-active');
+    });
+  } else {
+    // Remove 'all' active
+    const allBtn = btn.parentElement.querySelector('[data-filter-val="all"]');
+    if (allBtn) allBtn.classList.remove('multi-active');
+    if (set.has(val)) {
+      set.delete(val);
+      btn.classList.remove('multi-active');
+    } else {
+      set.add(val);
+      btn.classList.add('multi-active');
+    }
+    // If nothing selected, re-activate 'all'
+    if (set.size === 0 && allBtn) allBtn.classList.add('multi-active');
+  }
+  // Trigger re-render
+  if (tab === 'mb') renderMBTable();
+  else if (tab === 'scanner' || tab === 'ema' || tab === 'sharp' || tab === 'picks') renderMomTab(tab);
+}
+
+function multiFilterPass(groupKey, testVal) {
+  const set = multiFilters[groupKey];
+  if (!set || set.size === 0) return true;
+  return set.has(testVal);
+}
+
+function multiDist52Bucket(ltp, high_52w) {
+  if (!ltp || !high_52w) return null;
+  const p = (high_52w - ltp) / high_52w * 100;
+  if (p < 5) return 'b1';
+  if (p < 10) return 'b2';
+  if (p < 15) return 'b3';
+  if (p < 20) return 'b4';
+  return 'b5';
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 5: COLOR TAG SYSTEM
+// ═══════════════════════════════════════════════════
+const COLOR_TAGS = [
+  { key:'red',    hex:'#EF4444', label:'Red' },
+  { key:'orange', hex:'#F97316', label:'Orange' },
+  { key:'yellow', hex:'#EAB308', label:'Yellow' },
+  { key:'green',  hex:'#22C55E', label:'Green' },
+  { key:'blue',   hex:'#3B82F6', label:'Blue' },
+  { key:'purple', hex:'#A855F7', label:'Purple' },
+  { key:'grey',   hex:'#6B7280', label:'Grey' },
+];
+let stockColorTags = {}; // { symbol: colorKey }
+let colorFilterActive = new Set(); // active color filters
+
+async function loadColorTags() {
+  try {
+    const url = CONFIG.supabaseUrl + '/rest/v1/stock_tags?select=symbol,color';
+    const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+    const resp = await fetch(url, { headers });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    stockColorTags = {};
+    (data||[]).forEach(r => { stockColorTags[r.symbol] = r.color; });
+  } catch(e) { console.error('Load color tags error:', e); }
+}
+
+async function setColorTag(symbol, colorKey) {
+  const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
+  if (!colorKey) {
+    delete stockColorTags[symbol];
+    try { await fetch(`${CONFIG.supabaseUrl}/rest/v1/stock_tags?symbol=eq.${symbol}`, { method:'DELETE', headers }); } catch(e){}
+    showToast(`Tag removed from ${symbol}`, 'info');
+  } else {
+    stockColorTags[symbol] = colorKey;
+    try {
+      await fetch(`${CONFIG.supabaseUrl}/rest/v1/stock_tags`, {
+        method:'POST', headers,
+        body: JSON.stringify({ symbol, color: colorKey, tagged_at: new Date().toISOString() })
+      });
+    } catch(e){}
+    const ct = COLOR_TAGS.find(c=>c.key===colorKey);
+    showToast(`${ct?ct.label:''} tag set for ${symbol}`, 'success');
+  }
+  closeColorPicker();
+  // Re-render active tab
+  renderMBTable();
+  renderMomTab('scanner');
+  renderMomTab('picks');
+}
+
+let activeColorPicker = null;
+function showColorPicker(symbol, el) {
+  closeColorPicker();
+  const rect = el.getBoundingClientRect();
+  const picker = document.createElement('div');
+  picker.className = 'color-tag-picker';
+  picker.style.position = 'fixed';
+  picker.style.top = (rect.bottom + 4) + 'px';
+  picker.style.left = rect.left + 'px';
+  picker.innerHTML = COLOR_TAGS.map(c =>
+    `<div class="ctag-opt" style="background:${c.hex}" title="${c.label}" onclick="setColorTag('${symbol}','${c.key}')"></div>`
+  ).join('') + `<div class="ctag-clear" title="Remove tag" onclick="setColorTag('${symbol}',null)">✕</div>`;
+  document.body.appendChild(picker);
+  activeColorPicker = picker;
+  setTimeout(() => document.addEventListener('click', closeColorPickerOutside, { once: true }), 10);
+}
+
+function closeColorPicker() {
+  if (activeColorPicker) { activeColorPicker.remove(); activeColorPicker = null; }
+}
+function closeColorPickerOutside(e) {
+  if (activeColorPicker && !activeColorPicker.contains(e.target)) closeColorPicker();
+}
+
+function getColorDotHTML(symbol) {
+  const ck = stockColorTags[symbol];
+  if (ck) {
+    const ct = COLOR_TAGS.find(c=>c.key===ck);
+    return `<span class="color-tag-dot" style="background:${ct?ct.hex:'var(--bg3)'}" onclick="event.stopPropagation();showColorPicker('${symbol}',this)" title="${ct?ct.label:'Tag'} — click to change"></span>`;
+  }
+  return `<span class="color-tag-dot no-tag" onclick="event.stopPropagation();showColorPicker('${symbol}',this)" title="Click to assign color tag"></span>`;
+}
+
+function toggleColorFilter(colorKey) {
+  if (colorKey === 'all') {
+    colorFilterActive.clear();
+  } else {
+    if (colorFilterActive.has(colorKey)) colorFilterActive.delete(colorKey);
+    else colorFilterActive.add(colorKey);
+  }
+  renderColorFilterUI();
+  renderMBTable();
+  renderMomTab('scanner');
+  renderMomTab('picks');
+  if (document.getElementById('tab-fowatchlist')?.classList.contains('active')) renderFOWLTable();
+}
+
+function colorFilterPass(symbol) {
+  if (colorFilterActive.size === 0) return true;
+  const ck = stockColorTags[symbol];
+  return ck && colorFilterActive.has(ck);
+}
+
+function renderColorFilterUI() {
+  // Render color filter chips in all relevant spots
+  const spots = ['mb-color-filter-group','fowl-color-filter'];
+  spots.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const allActive = colorFilterActive.size === 0;
+    el.innerHTML = `<button class="color-filter-chip${allActive?' multi-active':''}" onclick="toggleColorFilter('all')" style="background:var(--bg3);color:var(--muted)">All</button>` +
+      COLOR_TAGS.map(c => {
+        const active = colorFilterActive.has(c.key);
+        return `<button class="color-filter-chip${active?' multi-active':''}" onclick="toggleColorFilter('${c.key}')" style="background:${c.hex}22;color:${c.hex};border-color:${active?c.hex:'transparent'}"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.hex}"></span>${c.label}</button>`;
+      }).join('');
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 5: COLUMN TOGGLE SYSTEM
+// ═══════════════════════════════════════════════════
+const colConfig = {};
+let activeColPanel = null;
+
+function getColConfig(tableId) {
+  if (!colConfig[tableId]) {
+    try {
+      const saved = localStorage.getItem('tf-cols-' + tableId);
+      if (saved) { colConfig[tableId] = JSON.parse(saved); return colConfig[tableId]; }
+    } catch(e){}
+    colConfig[tableId] = {}; // all visible by default
+  }
+  return colConfig[tableId];
+}
+
+function isColVisible(tableId, colIdx) {
+  const cfg = getColConfig(tableId);
+  if (cfg[colIdx] === false) return false;
+  return true;
+}
+
+function toggleColPanel(tableId, btn) {
+  closeColPanel();
+  const tbl = tableId === 'mb' ? document.querySelector('#mb-body')?.closest('table') :
+              tableId === 'fowl' ? document.getElementById('fo-wl-table') : null;
+  if (!tbl) return;
+  const headers = tbl.querySelectorAll('thead th');
+  const panel = document.createElement('div');
+  panel.className = 'col-toggle-panel';
+  panel.style.position = 'absolute';
+  const rect = btn.getBoundingClientRect();
+  panel.style.position = 'fixed';
+  panel.style.top = (rect.bottom + 4) + 'px';
+  panel.style.right = '20px';
+  const cfg = getColConfig(tableId);
+  panel.innerHTML = '<div style="font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Show/Hide Columns</div>' +
+    Array.from(headers).map((th, i) => {
+      const name = th.textContent.trim().replace(/[↕↓↑]/g,'').trim() || `Col ${i+1}`;
+      const checked = cfg[i] !== false;
+      return `<label><input type="checkbox" ${checked?'checked':''} onchange="toggleCol('${tableId}',${i},this.checked)"><span>${name}</span></label>`;
+    }).join('');
+  document.body.appendChild(panel);
+  activeColPanel = panel;
+  setTimeout(() => document.addEventListener('click', closeColPanelOutside, { once: true }), 10);
+}
+
+function closeColPanel() {
+  if (activeColPanel) { activeColPanel.remove(); activeColPanel = null; }
+}
+function closeColPanelOutside(e) {
+  if (activeColPanel && !activeColPanel.contains(e.target)) closeColPanel();
+}
+
+function toggleCol(tableId, colIdx, visible) {
+  const cfg = getColConfig(tableId);
+  cfg[colIdx] = visible;
+  try { localStorage.setItem('tf-cols-' + tableId, JSON.stringify(cfg)); } catch(e){}
+  applyColVisibility(tableId);
+}
+
+function applyColVisibility(tableId) {
+  const tbl = tableId === 'mb' ? document.querySelector('#mb-body')?.closest('table') :
+              tableId === 'fowl' ? document.getElementById('fo-wl-table') : null;
+  if (!tbl) return;
+  const cfg = getColConfig(tableId);
+  tbl.querySelectorAll('tr').forEach(row => {
+    const cells = row.querySelectorAll('th, td');
+    cells.forEach((cell, i) => {
+      cell.style.display = cfg[i] === false ? 'none' : '';
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 5: MORNING BRIEF EXPORT
+// ═══════════════════════════════════════════════════
+function getMBFilteredData() {
+  let filtered = [...mbData];
+  if (mbFilters.ema === 'bull') filtered = filtered.filter(s => s.trend === 'bull');
+  else if (mbFilters.ema === 'bear') filtered = filtered.filter(s => s.trend === 'bear');
+  else if (mbFilters.ema === 'neu') filtered = filtered.filter(s => s.trend === 'neutral');
+  if (mbFilters.oi === 'bull') filtered = filtered.filter(s => s.oi_buildup === 'Long Buildup' || s.oi_buildup === 'Short Covering');
+  else if (mbFilters.oi === 'bear') filtered = filtered.filter(s => s.oi_buildup === 'Short Buildup' || s.oi_buildup === 'Long Unwinding');
+  if (mbFilters.zone === 'in')   filtered = filtered.filter(s => getEMAZone(s) === 'in');
+  else if (mbFilters.zone === 'near') filtered = filtered.filter(s => getEMAZone(s) === 'near');
+  else if (mbFilters.zone === 'far')  filtered = filtered.filter(s => getEMAZone(s) === 'far');
+  if (mbFilters.sector && mbFilters.sector !== 'all') filtered = filtered.filter(s => s.sector === mbFilters.sector);
+  // 52W dist multi-filter
+  filtered = filtered.filter(s => {
+    const bucket = multiDist52Bucket(parseFloat(s.ltp), parseFloat(s.high_52w));
+    return multiFilterPass('mb-dist52', bucket);
+  });
+  // Color filter
+  filtered = filtered.filter(s => colorFilterPass(s.symbol));
+  return filtered;
+}
+
+function exportMBTradingView() {
+  const data = getMBFilteredData();
+  if (!data.length) { showToast('No stocks to copy', 'info'); return; }
+  const symbols = data.map(s => 'NSE:' + s.symbol).join(',');
+  navigator.clipboard.writeText(symbols).then(() => {
+    showToast(`📊 ${data.length} symbols copied for TradingView`, 'success');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = symbols;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    showToast(`📊 ${data.length} symbols copied`, 'success');
+  });
+}
+
+function exportMBExcel() {
+  const data = getMBFilteredData();
+  if (!data.length) { showToast('No stocks to export', 'info'); return; }
+  const headers = ['Symbol','Sector','LTP','Change%','Trend','OI Buildup','9 EMA','20 EMA','% from 9 EMA','52W High','% from 52W','Vol Ratio','Del %','Score','Color Tag'];
+  const rows = data.map(s => {
+    const pct9 = s.ltp && s.ema9 ? ((parseFloat(s.ltp)-parseFloat(s.ema9))/parseFloat(s.ema9)*100).toFixed(2) : '';
+    const d52 = s.ltp && s.high_52w ? ((parseFloat(s.high_52w)-parseFloat(s.ltp))/parseFloat(s.high_52w)*100).toFixed(1) : '';
+    const chg = s.ltp && s.prev_close ? ((parseFloat(s.ltp)-parseFloat(s.prev_close))/parseFloat(s.prev_close)*100).toFixed(2) : '';
+    const ct = stockColorTags[s.symbol] || '';
+    return [s.symbol, s.sector||'', parseFloat(s.ltp)||'', chg, s.trend||'', s.oi_buildup||'',
+      s.ema9?parseFloat(s.ema9).toFixed(1):'', s.ema20?parseFloat(s.ema20).toFixed(1):'',
+      pct9, s.high_52w?parseFloat(s.high_52w).toFixed(1):'', d52,
+      s.vol_ratio?parseFloat(s.vol_ratio).toFixed(1):'', s.del_pct?parseFloat(s.del_pct).toFixed(1):'',
+      calcConviction(s), ct].join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `MorningBrief_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast(`⬇ ${data.length} stocks exported`, 'success');
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 5: F&O WATCHLISTS
+// ═══════════════════════════════════════════════════
+let foWatchlists = []; // [{id, name, symbols:[]}]
+let activeFOWL = null;
+
+function loadFOWatchlists() {
+  try {
+    const saved = localStorage.getItem('tf-fo-watchlists');
+    if (saved) foWatchlists = JSON.parse(saved);
+  } catch(e){}
+  if (!foWatchlists.length) {
+    foWatchlists = [{ id: 'wl_1', name: 'Primary', symbols: [] }];
+    saveFOWatchlists();
+  }
+  activeFOWL = foWatchlists[0].id;
+  renderFOWLTabs();
+}
+
+function saveFOWatchlists() {
+  try { localStorage.setItem('tf-fo-watchlists', JSON.stringify(foWatchlists)); } catch(e){}
+}
+
+function renderFOWLTabs() {
+  const strip = document.getElementById('fo-wl-tabs-strip');
+  if (!strip) return;
+  strip.innerHTML = foWatchlists.map(wl => {
+    const active = wl.id === activeFOWL;
+    return `<button class="wl-tab${active?' active':''}" onclick="selectFOWL('${wl.id}')">${wl.name} <span class="wl-count">${wl.symbols.length}</span></button>`;
+  }).join('');
+  renderFOWLTable();
+}
+
+function selectFOWL(id) {
+  activeFOWL = id;
+  renderFOWLTabs();
+}
+
+function addFOWatchlist() {
+  const name = prompt('Watchlist name:');
+  if (!name || !name.trim()) return;
+  const id = 'wl_' + Date.now();
+  foWatchlists.push({ id, name: name.trim(), symbols: [] });
+  saveFOWatchlists();
+  activeFOWL = id;
+  renderFOWLTabs();
+  showToast(`📌 Watchlist "${name.trim()}" created`, 'success');
+}
+
+function renameFOWatchlist() {
+  const wl = foWatchlists.find(w => w.id === activeFOWL);
+  if (!wl) return;
+  const name = prompt('New name:', wl.name);
+  if (!name || !name.trim()) return;
+  wl.name = name.trim();
+  saveFOWatchlists();
+  renderFOWLTabs();
+  showToast('Watchlist renamed', 'success');
+}
+
+function deleteFOWatchlist() {
+  if (foWatchlists.length <= 1) { showToast('Cannot delete the last watchlist', 'info'); return; }
+  const wl = foWatchlists.find(w => w.id === activeFOWL);
+  if (!wl) return;
+  if (!confirm(`Delete "${wl.name}" watchlist?`)) return;
+  foWatchlists = foWatchlists.filter(w => w.id !== activeFOWL);
+  saveFOWatchlists();
+  activeFOWL = foWatchlists[0].id;
+  renderFOWLTabs();
+  showToast('Watchlist deleted', 'info');
+}
+
+function addStockToFOWL(symbol) {
+  const sym = (symbol||'').trim().toUpperCase();
+  if (!sym) return;
+  const wl = foWatchlists.find(w => w.id === activeFOWL);
+  if (!wl) return;
+  if (wl.symbols.includes(sym)) { showToast(`${sym} already in ${wl.name}`, 'info'); return; }
+  wl.symbols.push(sym);
+  saveFOWatchlists();
+  const inp = document.getElementById('fo-wl-add-stock');
+  if (inp) inp.value = '';
+  renderFOWLTabs();
+  showToast(`${sym} added to ${wl.name}`, 'success');
+}
+
+function removeStockFromFOWL(symbol) {
+  const wl = foWatchlists.find(w => w.id === activeFOWL);
+  if (!wl) return;
+  wl.symbols = wl.symbols.filter(s => s !== symbol);
+  saveFOWatchlists();
+  renderFOWLTabs();
+}
+
+function renderFOWLTable() {
+  const wl = foWatchlists.find(w => w.id === activeFOWL);
+  const titleEl = document.getElementById('fo-wl-title');
+  const countEl = document.getElementById('fo-wl-count');
+  const body = document.getElementById('fo-wl-body');
+  if (!wl || !body) return;
+  if (titleEl) titleEl.textContent = wl.name + ' — F&O Watchlist';
+  // Cross-reference with mbData for stock details
+  let stocks = wl.symbols.map(sym => {
+    const mb = mbData.find(s => s.symbol === sym);
+    return mb || { symbol: sym };
+  });
+  // Apply color filter
+  stocks = stocks.filter(s => colorFilterPass(s.symbol));
+  if (countEl) countEl.textContent = `Showing ${stocks.length} of ${wl.symbols.length}`;
+  if (!stocks.length) {
+    body.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">${wl.symbols.length?'No stocks match color filter':'Add stocks to this watchlist using the input above or star them from Morning Brief'}</td></tr>`;
+    return;
+  }
+  body.innerHTML = stocks.map(s => {
+    if (!s.ltp) return `<tr><td>${getColorDotHTML(s.symbol)}</td><td style="font-weight:600">${s.symbol}</td><td colspan="10" style="color:var(--muted);font-size:11px">No data — stock not in F&O EMA data</td><td><button class="sort-btn" onclick="removeStockFromFOWL('${s.symbol}')" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td></tr>`;
+    const trend = s.trend || 'neutral';
+    const tc = trend==='bull'?'var(--green)':trend==='bear'?'var(--red)':'var(--muted)';
+    const ti = trend==='bull'?'▲ Bullish':trend==='bear'?'▼ Bearish':'— Neutral';
+    const ltp = parseFloat(s.ltp).toFixed(2);
+    const chgPct = s.ltp&&s.prev_close?((parseFloat(s.ltp)-parseFloat(s.prev_close))/parseFloat(s.prev_close)*100).toFixed(2):null;
+    const chgCol = chgPct?(parseFloat(chgPct)>=0?'var(--green)':'var(--red)'):'var(--muted)';
+    const pct9 = s.ltp&&s.ema9?((parseFloat(s.ltp)-parseFloat(s.ema9))/parseFloat(s.ema9)*100).toFixed(2)+'%':'—';
+    const h52w = s.high_52w?parseFloat(s.high_52w).toFixed(1):'—';
+    const d52 = s.ltp&&s.high_52w?((parseFloat(s.high_52w)-parseFloat(s.ltp))/parseFloat(s.high_52w)*100).toFixed(1)+'%':'—';
+    const volR = s.vol_ratio?parseFloat(s.vol_ratio).toFixed(1)+'x':'—';
+    const delPct = s.del_pct?parseFloat(s.del_pct).toFixed(1)+'%':'—';
+    const oiCol = s.oi_buildup==='Long Buildup'?'var(--green)':s.oi_buildup==='Short Buildup'?'var(--red)':'var(--muted)';
+    const conv = calcConviction(s);
+    const convCol = conv>=70?'var(--green)':conv>=40?'var(--amber)':'var(--muted)';
+    return `<tr>
+      <td>${getColorDotHTML(s.symbol)}</td>
+      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')">${s.symbol}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
+      <td><span style="font-weight:600">${ltp}</span> <span style="color:${chgCol};font-size:10px">${chgPct?(parseFloat(chgPct)>=0?'+':'')+chgPct+'%':''}</span></td>
+      <td style="color:${tc};font-weight:600;font-size:11px">${ti}</td>
+      <td style="font-size:11px;color:${oiCol};font-weight:600">${s.oi_buildup||'—'}</td>
+      <td style="color:${tc};font-weight:600">${pct9}</td>
+      <td style="font-size:12px">${h52w}</td>
+      <td style="font-weight:600">${d52}</td>
+      <td style="font-weight:600">${volR}</td>
+      <td>${delPct}</td>
+      <td><span style="color:${convCol};font-weight:700">${conv}</span></td>
+      <td><button class="sort-btn" onclick="removeStockFromFOWL('${s.symbol}')" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
+    </tr>`;
+  }).join('');
+  applyColVisibility('fowl');
+}
+
+function exportFOWLTV() {
+  const wl = foWatchlists.find(w => w.id === activeFOWL);
+  if (!wl || !wl.symbols.length) { showToast('No stocks to copy', 'info'); return; }
+  const symbols = wl.symbols.map(s => 'NSE:' + s).join(',');
+  navigator.clipboard.writeText(symbols).then(() => showToast(`📊 ${wl.symbols.length} symbols copied`, 'success'));
+}
+
+function exportFOWLCSV() {
+  const wl = foWatchlists.find(w => w.id === activeFOWL);
+  if (!wl || !wl.symbols.length) { showToast('No stocks to export', 'info'); return; }
+  const csv = 'Symbol\n' + wl.symbols.join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `${wl.name}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast(`⬇ ${wl.symbols.length} stocks exported`, 'success');
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 5: PATCH renderMBTable for new features
+// ═══════════════════════════════════════════════════
+const _origRenderMBTable = renderMBTable;
+renderMBTable = function() {
+  let filtered = getMBFilteredData();
+
+  // Sorting (same as original)
+  if (mbSort === 'conviction') filtered.sort((a,b) => calcConviction(b)-calcConviction(a));
+  else if (mbSort === 'gap') filtered.sort((a,b) => {
+    const ga = a.ltp&&a.prev_close ? ((parseFloat(a.ltp)-parseFloat(a.prev_close))/parseFloat(a.prev_close)*100) : 0;
+    const gb = b.ltp&&b.prev_close ? ((parseFloat(b.ltp)-parseFloat(b.prev_close))/parseFloat(b.prev_close)*100) : 0;
+    return gb - ga;
+  });
+  else if (mbSort === 'ema_dist') filtered.sort((a,b) => {
+    const pa = a.ltp&&a.ema9 ? Math.abs((parseFloat(a.ltp)-parseFloat(a.ema9))/parseFloat(a.ema9)*100) : 99;
+    const pb = b.ltp&&b.ema9 ? Math.abs((parseFloat(b.ltp)-parseFloat(b.ema9))/parseFloat(b.ema9)*100) : 99;
+    return pa - pb;
+  });
+  else if (mbSort === 'dist52' || mbSort === 'pct52') filtered.sort((a,b) => {
+    const da = a.ltp&&a.high_52w ? (parseFloat(a.high_52w)-parseFloat(a.ltp))/parseFloat(a.high_52w)*100 : 99;
+    const db = b.ltp&&b.high_52w ? (parseFloat(b.high_52w)-parseFloat(b.ltp))/parseFloat(b.high_52w)*100 : 99;
+    return da - db;
+  });
+  else if (mbSort === 'chg') filtered.sort((a,b) => Math.abs(parseFloat(b.ltp||0)-parseFloat(b.prev_close||0)) - Math.abs(parseFloat(a.ltp||0)-parseFloat(a.prev_close||0)));
+  else if (mbSort === 'vol') filtered.sort((a,b) => (parseFloat(b.vol_ratio)||0)-(parseFloat(a.vol_ratio)||0));
+  else if (mbSort === 'del') filtered.sort((a,b) => (parseFloat(b.del_pct)||0)-(parseFloat(a.del_pct)||0));
+
+  // Update sort arrows
+  document.querySelectorAll('.sort-arrow').forEach(a => a.textContent = '↕');
+  const activeArrow = document.getElementById('mba-' + mbSort);
+  if (activeArrow) activeArrow.textContent = '↓';
+
+  const mbCntEl = document.getElementById('mb-count');
+  if (mbCntEl) mbCntEl.textContent = `Showing ${filtered.length} of ${mbData.length}`;
+
+  if (filtered.length === 0) {
+    document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
+    return;
+  }
+  const rows = filtered.map(s => {
+    const trend    = s.trend || 'neutral';
+    const tc       = trend === 'bull' ? 'var(--green)' : trend === 'bear' ? 'var(--red)' : 'var(--muted)';
+    const ti       = trend === 'bull' ? '▲' : trend === 'bear' ? '▼' : '—';
+    const tLabel   = trend === 'bull' ? 'Bullish' : trend === 'bear' ? 'Bearish' : 'Neutral';
+    const ema9     = s.ema9  ? parseFloat(s.ema9).toFixed(1)  : '—';
+    const ema20    = s.ema20 ? parseFloat(s.ema20).toFixed(1) : '—';
+    const ltp      = s.ltp   ? parseFloat(s.ltp).toFixed(2)   : '—';
+    const chgPct   = s.ltp && s.prev_close ? ((parseFloat(s.ltp)-parseFloat(s.prev_close))/parseFloat(s.prev_close)*100).toFixed(2) : null;
+    const chgCol   = chgPct ? (parseFloat(chgPct) >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
+    const chgStr   = chgPct ? `<span style="color:${chgCol};font-size:10px">${parseFloat(chgPct)>=0?'+':''}${chgPct}%</span>` : '';
+    const pdh      = s.prev_high  ? parseFloat(s.prev_high).toFixed(1)  : '—';
+    const pdl      = s.prev_low   ? parseFloat(s.prev_low).toFixed(1)   : '—';
+    const pct9raw  = s.ltp && s.ema9 ? ((parseFloat(s.ltp)-parseFloat(s.ema9))/parseFloat(s.ema9)*100) : null;
+    const pct9str  = pct9raw !== null ? (pct9raw >= 0 ? '+' : '') + pct9raw.toFixed(2) + '%' : '—';
+    const zone     = getEMAZone(s);
+    const zoneTag  = zone === 'in' ? '<span style="font-size:9px;background:rgba(0,255,136,.15);color:var(--green);border-radius:4px;padding:1px 4px;margin-left:4px">IN ZONE</span>'
+                   : zone === 'near' ? '<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--amber);border-radius:4px;padding:1px 4px;margin-left:4px">NEAR</span>'
+                   : '<span style="font-size:9px;background:rgba(255,68,102,.1);color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px">FAR</span>';
+    const h52w     = s.high_52w ? parseFloat(s.high_52w).toFixed(1) : '—';
+    const dist52n  = s.ltp && s.high_52w ? ((parseFloat(s.high_52w)-parseFloat(s.ltp))/parseFloat(s.high_52w)*100) : null;
+    const volR     = s.vol_ratio ? parseFloat(s.vol_ratio).toFixed(1)+'x' : '—';
+    const volCol   = s.vol_ratio ? (parseFloat(s.vol_ratio) >= 2 ? 'var(--amber)' : parseFloat(s.vol_ratio) >= 1 ? 'var(--green)' : 'var(--muted)') : 'var(--muted)';
+    const delPct   = s.del_pct ? parseFloat(s.del_pct).toFixed(1)+'%' : '—';
+    const oiRaw    = s.oi_buildup || '';
+    const oiCol    = oiRaw === 'Long Buildup' ? 'var(--green)' : oiRaw === 'Short Buildup' ? 'var(--red)' : oiRaw === 'Short Covering' ? 'var(--amber)' : oiRaw === 'Long Unwinding' ? '#FF8C00' : 'var(--muted)';
+    const oiIcon   = oiRaw === 'Long Buildup' ? '▲' : oiRaw === 'Short Buildup' ? '▼' : oiRaw === 'Short Covering' ? '↑' : oiRaw === 'Long Unwinding' ? '↓' : '';
+    const conv     = calcConviction(s);
+    const convCol  = conv >= 70 ? 'var(--green)' : conv >= 40 ? 'var(--amber)' : 'var(--muted)';
+    const convBarCol = conv >= 80 ? '#22C55E' : conv >= 60 ? '#F59E0B' : conv >= 40 ? '#6B7280' : '#404040';
+    const setup    = trend === 'bull' ? 'Watch Call' : trend === 'bear' ? 'Watch Put' : 'Skip';
+    const isStarred = starredStocks.has(s.symbol);
+    const sector   = s.sector || '—';
+    const gapRaw  = s.ltp && s.prev_close ? ((parseFloat(s.ltp)-parseFloat(s.prev_close))/parseFloat(s.prev_close)*100) : null;
+    const gapCol  = gapRaw !== null ? (Math.abs(gapRaw) < 0.15 ? 'var(--muted)' : gapRaw > 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
+    const gapStr  = gapRaw !== null ? `<span style="color:${gapCol};font-weight:700;font-size:12px">${gapRaw>=0?'+':''}${gapRaw.toFixed(2)}%</span>` : '—';
+    const freshX  = (window.momCrossoverMap && window.momCrossoverMap[s.symbol]) || null;
+    const freshXBadge = freshX ? `<span class="fresh-x-badge" title="Daily 9 EMA crossover on ${freshX}">🔄</span>` : '';
+    return `<tr>
+      <td style="text-align:center"><button class="star-btn${isStarred?' starred':''}" onclick="toggleStar('${s.symbol}',this)" title="${isStarred?'Remove from watchlist':'Add to watchlist'}">${isStarred?'⭐':'☆'}</button></td>
+      <td>${getColorDotHTML(s.symbol)}</td>
+      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span>${freshXBadge}${zoneTag}</td>
+      <td><span style="font-size:11px;color:var(--muted)">${sector}</span></td>
+      <td><span style="font-weight:600">${ltp}</span> ${chgStr}</td>
+      <td>${gapStr}</td>
+      <td><span style="color:${tc};font-weight:700">${ti} ${tLabel}</span><br>
+          <span style="font-size:10px;color:var(--muted)">9E:${ema9} 20E:${ema20}</span></td>
+      <td><span style="color:${oiCol};font-size:11px;font-weight:600">${oiIcon} ${oiRaw||'—'}</span></td>
+      <td><span style="font-size:12px">${pdh}</span><br>
+          <span style="font-size:10px;color:var(--muted)">${pdl}</span></td>
+      <td style="color:${tc};font-weight:600">${pct9str}</td>
+      <td><span style="font-size:12px">${h52w}</span></td>
+      <td><span style="color:${dist52n!==null?(dist52n<5?'var(--green)':dist52n<10?'var(--amber)':dist52n<20?'var(--text)':'var(--muted)'):'var(--muted)'};font-weight:600">${dist52n!==null?dist52n.toFixed(1)+'%':'—'}</span></td>
+      <td style="color:${volCol};font-weight:600">${volR}</td>
+      <td style="color:var(--text)">${delPct}</td>
+      <td title="Conviction Score 0-100"><span style="color:${convCol};font-size:13px;font-weight:700">${conv}</span><br>
+          <div class="conv-bar-wrap"><div class="conv-bar-fill" style="width:${conv}%;background:${convBarCol}"></div></div>
+          <span style="color:${tc};font-size:10px">${setup}</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('mb-body').innerHTML = rows;
+  applyColVisibility('mb');
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 5: INIT — wire up new systems on login
+// ═══════════════════════════════════════════════════
+const _origInitFOTabs = initFOTabs;
+initFOTabs = function() {
+  _origInitFOTabs();
+  loadColorTags().then(() => {
+    renderColorFilterUI();
+    renderMBTable();
+  });
+  loadFOWatchlists();
+};
 
 // ═══════════════════════════════════════════════════
 // ANIMATE NUMBERS ON LOAD
