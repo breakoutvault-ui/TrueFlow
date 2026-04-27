@@ -5820,6 +5820,7 @@ function toggleMultiFilter(tab, type, val, btn) {
   }
   // Trigger re-render
   if (tab === 'mb') renderMBTable();
+  else if (tab === 'alert') renderAlertList();
   else if (tab === 'scanner' || tab === 'ema' || tab === 'sharp' || tab === 'picks') renderMomTab(tab);
 }
 
@@ -6038,14 +6039,31 @@ function applyColVisibility(tableId) {
 // ═══════════════════════════════════════════════════
 function getMBFilteredData() {
   let filtered = [...mbData];
-  if (mbFilters.ema === 'bull') filtered = filtered.filter(s => s.trend === 'bull');
-  else if (mbFilters.ema === 'bear') filtered = filtered.filter(s => s.trend === 'bear');
-  else if (mbFilters.ema === 'neu') filtered = filtered.filter(s => s.trend === 'neutral');
-  if (mbFilters.oi === 'bull') filtered = filtered.filter(s => s.oi_buildup === 'Long Buildup' || s.oi_buildup === 'Short Covering');
-  else if (mbFilters.oi === 'bear') filtered = filtered.filter(s => s.oi_buildup === 'Short Buildup' || s.oi_buildup === 'Long Unwinding');
-  if (mbFilters.zone === 'in')   filtered = filtered.filter(s => getEMAZone(s) === 'in');
-  else if (mbFilters.zone === 'near') filtered = filtered.filter(s => getEMAZone(s) === 'near');
-  else if (mbFilters.zone === 'far')  filtered = filtered.filter(s => getEMAZone(s) === 'far');
+  // EMA trend — multi-select
+  const emaSet = multiFilters['mb-ema'];
+  if (emaSet && emaSet.size > 0) {
+    filtered = filtered.filter(s => {
+      if (emaSet.has('bull') && s.trend === 'bull') return true;
+      if (emaSet.has('bear') && s.trend === 'bear') return true;
+      if (emaSet.has('neu') && (s.trend === 'neutral' || !s.trend)) return true;
+      return false;
+    });
+  }
+  // OI — multi-select
+  const oiSet = multiFilters['mb-oi'];
+  if (oiSet && oiSet.size > 0) {
+    filtered = filtered.filter(s => {
+      if (oiSet.has('bull') && (s.oi_buildup === 'Long Buildup' || s.oi_buildup === 'Short Covering')) return true;
+      if (oiSet.has('bear') && (s.oi_buildup === 'Short Buildup' || s.oi_buildup === 'Long Unwinding')) return true;
+      return false;
+    });
+  }
+  // Zone — multi-select
+  const zoneSet = multiFilters['mb-zone'];
+  if (zoneSet && zoneSet.size > 0) {
+    filtered = filtered.filter(s => zoneSet.has(getEMAZone(s)));
+  }
+  // Sector (still single-select dropdown)
   if (mbFilters.sector && mbFilters.sector !== 'all') filtered = filtered.filter(s => s.sector === mbFilters.sector);
   // 52W dist multi-filter
   filtered = filtered.filter(s => {
@@ -6400,74 +6418,10 @@ function getSparkBars(last5_summary, day_chg_pct) {
 }
 
 // ═══════════════════════════════════════════════════
-// ROUND 5.1: ENHANCED toggleMultiFilter for ALL tabs
-// ═══════════════════════════════════════════════════
-// Extend toggleMultiFilter to also trigger alert and all renders
-const _origToggleMulti = toggleMultiFilter;
-toggleMultiFilter = function(tab, type, val, btn) {
-  const groupKey = tab + '-' + type;
-  if (!multiFilters[groupKey]) multiFilters[groupKey] = new Set();
-  const set = multiFilters[groupKey];
-  if (val === 'all') {
-    set.clear();
-    btn.parentElement.querySelectorAll('.sort-btn').forEach(b => {
-      b.classList.remove('multi-active');
-      if (b.dataset.filterVal === 'all') b.classList.add('multi-active');
-    });
-  } else {
-    const allBtn = btn.parentElement.querySelector('[data-filter-val="all"]');
-    if (allBtn) allBtn.classList.remove('multi-active');
-    if (set.has(val)) { set.delete(val); btn.classList.remove('multi-active'); }
-    else { set.add(val); btn.classList.add('multi-active'); }
-    if (set.size === 0 && allBtn) allBtn.classList.add('multi-active');
-  }
-  // Trigger renders
-  if (tab === 'mb') renderMBTable();
-  else if (tab === 'alert') renderAlertList();
-  else if (['scanner','ema','sharp','picks'].includes(tab)) renderMomTab(tab);
-};
+// ROUND 5.1: toggleMultiFilter already handles all tabs in original definition
 
 // ═══════════════════════════════════════════════════
-// ROUND 5.1: PATCH getMBFilteredData for multi-select on ema/oi/zone
-// ═══════════════════════════════════════════════════
-const _origGetMBFiltered = getMBFilteredData;
-getMBFilteredData = function() {
-  let filtered = [...mbData];
-  // EMA trend — multi-select
-  if (multiFilters['mb-ema'] && multiFilters['mb-ema'].size > 0) {
-    const vals = multiFilters['mb-ema'];
-    filtered = filtered.filter(s => {
-      if (vals.has('bull') && s.trend === 'bull') return true;
-      if (vals.has('bear') && s.trend === 'bear') return true;
-      if (vals.has('neu') && (s.trend === 'neutral' || !s.trend)) return true;
-      return false;
-    });
-  }
-  // OI — multi-select
-  if (multiFilters['mb-oi'] && multiFilters['mb-oi'].size > 0) {
-    const vals = multiFilters['mb-oi'];
-    filtered = filtered.filter(s => {
-      if (vals.has('bull') && (s.oi_buildup === 'Long Buildup' || s.oi_buildup === 'Short Covering')) return true;
-      if (vals.has('bear') && (s.oi_buildup === 'Short Buildup' || s.oi_buildup === 'Long Unwinding')) return true;
-      return false;
-    });
-  }
-  // Zone — multi-select
-  if (multiFilters['mb-zone'] && multiFilters['mb-zone'].size > 0) {
-    const vals = multiFilters['mb-zone'];
-    filtered = filtered.filter(s => vals.has(getEMAZone(s)));
-  }
-  // Sector (still single-select dropdown)
-  if (mbFilters.sector && mbFilters.sector !== 'all') filtered = filtered.filter(s => s.sector === mbFilters.sector);
-  // 52W dist multi-filter
-  filtered = filtered.filter(s => {
-    const bucket = multiDist52Bucket(parseFloat(s.ltp), parseFloat(s.high_52w));
-    return multiFilterPass('mb-dist52', bucket);
-  });
-  // Color filter
-  filtered = filtered.filter(s => colorFilterPass(s.symbol));
-  return filtered;
-};
+// ROUND 5.1: getMBFilteredData already patched in original definition above
 
 // ═══════════════════════════════════════════════════
 // ROUND 5.1: PATCH renderAlertList for multi-select + color filter
