@@ -754,6 +754,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <button class="mode-btn active" id="mode-fo" onclick="switchMode('fo')">⚡ F&O</button>
       <button class="mode-btn" id="mode-eod" onclick="switchMode('eod')">📊 Market Pulse</button>
       <button class="mode-btn" id="mode-momentum" onclick="switchMode('momentum')">🚀 Momentum</button>
+      <button class="mode-btn" id="mode-results" onclick="switchMode('results')">📋 Results</button>
     </div>
     <div class="nav-tabs" id="fo-tabs" style="flex:1;min-width:0;overflow:hidden">
       <button class="nav-tab active" onclick="switchTab('morning',this,'fo')">🌅 Morning Brief</button>
@@ -775,6 +776,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <button class="nav-tab" onclick="switchTab('sharpmovers',this,'momentum')">⚡ Sharp Movers</button>
       <button class="nav-tab" onclick="switchTab('mypicks',this,'momentum')">⭐ My Picks</button>
       <button class="nav-tab" onclick="switchTab('exited',this,'momentum')">🚪 Exited</button>
+    </div>
+    <div class="nav-tabs" id="results-tabs" style="display:none;flex:1;min-width:0;overflow:hidden">
+      <button class="nav-tab active" onclick="switchTab('resultseason',this,'results')">📋 Results Season</button>
+      <button class="nav-tab" onclick="switchTab('analytics',this,'results')">🏆 Analytics</button>
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
       <div class="live-pill" id="live-pill" style="display:none"><div class="live-dot"></div>LIVE</div>
@@ -1812,9 +1817,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th onclick="sortMomTable('scanner','consecutive_green')" title="Consecutive Green Days — number of days in a row the stock closed higher than the previous day. 3+ = strong momentum">🟢 Days ↕</th>
               <th onclick="sortMomTable('scanner','momentum_score')" title="Momentum Score 0-100: combines category, trend duration, volume, breakout, sector strength. 80+ = High, 60+ = Building, 40+ = Watch">Score ↕</th>
               <th class="no-sort" title="Signal type — Cross: 9 EMA crossed above 20 EMA | Breakout: price broke 52W or ATH high | Sharp: 20%+ in 3 days or 30%+ in 1 month | Re-entry: returned above 9 EMA after brief dip">Signal</th>
+              <th class="no-sort" title="Quarterly result grade: 🟢 Beat (Blockbuster) / ⚡ Turn (Turnaround) / 🔵 Steady / 🟡 Mixed / 🔴 Weak — upload results in Results tab">Res</th>
+              <th class="no-sort" title="Smart Money: 🟢 Accumulation (2+ of Promoter/FII/MF buying) / 🔴 Distribution / — Neutral">Smt$</th>
             </tr></thead>
             <tbody id="scanner-body">
-              <tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">Loading momentum data...</div><div class="mom-empty-sub">Fetching from Supabase</div></div></td></tr>
+              <tr><td colspan="20"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">Loading momentum data...</div><div class="mom-empty-sub">Fetching from Supabase</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1924,9 +1931,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort" title="Volume on crossover day vs 20-day average">Vol on Cross</th>
               <th class="no-sort">Breakout</th>
               <th onclick="sortMomTable('ema','momentum_score')" title="Momentum Score 0-100">Score ↕</th>
+              <th class="no-sort" title="Result grade">Res</th>
+              <th class="no-sort" title="Smart Money">Smt$</th>
             </tr></thead>
             <tbody id="ema-body">
-              <tr><td colspan="17"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">Loading EMA signals...</div></div></td></tr>
+              <tr><td colspan="19"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">Loading EMA signals...</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -2012,10 +2021,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Crossover?</th>
               <th class="no-sort">Breakout?</th>
               <th onclick="sortMomTable('sharp','momentum_score')" title="Momentum Score 0-100">Score ↕</th>
+              <th class="no-sort" title="Result grade">Res</th>
+              <th class="no-sort" title="Smart Money">Smt$</th>
               <th class="no-sort">Exclude</th>
             </tr></thead>
             <tbody id="sharp-body">
-              <tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">Loading sharp movers...</div></div></td></tr>
+              <tr><td colspan="20"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">Loading sharp movers...</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -2140,6 +2151,179 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <tr><td colspan="11"><div class="mom-empty"><div class="mom-empty-icon">🚪</div><div class="mom-empty-text">No exited stocks</div><div class="mom-empty-sub">Stocks that break below daily 9 EMA for 2 days appear here</div></div></td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- RESULTS SEASON + ANALYTICS CONTAINER -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="results-container" style="display:none">
+
+  <!-- TAB: Results Season -->
+  <div id="tab-resultseason" class="panel active">
+    <div class="fo-panel">
+      <!-- Upload Zone -->
+      <div id="rs-upload-section" style="margin-bottom:12px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:stretch">
+          <div style="flex:1;min-width:200px;background:var(--bg2);border:2px dashed var(--border2);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color .2s" id="rs-drop-1" ondragover="event.preventDefault();this.style.borderColor='var(--cyan)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="rsHandleDrop(event,1)">
+            <input type="file" accept=".csv" onchange="rsHandleFile(this.files[0],1)" style="display:none" id="rs-file-1">
+            <div onclick="document.getElementById('rs-file-1').click()" style="cursor:pointer">
+              <div style="font-size:22px">📊</div>
+              <div style="font-size:11px;font-weight:600;color:var(--text);margin:4px 0">File 1: Results Data</div>
+              <div style="font-size:10px;color:var(--muted)">Revenue, Profit, OPM, Growth %</div>
+            </div>
+            <div id="rs-file-1-name" style="font-size:10px;color:var(--cyan);margin-top:4px"></div>
+          </div>
+          <div style="flex:1;min-width:200px;background:var(--bg2);border:2px dashed var(--border2);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color .2s" id="rs-drop-2" ondragover="event.preventDefault();this.style.borderColor='var(--cyan)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="rsHandleDrop(event,2)">
+            <input type="file" accept=".csv" onchange="rsHandleFile(this.files[0],2)" style="display:none" id="rs-file-2">
+            <div onclick="document.getElementById('rs-file-2').click()" style="cursor:pointer">
+              <div style="font-size:22px">💰</div>
+              <div style="font-size:11px;font-weight:600;color:var(--text);margin:4px 0">File 2: Quality + Smart Money</div>
+              <div style="font-size:10px;color:var(--muted)">NSE Code, ROE, ROCE, FII/MF/Promoter</div>
+            </div>
+            <div id="rs-file-2-name" style="font-size:10px;color:var(--cyan);margin-top:4px"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;justify-content:center">
+            <button class="sort-btn" onclick="rsMergeAndGrade()" id="rs-merge-btn" style="padding:8px 16px;font-weight:600;background:var(--cyan);color:#000;border-radius:8px" disabled>🔄 Merge & Grade</button>
+            <button class="sort-btn" onclick="rsClearData()" style="padding:4px 12px;font-size:10px;color:var(--red)">Clear Data</button>
+            <span style="font-size:9px;color:var(--muted)" id="rs-last-upload"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Strip -->
+      <div class="fo-grid4" id="rs-summary" style="display:none">
+        <div class="fo-card"><div class="fo-card-label">Total Results</div><div class="fo-card-val" id="rs-total">0</div><div class="fo-card-sub fo-neu" id="rs-period">—</div></div>
+        <div class="fo-card"><div class="fo-card-label">🟢 Blockbusters</div><div class="fo-card-val fo-bull" id="rs-blockbusters">0</div><div class="fo-card-sub fo-neu">Rev>20 + NP>30 + OPM↑</div></div>
+        <div class="fo-card"><div class="fo-card-label">⚡ Turnarounds</div><div class="fo-card-val" style="color:var(--amber)" id="rs-turnarounds">0</div><div class="fo-card-sub fo-neu">NP growth >100%</div></div>
+        <div class="fo-card"><div class="fo-card-label">Avg Revenue Growth</div><div class="fo-card-val" id="rs-avg-rev">—</div><div class="fo-card-sub fo-neu">YoY quarterly</div></div>
+      </div>
+
+      <!-- Filters -->
+      <div id="rs-filters-section" style="display:none;margin-top:8px">
+        <div class="mom-filters" style="flex-wrap:wrap;gap:6px">
+          <div class="mom-filter-group">
+            <button class="sort-btn multi-active" data-filter-group="rs-grade" data-filter-val="all" onclick="toggleMultiFilter('rs','grade','all',this)">All</button>
+            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="blockbuster" onclick="toggleMultiFilter('rs','grade','blockbuster',this)" style="color:#22C55E">🟢 Blockbuster</button>
+            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="turnaround" onclick="toggleMultiFilter('rs','grade','turnaround',this)" style="color:var(--amber)">⚡ Turnaround</button>
+            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="steady" onclick="toggleMultiFilter('rs','grade','steady',this)" style="color:var(--cyan)">🔵 Steady</button>
+            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="mixed" onclick="toggleMultiFilter('rs','grade','mixed',this)" style="color:var(--amber)">🟡 Mixed</button>
+            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="weak" onclick="toggleMultiFilter('rs','grade','weak',this)" style="color:#EF4444">🔴 Weak</button>
+          </div>
+          <div class="mom-filter-group">
+            <button class="sort-btn multi-active" data-filter-group="rs-mcap" data-filter-val="all" onclick="toggleMultiFilter('rs','mcap','all',this)">All Cap</button>
+            <button class="sort-btn" data-filter-group="rs-mcap" data-filter-val="large" onclick="toggleMultiFilter('rs','mcap','large',this)">Large</button>
+            <button class="sort-btn" data-filter-group="rs-mcap" data-filter-val="mid" onclick="toggleMultiFilter('rs','mcap','mid',this)">Mid</button>
+            <button class="sort-btn" data-filter-group="rs-mcap" data-filter-val="small" onclick="toggleMultiFilter('rs','mcap','small',this)">Small</button>
+          </div>
+          <div class="mom-filter-group">
+            <button class="sort-btn multi-active" data-filter-group="rs-smart" data-filter-val="all" onclick="toggleMultiFilter('rs','smart','all',this)">Smart $: All</button>
+            <button class="sort-btn" data-filter-group="rs-smart" data-filter-val="accum" onclick="toggleMultiFilter('rs','smart','accum',this)" style="color:#22C55E">🟢 Accumulation</button>
+            <button class="sort-btn" data-filter-group="rs-smart" data-filter-val="distrib" onclick="toggleMultiFilter('rs','smart','distrib',this)" style="color:#EF4444">🔴 Distribution</button>
+          </div>
+          <div class="mom-filter-group">
+            <button class="sort-btn multi-active" data-filter-group="rs-momcat" data-filter-val="all" onclick="toggleMultiFilter('rs','momcat','all',this)">Momentum: All</button>
+            <button class="sort-btn" data-filter-group="rs-momcat" data-filter-val="A" onclick="toggleMultiFilter('rs','momcat','A',this)">🟢 A</button>
+            <button class="sort-btn" data-filter-group="rs-momcat" data-filter-val="B" onclick="toggleMultiFilter('rs','momcat','B',this)">🟡 B</button>
+            <button class="sort-btn" data-filter-group="rs-momcat" data-filter-val="C" onclick="toggleMultiFilter('rs','momcat','C',this)">🔵 C</button>
+            <button class="sort-btn" data-filter-group="rs-momcat" data-filter-val="AC" onclick="toggleMultiFilter('rs','momcat','AC',this)">💎 AC</button>
+          </div>
+          <select class="sort-sel" id="rs-sector-filter" onchange="renderResultsTable()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none">
+            <option value="all">All Sectors</option>
+          </select>
+          <div class="mom-filter-group">
+            <button class="sort-btn multi-active" data-filter-group="rs-verdict" data-filter-val="all" onclick="toggleMultiFilter('rs','verdict','all',this)">Verdict: All</button>
+            <button class="sort-btn" data-filter-group="rs-verdict" data-filter-val="confirmed" onclick="toggleMultiFilter('rs','verdict','confirmed',this)" style="color:#22C55E">🚀 Confirmed</button>
+            <button class="sort-btn" data-filter-group="rs-verdict" data-filter-val="underreacted" onclick="toggleMultiFilter('rs','verdict','underreacted',this)" style="color:var(--cyan)">🎯 Underreacted</button>
+            <button class="sort-btn" data-filter-group="rs-verdict" data-filter-val="pricedin" onclick="toggleMultiFilter('rs','verdict','pricedin',this)" style="color:var(--amber)">⚠️ Priced In</button>
+            <button class="sort-btn" data-filter-group="rs-verdict" data-filter-val="trap" onclick="toggleMultiFilter('rs','verdict','trap',this)" style="color:#EF4444">💀 Trap</button>
+          </div>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
+          <div id="rs-color-filter" style="display:flex;gap:3px"></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+          <span style="font-size:11px;color:var(--muted)" id="rs-count">—</span>
+          <button class="sort-btn" onclick="rsExportTV()" style="font-size:10px;padding:2px 8px">📊 TradingView</button>
+          <button class="sort-btn" onclick="toggleColPanel('rs',this)" style="font-size:10px;padding:2px 8px">⚙️ Columns</button>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <div class="fo-section" id="rs-table-section" style="display:none;margin-top:8px">
+        <div class="tbl-scroll">
+          <table class="mom-tbl" id="rs-tbl" style="min-width:1600px">
+            <thead><tr>
+              <th>★</th>
+              <th onclick="sortRS('symbol')" class="sortable-th">Stock ↕</th>
+              <th>Grade</th>
+              <th>Verdict</th>
+              <th>Sector</th>
+              <th onclick="sortRS('rev_growth')" class="sortable-th">Rev Gr% ↕</th>
+              <th onclick="sortRS('np_growth')" class="sortable-th">NP Gr% ↕</th>
+              <th onclick="sortRS('opm')" class="sortable-th">OPM% ↕</th>
+              <th>OPM Δ</th>
+              <th onclick="sortRS('ebitda_growth')" class="sortable-th">EBITDA% ↕</th>
+              <th>NPM%</th>
+              <th onclick="sortRS('roe')" class="sortable-th">ROE% ↕</th>
+              <th>ROCE%</th>
+              <th>D/E</th>
+              <th>PE</th>
+              <th>Mom Cat</th>
+              <th>EMA Zone</th>
+              <th>Smart $</th>
+              <th>Prom Δ</th>
+              <th>FII Δ</th>
+              <th>MF Δ</th>
+              <th onclick="sortRS('broker_upside')" class="sortable-th">Target ↕</th>
+              <th>MCap</th>
+              <th>Price</th>
+            </tr></thead>
+            <tbody id="rs-body">
+              <tr><td colspan="24" style="text-align:center;padding:40px;color:var(--muted)">Upload Trendlyne CSV files above to see results data.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Analytics -->
+  <div id="tab-analytics" class="panel">
+    <div class="fo-panel">
+      <div id="analytics-empty" style="text-align:center;padding:40px;color:var(--muted)">
+        <div style="font-size:40px;margin-bottom:12px">🏆</div>
+        <div style="font-size:14px;font-weight:600">Upload results data first</div>
+        <div style="font-size:12px;margin-top:4px">Go to Results Season tab → upload both CSV files → Analytics will auto-generate</div>
+      </div>
+      <div id="analytics-content" style="display:none">
+        <!-- Alpha Picks -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px">🏆 ALPHA PICKS <span style="font-size:10px;color:var(--muted);font-weight:400">Blockbuster/Turnaround + Strong Momentum + Smart Money</span></div>
+          <div id="alpha-picks-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px"></div>
+        </div>
+        <!-- Multi-Bagger Radar -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px">💎 MULTI-BAGGER RADAR <span style="font-size:10px;color:var(--muted);font-weight:400">Turnaround + Fresh Weekly Crossover + Small/Mid Cap + Low Debt</span></div>
+          <div id="multibagger-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px"></div>
+        </div>
+        <!-- Underreacted -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px">🎯 UNDERREACTED <span style="font-size:10px;color:var(--muted);font-weight:400">Strong results but price hasn't moved — market hasn't noticed</span></div>
+          <div id="underreacted-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px"></div>
+        </div>
+        <!-- Sector Scorecard -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px">📊 SECTOR SCORECARD <span style="font-size:10px;color:var(--muted);font-weight:400">Which sectors posted strongest results this quarter?</span></div>
+          <div id="sector-scorecard" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px"></div>
+        </div>
+        <!-- Smart Money Tracker -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px">💰 SMART MONEY TRACKER <span style="font-size:10px;color:var(--muted);font-weight:400">Triple accumulation + strong results</span></div>
+          <div id="smartmoney-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px"></div>
         </div>
       </div>
     </div>
@@ -3717,18 +3901,22 @@ function switchMode(mode) {
   document.getElementById('fo-tabs').style.display         = mode==='fo'       ? 'flex' : 'none';
   document.getElementById('eod-tabs').style.display        = mode==='eod'      ? 'flex' : 'none';
   document.getElementById('momentum-tabs').style.display   = mode==='momentum' ? 'flex' : 'none';
+  document.getElementById('results-tabs').style.display    = mode==='results'  ? 'flex' : 'none';
   document.getElementById('live-pill').style.display       = mode==='fo'       ? 'flex' : 'none';
   // Show/hide containers
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('momentum-container').style.display = 'none';
+  document.getElementById('results-container').style.display  = 'none';
   if (mode==='fo') {
-    document.getElementById('momentum-container').style.display = 'none';
     switchTab('morning', document.querySelector('#fo-tabs .nav-tab'), 'fo');
   } else if (mode==='eod') {
-    document.getElementById('momentum-container').style.display = 'none';
     switchTab('sector', document.querySelector('#eod-tabs .nav-tab'), 'eod');
   } else if (mode==='momentum') {
     document.getElementById('momentum-container').style.display = 'block';
     switchTab('scanner', document.querySelector('#momentum-tabs .nav-tab'), 'momentum');
+  } else if (mode==='results') {
+    document.getElementById('results-container').style.display = 'block';
+    switchTab('resultseason', document.querySelector('#results-tabs .nav-tab'), 'results');
   }
 }
 
@@ -3739,12 +3927,21 @@ function switchTab(tab, btn, mode) {
     const el = document.getElementById('tab-'+tab);
     if (el) el.classList.add('active');
     if (btn) btn.classList.add('active');
-    // Load momentum tab data
     if (tab==='scanner')    loadMomScanner();
     if (tab==='emasignals') loadMomEMA();
     if (tab==='sharpmovers') loadMomSharp();
     if (tab==='mypicks')    loadMomPicks();
     if (tab==='exited')     loadMomExited();
+    return;
+  }
+  if (mode === 'results') {
+    document.querySelectorAll('#results-container .panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#results-tabs .nav-tab').forEach(b=>b.classList.remove('active'));
+    const el = document.getElementById('tab-'+tab);
+    if (el) el.classList.add('active');
+    if (btn) btn.classList.add('active');
+    if (tab==='resultseason') renderResultsTable();
+    if (tab==='analytics')    renderAnalyticsTab();
     return;
   }
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -5159,7 +5356,7 @@ async function loadMomScanner() {
     // Get latest date only
     const latestDate = data[0].session_date;
     momData.scanner = data.filter(s => s.session_date === latestDate);
-    document.getElementById('scanner-updated').textContent = 'Updated: ' + latestDate;
+    document.getElementById('scanner-updated').textContent = 'Updated: ' + latestDate + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     // Build Fresh Crossover map — stocks with daily 9 EMA crossover in last 5 days
     const now = new Date();
     window.momCrossoverMap = {};
@@ -5202,7 +5399,7 @@ async function loadMomEMA() {
       ...(stockMap[c.symbol] || {}),
       crossover_type_display: c.crossover_type,
     }));
-    document.getElementById('ema-updated').textContent = 'Updated: ' + (latestDate || '—');
+    document.getElementById('ema-updated').textContent = 'Updated: ' + (latestDate || '—') + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     // Populate sector dropdown
     const sectors = [...new Set(momData.ema.map(s => s.sector).filter(Boolean))].sort();
     const sel = document.getElementById('ema-sector-filter');
@@ -5223,7 +5420,7 @@ async function loadMomSharp() {
     }
     const latestDate = data[0].session_date;
     momData.sharp = data.filter(s => s.session_date === latestDate);
-    document.getElementById('sharp-updated').textContent = 'Updated: ' + latestDate;
+    document.getElementById('sharp-updated').textContent = 'Updated: ' + latestDate + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     // Load excluded
     const url2 = CONFIG.supabaseUrl + '/rest/v1/momentum_excluded?select=symbol';
     const resp2 = await fetch(url2, { headers });
@@ -5269,7 +5466,7 @@ async function loadMomPicks() {
       move_since_star: stockMap[p.symbol] && p.ref_price ? round2((stockMap[p.symbol].ltp - p.ref_price) / p.ref_price * 100) : null,
       days_starred: daysSince(p.starred_at),
     }));
-    document.getElementById('picks-updated').textContent = 'Updated: ' + (latestDate || '—');
+    document.getElementById('picks-updated').textContent = 'Updated: ' + (latestDate || '—') + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     renderPicks();
   } catch(e) { console.error('Picks load error:', e); }
 }
@@ -6712,6 +6909,8 @@ renderScanner = function() {
       <td style="color:var(--green);font-weight:600" title="Consecutive green candles">${s.consecutive_green||0}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
       <td>${sig}</td>
+      <td>${rsGetResultBadgeHTML(s.symbol)}</td>
+      <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
     </tr>`;
   }).join('');
   applyColVisibility('scanner');
@@ -6791,6 +6990,8 @@ renderEMA = function() {
       <td>${getVolClass(s.vol_class)}</td>
       <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
+      <td>${rsGetResultBadgeHTML(s.symbol)}</td>
+      <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
     </tr>`;
   }).join('');
   applyColVisibility('ema');
@@ -6874,6 +7075,8 @@ renderSharp = function() {
       <td>${s.daily_crossover_date?'<span style="color:var(--green);font-size:10px;font-weight:600">✅ Yes</span>':'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
       <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
+      <td>${rsGetResultBadgeHTML(s.symbol)}</td>
+      <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
       <td><button class="sort-btn" onclick="excludeSharpStock('${s.symbol}')" title="Hide this stock from Sharp Movers" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
     </tr>`;
   }).join('');
@@ -6948,6 +7151,8 @@ renderPicks = function() {
       <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
       <td class="l5-summary">${getLast5(s.last5_summary)}</td>
+      <td>${rsGetResultBadgeHTML(s.symbol)}</td>
+      <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
       <td><input class="mom-note-input" value="${s.notes||''}" placeholder="Add note..." onblur="saveMomNote('${s.symbol}',this.value)"></td>
       <td><button class="sort-btn" onclick="removeMomPick('${s.symbol}')" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
     </tr>`;
@@ -7047,6 +7252,533 @@ function animateNumber(el, target, decimals=0) {
     if (start >= target) { start = target; clearInterval(timer); }
     el.textContent = start.toFixed(decimals);
   }, 20);
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 6: RESULTS SEASON ENGINE
+// ═══════════════════════════════════════════════════
+
+// -- Data stores
+let rsFile1Data = null; // Results core CSV
+let rsFile2Data = null; // Quality + Smart Money CSV
+let rsMergedData = [];  // Merged + graded array
+let rsSort = { key: 'np_growth', dir: -1 };
+
+// -- Persist to localStorage
+function rsSaveToStorage() {
+  try {
+    localStorage.setItem('tf_rs_merged', JSON.stringify(rsMergedData));
+    localStorage.setItem('tf_rs_timestamp', new Date().toISOString());
+  } catch(e) { console.warn('RS save error', e); }
+}
+function rsLoadFromStorage() {
+  try {
+    const d = localStorage.getItem('tf_rs_merged');
+    const t = localStorage.getItem('tf_rs_timestamp');
+    if (d) {
+      rsMergedData = JSON.parse(d);
+      if (t) {
+        const dt = new Date(t);
+        const el = document.getElementById('rs-last-upload');
+        if (el) el.textContent = 'Last: ' + dt.toLocaleDateString('en-IN') + ' ' + dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+      }
+      showRSUI();
+      renderResultsTable();
+    }
+  } catch(e) { console.warn('RS load error', e); }
+}
+
+// -- File handlers
+function rsHandleDrop(e, fileNum) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--border2)';
+  const file = e.dataTransfer.files[0];
+  if (file) rsHandleFile(file, fileNum);
+}
+
+function rsHandleFile(file, fileNum) {
+  if (!file || !file.name.endsWith('.csv')) { showToast('Please upload a CSV file', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const rows = rsParseCSV(e.target.result);
+    if (fileNum === 1) {
+      rsFile1Data = rows;
+      const el = document.getElementById('rs-file-1-name');
+      if (el) el.textContent = '✅ ' + file.name + ' (' + rows.length + ' rows)';
+    } else {
+      rsFile2Data = rows;
+      const el = document.getElementById('rs-file-2-name');
+      if (el) el.textContent = '✅ ' + file.name + ' (' + rows.length + ' rows)';
+    }
+    // Enable merge button if both files loaded
+    const btn = document.getElementById('rs-merge-btn');
+    if (btn) btn.disabled = !(rsFile1Data && rsFile2Data);
+  };
+  reader.readAsText(file);
+}
+
+function rsParseCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  // Handle quoted fields
+  function splitCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; }
+      else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+      else { current += ch; }
+    }
+    result.push(current.trim());
+    return result;
+  }
+  const headers = splitCSVLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = splitCSVLine(lines[i]);
+    if (vals.length < headers.length / 2) continue;
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h.trim()] = vals[idx] || ''; });
+    rows.push(obj);
+  }
+  return rows;
+}
+
+// -- Fuzzy name matcher
+function rsNormalizeName(name) {
+  return (name || '').replace(/\.\./g, '').replace(/Ltd\.?/gi, '').replace(/Limited/gi, '')
+    .replace(/&/g, 'and').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
+// -- Merge + Grade
+function rsMergeAndGrade() {
+  if (!rsFile1Data || !rsFile2Data) { showToast('Upload both files first', 'error'); return; }
+
+  // Build lookup from File 2 by normalized name
+  const f2Map = {};
+  rsFile2Data.forEach(r => {
+    const key = rsNormalizeName(r['Stock Name'] || '');
+    if (key) f2Map[key] = r;
+  });
+
+  rsMergedData = rsFile1Data.map(r1 => {
+    const name1 = r1['Stock'] || '';
+    const normKey = rsNormalizeName(name1);
+    // Find match in File 2
+    let f2 = f2Map[normKey];
+    // Try partial match if exact fails
+    if (!f2) {
+      const prefix = normKey.slice(0, 12);
+      for (const k in f2Map) {
+        if (k.startsWith(prefix) || prefix.startsWith(k.slice(0,12))) { f2 = f2Map[k]; break; }
+      }
+    }
+
+    const p = (v) => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+    const symbol = f2 ? (f2['NSE code'] || '').trim() : '';
+    const mcap = p(r1['Market Capitalization']);
+    const revGrowth = p(r1['Revenue Growth Qtr YoY %']);
+    const npGrowth = p(r1['Net Profit Qtr Growth YoY %']);
+    const netProfit = p(r1['Net Profit Qtr']);
+    const opGrowth = p(r1['Operating Profit Growth Qtr YoY %']);
+    const ebitdaGrowth = p(r1['EBITDA Qtr growth YoY %']);
+    const opm = p(r1['Operating Profit Margin Qtr %']);
+    const opmChange = p(r1['Operating Profit Qtr Margin% YoY Change']);
+    const price = p(r1['Current Price']);
+    const roe = f2 ? p(f2['ROE Ann. %']) : null;
+    const roce = f2 ? p(f2['ROCE Ann. %']) : null;
+    const de = f2 ? p(f2['LT Debt To Equity Ann.']) : null;
+    const npm = f2 ? p(f2['NPM Qtr %']) : null;
+    const pe = f2 ? p(f2['PE TTM']) : null;
+    const promChange = f2 ? p(f2['Promoter holding change QoQ %']) : null;
+    const fiiChange = f2 ? p(f2['FII holding change QoQ %']) : null;
+    const mfChange = f2 ? p(f2['MF holding change QoQ %']) : null;
+    const promHold = f2 ? p(f2['Promoter holding latest %']) : null;
+    const brokerUpside = f2 ? p(f2['Broker Avg. target upside %']) : null;
+    const brokerTarget = f2 ? p(f2['Broker Avg. Target']) : null;
+    const broker3mUp = f2 ? p(f2['Broker 3M Reco upgrades']) : null;
+    const rev3y = f2 ? p(f2['Rev. Ann. 3Y Growth %']) : null;
+    const np3y = f2 ? p(f2['Net Profit 3Y Growth %']) : null;
+    const npQoQ = f2 ? p(f2['Net Profit QoQ Growth %']) : null;
+    const revQoQ = f2 ? p(f2['Revenue QoQ Growth %']) : null;
+    const resultDate = f2 ? (f2['Result Announced Date'] || r1['Last Result Updated'] || '') : (r1['Last Result Updated'] || '');
+
+    // Grade
+    let grade = 'mixed';
+    if (revGrowth !== null && npGrowth !== null && opmChange !== null && netProfit !== null) {
+      if (revGrowth > 20 && npGrowth > 30 && opmChange > 0 && netProfit > 0) grade = 'blockbuster';
+      else if (npGrowth > 100 && netProfit > 0) grade = 'turnaround';
+      else if (revGrowth >= 10 && revGrowth <= 25 && npGrowth >= 10 && npGrowth <= 35 && opm > 15) grade = 'steady';
+      else if (revGrowth < 0 || (netProfit !== null && netProfit < 0) || (opmChange !== null && opmChange < -5)) grade = 'weak';
+    }
+
+    // Smart Money
+    let smartMoney = 'neutral';
+    const buyCount = [promChange, fiiChange, mfChange].filter(v => v !== null && v > 0).length;
+    const sellCount = [promChange, fiiChange, mfChange].filter(v => v !== null && v < 0).length;
+    if (buyCount >= 2) smartMoney = 'accum';
+    else if (sellCount >= 2) smartMoney = 'distrib';
+
+    // MCap category
+    let mcapCat = 'small';
+    if (mcap > 20000) mcapCat = 'large';
+    else if (mcap > 5000) mcapCat = 'mid';
+
+    // Cross-link with momentum data
+    let momCat = null, emaZone = null, monthChg = null, weekChg = null;
+    if (symbol && momData.scanner) {
+      const momStock = momData.scanner.find(s => s.symbol === symbol);
+      if (momStock) {
+        momCat = momStock.category;
+        emaZone = momStock.pct_from_ema9_daily;
+        monthChg = momStock.month_chg_pct;
+        weekChg = momStock.week_chg_pct;
+      }
+    }
+
+    // Move Verdict
+    let verdict = 'neutral';
+    if (grade && monthChg !== null) {
+      const strongResult = (grade === 'blockbuster' || grade === 'turnaround');
+      const weakResult = (grade === 'weak');
+      const bigMove = monthChg > 10;
+      const flatMove = Math.abs(monthChg) < 5;
+      if (strongResult && bigMove) verdict = 'confirmed';
+      else if (strongResult && flatMove) verdict = 'underreacted';
+      else if (weakResult && bigMove) verdict = 'trap';
+      else if (!strongResult && bigMove) verdict = 'pricedin';
+    }
+
+    // Get sector from momentum data
+    let sector = '';
+    if (symbol && momData.scanner) {
+      const ms = momData.scanner.find(s => s.symbol === symbol);
+      if (ms) sector = ms.sector || '';
+    }
+
+    return {
+      name: name1, symbol, resultDate, mcap, mcapCat, price,
+      rev_growth: revGrowth, np_growth: npGrowth, netProfit,
+      op_growth: opGrowth, ebitda_growth: ebitdaGrowth,
+      opm, opmChange, npm, roe, roce, de, pe,
+      promChange, fiiChange, mfChange, promHold,
+      brokerUpside, brokerTarget, broker3mUp,
+      rev3y, np3y, npQoQ, revQoQ,
+      grade, smartMoney, mcapCat, momCat, emaZone,
+      monthChg, weekChg, verdict, sector
+    };
+  });
+
+  rsSaveToStorage();
+  showRSUI();
+  renderResultsTable();
+  // Populate sector filter
+  const sectors = [...new Set(rsMergedData.map(r => r.sector).filter(Boolean))].sort();
+  const sel = document.getElementById('rs-sector-filter');
+  if (sel) {
+    sel.innerHTML = '<option value="all">All Sectors</option>' + sectors.map(s => `<option value="${s}">${s}</option>`).join('');
+  }
+  showToast(`✅ Merged ${rsMergedData.length} results. ${rsMergedData.filter(r=>r.grade==='blockbuster').length} Blockbusters found!`, 'success');
+}
+
+function showRSUI() {
+  const els = ['rs-summary','rs-filters-section','rs-table-section'];
+  els.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
+}
+
+function rsClearData() {
+  rsMergedData = [];
+  rsFile1Data = null;
+  rsFile2Data = null;
+  localStorage.removeItem('tf_rs_merged');
+  localStorage.removeItem('tf_rs_timestamp');
+  ['rs-file-1-name','rs-file-2-name','rs-last-upload'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = ''; });
+  document.getElementById('rs-merge-btn').disabled = true;
+  ['rs-summary','rs-filters-section','rs-table-section'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  showToast('Results data cleared', 'info');
+}
+
+function sortRS(key) {
+  if (rsSort.key === key) rsSort.dir *= -1;
+  else { rsSort.key = key; rsSort.dir = -1; }
+  renderResultsTable();
+}
+
+function rsGetGradeBadge(g) {
+  const map = { blockbuster:'<span style="color:#22C55E;font-weight:700;font-size:11px">🟢 Beat</span>',
+    turnaround:'<span style="color:var(--amber);font-weight:700;font-size:11px">⚡ Turn</span>',
+    steady:'<span style="color:var(--cyan);font-weight:700;font-size:11px">🔵 Steady</span>',
+    mixed:'<span style="color:var(--muted);font-weight:600;font-size:11px">🟡 Mixed</span>',
+    weak:'<span style="color:#EF4444;font-weight:700;font-size:11px">🔴 Weak</span>' };
+  return map[g] || '<span style="color:var(--muted)">—</span>';
+}
+
+function rsGetVerdictBadge(v) {
+  const map = { confirmed:'<span style="color:#22C55E;font-size:10px;font-weight:600">🚀 Confirmed</span>',
+    underreacted:'<span style="color:var(--cyan);font-size:10px;font-weight:600">🎯 Underreacted</span>',
+    pricedin:'<span style="color:var(--amber);font-size:10px;font-weight:600">⚠️ Priced In</span>',
+    trap:'<span style="color:#EF4444;font-size:10px;font-weight:600">💀 Trap</span>' };
+  return map[v] || '<span style="color:var(--muted);font-size:10px">—</span>';
+}
+
+function rsGetSmartBadge(s) {
+  if (s === 'accum') return '<span style="color:#22C55E;font-size:10px;font-weight:600">🟢 Accum</span>';
+  if (s === 'distrib') return '<span style="color:#EF4444;font-size:10px;font-weight:600">🔴 Distrib</span>';
+  return '<span style="color:var(--muted);font-size:10px">🟡 Neutral</span>';
+}
+
+function renderResultsTable() {
+  if (!rsMergedData.length) return;
+  let data = [...rsMergedData];
+
+  // Filters
+  const gradeSet = multiFilters['rs-grade'];
+  if (gradeSet && gradeSet.size > 0) data = data.filter(r => gradeSet.has(r.grade));
+  const mcapSet = multiFilters['rs-mcap'];
+  if (mcapSet && mcapSet.size > 0) data = data.filter(r => mcapSet.has(r.mcapCat));
+  const smartSet = multiFilters['rs-smart'];
+  if (smartSet && smartSet.size > 0) data = data.filter(r => smartSet.has(r.smartMoney));
+  const momcatSet = multiFilters['rs-momcat'];
+  if (momcatSet && momcatSet.size > 0) data = data.filter(r => r.momCat && momcatSet.has(r.momCat));
+  const verdictSet = multiFilters['rs-verdict'];
+  if (verdictSet && verdictSet.size > 0) data = data.filter(r => verdictSet.has(r.verdict));
+  const sectorVal = document.getElementById('rs-sector-filter')?.value || 'all';
+  if (sectorVal !== 'all') data = data.filter(r => r.sector === sectorVal);
+  data = data.filter(r => colorFilterPass(r.symbol));
+
+  // Sort
+  data.sort((a,b) => {
+    const av = a[rsSort.key] ?? -9999, bv = b[rsSort.key] ?? -9999;
+    return typeof av === 'string' ? av.localeCompare(bv) * rsSort.dir : (av - bv) * rsSort.dir;
+  });
+
+  // Summary
+  const el = id => document.getElementById(id);
+  if (el('rs-total')) el('rs-total').textContent = data.length;
+  if (el('rs-blockbusters')) el('rs-blockbusters').textContent = data.filter(r=>r.grade==='blockbuster').length;
+  if (el('rs-turnarounds')) el('rs-turnarounds').textContent = data.filter(r=>r.grade==='turnaround').length;
+  const avgRev = data.filter(r=>r.rev_growth!==null).reduce((s,r)=>s+r.rev_growth,0) / (data.filter(r=>r.rev_growth!==null).length||1);
+  if (el('rs-avg-rev')) el('rs-avg-rev').textContent = avgRev.toFixed(1) + '%';
+  if (el('rs-count')) el('rs-count').textContent = `Showing ${data.length} of ${rsMergedData.length}`;
+
+  // Render table
+  if (!data.length) {
+    el('rs-body').innerHTML = '<tr><td colspan="24"><div class="mom-empty"><div class="mom-empty-icon">📊</div><div class="mom-empty-text">No results match filter</div></div></td></tr>';
+    return;
+  }
+  el('rs-body').innerHTML = data.map(r => {
+    const mcapStr = r.mcap ? (r.mcap > 1000 ? (r.mcap/1000).toFixed(0)+'K Cr' : r.mcap.toFixed(0)+' Cr') : '—';
+    const mcapBadge = r.mcapCat === 'large' ? '<span style="color:var(--cyan);font-size:9px">L</span>' : r.mcapCat === 'mid' ? '<span style="color:var(--amber);font-size:9px">M</span>' : '<span style="color:var(--muted);font-size:9px">S</span>';
+    return `<tr>
+      <td style="text-align:center">${getColorDotHTML(r.symbol)}</td>
+      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')">${r.symbol||r.name.slice(0,15)}</span></td>
+      <td>${rsGetGradeBadge(r.grade)}</td>
+      <td>${rsGetVerdictBadge(r.verdict)}</td>
+      <td style="font-size:10px;color:var(--muted)">${r.sector||'—'}</td>
+      <td>${fmtChg(r.rev_growth)}</td>
+      <td>${fmtChg(r.np_growth)}</td>
+      <td style="font-weight:600">${r.opm!==null?r.opm.toFixed(1)+'%':'—'}</td>
+      <td>${r.opmChange!==null?`<span style="color:${r.opmChange>=0?'#22C55E':'#EF4444'}">${r.opmChange>=0?'+':''}${r.opmChange.toFixed(1)}</span>`:'—'}</td>
+      <td>${fmtChg(r.ebitda_growth)}</td>
+      <td style="font-size:11px">${r.npm!==null?r.npm.toFixed(1)+'%':'—'}</td>
+      <td style="font-size:11px;color:${r.roe&&r.roe>15?'#22C55E':'var(--text)'}">${r.roe!==null?r.roe.toFixed(1)+'%':'—'}</td>
+      <td style="font-size:11px">${r.roce!==null?r.roce.toFixed(1)+'%':'—'}</td>
+      <td style="font-size:11px;color:${r.de&&r.de>1?'#EF4444':'var(--text)'}">${r.de!==null?r.de.toFixed(2):'—'}</td>
+      <td style="font-size:11px">${r.pe!==null?r.pe.toFixed(1):'—'}</td>
+      <td>${r.momCat?getCatBadge(r.momCat):'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${r.emaZone!==null&&r.emaZone!==undefined?getZoneTag(r.emaZone):'—'}</td>
+      <td>${rsGetSmartBadge(r.smartMoney)}</td>
+      <td style="font-size:10px">${r.promChange!==null?`<span style="color:${r.promChange>=0?'#22C55E':'#EF4444'}">${r.promChange>=0?'+':''}${r.promChange.toFixed(2)}%</span>`:'—'}</td>
+      <td style="font-size:10px">${r.fiiChange!==null?`<span style="color:${r.fiiChange>=0?'#22C55E':'#EF4444'}">${r.fiiChange>=0?'+':''}${r.fiiChange.toFixed(2)}%</span>`:'—'}</td>
+      <td style="font-size:10px">${r.mfChange!==null?`<span style="color:${r.mfChange>=0?'#22C55E':'#EF4444'}">${r.mfChange>=0?'+':''}${r.mfChange.toFixed(2)}%</span>`:'—'}</td>
+      <td style="font-size:11px">${r.brokerUpside!==null?`<span style="color:${r.brokerUpside>10?'#22C55E':r.brokerUpside>0?'var(--amber)':'#EF4444'}">${r.brokerUpside.toFixed(0)}%</span>`:'—'}</td>
+      <td style="font-size:10px;color:var(--muted)">${mcapBadge} ${mcapStr}</td>
+      <td style="font-size:11px">₹${r.price?r.price.toLocaleString('en-IN'):'—'}</td>
+    </tr>`;
+  }).join('');
+  // Color filter UI
+  renderColorFilterUI();
+}
+
+function rsExportTV() {
+  const symbols = rsMergedData.filter(r=>r.symbol).map(r=>'NSE:'+r.symbol).join(',');
+  navigator.clipboard.writeText(symbols).then(()=>showToast(`📊 ${rsMergedData.filter(r=>r.symbol).length} symbols copied`, 'success'));
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 6: ANALYTICS TAB
+// ═══════════════════════════════════════════════════
+function rsAnalyticsCard(r) {
+  return `<div class="fo-card" style="padding:10px 12px;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-weight:700;font-size:13px;color:var(--text)">${r.symbol||r.name.slice(0,12)}</span>
+      <div style="display:flex;gap:4px">${rsGetGradeBadge(r.grade)} ${r.momCat?getCatBadge(r.momCat):''}</div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${r.sector||'—'} · ${r.mcapCat==='large'?'Large':'Mid/Small'} Cap</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px">
+      <div>Rev <span style="color:${r.rev_growth&&r.rev_growth>0?'#22C55E':'#EF4444'};font-weight:600">${r.rev_growth!==null?(r.rev_growth>0?'+':'')+r.rev_growth.toFixed(0)+'%':'—'}</span></div>
+      <div>NP <span style="color:${r.np_growth&&r.np_growth>0?'#22C55E':'#EF4444'};font-weight:600">${r.np_growth!==null?(r.np_growth>0?'+':'')+r.np_growth.toFixed(0)+'%':'—'}</span></div>
+      <div>OPM <span style="font-weight:600">${r.opm!==null?r.opm.toFixed(1)+'%':'—'}</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px;margin-top:2px">
+      <div>ROE <span style="font-weight:600;color:${r.roe&&r.roe>15?'#22C55E':'var(--text)'}">${r.roe!==null?r.roe.toFixed(0)+'%':'—'}</span></div>
+      <div>D/E <span style="font-weight:600;color:${r.de&&r.de>1?'#EF4444':'var(--text)'}">${r.de!==null?r.de.toFixed(2):'—'}</span></div>
+      <div>${rsGetSmartBadge(r.smartMoney)}</div>
+    </div>
+    ${r.brokerUpside!==null?`<div style="font-size:9px;color:var(--muted);margin-top:3px">Broker target: ${r.brokerUpside.toFixed(0)}% upside</div>`:''}
+    ${r.verdict!=='neutral'?`<div style="margin-top:3px">${rsGetVerdictBadge(r.verdict)}</div>`:''}
+  </div>`;
+}
+
+function renderAnalyticsTab() {
+  if (!rsMergedData.length) {
+    document.getElementById('analytics-empty').style.display = '';
+    document.getElementById('analytics-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('analytics-empty').style.display = 'none';
+  document.getElementById('analytics-content').style.display = '';
+
+  // 1. Alpha Picks: Blockbuster/Turnaround + Cat A/AC + Smart Money Accum
+  const alphaPicks = rsMergedData.filter(r =>
+    (r.grade === 'blockbuster' || r.grade === 'turnaround') &&
+    (r.momCat === 'A' || r.momCat === 'AC') &&
+    r.smartMoney === 'accum'
+  );
+  // If strict filter returns < 3, relax: just strong results + good momentum
+  const alphaPool = alphaPicks.length >= 2 ? alphaPicks : rsMergedData.filter(r =>
+    (r.grade === 'blockbuster' || r.grade === 'turnaround') &&
+    (r.momCat === 'A' || r.momCat === 'AC' || r.momCat === 'C')
+  );
+  document.getElementById('alpha-picks-cards').innerHTML = alphaPool.length ?
+    alphaPool.sort((a,b)=>(b.np_growth||0)-(a.np_growth||0)).slice(0,12).map(rsAnalyticsCard).join('') :
+    '<div style="color:var(--muted);font-size:12px;padding:12px">No stocks match all criteria yet. Upload more results or check back when momentum data updates.</div>';
+
+  // 2. Multi-Bagger Radar: Turnaround + Cat C + Small/Mid + Low Debt
+  const multibaggers = rsMergedData.filter(r =>
+    r.grade === 'turnaround' &&
+    (r.momCat === 'C' || r.momCat === 'AC') &&
+    (r.mcapCat === 'small' || r.mcapCat === 'mid') &&
+    (r.de === null || r.de < 1)
+  );
+  const mbPool = multibaggers.length >= 2 ? multibaggers : rsMergedData.filter(r =>
+    (r.grade === 'turnaround' || r.grade === 'blockbuster') &&
+    (r.mcapCat === 'small' || r.mcapCat === 'mid') &&
+    (r.np_growth !== null && r.np_growth > 50)
+  );
+  document.getElementById('multibagger-cards').innerHTML = mbPool.length ?
+    mbPool.sort((a,b)=>(b.np_growth||0)-(a.np_growth||0)).slice(0,12).map(rsAnalyticsCard).join('') :
+    '<div style="color:var(--muted);font-size:12px;padding:12px">No multi-bagger candidates found yet.</div>';
+
+  // 3. Underreacted
+  const underreacted = rsMergedData.filter(r => r.verdict === 'underreacted');
+  const urPool = underreacted.length >= 2 ? underreacted : rsMergedData.filter(r =>
+    (r.grade === 'blockbuster' || r.grade === 'turnaround') && r.monthChg !== null && r.monthChg < 8
+  );
+  document.getElementById('underreacted-cards').innerHTML = urPool.length ?
+    urPool.sort((a,b)=>(b.np_growth||0)-(a.np_growth||0)).slice(0,12).map(rsAnalyticsCard).join('') :
+    '<div style="color:var(--muted);font-size:12px;padding:12px">No underreacted stocks found.</div>';
+
+  // 4. Sector Scorecard
+  const secMap = {};
+  rsMergedData.forEach(r => {
+    const sec = r.sector || 'Unknown';
+    if (sec === 'Unknown' || sec === '') return;
+    if (!secMap[sec]) secMap[sec] = { stocks: 0, revSum: 0, npSum: 0, opmSum: 0, revCount: 0, npCount: 0, opmCount: 0, blockbusters: 0 };
+    secMap[sec].stocks++;
+    if (r.rev_growth !== null) { secMap[sec].revSum += r.rev_growth; secMap[sec].revCount++; }
+    if (r.np_growth !== null) { secMap[sec].npSum += r.np_growth; secMap[sec].npCount++; }
+    if (r.opm !== null) { secMap[sec].opmSum += r.opm; secMap[sec].opmCount++; }
+    if (r.grade === 'blockbuster') secMap[sec].blockbusters++;
+  });
+  const secArr = Object.entries(secMap).filter(([_,v])=>v.stocks>=2).map(([k,v])=>({
+    sector:k, stocks:v.stocks, avgRev: v.revCount?v.revSum/v.revCount:0,
+    avgNP: v.npCount?v.npSum/v.npCount:0, avgOPM: v.opmCount?v.opmSum/v.opmCount:0,
+    blockbusters: v.blockbusters
+  })).sort((a,b)=>b.avgNP-a.avgNP);
+  document.getElementById('sector-scorecard').innerHTML = secArr.length ? secArr.slice(0,10).map(s =>
+    `<div class="fo-card" style="padding:10px 12px">
+      <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">${s.sector}</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">${s.stocks} results · ${s.blockbusters} blockbusters</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px">
+        <div>Avg Rev <span style="color:${s.avgRev>0?'#22C55E':'#EF4444'};font-weight:600">${s.avgRev.toFixed(0)}%</span></div>
+        <div>Avg NP <span style="color:${s.avgNP>0?'#22C55E':'#EF4444'};font-weight:600">${s.avgNP.toFixed(0)}%</span></div>
+        <div>Avg OPM <span style="font-weight:600">${s.avgOPM.toFixed(1)}%</span></div>
+      </div>
+    </div>`
+  ).join('') : '<div style="color:var(--muted);font-size:12px;padding:12px">Need sector data from momentum hub.</div>';
+
+  // 5. Smart Money Tracker: All 3 buying + strong results
+  const smartMoney = rsMergedData.filter(r =>
+    r.smartMoney === 'accum' &&
+    (r.grade === 'blockbuster' || r.grade === 'turnaround' || r.grade === 'steady')
+  );
+  document.getElementById('smartmoney-cards').innerHTML = smartMoney.length ?
+    smartMoney.sort((a,b)=>(b.np_growth||0)-(a.np_growth||0)).slice(0,12).map(rsAnalyticsCard).join('') :
+    '<div style="color:var(--muted);font-size:12px;padding:12px">No stocks with triple accumulation + strong results.</div>';
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 6: CROSS-LINK — Results + Smart Money on Momentum Tabs
+// ═══════════════════════════════════════════════════
+function rsGetResultForSymbol(symbol) {
+  if (!rsMergedData.length || !symbol) return null;
+  return rsMergedData.find(r => r.symbol === symbol) || null;
+}
+
+function rsGetResultBadgeHTML(symbol) {
+  const r = rsGetResultForSymbol(symbol);
+  if (!r) return '<span style="color:var(--muted);font-size:10px">—</span>';
+  return rsGetGradeBadge(r.grade);
+}
+
+function rsGetSmartBadgeHTML(symbol) {
+  const r = rsGetResultForSymbol(symbol);
+  if (!r) return '<span style="color:var(--muted);font-size:10px">—</span>';
+  return rsGetSmartBadge(r.smartMoney);
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 6: Add rs-color-filter to renderColorFilterUI
+// ═══════════════════════════════════════════════════
+const _origColorFilterUI2 = renderColorFilterUI;
+renderColorFilterUI = function() {
+  _origColorFilterUI2();
+  const rsEl = document.getElementById('rs-color-filter');
+  if (rsEl) {
+    const allActive = colorFilterActive.size === 0;
+    rsEl.innerHTML = `<button class="color-filter-chip${allActive?' multi-active':''}" onclick="toggleColorFilter('all')" style="background:var(--bg3);color:var(--muted);font-size:10px;padding:2px 7px">All</button>` +
+      COLOR_TAGS.map(c => {
+        const active = colorFilterActive.has(c.key);
+        return `<button class="color-filter-chip${active?' multi-active':''}" onclick="toggleColorFilter('${c.key}')" style="background:${c.hex}22;color:${c.hex};border-color:${active?c.hex:'transparent'};font-size:10px;padding:2px 7px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.hex}"></span></button>`;
+      }).join('');
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 6: toggleMultiFilter — add rs tab re-render
+// ═══════════════════════════════════════════════════
+const _origToggleMultiFilter = toggleMultiFilter;
+toggleMultiFilter = function(tab, type, val, btn) {
+  _origToggleMultiFilter(tab, type, val, btn);
+  if (tab === 'rs') renderResultsTable();
+};
+
+// ═══════════════════════════════════════════════════
+// ROUND 6: Load results from localStorage on startup
+// ═══════════════════════════════════════════════════
+setTimeout(() => rsLoadFromStorage(), 1500);
+
+// ═══════════════════════════════════════════════════
+// ROUND 6: TIMESTAMP FIX — show date + time everywhere
+// ═══════════════════════════════════════════════════
+function formatTimestamp(date) {
+  if (!date) return '—';
+  const d = new Date(date);
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) + ' · ' +
+    d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
 }
 </script>
 </body>
