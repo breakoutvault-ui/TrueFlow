@@ -1252,6 +1252,60 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           </div>
         </div>
       </div>
+      <!-- ═══ Alert Accuracy Analytics (30-Day) ═══ -->
+      <div id="ah-analytics" style="margin-top:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:600;color:var(--text);letter-spacing:.5px">📊 ACCURACY ANALYTICS</span>
+          <button class="sort-btn" onclick="document.getElementById('ah-analytics-body').style.display=document.getElementById('ah-analytics-body').style.display==='none'?'block':'none'" style="font-size:10px;padding:2px 8px">Show/Hide</button>
+        </div>
+        <div id="ah-analytics-body" style="display:block">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <!-- Direction Accuracy -->
+            <div class="fo-card" style="padding:12px 14px">
+              <div class="fo-card-label" style="margin-bottom:8px">Direction Accuracy</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+                <div style="border-right:1px solid var(--border);padding-right:8px">
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">▲ CALL</div>
+                  <div style="font-size:18px;font-weight:700;color:#22C55E" id="ah-call-wr">—</div>
+                  <div style="font-size:10px;color:var(--muted)" id="ah-call-detail">—</div>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">▼ PUT</div>
+                  <div style="font-size:18px;font-weight:700;color:#EF4444" id="ah-put-wr">—</div>
+                  <div style="font-size:10px;color:var(--muted)" id="ah-put-detail">—</div>
+                </div>
+              </div>
+            </div>
+            <!-- ORB Type Accuracy -->
+            <div class="fo-card" style="padding:12px 14px">
+              <div class="fo-card-label" style="margin-bottom:8px">ORB Type Accuracy</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+                <div style="border-right:1px solid var(--border);padding-right:8px">
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Wide ORB</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--cyan)" id="ah-wide-wr">—</div>
+                  <div style="font-size:10px;color:var(--muted)" id="ah-wide-detail">—</div>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Narrow ORB</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--amber)" id="ah-narrow-wr">—</div>
+                  <div style="font-size:10px;color:var(--muted)" id="ah-narrow-detail">—</div>
+                </div>
+              </div>
+            </div>
+            <!-- Top Sectors -->
+            <div class="fo-card" style="padding:12px 14px">
+              <div class="fo-card-label" style="margin-bottom:8px">Top Sectors by Win Rate</div>
+              <div id="ah-sector-analytics" style="font-size:11px;color:var(--muted)">—</div>
+            </div>
+          </div>
+          <!-- Daily Win Rate Trend (bar chart) -->
+          <div class="fo-card" style="padding:12px 14px;margin-top:8px">
+            <div class="fo-card-label" style="margin-bottom:8px">Daily Alert Performance</div>
+            <div id="ah-daily-bars" style="display:flex;gap:2px;align-items:flex-end;height:60px;overflow-x:auto"></div>
+            <div id="ah-daily-labels" style="display:flex;gap:2px;font-size:8px;color:var(--muted);margin-top:2px;overflow-x:auto"></div>
+          </div>
+        </div>
+      </div>
       <!-- Filters -->
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <select class="sort-sel" onchange="filterAH()" id="ah-stage-filter" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:12px;outline:none">
@@ -1667,25 +1721,25 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div class="mom-filters">
           <!-- Period filter -->
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('scanner','period','today',this)" title="Stocks with signals today">Today</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','period','week',this)" title="Stocks with signals this week">This Week</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','period','month',this)" title="Stocks with signals this month">This Month</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','period','all',this)" title="All active momentum stocks">All</button>
+            <button class="sort-btn multi-active" data-filter-group="scanner-period" data-filter-val="all" onclick="toggleMultiFilter('scanner','period','all',this)" title="All active momentum stocks">All</button>
+            <button class="sort-btn" data-filter-group="scanner-period" data-filter-val="today" onclick="toggleMultiFilter('scanner','period','today',this)" title="Stocks with signals today">Today</button>
+            <button class="sort-btn" data-filter-group="scanner-period" data-filter-val="week" onclick="toggleMultiFilter('scanner','period','week',this)" title="Stocks with signals this week">This Week</button>
+            <button class="sort-btn" data-filter-group="scanner-period" data-filter-val="month" onclick="toggleMultiFilter('scanner','period','month',this)" title="Stocks with signals this month">This Month</button>
           </div>
           <!-- Category filter -->
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('scanner','cat','all',this)" title="Show all categories">All</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','cat','A',this)" title="Category A: Above daily 9+20 EMA AND weekly 9+20 EMA — strongest setup">🟢 A</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','cat','B',this)" title="Category B: Below daily 9 EMA but above weekly 9+20 EMA — temporary weakness, trend intact">🟡 B</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','cat','C',this)" title="Category C: Weekly 9 EMA crossed above weekly 20 EMA recently — early stage multibagger">🔵 C</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','cat','AC',this)" title="Category A+C: Daily bullish AND weekly crossover — strongest possible setup">💎 A+C</button>
+            <button class="sort-btn multi-active" data-filter-group="scanner-cat" data-filter-val="all" onclick="toggleMultiFilter('scanner','cat','all',this)" title="Show all categories">All</button>
+            <button class="sort-btn" data-filter-group="scanner-cat" data-filter-val="A" onclick="toggleMultiFilter('scanner','cat','A',this)" title="Category A: Above daily 9+20 EMA AND weekly 9+20 EMA — strongest setup">🟢 A</button>
+            <button class="sort-btn" data-filter-group="scanner-cat" data-filter-val="B" onclick="toggleMultiFilter('scanner','cat','B',this)" title="Category B: Below daily 9 EMA but above weekly 9+20 EMA — temporary weakness, trend intact">🟡 B</button>
+            <button class="sort-btn" data-filter-group="scanner-cat" data-filter-val="C" onclick="toggleMultiFilter('scanner','cat','C',this)" title="Category C: Weekly 9 EMA crossed above weekly 20 EMA recently — early stage multibagger">🔵 C</button>
+            <button class="sort-btn" data-filter-group="scanner-cat" data-filter-val="AC" onclick="toggleMultiFilter('scanner','cat','AC',this)" title="Category A+C: Daily bullish AND weekly crossover — strongest possible setup">💎 A+C</button>
           </div>
           <!-- Score filter -->
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('scanner','score','all',this)" title="Show all momentum scores">All</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','score','high',this)" title="High Conviction: Score 80-100 — all signals aligning, act now">🔥 High</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','score','building',this)" title="Building: Score 60-79 — good setup, gaining strength">⚡ Building</button>
-            <button class="sort-btn" onclick="setMomFilter('scanner','score','watch',this)" title="Watch: Score 40-59 — early stage, keep on radar">👀 Watch</button>
+            <button class="sort-btn multi-active" data-filter-group="scanner-score" data-filter-val="all" onclick="toggleMultiFilter('scanner','score','all',this)" title="Show all momentum scores">All</button>
+            <button class="sort-btn" data-filter-group="scanner-score" data-filter-val="high" onclick="toggleMultiFilter('scanner','score','high',this)" title="High Conviction: Score 80-100 — all signals aligning, act now">🔥 High</button>
+            <button class="sort-btn" data-filter-group="scanner-score" data-filter-val="building" onclick="toggleMultiFilter('scanner','score','building',this)" title="Building: Score 60-79 — good setup, gaining strength">⚡ Building</button>
+            <button class="sort-btn" data-filter-group="scanner-score" data-filter-val="watch" onclick="toggleMultiFilter('scanner','score','watch',this)" title="Watch: Score 40-59 — early stage, keep on radar">👀 Watch</button>
           </div>
           <!-- Signal filter -->
           <select class="sort-sel" onchange="setMomSelectFilter('scanner','signal',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="Filter by signal type">
@@ -1785,26 +1839,26 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div class="mom-topbar">
         <div class="mom-filters">
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('ema','cross','all',this)" title="Show all EMA signal types">All</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cross','fresh_daily',this)" title="Fresh Daily: 9 EMA crossed above 20 EMA on daily chart this week — most actionable">Fresh Daily</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cross','hist_daily',this)" title="Historical Daily: Daily crossover happened before this week, stock still holding above both EMAs">Hist Daily</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cross','fresh_weekly',this)" title="Fresh Weekly: Weekly 9 EMA crossed above weekly 20 EMA within last 4 Friday closes — potential multibagger signal">Fresh Weekly</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cross','hist_weekly',this)" title="Historical Weekly: Weekly crossover older than 4 weeks, weekly trend still intact — established uptrend">Hist Weekly</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cross','watch_zone',this)" title="Watch Zone: Below daily 9 EMA temporarily but holding above weekly 9+20 EMA — Category B, re-entry opportunity">Watch Zone</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cross','forming',this)" title="Forming: Mid-week weekly candle tracking toward a crossover by Friday — early warning signal">⚠️ Forming</button>
+            <button class="sort-btn multi-active" data-filter-group="ema-cross" data-filter-val="all" onclick="toggleMultiFilter('ema','cross','all',this)" title="Show all EMA signal types">All</button>
+            <button class="sort-btn" data-filter-group="ema-cross" data-filter-val="fresh_daily" onclick="toggleMultiFilter('ema','cross','fresh_daily',this)" title="Fresh Daily: 9 EMA crossed above 20 EMA on daily chart this week — most actionable">Fresh Daily</button>
+            <button class="sort-btn" data-filter-group="ema-cross" data-filter-val="hist_daily" onclick="toggleMultiFilter('ema','cross','hist_daily',this)" title="Historical Daily: Daily crossover happened before this week, stock still holding above both EMAs">Hist Daily</button>
+            <button class="sort-btn" data-filter-group="ema-cross" data-filter-val="fresh_weekly" onclick="toggleMultiFilter('ema','cross','fresh_weekly',this)" title="Fresh Weekly: Weekly 9 EMA crossed above weekly 20 EMA within last 4 Friday closes — potential multibagger signal">Fresh Weekly</button>
+            <button class="sort-btn" data-filter-group="ema-cross" data-filter-val="hist_weekly" onclick="toggleMultiFilter('ema','cross','hist_weekly',this)" title="Historical Weekly: Weekly crossover older than 4 weeks, weekly trend still intact — established uptrend">Hist Weekly</button>
+            <button class="sort-btn" data-filter-group="ema-cross" data-filter-val="watch_zone" onclick="toggleMultiFilter('ema','cross','watch_zone',this)" title="Watch Zone: Below daily 9 EMA temporarily but holding above weekly 9+20 EMA — Category B, re-entry opportunity">Watch Zone</button>
+            <button class="sort-btn" data-filter-group="ema-cross" data-filter-val="forming" onclick="toggleMultiFilter('ema','cross','forming',this)" title="Forming: Mid-week weekly candle tracking toward a crossover by Friday — early warning signal">⚠️ Forming</button>
           </div>
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('ema','cat','all',this)">All Cat</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cat','A',this)" title="Category A: Daily+Weekly Bullish">🟢 A</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cat','B',this)" title="Category B: Watch Zone">🟡 B</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cat','C',this)" title="Category C: Weekly Crossover">🔵 C</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','cat','AC',this)" title="A+C: Strongest">💎 A+C</button>
+            <button class="sort-btn multi-active" data-filter-group="ema-cat" data-filter-val="all" onclick="toggleMultiFilter('ema','cat','all',this)">All Cat</button>
+            <button class="sort-btn" data-filter-group="ema-cat" data-filter-val="A" onclick="toggleMultiFilter('ema','cat','A',this)" title="Category A: Daily+Weekly Bullish">🟢 A</button>
+            <button class="sort-btn" data-filter-group="ema-cat" data-filter-val="B" onclick="toggleMultiFilter('ema','cat','B',this)" title="Category B: Watch Zone">🟡 B</button>
+            <button class="sort-btn" data-filter-group="ema-cat" data-filter-val="C" onclick="toggleMultiFilter('ema','cat','C',this)" title="Category C: Weekly Crossover">🔵 C</button>
+            <button class="sort-btn" data-filter-group="ema-cat" data-filter-val="AC" onclick="toggleMultiFilter('ema','cat','AC',this)" title="A+C: Strongest">💎 A+C</button>
           </div>
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('ema','score','all',this)">All</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','score','high',this)" title="High Conviction: Score 80-100">🔥 High</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','score','building',this)" title="Building: Score 60-79">⚡ Building</button>
-            <button class="sort-btn" onclick="setMomFilter('ema','score','watch',this)" title="Watch: Score 40-59">👀 Watch</button>
+            <button class="sort-btn multi-active" data-filter-group="ema-score" data-filter-val="all" onclick="toggleMultiFilter('ema','score','all',this)">All</button>
+            <button class="sort-btn" data-filter-group="ema-score" data-filter-val="high" onclick="toggleMultiFilter('ema','score','high',this)" title="High Conviction: Score 80-100">🔥 High</button>
+            <button class="sort-btn" data-filter-group="ema-score" data-filter-val="building" onclick="toggleMultiFilter('ema','score','building',this)" title="Building: Score 60-79">⚡ Building</button>
+            <button class="sort-btn" data-filter-group="ema-score" data-filter-val="watch" onclick="toggleMultiFilter('ema','score','watch',this)" title="Watch: Score 40-59">👀 Watch</button>
           </div>
           <select class="sort-sel" id="ema-breakout-filter" onchange="setMomSelectFilter('ema','breakout',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="Filter by breakout type">
             <option value="all">All Breakouts</option>
@@ -1886,20 +1940,21 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div class="mom-topbar">
         <div class="mom-filters">
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('sharp','move','all',this)" title="Show all sharp movers">All</button>
-            <button class="sort-btn" onclick="setMomFilter('sharp','move','3d',this)" title="Stocks that moved 20%+ in last 3 days — explosive momentum">3-Day (20%+)</button>
-            <button class="sort-btn" onclick="setMomFilter('sharp','move','1m',this)" title="Stocks that moved 30%+ in last month — strong monthly momentum">1-Month (30%+)</button>
+            <button class="sort-btn multi-active" data-filter-group="sharp-move" data-filter-val="all" onclick="toggleMultiFilter('sharp','move','all',this)" title="Show all sharp movers">All</button>
+            <button class="sort-btn" data-filter-group="sharp-move" data-filter-val="3d" onclick="toggleMultiFilter('sharp','move','3d',this)" title="Stocks that moved 20%+ in last 3 days — explosive momentum">3-Day (20%+)</button>
+            <button class="sort-btn" data-filter-group="sharp-move" data-filter-val="1m" onclick="toggleMultiFilter('sharp','move','1m',this)" title="Stocks that moved 30%+ in last month — strong monthly momentum">1-Month (30%+)</button>
           </div>
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('sharp','cat','all',this)">All Cat</button>
-            <button class="sort-btn" onclick="setMomFilter('sharp','cat','A',this)" title="Category A: Daily+Weekly Bullish">🟢 A</button>
-            <button class="sort-btn" onclick="setMomFilter('sharp','cat','B',this)" title="Category B: Watch Zone — below daily but above weekly EMA">🟡 B</button>
-            <button class="sort-btn" onclick="setMomFilter('sharp','cat','C',this)" title="Category C: Weekly Crossover">🔵 C</button>
+            <button class="sort-btn multi-active" data-filter-group="sharp-cat" data-filter-val="all" onclick="toggleMultiFilter('sharp','cat','all',this)">All Cat</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="A" onclick="toggleMultiFilter('sharp','cat','A',this)" title="Category A: Daily+Weekly Bullish">🟢 A</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="B" onclick="toggleMultiFilter('sharp','cat','B',this)" title="Category B: Watch Zone — below daily but above weekly EMA">🟡 B</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="C" onclick="toggleMultiFilter('sharp','cat','C',this)" title="Category C: Weekly Crossover">🔵 C</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="AC" onclick="toggleMultiFilter('sharp','cat','AC',this)" title="A+C: Strongest">💎 A+C</button>
           </div>
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('sharp','score','all',this)">All</button>
-            <button class="sort-btn" onclick="setMomFilter('sharp','score','high',this)" title="High Conviction: Score 80-100">🔥 High</button>
-            <button class="sort-btn" onclick="setMomFilter('sharp','score','building',this)" title="Building: Score 60-79">⚡ Building</button>
+            <button class="sort-btn multi-active" data-filter-group="sharp-score" data-filter-val="all" onclick="toggleMultiFilter('sharp','score','all',this)">All</button>
+            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="high" onclick="toggleMultiFilter('sharp','score','high',this)" title="High Conviction: Score 80-100">🔥 High</button>
+            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="building" onclick="toggleMultiFilter('sharp','score','building',this)" title="Building: Score 60-79">⚡ Building</button>
           </div>
           <select class="sort-sel" onchange="setMomSelectFilter('sharp','zoneD',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Daily 9 EMA">
             <option value="all">Daily EMA Zone: All</option>
@@ -1979,16 +2034,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div class="mom-topbar">
         <div class="mom-filters">
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('picks','cat','all',this)">All Cat</button>
-            <button class="sort-btn" onclick="setMomFilter('picks','cat','A',this)" title="Category A: Daily+Weekly Bullish">🟢 A</button>
-            <button class="sort-btn" onclick="setMomFilter('picks','cat','B',this)" title="Category B: Watch Zone">🟡 B</button>
-            <button class="sort-btn" onclick="setMomFilter('picks','cat','C',this)" title="Category C: Weekly Crossover">🔵 C</button>
+            <button class="sort-btn multi-active" data-filter-group="picks-cat" data-filter-val="all" onclick="toggleMultiFilter('picks','cat','all',this)">All Cat</button>
+            <button class="sort-btn" data-filter-group="picks-cat" data-filter-val="A" onclick="toggleMultiFilter('picks','cat','A',this)" title="Category A: Daily+Weekly Bullish">🟢 A</button>
+            <button class="sort-btn" data-filter-group="picks-cat" data-filter-val="B" onclick="toggleMultiFilter('picks','cat','B',this)" title="Category B: Watch Zone">🟡 B</button>
+            <button class="sort-btn" data-filter-group="picks-cat" data-filter-val="C" onclick="toggleMultiFilter('picks','cat','C',this)" title="Category C: Weekly Crossover">🔵 C</button>
+            <button class="sort-btn" data-filter-group="picks-cat" data-filter-val="AC" onclick="toggleMultiFilter('picks','cat','AC',this)" title="A+C: Strongest">💎 A+C</button>
           </div>
           <div class="mom-filter-group">
-            <button class="sort-btn active" onclick="setMomFilter('picks','zone','all',this)">All Zones</button>
-            <button class="sort-btn" onclick="setMomFilter('picks','zone','in',this)" title="IN ZONE: Within 3% of daily 9 EMA — ideal entry zone">🟢 In Zone</button>
-            <button class="sort-btn" onclick="setMomFilter('picks','zone','near',this)" title="NEAR: 3-5% from daily 9 EMA — watch for further pullback">🟡 Near</button>
-            <button class="sort-btn" onclick="setMomFilter('picks','zone','far',this)" title="FAR: More than 5% from daily 9 EMA — stock extended, avoid fresh entry">🔴 Far</button>
+            <button class="sort-btn multi-active" data-filter-group="picks-zone" data-filter-val="all" onclick="toggleMultiFilter('picks','zone','all',this)">All Zones</button>
+            <button class="sort-btn" data-filter-group="picks-zone" data-filter-val="in" onclick="toggleMultiFilter('picks','zone','in',this)" title="IN ZONE: Within 3% of daily 9 EMA — ideal entry zone">🟢 In Zone</button>
+            <button class="sort-btn" data-filter-group="picks-zone" data-filter-val="near" onclick="toggleMultiFilter('picks','zone','near',this)" title="NEAR: 3-5% from daily 9 EMA — watch for further pullback">🟡 Near</button>
+            <button class="sort-btn" data-filter-group="picks-zone" data-filter-val="far" onclick="toggleMultiFilter('picks','zone','far',this)" title="FAR: More than 5% from daily 9 EMA — stock extended, avoid fresh entry">🔴 Far</button>
           </div>
           <select class="sort-sel" onchange="setMomSelectFilter('picks','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Weekly 9 EMA">
             <option value="all">Weekly EMA Zone: All</option>
@@ -4805,11 +4861,13 @@ function renderAHTable() {
       <td style="font-size:11px">${a.ema_5m||'—'}</td>
       <td style="font-size:11px">${a.ema_15m||'—'}</td>
       <td>${a.outcome==='pending'?'<span style="color:var(--muted)">Auto-tracking…</span>':outH}</td>
-      <td><button class="sort-btn" onclick="cycleOutcome(${a.id},'${a.outcome}')" style="font-size:10px;padding:2px 8px">Log Trade</button></td>
+      <td><button class="sort-btn" onclick="cycleOutcome(${a.id},'${a.outcome}')" style="font-size:10px;padding:2px 8px" title="Click to cycle: Pending→Win→Loss→BE">${a.outcome==='pending'?'⏳':a.outcome==='win'?'✅':a.outcome==='loss'?'❌':'➖'}</button> <button class="sort-btn" onclick="window.open('https://breakoutvault-ui.github.io/JournalX/JournalX.html','_blank')" style="font-size:10px;padding:2px 8px;color:var(--cyan)" title="Open JournalX to log this trade">📝</button></td>
       <td>${outH}</td>
       <td>${ptsH}</td>
     </tr>`;
   }).join('');
+  // Render accuracy analytics
+  renderAlertAnalytics(list);
 }
 
 async function cycleOutcome(id, current) {
@@ -4820,6 +4878,86 @@ async function cycleOutcome(id, current) {
     await sb.from('fo_alerts').update({outcome:next,trade_logged:true}).eq('id',id);
     loadAlertHistory();
   } catch(e) { console.error(e); }
+}
+
+// ═══════════════════════════════════════════════════
+// ROUND 6: ALERT ACCURACY ANALYTICS
+// ═══════════════════════════════════════════════════
+function renderAlertAnalytics(list) {
+  // Direction accuracy
+  const calls = list.filter(a => a.direction === 'bull');
+  const puts  = list.filter(a => a.direction === 'bear');
+  const callWins = calls.filter(a => a.outcome === 'win').length;
+  const putWins  = puts.filter(a => a.outcome === 'win').length;
+  const callWr = calls.length > 0 ? Math.round(callWins / calls.length * 100) + '%' : '—';
+  const putWr  = puts.length > 0  ? Math.round(putWins / puts.length * 100) + '%' : '—';
+  const el = (id) => document.getElementById(id);
+  if (el('ah-call-wr'))     el('ah-call-wr').textContent = callWr;
+  if (el('ah-call-detail')) el('ah-call-detail').textContent = `${calls.length} alerts · ${callWins} wins`;
+  if (el('ah-put-wr'))      el('ah-put-wr').textContent = putWr;
+  if (el('ah-put-detail'))  el('ah-put-detail').textContent = `${puts.length} alerts · ${putWins} wins`;
+
+  // ORB type accuracy
+  const wide   = list.filter(a => a.orb_type === 'wide');
+  const narrow = list.filter(a => a.orb_type !== 'wide');
+  const wideWins   = wide.filter(a => a.outcome === 'win').length;
+  const narrowWins = narrow.filter(a => a.outcome === 'win').length;
+  if (el('ah-wide-wr'))      el('ah-wide-wr').textContent = wide.length > 0 ? Math.round(wideWins/wide.length*100)+'%' : '—';
+  if (el('ah-wide-detail'))  el('ah-wide-detail').textContent = `${wide.length} alerts · ${wideWins} wins`;
+  if (el('ah-narrow-wr'))    el('ah-narrow-wr').textContent = narrow.length > 0 ? Math.round(narrowWins/narrow.length*100)+'%' : '—';
+  if (el('ah-narrow-detail'))el('ah-narrow-detail').textContent = `${narrow.length} alerts · ${narrowWins} wins`;
+
+  // Top sectors by win rate (min 2 alerts)
+  const secMap = {};
+  list.forEach(a => {
+    const sec = a.sector || 'Unknown';
+    if (!secMap[sec]) secMap[sec] = { total: 0, wins: 0 };
+    secMap[sec].total++;
+    if (a.outcome === 'win') secMap[sec].wins++;
+  });
+  const secArr = Object.entries(secMap)
+    .filter(([_, v]) => v.total >= 2)
+    .map(([k, v]) => ({ sector: k, wr: Math.round(v.wins/v.total*100), total: v.total, wins: v.wins }))
+    .sort((a, b) => b.wr - a.wr)
+    .slice(0, 5);
+  const secEl = el('ah-sector-analytics');
+  if (secEl) {
+    secEl.innerHTML = secArr.length > 0 ? secArr.map(s =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border)">
+        <span>${s.sector}</span>
+        <span style="color:${s.wr>=60?'#22C55E':s.wr>=40?'var(--amber)':'#EF4444'};font-weight:600">${s.wr}% <span style="color:var(--muted);font-weight:400">(${s.wins}/${s.total})</span></span>
+      </div>`
+    ).join('') : '<span>Need 2+ alerts per sector</span>';
+  }
+
+  // Daily performance bars
+  const dayMap = {};
+  list.forEach(a => {
+    const d = a.session_date || (a.fired_at ? a.fired_at.slice(0,10) : null);
+    if (!d) return;
+    if (!dayMap[d]) dayMap[d] = { wins: 0, losses: 0, total: 0 };
+    dayMap[d].total++;
+    if (a.outcome === 'win') dayMap[d].wins++;
+    if (a.outcome === 'loss') dayMap[d].losses++;
+  });
+  const days = Object.entries(dayMap).sort((a,b) => a[0].localeCompare(b[0])).slice(-20);
+  const barsEl = el('ah-daily-bars');
+  const labelsEl = el('ah-daily-labels');
+  if (barsEl && days.length > 0) {
+    const maxT = Math.max(...days.map(([_,v]) => v.total), 1);
+    barsEl.innerHTML = days.map(([d, v]) => {
+      const h = Math.max(4, (v.total / maxT) * 50);
+      const wr = v.total > 0 ? v.wins / v.total : 0;
+      const col = wr >= 0.6 ? '#22C55E' : wr >= 0.4 ? 'var(--amber)' : '#EF4444';
+      return `<div style="flex:1;min-width:14px;max-width:28px;height:${h}px;background:${col};border-radius:3px 3px 0 0;cursor:pointer;opacity:.85" title="${d}: ${v.wins}W / ${v.losses}L / ${v.total} total (${Math.round(wr*100)}%)"></div>`;
+    }).join('');
+    labelsEl.innerHTML = days.map(([d]) =>
+      `<div style="flex:1;min-width:14px;max-width:28px;text-align:center">${d.slice(8)}</div>`
+    ).join('');
+  } else if (barsEl) {
+    barsEl.innerHTML = '<span style="font-size:11px;color:var(--muted)">No daily data yet</span>';
+    if (labelsEl) labelsEl.innerHTML = '';
+  }
 }
 
 function exportAHExcel() { showToast('Excel export — coming in Phase 3','info'); }
@@ -6492,17 +6630,34 @@ const _origRenderScanner = renderScanner;
 renderScanner = function() {
   const f = momFilters.scanner;
   let data = [...momData.scanner];
-  // Existing filters
-  if (f.period !== 'all') {
+  // Period — multi-select
+  const periodSet = multiFilters['scanner-period'];
+  if (periodSet && periodSet.size > 0) {
     const now = new Date(), todayStr = now.toISOString().slice(0,10);
     const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
     const monthStart = new Date(); monthStart.setMonth(monthStart.getMonth() - 1);
-    if (f.period === 'today') data = data.filter(s => s.session_date === todayStr);
-    if (f.period === 'week')  data = data.filter(s => new Date(s.session_date) >= weekStart);
-    if (f.period === 'month') data = data.filter(s => new Date(s.session_date) >= monthStart);
+    data = data.filter(s => {
+      if (periodSet.has('today') && s.session_date === todayStr) return true;
+      if (periodSet.has('week') && new Date(s.session_date) >= weekStart) return true;
+      if (periodSet.has('month') && new Date(s.session_date) >= monthStart) return true;
+      return false;
+    });
   }
-  if (f.cat !== 'all')    data = data.filter(s => s.category === f.cat);
-  if (f.score !== 'all')  data = data.filter(s => scoreFilter(s.momentum_score||0, f.score));
+  // Category — multi-select
+  if (!multiFilterPass('scanner-cat', data[0]?.category)) {
+    data = data.filter(s => multiFilterPass('scanner-cat', s.category));
+  }
+  // Score — multi-select
+  const scoreSet = multiFilters['scanner-score'];
+  if (scoreSet && scoreSet.size > 0) {
+    data = data.filter(s => {
+      const sc = s.momentum_score || 0;
+      if (scoreSet.has('high') && sc >= 80) return true;
+      if (scoreSet.has('building') && sc >= 60 && sc < 80) return true;
+      if (scoreSet.has('watch') && sc >= 40 && sc < 60) return true;
+      return false;
+    });
+  }
   if (f.signal !== 'all') {
     if (f.signal === 'crossover') data = data.filter(s => s.daily_crossover_date || s.weekly_crossover_date);
     if (f.signal === 'breakout')  data = data.filter(s => s.breakout_type);
@@ -6570,18 +6725,34 @@ renderEMA = function() {
   renderEMATrendingStrip();
   const f = momFilters.ema;
   let data = [...momData.ema];
-  if (f.cross !== 'all') {
+  // Cross — multi-select
+  const crossSet = multiFilters['ema-cross'];
+  if (crossSet && crossSet.size > 0) {
     const now = new Date();
     const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    if (f.cross === 'fresh_daily')  data = data.filter(s => s.crossover_type === 'daily' && s.crossover_date && new Date(s.crossover_date) >= weekStart);
-    if (f.cross === 'hist_daily')   data = data.filter(s => s.crossover_type === 'daily' && s.crossover_date && new Date(s.crossover_date) < weekStart);
-    if (f.cross === 'fresh_weekly') data = data.filter(s => s.crossover_type === 'weekly' && s.crossover_date && (now - new Date(s.crossover_date)) / 86400000 <= 28);
-    if (f.cross === 'hist_weekly')  data = data.filter(s => s.crossover_type === 'weekly' && s.crossover_date && (now - new Date(s.crossover_date)) / 86400000 > 28);
-    if (f.cross === 'watch_zone')   data = data.filter(s => s.category === 'B');
-    if (f.cross === 'forming')      data = data.filter(s => s.is_forming_weekly);
+    data = data.filter(s => {
+      if (crossSet.has('fresh_daily') && s.crossover_type === 'daily' && s.crossover_date && new Date(s.crossover_date) >= weekStart) return true;
+      if (crossSet.has('hist_daily') && s.crossover_type === 'daily' && s.crossover_date && new Date(s.crossover_date) < weekStart) return true;
+      if (crossSet.has('fresh_weekly') && s.crossover_type === 'weekly' && s.crossover_date && (now - new Date(s.crossover_date)) / 86400000 <= 28) return true;
+      if (crossSet.has('hist_weekly') && s.crossover_type === 'weekly' && s.crossover_date && (now - new Date(s.crossover_date)) / 86400000 > 28) return true;
+      if (crossSet.has('watch_zone') && s.category === 'B') return true;
+      if (crossSet.has('forming') && s.is_forming_weekly) return true;
+      return false;
+    });
   }
-  if (f.cat !== 'all')      data = data.filter(s => s.category === f.cat);
-  if (f.score !== 'all')    data = data.filter(s => scoreFilter(s.momentum_score || 0, f.score));
+  // Category — multi-select
+  data = data.filter(s => multiFilterPass('ema-cat', s.category));
+  // Score — multi-select
+  const emaScoreSet = multiFilters['ema-score'];
+  if (emaScoreSet && emaScoreSet.size > 0) {
+    data = data.filter(s => {
+      const sc = s.momentum_score || 0;
+      if (emaScoreSet.has('high') && sc >= 80) return true;
+      if (emaScoreSet.has('building') && sc >= 60 && sc < 80) return true;
+      if (emaScoreSet.has('watch') && sc >= 40 && sc < 60) return true;
+      return false;
+    });
+  }
   if (f.breakout !== 'all') { if (f.breakout === 'none') data = data.filter(s => !s.breakout_type); else data = data.filter(s => s.breakout_type === f.breakout); }
   if (f.sector !== 'all')   data = data.filter(s => s.sector === f.sector);
   if (f._industry)           data = data.filter(s => s.industry === f._industry);
@@ -6626,15 +6797,33 @@ renderEMA = function() {
 };
 
 // ═══════════════════════════════════════════════════
-// ROUND 5.1: PATCH renderSharp for color filter
+// ROUND 6: PATCH renderSharp — full rebuild with multi-select + color filter
 // ═══════════════════════════════════════════════════
-const _origRenderSharp = renderSharp;
+const _origSharpRender2 = renderSharp;
 renderSharp = function() {
   const f = momFilters.sharp;
   let data = momData.sharp.filter(s => !momExcluded.has(s.symbol));
-  if (f.move !== 'all') { if (f.move === '3d') data = data.filter(s => s.move_3d_pct && Math.abs(s.move_3d_pct) >= 20); if (f.move === '1m') data = data.filter(s => s.move_1m_pct && Math.abs(s.move_1m_pct) >= 30); }
-  if (f.cat !== 'all')    data = data.filter(s => s.category === f.cat);
-  if (f.score !== 'all')  data = data.filter(s => scoreFilter(s.momentum_score||0, f.score));
+  // Move — multi-select
+  const moveSet = multiFilters['sharp-move'];
+  if (moveSet && moveSet.size > 0) {
+    data = data.filter(s => {
+      if (moveSet.has('3d') && s.move_3d_pct && Math.abs(s.move_3d_pct) >= 20) return true;
+      if (moveSet.has('1m') && s.move_1m_pct && Math.abs(s.move_1m_pct) >= 30) return true;
+      return false;
+    });
+  }
+  // Category — multi-select
+  data = data.filter(s => multiFilterPass('sharp-cat', s.category));
+  // Score — multi-select
+  const sharpScoreSet = multiFilters['sharp-score'];
+  if (sharpScoreSet && sharpScoreSet.size > 0) {
+    data = data.filter(s => {
+      const sc = s.momentum_score || 0;
+      if (sharpScoreSet.has('high') && sc >= 80) return true;
+      if (sharpScoreSet.has('building') && sc >= 60 && sc < 80) return true;
+      return false;
+    });
+  }
   if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
   if (f.star)             data = data.filter(s => momStarred.has(s.symbol));
   if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
@@ -6642,18 +6831,61 @@ renderSharp = function() {
   if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
   // COLOR FILTER
   data = data.filter(s => colorFilterPass(s.symbol));
-  _origRenderSharp.call(this);
-  // Rewrite with color filter applied
-  // (We call original which doesn't have color filter, so we override the body)
-};
-// Actually let's just add colorFilterPass into the original flow by modifying momData access
-// Simpler: patch the data source
-const _origSharpRender2 = renderSharp;
-renderSharp = function() {
-  const origSharp = momData.sharp;
-  momData.sharp = origSharp.filter(s => colorFilterPass(s.symbol));
-  _origRenderSharp();
-  momData.sharp = origSharp;
+  // Compute move_pct
+  data = data.map(s => ({ ...s, move_pct: Math.max(Math.abs(s.move_3d_pct||0), Math.abs(s.move_1m_pct||0)) }));
+  // Update count
+  const sharpCntEl = document.getElementById('sharp-count');
+  if (sharpCntEl) sharpCntEl.textContent = `Showing ${data.length} of ${momData.sharp.length}`;
+  const { key, dir } = momSort.sharp;
+  data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
+  if (!data.length) {
+    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers match filter</div></div></td></tr>';
+    // Still render excluded section
+    const excl = momData.sharp.filter(s => momExcluded.has(s.symbol));
+    const exclSec = document.getElementById('sharp-excluded-section');
+    document.getElementById('sharp-excluded-count').textContent = excl.length;
+    exclSec.style.display = excl.length > 0 ? 'block' : 'none';
+    document.getElementById('sharp-excluded-list').innerHTML = excl.map(s =>
+      `<span style="font-size:11px;color:var(--muted);margin-right:8px">${s.symbol} <button onclick="restoreSharpStock('${s.symbol}')" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-size:10px">Restore</button></span>`
+    ).join('');
+    return;
+  }
+  document.getElementById('sharp-body').innerHTML = data.map(s => {
+    const starred = momStarred.has(s.symbol);
+    const is3d = s.move_3d_pct && Math.abs(s.move_3d_pct) >= 20;
+    const movePct = is3d ? s.move_3d_pct : s.move_1m_pct;
+    const period = is3d ? '3-Day' : '1-Month';
+    const away52 = s.ltp && s.high_52w ? ((s.high_52w - s.ltp) / s.high_52w * 100).toFixed(1) + '%' : '—';
+    return `<tr>
+      <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
+      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
+      <td><span style="color:${movePct>=0?'#22C55E':'#EF4444'};font-weight:700;font-size:13px">${movePct>=0?'+':''}${movePct?.toFixed(1)}%</span></td>
+      <td><span style="font-size:10px;color:var(--muted)">${period}</span></td>
+      <td>₹${(s.ltp||0).toLocaleString('en-IN')}</td>
+      <td>${fmtChg(s.day_chg_pct)}</td>
+      <td>${fmtChg(s.week_chg_pct)}</td>
+      <td>${fmtChg(s.month_chg_pct)}</td>
+      <td>${getZoneTag(s.pct_from_ema9_daily)}</td>
+      <td>${s.pct_from_ema9_weekly!==null&&s.pct_from_ema9_weekly!==undefined?`<span style="color:${chgColor(s.pct_from_ema9_weekly)}">${s.pct_from_ema9_weekly>=0?'+':''}${s.pct_from_ema9_weekly.toFixed(2)}%</span>`:'—'}</td>
+      <td><span style="font-size:11px;color:var(--muted)">${away52}</span></td>
+      <td>${getVolClass(s.vol_class)}</td>
+      <td>${s.daily_crossover_date?'<span style="color:var(--green);font-size:10px;font-weight:600">✅ Yes</span>':'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
+      <td>${getScoreTag(s.momentum_score||0)}</td>
+      <td><button class="sort-btn" onclick="excludeSharpStock('${s.symbol}')" title="Hide this stock from Sharp Movers" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
+    </tr>`;
+  }).join('');
+  // Excluded section
+  const excl = momData.sharp.filter(s => momExcluded.has(s.symbol));
+  const exclSec = document.getElementById('sharp-excluded-section');
+  document.getElementById('sharp-excluded-count').textContent = excl.length;
+  exclSec.style.display = excl.length > 0 ? 'block' : 'none';
+  document.getElementById('sharp-excluded-list').innerHTML = excl.map(s =>
+    `<span style="font-size:11px;color:var(--muted);margin-right:8px">${s.symbol} <button onclick="restoreSharpStock('${s.symbol}')" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-size:10px">Restore</button></span>`
+  ).join('');
+  applyColVisibility('sharp');
 };
 
 // ═══════════════════════════════════════════════════
@@ -6661,10 +6893,66 @@ renderSharp = function() {
 // ═══════════════════════════════════════════════════
 const _origRenderPicks = renderPicks;
 renderPicks = function() {
-  const origPicks = momData.picks;
-  momData.picks = origPicks.filter(s => colorFilterPass(s.symbol));
-  _origRenderPicks();
-  momData.picks = origPicks;
+  const f = momFilters.picks;
+  let data = [...momData.picks];
+  // Category — multi-select
+  data = data.filter(s => multiFilterPass('picks-cat', s.category));
+  // Zone — multi-select
+  const zoneSet = multiFilters['picks-zone'];
+  if (zoneSet && zoneSet.size > 0) {
+    data = data.filter(s => {
+      const pct = Math.abs(s.pct_from_ema9_daily || 99);
+      if (zoneSet.has('in') && pct < 3) return true;
+      if (zoneSet.has('near') && pct >= 3 && pct < 5) return true;
+      if (zoneSet.has('far') && pct >= 5) return true;
+      return false;
+    });
+  }
+  if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+  if (f.zoneW !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+  if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+  // COLOR FILTER
+  data = data.filter(s => colorFilterPass(s.symbol));
+  const { key, dir } = momSort.picks;
+  data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
+  const picksCntEl = document.getElementById('picks-count');
+  if (picksCntEl) picksCntEl.textContent = `Showing ${data.length} of ${momData.picks.length}`;
+  if (!data.length) {
+    document.getElementById('picks-body').innerHTML = '<tr><td colspan="21"><div class="mom-empty"><div class="mom-empty-icon">⭐</div><div class="mom-empty-text">No stocks match filter</div></div></td></tr>';
+    return;
+  }
+  document.getElementById('picks-body').innerHTML = data.map(s => {
+    const moveSince = s.move_since_star;
+    const moveColor = moveSince !== null ? (moveSince >= 0 ? '#22C55E' : '#EF4444') : 'var(--muted)';
+    const moveStr = moveSince !== null ? `<span style="color:${moveColor};font-weight:700">${moveSince>=0?'+':''}${moveSince.toFixed(2)}%</span>` : '—';
+    const pct52p  = (s.ltp && s.high_52w) ? ((s.high_52w - s.ltp)/s.high_52w*100) : null;
+    const pct52pstr = pct52p!==null ? pct52p.toFixed(1)+'%' : '—';
+    const pct52pcol = pct52p!==null ? (pct52p<5?'var(--green)':pct52p<10?'var(--amber)':pct52p<20?'var(--text)':'var(--muted)') : 'var(--muted)';
+    return `<tr>
+      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
+      <td style="font-size:11px">${s.starred_at?new Date(s.starred_at).toLocaleDateString('en-IN'):'—'}</td>
+      <td style="font-size:11px;color:var(--cyan)">${s.days_starred!==null?s.days_starred+'d':'—'}</td>
+      <td>₹${(s.ref_price||0).toLocaleString('en-IN')}</td>
+      <td>₹${(s.ltp||0).toLocaleString('en-IN')}</td>
+      <td>${moveStr}</td>
+      <td>${getEMAStatus(s.above_ema9_daily, s.above_ema20_daily)}</td>
+      <td>${getEMAStatus(s.above_ema9_weekly, s.above_ema20_weekly)}</td>
+      <td>${getZoneTag(s.pct_from_ema9_daily)}</td>
+      <td style="color:${pct52pcol};font-weight:600">${pct52pstr}</td>
+      <td>${fmtChg(s.day_chg_pct)}</td>
+      <td>${fmtChg(s.week_chg_pct)}</td>
+      <td>${fmtChg(s.month_chg_pct)}</td>
+      <td style="font-size:11px">${s.daily_crossover_date||'—'}</td>
+      <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
+      <td>${getScoreTag(s.momentum_score||0)}</td>
+      <td class="l5-summary">${getLast5(s.last5_summary)}</td>
+      <td><input class="mom-note-input" value="${s.notes||''}" placeholder="Add note..." onblur="saveMomNote('${s.symbol}',this.value)"></td>
+      <td><button class="sort-btn" onclick="removeMomPick('${s.symbol}')" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
+    </tr>`;
+  }).join('');
+  applyColVisibility('picks');
 };
 
 // ═══════════════════════════════════════════════════
