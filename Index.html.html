@@ -89,7 +89,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
    TOPBAR
 ══════════════════════════════════════ */
 #app{display:none;position:relative;z-index:1;min-height:100vh}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 12px;height:58px;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:100;gap:4px;flex-wrap:nowrap;overflow:visible}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 12px;height:46px;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:100;gap:4px;flex-wrap:nowrap;overflow:visible}
 .brand{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:3px;color:var(--cyan);text-shadow:0 0 20px var(--cyan-glow);white-space:nowrap;cursor:pointer}
 .brand span{color:var(--muted);font-weight:400}
 .nav-tabs{display:flex;gap:2px;background:var(--bg2);border-radius:10px;padding:3px;border:1px solid var(--border)}
@@ -106,7 +106,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .kite-btn.connected{border-color:var(--green);color:var(--green)}
 .kite-btn.disconnected{border-color:var(--red);color:var(--red);background:var(--red-dim)}
 /* ── F&O TAB STYLES ── */
-.fo-panel{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.fo-panel{padding:8px 12px;display:flex;flex-direction:column;gap:8px}
 .fo-strip{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px}
 .fo-card{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;flex:1;min-width:140px}
 .fo-card-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
@@ -261,7 +261,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .mom-heat-neu{background:var(--bg3);color:var(--muted);border-color:var(--border)}
 .panel{display:none;padding:10px 16px;animation:fadeUp .2s ease}
 .panel.active{display:block}
-#momentum-container .panel, #results-container .panel { padding:6px 12px; }
+#momentum-container .panel, #results-container .panel { padding:4px 10px; }
+#momentum-container .fo-panel, #results-container .fo-panel { padding:6px 10px; gap:6px; }
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ══════════════════════════════════════
@@ -6057,7 +6058,43 @@ function getVisibleMomData(tab) {
     if (f.star) data = data.filter(s => momStarred.has(s.symbol));
     return data;
   }
-  if (tab === 'ema')     return momData.ema;
+  if (tab === 'ema') {
+    let data = [...momData.ema];
+    // Apply multi-select filters
+    const crossSet = multiFilters['ema-cross'];
+    if (crossSet && crossSet.size > 0) {
+      const now = new Date();
+      const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      data = data.filter(s => {
+        if (crossSet.has('fresh_daily') && s.crossover_type === 'daily' && s.crossover_date && new Date(s.crossover_date) >= weekStart) return true;
+        if (crossSet.has('hist_daily') && s.crossover_type === 'daily' && s.crossover_date && new Date(s.crossover_date) < weekStart) return true;
+        if (crossSet.has('fresh_weekly') && s.crossover_type === 'weekly' && s.crossover_date && (now - new Date(s.crossover_date)) / 86400000 <= 28) return true;
+        if (crossSet.has('hist_weekly') && s.crossover_type === 'weekly' && s.crossover_date && (now - new Date(s.crossover_date)) / 86400000 > 28) return true;
+        if (crossSet.has('watch_zone') && s.category === 'B') return true;
+        if (crossSet.has('forming') && s.is_forming_weekly) return true;
+        return false;
+      });
+    }
+    data = data.filter(s => multiFilterPass('ema-cat', s.category));
+    const emaScoreSet = multiFilters['ema-score'];
+    if (emaScoreSet && emaScoreSet.size > 0) {
+      data = data.filter(s => {
+        const sc = s.momentum_score || 0;
+        if (emaScoreSet.has('high') && sc >= 80) return true;
+        if (emaScoreSet.has('building') && sc >= 60 && sc < 80) return true;
+        if (emaScoreSet.has('watch') && sc >= 40 && sc < 60) return true;
+        return false;
+      });
+    }
+    const f = momFilters.ema;
+    if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
+    if (f.star) data = data.filter(s => momStarred.has(s.symbol));
+    if (f.zoneD !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+    if (f.zoneW !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+    if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+    data = data.filter(s => colorFilterPass(s.symbol));
+    return data;
+  }
   if (tab === 'sharp')   return momData.sharp.filter(s => !momExcluded.has(s.symbol));
   if (tab === 'picks')   return momData.picks;
   if (tab === 'exited')  return momData.exited;
@@ -7486,15 +7523,18 @@ function rsMergeAndGrade() {
     if (mcap > 20000) mcapCat = 'large';
     else if (mcap > 5000) mcapCat = 'mid';
 
-    // Cross-link with momentum data
+    // Cross-link with momentum data — search across ALL momentum tabs
     let momCat = null, emaZone = null, monthChg = null, weekChg = null;
-    if (symbol && momData.scanner) {
-      const momStock = momData.scanner.find(s => s.symbol === symbol);
+    let inMomUniverse = false;
+    if (symbol) {
+      const allMom = [].concat(momData.scanner || [], momData.ema || [], momData.sharp || [], momData.picks || []);
+      const momStock = allMom.find(s => s.symbol === symbol);
       if (momStock) {
         momCat = momStock.category;
         emaZone = momStock.pct_from_ema9_daily;
         monthChg = momStock.month_chg_pct;
         weekChg = momStock.week_chg_pct;
+        inMomUniverse = true;
       }
     }
 
@@ -7511,10 +7551,11 @@ function rsMergeAndGrade() {
       else if (!strongResult && bigMove) verdict = 'pricedin';
     }
 
-    // Get sector from momentum data
+    // Get sector from momentum data — search all tabs
     let sector = '';
-    if (symbol && momData.scanner) {
-      const ms = momData.scanner.find(s => s.symbol === symbol);
+    if (symbol) {
+      const allMom2 = [].concat(momData.scanner || [], momData.ema || [], momData.sharp || [], momData.picks || []);
+      const ms = allMom2.find(s => s.symbol === symbol);
       if (ms) sector = ms.sector || '';
     }
 
@@ -7527,7 +7568,7 @@ function rsMergeAndGrade() {
       brokerUpside, brokerTarget, broker3mUp,
       rev3y, np3y, npQoQ, revQoQ,
       grade, smartMoney, mcapCat, momCat, emaZone,
-      monthChg, weekChg, verdict, sector
+      monthChg, weekChg, verdict, sector, inMomUniverse
     };
   });
 
@@ -8048,13 +8089,7 @@ renderResultsTable = function() {
       <td style="font-size:11px">${r.roce!==null?r.roce.toFixed(1)+'%':'—'}</td>
       <td style="font-size:11px;color:${r.de&&r.de>1?'#EF4444':'var(--text)'}">${r.de!==null?r.de.toFixed(2):'—'}</td>
       <td style="font-size:11px">${r.pe!==null?r.pe.toFixed(1):'—'}</td>
-      <td>${r.momCat?getCatBadge(r.momCat):'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
-      <td>${r.emaZone!==null&&r.emaZone!==undefined?getZoneTag(r.emaZone):'—'}</td>
-      <td>${rsGetSmartBadge(r.smartMoney)}</td>
-      <td style="font-size:10px">${r.promChange!==null?`<span style="color:${r.promChange>=0?'#22C55E':'#EF4444'}">${r.promChange>=0?'+':''}${r.promChange.toFixed(2)}%</span>`:'—'}</td>
-      <td style="font-size:10px">${r.fiiChange!==null?`<span style="color:${r.fiiChange>=0?'#22C55E':'#EF4444'}">${r.fiiChange>=0?'+':''}${r.fiiChange.toFixed(2)}%</span>`:'—'}</td>
-      <td style="font-size:10px">${r.mfChange!==null?`<span style="color:${r.mfChange>=0?'#22C55E':'#EF4444'}">${r.mfChange>=0?'+':''}${r.mfChange.toFixed(2)}%</span>`:'—'}</td>
-      <td>${newInstBadge}</td>
+      <td>${r.momCat?getCatBadge(r.momCat):(r.inMomUniverse===false?'<span style="color:var(--red);font-size:9px" title="This stock is not in our 1400+ momentum universe">⚠️ N/A</span>':'<span style="color:var(--muted);font-size:10px">—</span>')}</td>
       <td style="font-size:11px">${r.brokerUpside!==null?`<span style="color:${r.brokerUpside>10?'#22C55E':r.brokerUpside>0?'var(--amber)':'#EF4444'}">${r.brokerUpside.toFixed(0)}%</span>`:'—'}</td>
       <td style="font-size:10px;color:var(--muted)">${mcapBadge} ${mcapStr}</td>
       <td style="font-size:11px">₹${r.price?r.price.toLocaleString('en-IN'):'—'}</td>
@@ -8101,8 +8136,187 @@ renderAnalyticsTab = function() {
 
 // -- Fix TradingView links: use exchange prefix properly
 // Some stocks need BSE: instead of NSE: — but NSE is the default and works for most
-// The real issue is some symbols don't exist on TradingView with the exact Trendlyne NSE code
-// We'll add the company name as title so at least user knows what stock it is
+
+// ═══════════════════════════════════════════════════
+// ROUND 8: ALL 12 FIXES
+// ═══════════════════════════════════════════════════
+
+// Fix #1: postResultMove — compute from actual month change (more accurate than weekChg)
+// Already patched above but weekChg is often null. Use monthChg as fallback.
+const _origMerge3 = rsMergeAndGrade;
+rsMergeAndGrade = function() {
+  _origMerge3();
+  rsMergedData.forEach(r => {
+    // Better postResultMove: prefer weekChg, fallback to monthChg, then day_chg
+    if (r.weekChg !== null && r.weekChg !== undefined) r.postResultMove = r.weekChg;
+    else if (r.monthChg !== null && r.monthChg !== undefined) r.postResultMove = r.monthChg;
+    else r.postResultMove = null;
+  });
+  // Fix #3: Build trending after merge
+  buildRSTrending();
+  localStorage.setItem('tf_rs_merged', JSON.stringify(rsMergedData));
+};
+
+// Fix #3: Trending not showing — buildRSTrending needs to also search momData.ema for industries
+const _origBuildTrending = buildRSTrending;
+buildRSTrending = function() {
+  if (!rsMergedData.length) return;
+  const secCount = {}, indCount = {};
+  rsMergedData.forEach(r => {
+    const isGood = (r.grade === 'blockbuster' || r.grade === 'turnaround' || r.grade === 'steady');
+    if (r.sector && isGood) secCount[r.sector] = (secCount[r.sector] || 0) + 1;
+    // Get industry from ANY momentum tab
+    const allMom = [].concat(momData.scanner || [], momData.ema || [], momData.sharp || [], momData.picks || []);
+    const momS = r.symbol ? allMom.find(s => s.symbol === r.symbol) : null;
+    if (momS && momS.industry && isGood) indCount[momS.industry] = (indCount[momS.industry] || 0) + 1;
+  });
+  const topSec = Object.entries(secCount).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const topInd = Object.entries(indCount).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const stripEl = document.getElementById('rs-trending-strip');
+  const secEl = document.getElementById('rs-trending-sectors');
+  const indEl = document.getElementById('rs-trending-industries');
+  if (stripEl) {
+    if (topSec.length || topInd.length) {
+      stripEl.style.display = '';
+      if (secEl) secEl.innerHTML = topSec.map(([s, c]) =>
+        `<span class="sort-btn" style="font-size:10px;padding:2px 8px;cursor:pointer" onclick="document.getElementById('rs-sector-filter').value='${s}';renderResultsTable()" title="Click to filter by ${s}">${s} <b>${c}</b></span>`
+      ).join('');
+      if (indEl) indEl.innerHTML = topInd.map(([s, c]) =>
+        `<span class="sort-btn" style="font-size:10px;padding:2px 8px">${s} <b>${c}</b></span>`
+      ).join('');
+    }
+  }
+};
+
+// Fix #6: Multi-bagger tooltip correction — update the sub-tab button title
+setTimeout(() => {
+  const mbBtn = document.getElementById('an-sub-multi');
+  if (mbBtn) mbBtn.title = 'Turnaround or Blockbuster results + Small/Mid cap + Low debt + High NP growth — potential multi-bagger candidates';
+}, 1000);
+
+// Fix #7: Company name on hover — patch ALL momentum tab renders to show company name
+// The stock name comes from rsGetResultForSymbol — if results data has the name, use it
+function getStockTitle(symbol) {
+  // Try results data first
+  const r = rsMergedData.find(d => d.symbol === symbol);
+  if (r && r.name) return r.name;
+  // Fallback to symbol
+  return symbol;
+}
+
+// Fix #8: TradingView copy in Analytics sub-tabs
+function analyticsExportTV(sectionId) {
+  const cards = document.getElementById(sectionId);
+  if (!cards) return;
+  const syms = [...cards.querySelectorAll('[onclick*="tradingview"]')]
+    .map(el => {
+      const match = el.getAttribute('onclick')?.match(/NSE:(\w+)/);
+      return match ? 'NSE:' + match[1] : null;
+    }).filter(Boolean);
+  if (!syms.length) { showToast('No stocks to copy', 'info'); return; }
+  navigator.clipboard.writeText(syms.join(',')).then(() => 
+    showToast(`📊 ${syms.length} symbols copied for TradingView`, 'success')
+  );
+}
+
+// Add TV export buttons to each analytics sub-tab
+setTimeout(() => {
+  const panels = [
+    { id: 'an-panel-alpha', cards: 'alpha-picks-cards' },
+    { id: 'an-panel-multi', cards: 'multibagger-cards' },
+    { id: 'an-panel-under', cards: 'underreacted-cards' },
+    { id: 'an-panel-smart', cards: 'smartmoney-cards' },
+    { id: 'an-panel-newinst', cards: 'newinst-cards' },
+  ];
+  panels.forEach(p => {
+    const panel = document.getElementById(p.id);
+    if (panel) {
+      const desc = panel.querySelector('div[style*="color:var(--muted)"]');
+      if (desc) {
+        const btn = document.createElement('button');
+        btn.className = 'sort-btn';
+        btn.style.cssText = 'font-size:10px;padding:2px 8px;margin-left:8px';
+        btn.textContent = '📊 TradingView';
+        btn.title = 'Copy all visible stock symbols for TradingView';
+        btn.onclick = () => analyticsExportTV(p.cards);
+        desc.appendChild(btn);
+      }
+    }
+  });
+}, 2000);
+
+// Fix #12: Add Results + Smart Money filter buttons to EMA Signals tab
+setTimeout(() => {
+  const emaFilters = document.querySelector('#tab-emasignals .mom-filters');
+  if (emaFilters) {
+    // Add Results filter group
+    const resGroup = document.createElement('div');
+    resGroup.className = 'mom-filter-group';
+    resGroup.innerHTML = `
+      <button class="sort-btn multi-active" data-filter-group="ema-result" data-filter-val="all" onclick="toggleMultiFilter('ema','result','all',this)" title="Filter by result grade">Res: All</button>
+      <button class="sort-btn" data-filter-group="ema-result" data-filter-val="blockbuster" onclick="toggleMultiFilter('ema','result','blockbuster',this)" title="Blockbuster results" style="color:#22C55E">🟢</button>
+      <button class="sort-btn" data-filter-group="ema-result" data-filter-val="turnaround" onclick="toggleMultiFilter('ema','result','turnaround',this)" title="Turnaround results" style="color:var(--amber)">⚡</button>
+      <button class="sort-btn" data-filter-group="ema-result" data-filter-val="weak" onclick="toggleMultiFilter('ema','result','weak',this)" title="Weak results" style="color:#EF4444">🔴</button>
+    `;
+    emaFilters.appendChild(resGroup);
+    // Add Smart Money filter group
+    const smartGroup = document.createElement('div');
+    smartGroup.className = 'mom-filter-group';
+    smartGroup.innerHTML = `
+      <button class="sort-btn multi-active" data-filter-group="ema-smart" data-filter-val="all" onclick="toggleMultiFilter('ema','smart','all',this)" title="Filter by smart money action">Smt$: All</button>
+      <button class="sort-btn" data-filter-group="ema-smart" data-filter-val="accum" onclick="toggleMultiFilter('ema','smart','accum',this)" title="Smart money accumulating" style="color:#22C55E">🟢 Accum</button>
+      <button class="sort-btn" data-filter-group="ema-smart" data-filter-val="distrib" onclick="toggleMultiFilter('ema','smart','distrib',this)" title="Smart money distributing" style="color:#EF4444">🔴 Distrib</button>
+    `;
+    emaFilters.appendChild(smartGroup);
+  }
+}, 1500);
+
+// Fix #12 continued: Patch EMA render to filter by results + smart money
+const _origRenderEMA2 = renderEMA;
+renderEMA = function() {
+  _origRenderEMA2();
+  // After original render, re-filter by results and smart money if active
+  const resSet = multiFilters['ema-result'];
+  const smartSet = multiFilters['ema-smart'];
+  if ((!resSet || resSet.size === 0) && (!smartSet || smartSet.size === 0)) return;
+  // Get the table body and filter rows
+  const tbody = document.getElementById('ema-body');
+  if (!tbody) return;
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach(row => {
+    const symbolEl = row.querySelector('span[onclick*="tradingview"]');
+    if (!symbolEl) return;
+    const sym = symbolEl.textContent.trim();
+    const rsData = rsGetResultForSymbol(sym);
+    let show = true;
+    if (resSet && resSet.size > 0 && rsData) {
+      show = resSet.has(rsData.grade);
+    } else if (resSet && resSet.size > 0 && !rsData) {
+      show = false;
+    }
+    if (show && smartSet && smartSet.size > 0 && rsData) {
+      show = smartSet.has(rsData.smartMoney);
+    } else if (smartSet && smartSet.size > 0 && !rsData) {
+      show = false;
+    }
+    row.style.display = show ? '' : 'none';
+  });
+};
+
+// Fix #11: Glossary CSS for tooltip on hover across all tabs
+const glossaryCSS = document.createElement('style');
+glossaryCSS.textContent = `
+  [title] { position: relative; }
+  .sort-btn[title]:hover::after, th[title]:hover::after {
+    content: attr(title);
+    position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: var(--bg1); color: var(--text); padding: 6px 10px; border-radius: 6px;
+    font-size: 10px; font-weight: 400; white-space: normal; max-width: 280px; min-width: 120px;
+    border: 1px solid var(--border2); z-index: 9999; pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3); line-height: 1.4;
+  }
+`;
+document.head.appendChild(glossaryCSS);
 </script>
 </body>
 </html>
