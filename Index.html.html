@@ -89,7 +89,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
    TOPBAR
 ══════════════════════════════════════ */
 #app{display:none;position:relative;z-index:1;min-height:100vh}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 12px;height:46px;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:100;gap:4px;flex-wrap:nowrap;overflow:visible}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 10px;height:40px;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:100;gap:4px;flex-wrap:nowrap;overflow:visible}
 .brand{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:3px;color:var(--cyan);text-shadow:0 0 20px var(--cyan-glow);white-space:nowrap;cursor:pointer}
 .brand span{color:var(--muted);font-weight:400}
 .nav-tabs{display:flex;gap:2px;background:var(--bg2);border-radius:10px;padding:3px;border:1px solid var(--border)}
@@ -106,7 +106,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .kite-btn.connected{border-color:var(--green);color:var(--green)}
 .kite-btn.disconnected{border-color:var(--red);color:var(--red);background:var(--red-dim)}
 /* ── F&O TAB STYLES ── */
-.fo-panel{padding:8px 12px;display:flex;flex-direction:column;gap:8px}
+.fo-panel{padding:4px 8px;display:flex;flex-direction:column;gap:4px}
 .fo-strip{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px}
 .fo-card{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;flex:1;min-width:140px}
 .fo-card-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
@@ -259,10 +259,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .mom-heat-bull{background:rgba(34,197,94,.15);color:#22C55E;border-color:rgba(34,197,94,.3)}
 .mom-heat-bear{background:rgba(239,68,68,.12);color:#EF4444;border-color:rgba(239,68,68,.3)}
 .mom-heat-neu{background:var(--bg3);color:var(--muted);border-color:var(--border)}
-.panel{display:none;padding:10px 16px;animation:fadeUp .2s ease}
+.panel{display:none;padding:4px 10px;animation:fadeUp .2s ease}
 .panel.active{display:block}
-#momentum-container .panel, #results-container .panel { padding:4px 10px; }
-#momentum-container .fo-panel, #results-container .fo-panel { padding:6px 10px; gap:6px; }
+#momentum-container .panel, #results-container .panel { padding:2px 6px; }
+#momentum-container .fo-panel, #results-container .fo-panel { padding:2px 6px; gap:2px; }
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ══════════════════════════════════════
@@ -7712,12 +7712,18 @@ function rsExportTV() {
 // ROUND 6: ANALYTICS TAB
 // ═══════════════════════════════════════════════════
 function rsAnalyticsCard(r) {
-  return `<div class="fo-card" style="padding:10px 12px;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')">
+  const starred = rsStarred.has(r.symbol);
+  const companyName = r.name || r.symbol;
+  return `<div class="fo-card" style="padding:10px 12px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <span style="font-weight:700;font-size:13px;color:var(--text)">${r.symbol||r.name.slice(0,12)}</span>
-      <div style="display:flex;gap:4px">${rsGetGradeBadge(r.grade)} ${r.momCat?getCatBadge(r.momCat):''}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="mom-star-btn${starred?' starred':''}" onclick="event.stopPropagation();rsStarStock('${r.symbol}')" title="Star/unstar" style="font-size:12px">${starred?'⭐':'☆'}</button>
+        ${getColorDotHTML(r.symbol)}
+        <span style="font-weight:700;font-size:13px;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')" title="${companyName}">${r.symbol||r.name.slice(0,12)}</span>
+      </div>
+      <div style="display:flex;gap:4px">${rsGetGradeBadge(r.grade)} ${r.momCat?getCatBadge(r.momCat):(r.inMomUniverse===false?'<span style="color:var(--red);font-size:9px" title="Not in momentum universe">⚠️</span>':'')}</div>
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${r.sector||'—'} · ${r.mcapCat==='large'?'Large':'Mid/Small'} Cap</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${r.sector||'—'} · ${r.mcapCat==='large'?'Large':'Mid/Small'} Cap · PE ${r.pe!==null?r.pe.toFixed(1):'—'}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px">
       <div>Rev <span style="color:${r.rev_growth&&r.rev_growth>0?'#22C55E':'#EF4444'};font-weight:600">${r.rev_growth!==null?(r.rev_growth>0?'+':'')+r.rev_growth.toFixed(0)+'%':'—'}</span></div>
       <div>NP <span style="color:${r.np_growth&&r.np_growth>0?'#22C55E':'#EF4444'};font-weight:600">${r.np_growth!==null?(r.np_growth>0?'+':'')+r.np_growth.toFixed(0)+'%':'—'}</span></div>
@@ -7782,11 +7788,17 @@ function renderAnalyticsTab() {
     urPool.sort((a,b)=>(b.np_growth||0)-(a.np_growth||0)).slice(0,12).map(rsAnalyticsCard).join('') :
     '<div style="color:var(--muted);font-size:12px;padding:12px">No underreacted stocks found.</div>';
 
-  // 4. Sector Scorecard
+  // 4. Sector Scorecard — re-lookup sectors from momentum data at render time
   const secMap = {};
+  const allMomForSec = [].concat(momData.scanner || [], momData.ema || [], momData.sharp || [], momData.picks || []);
   rsMergedData.forEach(r => {
-    const sec = r.sector || 'Unknown';
-    if (sec === 'Unknown' || sec === '') return;
+    // Try to get sector from momentum data if not already set
+    let sec = r.sector;
+    if ((!sec || sec === '' || sec === 'Unknown') && r.symbol) {
+      const ms = allMomForSec.find(s => s.symbol === r.symbol);
+      if (ms && ms.sector) { sec = ms.sector; r.sector = sec; }
+    }
+    if (!sec || sec === '' || sec === 'Unknown') return;
     if (!secMap[sec]) secMap[sec] = { stocks: 0, revSum: 0, npSum: 0, opmSum: 0, revCount: 0, npCount: 0, opmCount: 0, blockbusters: 0 };
     secMap[sec].stocks++;
     if (r.rev_growth !== null) { secMap[sec].revSum += r.rev_growth; secMap[sec].revCount++; }
