@@ -107,7 +107,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .kite-btn.disconnected{border-color:var(--red);color:var(--red);background:var(--red-dim)}
 /* ── F&O TAB STYLES ── */
 .fo-panel{padding:4px 8px;display:flex;flex-direction:column;gap:4px}
-.fo-strip{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px}
+.fo-strip{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px}
 .fo-card{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;flex:1;min-width:140px}
 .fo-card-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
 .fo-card-val{font-size:20px;font-weight:500;color:var(--text)}
@@ -118,7 +118,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .fo-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .fo-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .fo-section{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.fo-sec-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
+.fo-sec-hdr{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
 .fo-sec-title{font-size:13px;font-weight:600;color:var(--text)}
 .fo-tbl{width:100%;border-collapse:collapse;font-size:12px}
 .fo-tbl th{padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--bg2);white-space:nowrap;position:sticky;top:0;z-index:10}
@@ -208,7 +208,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
    MOMENTUM HUB STYLES
 ══════════════════════════════════════ */
 .momentum-panel{padding:4px 8px;display:flex;flex-direction:column;gap:4px}
-.mom-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px}
+.mom-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:4px 8px}
 .mom-filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .mom-filter-group{display:flex;gap:3px;background:var(--bg2);border-radius:8px;padding:3px;border:1px solid var(--border)}
 .mom-export-btns{display:flex;gap:6px}
@@ -3503,7 +3503,7 @@ function renderConfluence(combined, vsEnriched, dvSpikes, top10inds) {
       <div class="conf-rows">
         ${scored.slice(0,8).map(s=>{
           const isPerfect = s.signals.length >= 5;
-          return `<div class="conf-card${isPerfect?' perfect':''}" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.sym}','_blank')">
+          return `<div class="conf-card${isPerfect?' perfect':''}" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.sym}','_blank')" title="${getStockTitle(s.sym)}">
             <div>
               <div class="conf-stock">${s.sym}${isPerfect?' 🚀':''}</div>
               <div class="conf-ind">${s.name}</div>
@@ -3535,7 +3535,7 @@ function renderStockTable(tbodyId, stocks, top10inds) {
     const m1z    = s.m1z ? `<span class="zone ${zoneCls(s.m1z)}">${s.m1z}</span>` : '—';
     const mcFmt  = s.mc ? (s.mc>=10000?`${(s.mc/1000).toFixed(0)}K`:`${s.mc.toFixed(0)}`) : '—';
     const inTop10 = top10inds.has(s.industry);
-    return `<tr class="${rowCls}" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.sym}','_blank')" style="cursor:pointer">
+    return `<tr class="${rowCls}" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.sym}','_blank')" style="cursor:pointer" title="${s.name||s.sym}">
       <td><div class="rank-badge ${rankCls(i)}">${i+1}</div></td>
       <td><div class="name-cell"><div class="nm">${s.sym}${daysAgo>0?`<span style="font-size:8px;color:var(--muted);margin-left:4px">${daysAgo}d ago</span>`:''}</div><div class="sub">${s.name||''}</div></div></td>
       <td><span class="mono">₹${s.ltp?.toFixed(1)||'—'}</span></td>
@@ -3632,7 +3632,7 @@ function renderVolDeals() {
   }
   tbody.innerHTML = filtered.slice(0,60).map((s,i)=>`<tr>
     <td><div class="rank-badge ${rankCls(i)}">${i+1}</div></td>
-    <td><div class="name-cell"><div class="nm" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.sym}','_blank')" style="cursor:pointer;color:var(--cyan)">${s.sym}</div><div class="sub">${s.name}</div></div></td>
+    <td><div class="name-cell"><div class="nm" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.sym}','_blank')" style="cursor:pointer;color:var(--cyan)" title="${s.name||s.sym}">${s.sym}</div><div class="sub">${s.name}</div></div></td>
     <td><span class="mono" style="font-size:10px;color:var(--muted)">${s.sector}</span></td>
     <td><span class="mono" style="font-size:10px;color:var(--muted)">${s.industry}</span></td>
     <td><span class="zone ${s.mcapCat==='Large Cap'?'z-bull':s.mcapCat==='Mid Cap'?'z-neu':'z-bear'}">${s.mcapCat||'—'}</span></td>
@@ -4861,37 +4861,41 @@ async function loadLiveAlerts() {
 }
 
 // ═══════════════════════════════════════════════════
-// F&O TAB 4: OPTION CHAIN
+// F&O TAB 4: OPTION CHAIN — LIVE DATA FROM OI SCANNER
 // ═══════════════════════════════════════════════════
-const OC_DATA = {
-  BANKNIFTY:{underlying:56557,chg:0.43,atm:56400,maxpain:56000,pcr:0.82,ivPct:34,
-    strikes:[
-      {s:55000,cOI:28400,cOIchg:800,cVol:4200,cIV:18.2,pOI:91200,pOIchg:3400,pVol:12800,pIV:22.1},
-      {s:55200,cOI:34100,cOIchg:1200,cVol:5800,cIV:17.8,pOI:74300,pOIchg:2100,pVol:9400,pIV:21.4},
-      {s:55400,cOI:42800,cOIchg:2100,cVol:8200,cIV:17.1,pOI:68400,pOIchg:1800,pVol:8100,pIV:20.8},
-      {s:55600,cOI:58300,cOIchg:3400,cVol:11400,cIV:16.4,pOI:61200,pOIchg:-800,pVol:6200,pIV:20.1},
-      {s:55800,cOI:71200,cOIchg:4800,cVol:16800,cIV:15.8,pOI:54800,pOIchg:-1200,pVol:5400,pIV:19.4},
-      {s:56000,cOI:84100,cOIchg:6200,cVol:22400,cIV:15.1,pOI:98400,pOIchg:4200,pVol:18200,pIV:18.8},
-      {s:56200,cOI:78400,cOIchg:5100,cVol:31200,cIV:14.6,pOI:82100,pOIchg:2800,pVol:14800,pIV:18.2},
-      {s:56400,cOI:78400,cOIchg:5100,cVol:31200,cIV:14.2,pOI:78400,pOIchg:2400,pVol:12800,pIV:17.8,atm:true},
-      {s:56600,cOI:112400,cOIchg:9800,cVol:28400,cIV:13.8,pOI:42100,pOIchg:-2100,pVol:7200,pIV:17.4},
-      {s:56800,cOI:68200,cOIchg:4200,cVol:18200,cIV:13.4,pOI:31800,pOIchg:-1800,pVol:4800,pIV:17.1},
-      {s:57000,cOI:54100,cOIchg:2800,cVol:12400,cIV:13.1,pOI:24200,pOIchg:-900,pVol:3200,pIV:16.8},
-      {s:57200,cOI:38400,cOIchg:1600,cVol:7800,cIV:12.8,pOI:18400,pOIchg:-600,pVol:2100,pIV:16.5},
-    ]
-  },
-  NIFTY:{underlying:22440,chg:0.5,atm:22400,maxpain:22200,pcr:0.94,ivPct:28,
-    strikes:[
-      {s:21800,cOI:18200,cOIchg:400,cVol:2100,cIV:16.2,pOI:68400,pOIchg:2800,pVol:8200,pIV:20.4},
-      {s:22000,cOI:28400,cOIchg:1200,cVol:4800,cIV:15.4,pOI:84200,pOIchg:3400,pVol:12400,pIV:19.8},
-      {s:22200,cOI:42100,cOIchg:2400,cVol:8400,cIV:14.8,pOI:91400,pOIchg:4200,pVol:16800,pIV:19.2},
-      {s:22400,cOI:68400,cOIchg:4800,cVol:18200,cIV:14.1,pOI:74200,pOIchg:-1800,pVol:11200,pIV:18.6,atm:true},
-      {s:22600,cOI:98200,cOIchg:8400,cVol:24800,cIV:13.6,pOI:58400,pOIchg:-2400,pVol:8400,pIV:18.1},
-      {s:22800,cOI:72400,cOIchg:3200,cVol:16400,cIV:13.2,pOI:42100,pOIchg:-1600,pVol:5800,pIV:17.6},
-      {s:23000,cOI:54100,cOIchg:1800,cVol:9800,cIV:12.8,pOI:28400,pOIchg:-800,pVol:3400,pIV:17.2},
-    ]
+let OC_DATA = {};
+let ocDataLoaded = false;
+
+async function loadOptionChainData() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const url = CONFIG.supabaseUrl + `/rest/v1/oi_chain?select=*&session_date=eq.${today}&limit=1`;
+    const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+    const resp = await fetch(url, { headers });
+    const rows = await resp.json();
+    if (rows && rows.length > 0 && rows[0].data) {
+      OC_DATA = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+      ocDataLoaded = true;
+      log && console.log('Option chain data loaded for', today);
+    } else {
+      // Try yesterday
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const url2 = CONFIG.supabaseUrl + `/rest/v1/oi_chain?select=*&order=session_date.desc&limit=1`;
+      const resp2 = await fetch(url2, { headers });
+      const rows2 = await resp2.json();
+      if (rows2 && rows2.length > 0 && rows2[0].data) {
+        OC_DATA = typeof rows2[0].data === 'string' ? JSON.parse(rows2[0].data) : rows2[0].data;
+        ocDataLoaded = true;
+        console.log('Option chain data loaded from', rows2[0].session_date);
+      }
+    }
+  } catch (e) {
+    console.log('OI chain load error:', e);
   }
-};
+  if (!ocDataLoaded) {
+    console.log('No option chain data available — OI scanner needs to run first');
+  }
+}
 let ocSym='BANKNIFTY', ocView='chart', ocExp='month';
 
 function selectOCSym(sym,btn) {
@@ -4916,7 +4920,19 @@ function oiSig(chg,isCall){
 }
 
 function renderOptionChain() {
-  const d=OC_DATA[ocSym]||OC_DATA.BANKNIFTY;
+  // Auto-load OI data if not loaded
+  if (!ocDataLoaded) loadOptionChainData().then(() => renderOptionChain());
+  if (!OC_DATA || !OC_DATA[ocSym]) {
+    const el = document.getElementById('oc-chart-body');
+    if (el) el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">📊 No option chain data available.<br>OI Scanner runs at 3:25 PM IST on trading days.<br>Ensure Kite is connected.</div>';
+    return;
+  }
+  const d=OC_DATA[ocSym];
+  // Normalize strike field: oi_scanner uses "strike", old format uses "s"
+  if (d.strikes && d.strikes[0] && !d.strikes[0].s && d.strikes[0].strike) {
+    d.strikes = d.strikes.map(st => ({ ...st, s: st.strike }));
+  }
+  if (!d.strikes || !d.strikes.length) return;
   const maxCOI=Math.max(...d.strikes.map(s=>s.cOI)), maxPOI=Math.max(...d.strikes.map(s=>s.pOI)), maxOI=Math.max(maxCOI,maxPOI);
   const resS=d.strikes.find(s=>s.cOI===maxCOI), supS=d.strikes.find(s=>s.pOI===maxPOI);
   // Summary
@@ -7675,7 +7691,7 @@ function renderResultsTable() {
     const mcapBadge = r.mcapCat === 'large' ? '<span style="color:var(--cyan);font-size:9px">L</span>' : r.mcapCat === 'mid' ? '<span style="color:var(--amber);font-size:9px">M</span>' : '<span style="color:var(--muted);font-size:9px">S</span>';
     return `<tr>
       <td style="text-align:center">${getColorDotHTML(r.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')">${r.symbol||r.name.slice(0,15)}</span></td>
+      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')" title="${getStockTitle(r.symbol)}">${r.symbol||r.name.slice(0,15)}</span></td>
       <td>${rsGetGradeBadge(r.grade)}</td>
       <td>${rsGetVerdictBadge(r.verdict)}</td>
       <td style="font-size:10px;color:var(--muted)">${r.sector||'—'}</td>
