@@ -5406,7 +5406,7 @@ function renderMomTab(tab) {
 // ── LOAD DATA ─────────────────────────────────────────
 async function loadMomScanner() {
   try {
-    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_active=eq.true&order=session_date.desc,momentum_score.desc';
+    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_active=eq.true&order=session_date.desc,momentum_score.desc&limit=2000';
     const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
     const resp = await fetch(url, { headers });
     const data = await resp.json();
@@ -5447,7 +5447,7 @@ async function loadMomEMA() {
     const resp = await fetch(url, { headers });
     const crossovers = await resp.json();
     // Also load latest momentum_stocks for EMA status
-    const url2 = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_active=eq.true&order=session_date.desc';
+    const url2 = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000';
     const resp2 = await fetch(url2, { headers });
     const stocks = await resp2.json();
     const latestDate = stocks && stocks.length ? stocks[0].session_date : null;
@@ -5471,7 +5471,7 @@ async function loadMomEMA() {
 
 async function loadMomSharp() {
   try {
-    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_sharp_mover=eq.true&order=session_date.desc';
+    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_sharp_mover=eq.true&order=session_date.desc&limit=2000';
     const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
     const resp = await fetch(url, { headers });
     const data = await resp.json();
@@ -5534,7 +5534,7 @@ async function loadMomPicks() {
 
 async function loadMomExited() {
   try {
-    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_active=eq.false&order=exit_date.desc';
+    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_active=eq.false&order=exit_date.desc&limit=2000';
     const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
     const resp = await fetch(url, { headers });
     const data = await resp.json();
@@ -8332,3 +8332,4 @@ document.head.appendChild(glossaryCSS);
 </script>
 </body>
 </html>
+
