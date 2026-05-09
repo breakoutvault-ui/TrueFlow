@@ -207,7 +207,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* ══════════════════════════════════════
    MOMENTUM HUB STYLES
 ══════════════════════════════════════ */
-.momentum-panel{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.momentum-panel{padding:4px 8px;display:flex;flex-direction:column;gap:4px}
 .mom-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px}
 .mom-filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .mom-filter-group{display:flex;gap:3px;background:var(--bg2);border-radius:8px;padding:3px;border:1px solid var(--border)}
@@ -253,7 +253,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .l5-dn{color:var(--red)}
 .mom-note-input{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:11px;width:120px;outline:none}
 .mom-note-input:focus{border-color:var(--cyan)}
-.mom-heatmap{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.mom-heatmap{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:2px}
 .mom-heat-chip{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .12s}
 .mom-heat-chip:hover{transform:translateY(-1px)}
 .mom-heat-bull{background:rgba(34,197,94,.15);color:#22C55E;border-color:rgba(34,197,94,.3)}
@@ -4257,7 +4257,7 @@ function renderMBTable() {
     const freshXBadge = freshX ? `<span class="fresh-x-badge" title="Daily 9 EMA crossover on ${freshX}">🔄</span>` : '';
     return `<tr>
       <td style="text-align:center"><button class="star-btn${isStarred?' starred':''}" onclick="toggleStar('${s.symbol}',this)" title="${isStarred?'Remove from watchlist':'Add to watchlist'}">${isStarred?'⭐':'☆'}</button></td>
-      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span>${freshXBadge}${zoneTag}</td>
+      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span>${freshXBadge}${zoneTag}</td>
       <td><span style="font-size:11px;color:var(--muted)">${sector}</span></td>
       <td><span style="font-weight:600">${ltp}</span> ${chgStr}</td>
       <td>${gapStr}</td>
@@ -4518,7 +4518,7 @@ async function spClickSecLive(sec) {
         : 'var(--muted)';
       const rc = s.trend === 'bull' ? 'bull-row' : s.trend === 'bear' ? 'bear-row' : '';
       return `<tr class="${rc}">
-        <td><span style="font-size:13px;font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span></td>
+        <td><span style="font-size:13px;font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span></td>
         <td><span style="font-size:13px;font-weight:600">₹${parseFloat(s.ltp).toLocaleString('en-IN')}</span></td>
         <td><span style="color:${chgCol};font-weight:700">${chgStr}</span></td>
         <td>${trendTag}</td>
@@ -4738,8 +4738,9 @@ function renderAlertList() {
 function selectAlert(id) {
   selectedAlert = id;
   renderAlertList();
-  const a = liveAlerts.find(x => x.id === id);
-  if (!a) return;
+  const numId = typeof id === 'string' ? parseInt(id) : id;
+  const a = liveAlerts.find(x => x.id === numId || x.id === id || String(x.id) === String(id));
+  if (!a) { console.log('Alert not found for id:', id, 'type:', typeof id); return; }
   const bullTrends=['AggressiveNewLong','NewLong','ShortCover','AggressiveShortCover'];
   const xxlWarn = a.xxl_candle?'<div style="background:var(--amber-dim);border:1px solid var(--amber);border-radius:8px;padding:8px 12px;color:var(--amber);font-size:12px;font-weight:600">⚠️ XXL Candle — wait for retrace before entry</div>':'';
   // Cross-reference with mbData for extra context
@@ -4777,7 +4778,7 @@ function selectAlert(id) {
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-top:4px">Daily Context (from EOD EMA)</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
         <div class="fo-card"><div class="fo-card-label">Daily EMA Trend</div><div class="fo-card-val" style="font-size:14px">${dailyTrendLabel}</div></div>
-        <div class="fo-card"><div class="fo-card-label">OI Buildup</div><div class="fo-card-val" style="font-size:12px;color:${oiCol}">${oiBuildup||'—'}</div></div>
+        <div class="fo-card"><div class="fo-card-label">OI Buildup</div><div class="fo-card-val" style="font-size:12px;color:${oiCol}">${oiBuildup||'—'}</div><div class="fo-card-sub" style="color:var(--muted);font-size:9px">${oiBuildup ? '⚠️ Estimated — not live OI data' : ''}</div></div>
         <div class="fo-card"><div class="fo-card-label">Conviction Score</div><div class="fo-card-val" style="color:${convCol}">${conv!==null?conv:'—'}</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
@@ -5731,7 +5732,7 @@ function renderEMA() {
     const wcDays = s.weekly_crossover_date ? daysSince(s.weekly_crossover_date) : null;
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
       <td style="font-size:11px">${s.crossover_type==='daily'&&s.crossover_date?s.crossover_date:'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${dcDays!==null?dcDays+'d':'—'}</td>
@@ -5786,7 +5787,7 @@ function renderSharp() {
     const away52 = s.ltp && s.high_52w ? ((s.high_52w - s.ltp) / s.high_52w * 100).toFixed(1) + '%' : '—';
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td><span style="color:${movePct>=0?'#22C55E':'#EF4444'};font-weight:700;font-size:13px">${movePct>=0?'+':''}${movePct?.toFixed(1)}%</span></td>
@@ -5849,7 +5850,7 @@ function renderPicks() {
     const pct52pstr = pct52p!==null ? pct52p.toFixed(1)+'%' : '—';
     const pct52pcol = pct52p!==null ? (pct52p<5?'var(--green)':pct52p<10?'var(--amber)':pct52p<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
-      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.starred_at?new Date(s.starred_at).toLocaleDateString('en-IN'):'—'}</td>
@@ -6679,7 +6680,7 @@ function renderFOWLTable() {
     const convCol = conv>=70?'var(--green)':conv>=40?'var(--amber)':'var(--muted)';
     return `<tr>
       <td>${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')">${s.symbol}</span></td>
+      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span></td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td><span style="font-weight:600">${ltp}</span> <span style="color:${chgCol};font-size:10px">${chgPct?(parseFloat(chgPct)>=0?'+':'')+chgPct+'%':''}</span></td>
       <td style="color:${tc};font-weight:600;font-size:11px">${ti}</td>
@@ -6795,7 +6796,7 @@ renderMBTable = function() {
     return `<tr>
       <td style="text-align:center"><button class="star-btn${isStarred?' starred':''}" onclick="toggleStar('${s.symbol}',this)" title="${isStarred?'Remove from watchlist':'Add to watchlist'}">${isStarred?'⭐':'☆'}</button></td>
       <td>${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span>${freshXBadge}${zoneTag}</td>
+      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span>${freshXBadge}${zoneTag}</td>
       <td><span style="font-size:11px;color:var(--muted)">${sector}</span></td>
       <td><span style="font-weight:600">${ltp}</span> ${chgStr}</td>
       <td>${gapStr}</td>
@@ -7071,7 +7072,7 @@ renderEMA = function() {
     const wcDays = s.weekly_crossover_date ? daysSince(s.weekly_crossover_date) : null;
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
       <td style="font-size:11px">${s.crossover_type==='daily'&&s.crossover_date?s.crossover_date:'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${dcDays!==null?dcDays+'d':'—'}</td>
@@ -7156,7 +7157,7 @@ renderSharp = function() {
     const away52 = s.ltp && s.high_52w ? ((s.high_52w - s.ltp) / s.high_52w * 100).toFixed(1) + '%' : '—';
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td><span style="color:${movePct>=0?'#22C55E':'#EF4444'};font-weight:700;font-size:13px">${movePct>=0?'+':''}${movePct?.toFixed(1)}%</span></td>
@@ -7229,7 +7230,7 @@ renderPicks = function() {
     const pct52pstr = pct52p!==null ? pct52p.toFixed(1)+'%' : '—';
     const pct52pcol = pct52p!==null ? (pct52p<5?'var(--green)':pct52p<10?'var(--amber)':pct52p<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
-      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.starred_at?new Date(s.starred_at).toLocaleDateString('en-IN'):'—'}</td>
@@ -8206,15 +8207,18 @@ setTimeout(() => {
   if (mbBtn) mbBtn.title = 'Turnaround or Blockbuster results + Small/Mid cap + Low debt + High NP growth — potential multi-bagger candidates';
 }, 1000);
 
-// Fix #7: Company name on hover — patch ALL momentum tab renders to show company name
-// The stock name comes from rsGetResultForSymbol — if results data has the name, use it
+// Fix #7: Company name lookup for hover across all tabs
 function getStockTitle(symbol) {
-  // Try results data first
-  const r = rsMergedData.find(d => d.symbol === symbol);
-  if (r && r.name) return r.name;
-  // Fallback to symbol
+  // Try results data first (has full company names)
+  if (rsMergedData.length) {
+    const r = rsMergedData.find(d => d.symbol === symbol);
+    if (r && r.name) return r.name;
+  }
   return symbol;
 }
+
+// Fix #11: OI Buildup is not based on real data — label it clearly
+// The engine does NOT fetch OI data. Any OI comments shown are from placeholder mbData.
 
 // Fix #8: TradingView copy in Analytics sub-tabs
 function analyticsExportTV(sectionId) {
@@ -8332,4 +8336,3 @@ document.head.appendChild(glossaryCSS);
 </script>
 </body>
 </html>
-
