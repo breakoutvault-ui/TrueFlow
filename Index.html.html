@@ -2007,11 +2007,30 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         </div>
         <div class="mom-export-btns">
           <button class="col-toggle-btn" onclick="toggleColPanel('sharp',this)">⚙️ Columns</button>
+          <button class="sort-btn" onclick="document.getElementById('sharp-glossary').style.display=document.getElementById('sharp-glossary').style.display==='none'?'block':'none'" style="font-size:10px;padding:2px 8px" title="Show glossary of QM terms and column descriptions">ℹ️ Glossary</button>
           <span class="mom-updated" id="sharp-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="sharp-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('sharp')">📊 TradingView</button>
           <button class="mom-export-btn" onclick="exportMomCSV('sharp')">⬇ CSV</button>
         </div>
+      </div>
+      <!-- QM Glossary -->
+      <div id="sharp-glossary" style="display:none;margin:0 0 8px 0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:10px;color:var(--muted);line-height:1.8">
+        <span style="font-weight:600;color:var(--text);font-size:12px">📖 Qullamaggie Pattern Glossary</span><br><br>
+        <b style="color:var(--amber)">What is Qullamaggie?</b> Mark Minervini-inspired momentum pattern detection. These patterns identify stocks that made explosive moves and are now consolidating — potential breakout setups.<br><br>
+        <b style="color:#F97316">🔥 EP (Episodic Pivot):</b> Stock gapped up 5%+ on 2x average volume in the last 3 days. A catalyst-driven move (earnings beat, news, upgrade). The gap area often becomes support — look for pullback entries near the gap.<br>
+        <b style="color:#3B82F6">📐 VCP (Volatility Contraction Pattern):</b> Stock ran 20%+ in 20 days, then pulled back into a TIGHT consolidation (&lt;8% range). Volume declines during the base. The tighter the consolidation and drier the volume, the better. Entry: break above pivot level on volume.<br>
+        <b style="color:#EF4444">🏴 HTF (High Tight Flag):</b> RARE and most powerful. Stock surged 80%+ in 40 days, pulled back less than 25%, and formed a tight flag (&lt;10% range). William O'Neil called these "the most bullish pattern." Entry: break above flag high.<br>
+        <b style="color:#8B5CF6">🔄 EMA Reclaim:</b> Stock was below the daily 9 EMA yesterday but closed above it today. This is a shakeout recovery — weak hands got stopped out, now price is reclaiming its trend. Often a high-probability entry.<br><br>
+        <b style="color:var(--text)">Column Guide:</b><br>
+        <b>Pivot:</b> The breakout price level. ✅ ABOVE = confirmed breakout (closed above). 🎯 = within 3% (watchlist for tomorrow). Green row = broke out, Amber row = near pivot.<br>
+        <b>Base %:</b> Pullback depth from the recent high. Lower = tighter = better. Under 15% = strong hands holding. Over 25% = weak structure, avoid.<br>
+        <b>Contract:</b> Contraction ratio — how tight the consolidation is vs the initial move. Higher = tighter = better setup. 0.7+ is ideal. Think of it as "the spring is coiled."<br>
+        <b>Vol Dry:</b> Is volume declining during consolidation? ✅ Yes = sellers exhausted (bullish). ⚡ Partial = somewhat. ❌ No = still active selling (weak).<br>
+        <b>Base Days:</b> How long the stock has been consolidating. 10-40 days = ideal. Too short (&lt;7d) = not enough time to absorb supply. Too long (&gt;60d) = momentum fading.<br>
+        <b>Reclaim:</b> Did the stock reclaim 9 EMA today after being below it? A shakeout recovery signal.<br><br>
+        <b style="color:var(--text)">Row Colors:</b> 🟢 Green border = confirmed breakout (above pivot). 🟡 Amber border = near breakout (within 3% of pivot). No border = setup building, not actionable yet.<br>
+        <b style="color:var(--text)">Ideal Setup:</b> VCP or HTF pattern + Base% under 15 + Contraction 0.5+ + Vol Dry ✅ + Near Pivot 🎯 + Category A or AC = highest probability breakout.
       </div>
       <div class="mom-section">
         <div class="tbl-scroll">
@@ -7139,21 +7158,20 @@ renderEMA = function() {
 // ROUND 7: QM Helper Functions
 // ═══════════════════════════════════════════════════
 function getQMBadge(s) {
-  if (!s.qm_pattern) return s.qm_ema_reclaim ? '<span style="color:#8B5CF6;font-size:10px;font-weight:700;background:#8B5CF622;padding:1px 6px;border-radius:8px">🔄 Reclaim</span>' : '<span style="color:var(--muted);font-size:10px">—</span>';
+  if (!s.qm_pattern) return s.qm_ema_reclaim ? '<span title="EMA Reclaim — Stock was below 9 EMA yesterday but closed above it today. This is a shakeout recovery signal: weak hands sold, now price is reclaiming strength." style="color:#8B5CF6;font-size:10px;font-weight:700;background:#8B5CF622;padding:1px 6px;border-radius:8px;cursor:help">🔄 Reclaim</span>' : '<span style="color:var(--muted);font-size:10px">—</span>';
   const map = {
-    'EP':  { icon:'🔥', color:'#F97316', label:'EP',  tip:'Episodic Pivot — Gap up 5%+ on 2x volume' },
-    'VCP': { icon:'📐', color:'#3B82F6', label:'VCP', tip:'Volatility Contraction Pattern — tight base after big move' },
-    'HTF': { icon:'🏴', color:'#EF4444', label:'HTF', tip:'High Tight Flag — 80%+ move → tight pullback' }
+    'EP':  { icon:'🔥', color:'#F97316', label:'EP',  tip:'Episodic Pivot (EP) — Stock gapped up 5%+ on 2x average volume in last 3 days. This is a catalyst-driven move (earnings, news, upgrade). Often the START of a new trend. Look for a pullback to the gap area for entry.' },
+    'VCP': { icon:'📐', color:'#3B82F6', label:'VCP', tip:'Volatility Contraction Pattern (VCP) — Stock made a big move (20%+ in 20 days) then pulled back into a TIGHT consolidation (<8% range) with declining volume. The tighter the consolidation + drier the volume = better setup. Entry is on break above pivot level.' },
+    'HTF': { icon:'🏴', color:'#EF4444', label:'HTF', tip:'High Tight Flag (HTF) — RARE and powerful. Stock surged 80%+ in 40 days then pulled back less than 25% into a tight flag (<10% range). These are the strongest momentum setups. Entry on break above the flag high (pivot level).' }
   };
   const p = map[s.qm_pattern];
   if (!p) return '<span style="color:var(--muted);font-size:10px">—</span>';
-  let badge = `<span title="${p.tip}" style="color:${p.color};font-size:10px;font-weight:700;background:${p.color}18;padding:1px 6px;border-radius:8px">${p.icon} ${p.label}</span>`;
-  if (s.qm_ema_reclaim) badge += ' <span style="color:#8B5CF6;font-size:9px" title="EMA Reclaim">🔄</span>';
+  let badge = `<span title="${p.tip}" style="color:${p.color};font-size:10px;font-weight:700;background:${p.color}18;padding:1px 6px;border-radius:8px;cursor:help">${p.icon} ${p.label}</span>`;
+  if (s.qm_ema_reclaim) badge += ' <span style="color:#8B5CF6;font-size:9px;cursor:help" title="EMA Reclaim — Also reclaimed 9 EMA today after a dip. Double signal: pattern + reclaim.">🔄</span>';
   return badge;
 }
 
 function getQMBadgeForSymbol(symbol) {
-  // Cross-reference: look up QM pattern from momentum data (scanner/ema/picks)
   const allMom = [...(momData.scanner||[]), ...(momData.sharp||[])];
   const s = allMom.find(m => m.symbol === symbol);
   if (!s) return '<span style="color:var(--muted);font-size:10px">—</span>';
@@ -7161,7 +7179,7 @@ function getQMBadgeForSymbol(symbol) {
 }
 
 function getQMPivot(s) {
-  if (!s.qm_pivot_level) return '<span style="color:var(--muted);font-size:10px">—</span>';
+  if (!s.qm_pivot_level) return '<span style="color:var(--muted);font-size:10px" title="No pivot level — stock does not have a Qullamaggie pattern detected">—</span>';
   const pivot = s.qm_pivot_level;
   const ltp = s.ltp || 0;
   const distPct = ltp > 0 ? ((pivot - ltp) / ltp * 100) : 0;
@@ -7169,17 +7187,46 @@ function getQMPivot(s) {
   const nearPivot = !abovePivot && distPct <= 3;
   let color = 'var(--muted)';
   let extra = '';
-  if (abovePivot) { color = '#22C55E'; extra = ' <span style="font-size:8px;color:#22C55E">✅ ABOVE</span>'; }
-  else if (nearPivot) { color = '#FBbf24'; extra = ` <span style="font-size:8px;color:#FBbf24">🎯 ${distPct.toFixed(1)}%</span>`; }
-  else { extra = ` <span style="font-size:8px;color:var(--muted)">${distPct.toFixed(1)}%↑</span>`; }
-  return `<span style="color:${color};font-size:11px;font-weight:600">₹${pivot.toLocaleString('en-IN')}</span>${extra}`;
+  let tip = `Pivot Level: ₹${pivot.toLocaleString('en-IN')} — This is the breakout price. `;
+  if (abovePivot) { color = '#22C55E'; extra = ' <span style="font-size:8px;color:#22C55E">✅ ABOVE</span>'; tip += 'CONFIRMED BREAKOUT — stock closed above pivot. Watch for volume confirmation and follow-through.'; }
+  else if (nearPivot) { color = '#FBbf24'; extra = ` <span style="font-size:8px;color:#FBbf24">🎯 ${distPct.toFixed(1)}%</span>`; tip += `NEAR BREAKOUT — only ${distPct.toFixed(1)}% away. Add to watchlist for tomorrow. Entry on close above pivot with volume.`; }
+  else { extra = ` <span style="font-size:8px;color:var(--muted)">${distPct.toFixed(1)}%↑</span>`; tip += `Still ${distPct.toFixed(1)}% away from breakout. Pattern is building — not actionable yet.`; }
+  return `<span title="${tip}" style="color:${color};font-size:11px;font-weight:600;cursor:help">₹${pivot.toLocaleString('en-IN')}</span>${extra}`;
+}
+
+function getQMBaseDepth(s) {
+  if (s.qm_base_depth == null) return '<span style="color:var(--muted);font-size:10px" title="No base depth data — no QM pattern detected">—</span>';
+  const d = s.qm_base_depth;
+  const color = d <= 10 ? 'var(--green)' : d <= 20 ? 'var(--amber)' : 'var(--red)';
+  const quality = d <= 10 ? 'Shallow (excellent)' : d <= 15 ? 'Normal (good)' : d <= 20 ? 'Moderate (acceptable)' : 'Deep (risky)';
+  return `<span title="Base Depth: ${d.toFixed(1)}% pullback from recent high — ${quality}. Lower is better. Under 15% = strong hands holding, 15-25% = normal, over 25% = weak structure." style="color:${color};font-size:11px;font-weight:600;cursor:help">${d.toFixed(1)}%</span>`;
+}
+
+function getQMContraction(s) {
+  if (s.qm_contraction == null) return '<span style="color:var(--muted);font-size:10px" title="No contraction data — no VCP/HTF pattern detected">—</span>';
+  const c = s.qm_contraction;
+  const color = c >= 0.7 ? 'var(--green)' : c >= 0.4 ? 'var(--amber)' : 'var(--muted)';
+  const quality = c >= 0.7 ? 'Very tight (excellent)' : c >= 0.5 ? 'Good tightness' : c >= 0.3 ? 'Moderate' : 'Loose (weak)';
+  return `<span title="Contraction Ratio: ${c.toFixed(2)} — ${quality}. This measures how tight the consolidation is relative to the initial move. Higher = tighter = better. 0.7+ is ideal (means the base is very narrow compared to the prior run-up)." style="color:${color};font-size:11px;font-weight:600;cursor:help">${c.toFixed(2)}</span>`;
 }
 
 function getQMVolDry(v) {
-  if (!v) return '<span style="color:var(--muted);font-size:10px">—</span>';
-  if (v === 'Yes') return '<span style="color:var(--green);font-size:10px;font-weight:600">✅ Yes</span>';
-  if (v === 'Partial') return '<span style="color:var(--amber);font-size:10px;font-weight:600">⚡ Partial</span>';
-  return '<span style="color:var(--red);font-size:10px">❌ No</span>';
+  if (!v) return '<span style="color:var(--muted);font-size:10px" title="No volume dry-up data — no QM pattern detected">—</span>';
+  if (v === 'Yes') return '<span title="Volume Dry-Up: YES ✅ — Volume is declining during consolidation. This is BULLISH — it means sellers are exhausted and supply is drying up. When breakout comes, it should be on expanding volume." style="color:var(--green);font-size:10px;font-weight:600;cursor:help">✅ Yes</span>';
+  if (v === 'Partial') return '<span title="Volume Dry-Up: PARTIAL ⚡ — Volume is somewhat declining but not fully dried up. Decent setup but not perfect. Still worth watching for breakout." style="color:var(--amber);font-size:10px;font-weight:600;cursor:help">⚡ Partial</span>';
+  return '<span title="Volume Dry-Up: NO ❌ — Volume is NOT declining during consolidation. This weakens the setup — active selling is still happening in the base. Be cautious." style="color:var(--red);font-size:10px;cursor:help">❌ No</span>';
+}
+
+function getQMBaseDays(s) {
+  if (s.qm_base_days == null) return '<span style="color:var(--muted);font-size:10px" title="No base days data — no QM pattern detected">—</span>';
+  const d = s.qm_base_days;
+  const tip = d <= 10 ? 'Short base (fast setup, may lack stability)' : d <= 25 ? 'Normal base (ideal duration)' : d <= 50 ? 'Extended base (well-formed, strong)' : 'Very long base (may be losing momentum)';
+  return `<span title="Base Duration: ${d} days in consolidation — ${tip}. Ideal is 10-40 days. Too short (<7d) = not enough time to absorb supply. Too long (>60d) = momentum may have faded." style="font-size:11px;color:var(--text);cursor:help">${d}d</span>`;
+}
+
+function getQMReclaim(s) {
+  if (!s.qm_ema_reclaim) return '<span style="color:var(--muted);font-size:10px" title="No EMA Reclaim — stock did not reclaim 9 EMA today after being below it yesterday">—</span>';
+  return '<span title="EMA Reclaim: YES 🔄 — Stock was BELOW the 9 EMA yesterday but closed ABOVE it today. This is a shakeout recovery signal — weak hands got stopped out, and now the stock is reclaiming its trend. Often a high-probability long entry." style="color:#8B5CF6;font-size:10px;font-weight:700;cursor:help">🔄 Yes</span>';
 }
 
 // ROUND 7: PATCH renderSharp — QM redesign + cross-referencing
@@ -7262,11 +7309,11 @@ renderSharp = function() {
     return `<tr style="${rowStyle}">
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
       <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
-      <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
-      <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
-      <td><span style="color:${movePct>=0?'#22C55E':'#EF4444'};font-weight:700;font-size:13px">${movePct>=0?'+':''}${movePct?.toFixed(1)}%</span></td>
-      <td><span style="font-size:10px;color:var(--muted)">${period}</span></td>
-      <td>₹${(s.ltp||0).toLocaleString('en-IN')}</td>
+      <td style="font-size:11px;color:var(--muted)" title="Sector">${s.sector||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)" title="Industry">${s.industry||'—'}</td>
+      <td><span title="Sharp Move: ${movePct>=0?'+':''}${movePct?.toFixed(1)}% in ${period}${is3d?' — 20%+ in 3 days = explosive momentum':' — 30%+ in 1 month = strong sustained momentum'}" style="color:${movePct>=0?'#22C55E':'#EF4444'};font-weight:700;font-size:13px;cursor:help">${movePct>=0?'+':''}${movePct?.toFixed(1)}%</span></td>
+      <td><span title="${is3d?'3-Day Move: Stock moved 20%+ in last 3 trading days — explosive short-term momentum':'1-Month Move: Stock moved 30%+ in last month — strong sustained momentum trend'}" style="font-size:10px;color:var(--muted);cursor:help">${period}</span></td>
+      <td title="Last Traded Price">₹${(s.ltp||0).toLocaleString('en-IN')}</td>
       <td>${fmtChg(s.day_chg_pct)}</td>
       <td>${fmtChg(s.week_chg_pct)}</td>
       <td>${fmtChg(s.month_chg_pct)}</td>
@@ -7279,11 +7326,11 @@ renderSharp = function() {
       <td>${getScoreTag(s.momentum_score||0)}</td>
       <td>${getQMBadge(s)}</td>
       <td>${getQMPivot(s)}</td>
-      <td>${s.qm_base_depth!=null?`<span style="color:${s.qm_base_depth<=10?'var(--green)':s.qm_base_depth<=20?'var(--amber)':'var(--red)'};font-size:11px;font-weight:600">${s.qm_base_depth.toFixed(1)}%</span>`:'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
-      <td>${s.qm_contraction!=null?`<span style="color:${s.qm_contraction>=0.7?'var(--green)':s.qm_contraction>=0.4?'var(--amber)':'var(--muted)'};font-size:11px;font-weight:600">${s.qm_contraction.toFixed(2)}</span>`:'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${getQMBaseDepth(s)}</td>
+      <td>${getQMContraction(s)}</td>
       <td>${getQMVolDry(s.qm_vol_dryup)}</td>
-      <td>${s.qm_base_days!=null?`<span style="font-size:11px;color:var(--text)">${s.qm_base_days}d</span>`:'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
-      <td>${s.qm_ema_reclaim?'<span style="color:#8B5CF6;font-size:10px;font-weight:700">🔄 Yes</span>':'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${getQMBaseDays(s)}</td>
+      <td>${getQMReclaim(s)}</td>
       <td>${rsGetResultBadgeHTML(s.symbol)}</td>
       <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
       <td><button class="sort-btn" onclick="excludeSharpStock('${s.symbol}')" title="Hide this stock from Sharp Movers" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
