@@ -1821,9 +1821,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort" title="Signal type — Cross: 9 EMA crossed above 20 EMA | Breakout: price broke 52W or ATH high | Sharp: 20%+ in 3 days or 30%+ in 1 month | Re-entry: returned above 9 EMA after brief dip">Signal</th>
               <th class="no-sort" title="Quarterly result grade: 🟢 Beat (Blockbuster) / ⚡ Turn (Turnaround) / 🔵 Steady / 🟡 Mixed / 🔴 Weak — upload results in Results tab">Res</th>
               <th class="no-sort" title="Smart Money: 🟢 Accumulation (2+ of Promoter/FII/MF buying) / 🔴 Distribution / — Neutral">Smt$</th>
+              <th class="no-sort" title="Qullamaggie Pattern: 🔥 EP (Episodic Pivot) / 📐 VCP (Volatility Contraction) / 🏴 HTF (High Tight Flag) / 🔄 Reclaim">QM</th>
             </tr></thead>
             <tbody id="scanner-body">
-              <tr><td colspan="20"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">Loading momentum data...</div><div class="mom-empty-sub">Fetching from Supabase</div></div></td></tr>
+              <tr><td colspan="21"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">Loading momentum data...</div><div class="mom-empty-sub">Fetching from Supabase</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1935,9 +1936,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th onclick="sortMomTable('ema','momentum_score')" title="Momentum Score 0-100">Score ↕</th>
               <th class="no-sort" title="Result grade">Res</th>
               <th class="no-sort" title="Smart Money">Smt$</th>
+              <th class="no-sort" title="Qullamaggie Pattern">QM</th>
             </tr></thead>
             <tbody id="ema-body">
-              <tr><td colspan="19"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">Loading EMA signals...</div></div></td></tr>
+              <tr><td colspan="20"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">Loading EMA signals...</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1966,6 +1968,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <button class="sort-btn multi-active" data-filter-group="sharp-score" data-filter-val="all" onclick="toggleMultiFilter('sharp','score','all',this)">All</button>
             <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="high" onclick="toggleMultiFilter('sharp','score','high',this)" title="High Conviction: Score 80-100">🔥 High</button>
             <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="building" onclick="toggleMultiFilter('sharp','score','building',this)" title="Building: Score 60-79">⚡ Building</button>
+          </div>
+          <div class="mom-filter-group" style="border-left:1px solid var(--border);padding-left:6px">
+            <span style="font-size:10px;color:var(--amber);font-weight:600;margin-right:2px" title="Qullamaggie Pattern Filters">QM</span>
+            <button class="sort-btn multi-active" data-filter-group="sharp-qm" data-filter-val="all" onclick="toggleMultiFilter('sharp','qm','all',this)" title="Show all stocks">All</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="EP" onclick="toggleMultiFilter('sharp','qm','EP',this)" title="Episodic Pivot — Gap up 5%+ on 2x volume">🔥 EP</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="VCP" onclick="toggleMultiFilter('sharp','qm','VCP',this)" title="Volatility Contraction Pattern — tight base after big move">📐 VCP</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="HTF" onclick="toggleMultiFilter('sharp','qm','HTF',this)" title="High Tight Flag — 80%+ move → tight pullback">🏴 HTF</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="reclaim" onclick="toggleMultiFilter('sharp','qm','reclaim',this)" title="EMA Reclaim — shakeout recovery, was below 9 EMA yesterday, reclaimed today">🔄 Reclaim</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="ready" onclick="toggleMultiFilter('sharp','qm','ready',this)" title="Breakout Ready — within 3% of pivot level">🎯 Near Pivot</button>
           </div>
           <select class="sort-sel" onchange="setMomSelectFilter('sharp','zoneD',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Daily 9 EMA">
             <option value="all">Daily EMA Zone: All</option>
@@ -2023,12 +2034,19 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Crossover?</th>
               <th class="no-sort">Breakout?</th>
               <th onclick="sortMomTable('sharp','momentum_score')" title="Momentum Score 0-100">Score ↕</th>
+              <th class="no-sort" title="Qullamaggie Pattern: EP (Episodic Pivot) / VCP (Volatility Contraction) / HTF (High Tight Flag)">QM</th>
+              <th onclick="sortMomTable('sharp','qm_pivot_level')" title="Breakout pivot price level — watch for close above this">Pivot ↕</th>
+              <th onclick="sortMomTable('sharp','qm_base_depth')" title="Pullback % from recent high — lower is tighter">Base % ↕</th>
+              <th onclick="sortMomTable('sharp','qm_contraction')" title="Consolidation tightness ratio — higher = tighter = better setup">Contract ↕</th>
+              <th class="no-sort" title="Volume declining during consolidation? Yes = drying up (bullish)">Vol Dry</th>
+              <th onclick="sortMomTable('sharp','qm_base_days')" title="Days in consolidation base">Base Days ↕</th>
+              <th class="no-sort" title="EMA Reclaim — was below 9 EMA yesterday, reclaimed today (shakeout signal)">Reclaim</th>
               <th class="no-sort" title="Result grade">Res</th>
               <th class="no-sort" title="Smart Money">Smt$</th>
               <th class="no-sort">Exclude</th>
             </tr></thead>
             <tbody id="sharp-body">
-              <tr><td colspan="20"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">Loading sharp movers...</div></div></td></tr>
+              <tr><td colspan="27"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">Loading sharp movers...</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -2107,11 +2125,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Breakout</th>
               <th onclick="sortMomTable('picks','momentum_score')" title="Momentum Score 0-100">Score ↕</th>
               <th class="no-sort">Last 5</th>
+              <th class="no-sort" title="Result grade">Res</th>
+              <th class="no-sort" title="Smart Money">Smt$</th>
+              <th class="no-sort" title="Qullamaggie Pattern">QM</th>
               <th class="no-sort">Notes</th>
               <th class="no-sort">Remove</th>
             </tr></thead>
             <tbody id="picks-body">
-              <tr><td colspan="21"><div class="mom-empty"><div class="mom-empty-icon">⭐</div><div class="mom-empty-text">No stocks in your picks yet</div><div class="mom-empty-sub">Star any stock from Scanner or EMA Signals to add it here</div></div></td></tr>
+              <tr><td colspan="24"><div class="mom-empty"><div class="mom-empty-icon">⭐</div><div class="mom-empty-text">No stocks in your picks yet</div><div class="mom-empty-sub">Star any stock from Scanner or EMA Signals to add it here</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -7025,6 +7046,7 @@ renderScanner = function() {
       <td>${sig}</td>
       <td>${rsGetResultBadgeHTML(s.symbol)}</td>
       <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
+      <td>${getQMBadge(s)}</td>
     </tr>`;
   }).join('');
   applyColVisibility('scanner');
@@ -7106,13 +7128,61 @@ renderEMA = function() {
       <td>${getScoreTag(s.momentum_score||0)}</td>
       <td>${rsGetResultBadgeHTML(s.symbol)}</td>
       <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
+      <td>${getQMBadgeForSymbol(s.symbol)}</td>
     </tr>`;
   }).join('');
   applyColVisibility('ema');
 };
 
 // ═══════════════════════════════════════════════════
-// ROUND 6: PATCH renderSharp — full rebuild with multi-select + color filter
+// ═══════════════════════════════════════════════════
+// ROUND 7: QM Helper Functions
+// ═══════════════════════════════════════════════════
+function getQMBadge(s) {
+  if (!s.qm_pattern) return s.qm_ema_reclaim ? '<span style="color:#8B5CF6;font-size:10px;font-weight:700;background:#8B5CF622;padding:1px 6px;border-radius:8px">🔄 Reclaim</span>' : '<span style="color:var(--muted);font-size:10px">—</span>';
+  const map = {
+    'EP':  { icon:'🔥', color:'#F97316', label:'EP',  tip:'Episodic Pivot — Gap up 5%+ on 2x volume' },
+    'VCP': { icon:'📐', color:'#3B82F6', label:'VCP', tip:'Volatility Contraction Pattern — tight base after big move' },
+    'HTF': { icon:'🏴', color:'#EF4444', label:'HTF', tip:'High Tight Flag — 80%+ move → tight pullback' }
+  };
+  const p = map[s.qm_pattern];
+  if (!p) return '<span style="color:var(--muted);font-size:10px">—</span>';
+  let badge = `<span title="${p.tip}" style="color:${p.color};font-size:10px;font-weight:700;background:${p.color}18;padding:1px 6px;border-radius:8px">${p.icon} ${p.label}</span>`;
+  if (s.qm_ema_reclaim) badge += ' <span style="color:#8B5CF6;font-size:9px" title="EMA Reclaim">🔄</span>';
+  return badge;
+}
+
+function getQMBadgeForSymbol(symbol) {
+  // Cross-reference: look up QM pattern from momentum data (scanner/ema/picks)
+  const allMom = [...(momData.scanner||[]), ...(momData.sharp||[])];
+  const s = allMom.find(m => m.symbol === symbol);
+  if (!s) return '<span style="color:var(--muted);font-size:10px">—</span>';
+  return getQMBadge(s);
+}
+
+function getQMPivot(s) {
+  if (!s.qm_pivot_level) return '<span style="color:var(--muted);font-size:10px">—</span>';
+  const pivot = s.qm_pivot_level;
+  const ltp = s.ltp || 0;
+  const distPct = ltp > 0 ? ((pivot - ltp) / ltp * 100) : 0;
+  const abovePivot = ltp >= pivot;
+  const nearPivot = !abovePivot && distPct <= 3;
+  let color = 'var(--muted)';
+  let extra = '';
+  if (abovePivot) { color = '#22C55E'; extra = ' <span style="font-size:8px;color:#22C55E">✅ ABOVE</span>'; }
+  else if (nearPivot) { color = '#FBbf24'; extra = ` <span style="font-size:8px;color:#FBbf24">🎯 ${distPct.toFixed(1)}%</span>`; }
+  else { extra = ` <span style="font-size:8px;color:var(--muted)">${distPct.toFixed(1)}%↑</span>`; }
+  return `<span style="color:${color};font-size:11px;font-weight:600">₹${pivot.toLocaleString('en-IN')}</span>${extra}`;
+}
+
+function getQMVolDry(v) {
+  if (!v) return '<span style="color:var(--muted);font-size:10px">—</span>';
+  if (v === 'Yes') return '<span style="color:var(--green);font-size:10px;font-weight:600">✅ Yes</span>';
+  if (v === 'Partial') return '<span style="color:var(--amber);font-size:10px;font-weight:600">⚡ Partial</span>';
+  return '<span style="color:var(--red);font-size:10px">❌ No</span>';
+}
+
+// ROUND 7: PATCH renderSharp — QM redesign + cross-referencing
 // ═══════════════════════════════════════════════════
 const _origSharpRender2 = renderSharp;
 renderSharp = function() {
@@ -7139,6 +7209,21 @@ renderSharp = function() {
       return false;
     });
   }
+  // QM Pattern — multi-select
+  const qmSet = multiFilters['sharp-qm'];
+  if (qmSet && qmSet.size > 0) {
+    data = data.filter(s => {
+      if (qmSet.has('EP') && s.qm_pattern === 'EP') return true;
+      if (qmSet.has('VCP') && s.qm_pattern === 'VCP') return true;
+      if (qmSet.has('HTF') && s.qm_pattern === 'HTF') return true;
+      if (qmSet.has('reclaim') && s.qm_ema_reclaim) return true;
+      if (qmSet.has('ready') && s.qm_pivot_level && s.ltp && s.ltp > 0) {
+        const distPct = ((s.qm_pivot_level - s.ltp) / s.ltp) * 100;
+        if (distPct >= 0 && distPct <= 3) return true;
+      }
+      return false;
+    });
+  }
   if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
   if (f.star)             data = data.filter(s => momStarred.has(s.symbol));
   if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
@@ -7154,8 +7239,7 @@ renderSharp = function() {
   const { key, dir } = momSort.sharp;
   data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
   if (!data.length) {
-    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers match filter</div></div></td></tr>';
-    // Still render excluded section
+    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="27"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers match filter</div></div></td></tr>';
     const excl = momData.sharp.filter(s => momExcluded.has(s.symbol));
     const exclSec = document.getElementById('sharp-excluded-section');
     document.getElementById('sharp-excluded-count').textContent = excl.length;
@@ -7171,7 +7255,11 @@ renderSharp = function() {
     const movePct = is3d ? s.move_3d_pct : s.move_1m_pct;
     const period = is3d ? '3-Day' : '1-Month';
     const away52 = s.ltp && s.high_52w ? ((s.high_52w - s.ltp) / s.high_52w * 100).toFixed(1) + '%' : '—';
-    return `<tr>
+    // QM: breakout-ready check (within 3% of pivot, below pivot)
+    const isBreakoutReady = s.qm_pivot_level && s.ltp && s.ltp > 0 && s.qm_pivot_level > s.ltp && ((s.qm_pivot_level - s.ltp) / s.ltp * 100) <= 3;
+    const isBrokenOut = s.qm_pivot_level && s.ltp && s.ltp >= s.qm_pivot_level;
+    const rowStyle = isBrokenOut ? 'background:rgba(34,197,94,0.08);border-left:3px solid #22C55E' : isBreakoutReady ? 'background:rgba(251,191,36,0.08);border-left:3px solid #FBbf24' : '';
+    return `<tr style="${rowStyle}">
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
       <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
@@ -7189,6 +7277,13 @@ renderSharp = function() {
       <td>${s.daily_crossover_date?'<span style="color:var(--green);font-size:10px;font-weight:600">✅ Yes</span>':'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
       <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
+      <td>${getQMBadge(s)}</td>
+      <td>${getQMPivot(s)}</td>
+      <td>${s.qm_base_depth!=null?`<span style="color:${s.qm_base_depth<=10?'var(--green)':s.qm_base_depth<=20?'var(--amber)':'var(--red)'};font-size:11px;font-weight:600">${s.qm_base_depth.toFixed(1)}%</span>`:'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${s.qm_contraction!=null?`<span style="color:${s.qm_contraction>=0.7?'var(--green)':s.qm_contraction>=0.4?'var(--amber)':'var(--muted)'};font-size:11px;font-weight:600">${s.qm_contraction.toFixed(2)}</span>`:'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${getQMVolDry(s.qm_vol_dryup)}</td>
+      <td>${s.qm_base_days!=null?`<span style="font-size:11px;color:var(--text)">${s.qm_base_days}d</span>`:'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${s.qm_ema_reclaim?'<span style="color:#8B5CF6;font-size:10px;font-weight:700">🔄 Yes</span>':'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
       <td>${rsGetResultBadgeHTML(s.symbol)}</td>
       <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
       <td><button class="sort-btn" onclick="excludeSharpStock('${s.symbol}')" title="Hide this stock from Sharp Movers" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
@@ -7267,6 +7362,7 @@ renderPicks = function() {
       <td class="l5-summary">${getLast5(s.last5_summary)}</td>
       <td>${rsGetResultBadgeHTML(s.symbol)}</td>
       <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
+      <td>${getQMBadgeForSymbol(s.symbol)}</td>
       <td><input class="mom-note-input" value="${s.notes||''}" placeholder="Add note..." onblur="saveMomNote('${s.symbol}',this.value)"></td>
       <td><button class="sort-btn" onclick="removeMomPick('${s.symbol}')" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
     </tr>`;
