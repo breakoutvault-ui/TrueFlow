@@ -775,7 +775,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="nav-tabs" id="momentum-tabs" style="display:none;flex:1;min-width:0;overflow:hidden">
       <button class="nav-tab active" onclick="switchTab('scanner',this,'momentum')">📡 Scanner</button>
       <button class="nav-tab" onclick="switchTab('emasignals',this,'momentum')">🔄 EMA Signals</button>
-      <button class="nav-tab" onclick="switchTab('sharpmovers',this,'momentum')">⚡ Sharp Movers</button>
+      <button class="nav-tab" onclick="switchTab('sharpmovers',this,'momentum')">🎯 Breakout Setups</button>
       <button class="nav-tab" onclick="switchTab('mypicks',this,'momentum')">⭐ My Picks</button>
       <button class="nav-tab" onclick="switchTab('exited',this,'momentum')">🚪 Exited</button>
     </div>
@@ -1950,47 +1950,98 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ── SHARP MOVERS TAB ── -->
   <div id="tab-sharpmovers" class="panel">
     <div class="momentum-panel">
+      <!-- Read Me Panel -->
+      <div id="sharp-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📖 Breakout Setups — How This Works</span>
+          <button onclick="document.getElementById('sharp-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          This tab finds stocks that have <b style="color:var(--text)">already made a big move</b> and are now <b style="color:var(--text)">cooling down in a tight consolidation</b> — waiting for the next breakout. Think of it as a spring being coiled: the tighter it gets, the more powerful the next move.<br><br>
+          Instead of chasing stocks AFTER they've already broken out, this tab helps you <b style="color:var(--green)">spot them BEFORE</b> the breakout happens.
+        </div>
+
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📐 The 3 Patterns (Qullamaggie Method)</b><br><br>
+          <b style="color:#F97316">🔥 EP (Episodic Pivot)</b> — A stock suddenly gaps up 5%+ on double its normal volume in 1-3 days. Usually triggered by earnings surprise, big news, or analyst upgrade. <i>What to do:</i> Wait for it to pull back to the gap area, then enter when it holds.<br><br>
+          <b style="color:#3B82F6">📐 VCP (Volatility Contraction Pattern)</b> — A stock ran up 20%+ then pulled back into a TIGHT range. Volume dries up during the consolidation (sellers exhausted). The range keeps getting narrower like a coiling spring. <i>What to do:</i> Buy when price breaks above the Pivot Level on increased volume.<br><br>
+          <b style="color:#EF4444">🏴 HTF (High Tight Flag)</b> — The RAREST and most powerful pattern. A stock surged 80%+ then pulled back less than 25% into a tight flag. Very few stocks qualify. <i>What to do:</i> Same as VCP — buy on break above Pivot Level. These often give massive moves.<br><br>
+          <b style="color:#8B5CF6">🔄 EMA Reclaim</b> — A stock dipped below its 9 EMA (short-term trend line) yesterday but bounced back above it today. This means the dip was a shakeout — weak hands sold, smart money bought. <i>What to do:</i> Consider entry near the 9 EMA level.
+        </div>
+
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Reading the Columns</b><br><br>
+          <b style="color:var(--text)">QM</b> — The pattern detected (EP / VCP / HTF / Reclaim)<br>
+          <b style="color:var(--text)">Pivot</b> — THE key price level. If stock closes above this → breakout confirmed. Shows: ✅ ABOVE (already broke out), 🎯 Near (within 3% — watch closely), or % away<br>
+          <b style="color:var(--text)">Base %</b> — How deep did the stock pull back from its high? Lower = better. Under 15% = strong hands holding. Over 25% = too deep, avoid<br>
+          <b style="color:var(--text)">Contract</b> — How tight is the consolidation? Higher number = tighter = better. 0.7+ is excellent. Think of squeezing a spring<br>
+          <b style="color:var(--text)">Vol Dry</b> — Is volume declining during the consolidation? ✅ Yes = sellers are exhausted (good!). ❌ No = still selling pressure (bad)<br>
+          <b style="color:var(--text)">Base Days</b> — How many days in consolidation. 10-40 days is ideal. Too short = unstable. Too long = momentum dying<br>
+          <b style="color:var(--text)">Reclaim</b> — Did it reclaim 9 EMA today after being below? A bounce-back signal
+        </div>
+
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🟢 Row Colors</b><br>
+          <span style="display:inline-block;width:12px;height:12px;background:rgba(34,197,94,0.3);border-left:3px solid #22C55E;margin-right:6px;vertical-align:middle"></span> <b style="color:#22C55E">Green border</b> = Stock has BROKEN OUT (closed above pivot) — confirmed move<br>
+          <span style="display:inline-block;width:12px;height:12px;background:rgba(251,191,36,0.3);border-left:3px solid #FBbf24;margin-right:6px;vertical-align:middle"></span> <b style="color:#FBbf24">Amber border</b> = NEAR BREAKOUT (within 3% of pivot) — highest priority watchlist<br>
+          No border = Setup building, not yet near the breakout level
+        </div>
+
+        <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px 14px">
+          <b style="color:var(--green);font-size:12px">✅ The Ideal Setup Checklist</b><br>
+          Look for stocks that tick ALL of these:<br>
+          ☑️ Pattern: VCP or HTF (not just EP)<br>
+          ☑️ Base %: Under 15% (shallow pullback)<br>
+          ☑️ Contraction: 0.5+ (tight consolidation)<br>
+          ☑️ Vol Dry: ✅ Yes (sellers exhausted)<br>
+          ☑️ Pivot: 🎯 Within 3% (about to break out)<br>
+          ☑️ Category: A or AC (in uptrend on all timeframes)<br>
+          ☑️ Results: 🟢 Blockbuster or ⚡ Turnaround (fundamentals support)<br><br>
+          <b style="color:var(--text)">Entry:</b> Buy when price closes above Pivot Level with above-average volume<br>
+          <b style="color:var(--text)">Stop Loss:</b> Below the base low (Base % level)<br>
+          <b style="color:var(--text)">Target:</b> Initial move % gives you the expected range for the next leg up
+        </div>
+      </div>
+
       <div class="mom-topbar">
         <div class="mom-filters">
-          <div class="mom-filter-group">
-            <button class="sort-btn multi-active" data-filter-group="sharp-move" data-filter-val="all" onclick="toggleMultiFilter('sharp','move','all',this)" title="Show all sharp movers">All</button>
-            <button class="sort-btn" data-filter-group="sharp-move" data-filter-val="3d" onclick="toggleMultiFilter('sharp','move','3d',this)" title="Stocks that moved 20%+ in last 3 days — explosive momentum">3-Day (20%+)</button>
-            <button class="sort-btn" data-filter-group="sharp-move" data-filter-val="1m" onclick="toggleMultiFilter('sharp','move','1m',this)" title="Stocks that moved 30%+ in last month — strong monthly momentum">1-Month (30%+)</button>
+          <button class="sort-btn" onclick="document.getElementById('sharp-readme').style.display=document.getElementById('sharp-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works — strategy, patterns, and how to read the data">📖 How This Works</button>
+          <div class="mom-filter-group" style="border-left:1px solid var(--border);padding-left:6px">
+            <span style="font-size:10px;color:var(--amber);font-weight:600;margin-right:2px" title="Qullamaggie Pattern Filters">QM</span>
+            <button class="sort-btn multi-active" data-filter-group="sharp-qm" data-filter-val="all" onclick="toggleMultiFilter('sharp','qm','all',this)" title="Show all QM patterns">All</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="EP" onclick="toggleMultiFilter('sharp','qm','EP',this)" title="Episodic Pivot — Gap up 5%+ on 2x volume in last 3 days">🔥 EP</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="VCP" onclick="toggleMultiFilter('sharp','qm','VCP',this)" title="Volatility Contraction Pattern — big move → tight consolidation → breakout">📐 VCP</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="HTF" onclick="toggleMultiFilter('sharp','qm','HTF',this)" title="High Tight Flag — 80%+ surge → shallow pullback → tight flag (rare, powerful)">🏴 HTF</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="reclaim" onclick="toggleMultiFilter('sharp','qm','reclaim',this)" title="EMA Reclaim — was below 9 EMA yesterday, reclaimed today (shakeout recovery)">🔄 Reclaim</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="ready" onclick="toggleMultiFilter('sharp','qm','ready',this)" title="Near Pivot — within 3% of breakout level. Highest priority watchlist.">🎯 Near Pivot</button>
           </div>
           <div class="mom-filter-group">
             <button class="sort-btn multi-active" data-filter-group="sharp-cat" data-filter-val="all" onclick="toggleMultiFilter('sharp','cat','all',this)">All Cat</button>
-            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="A" onclick="toggleMultiFilter('sharp','cat','A',this)" title="Category A: Daily+Weekly Bullish">🟢 A</button>
-            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="B" onclick="toggleMultiFilter('sharp','cat','B',this)" title="Category B: Watch Zone — below daily but above weekly EMA">🟡 B</button>
-            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="C" onclick="toggleMultiFilter('sharp','cat','C',this)" title="Category C: Weekly Crossover">🔵 C</button>
-            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="AC" onclick="toggleMultiFilter('sharp','cat','AC',this)" title="A+C: Strongest">💎 A+C</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="A" onclick="toggleMultiFilter('sharp','cat','A',this)" title="Category A: Above all EMAs on daily+weekly — strongest uptrend">🟢 A</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="B" onclick="toggleMultiFilter('sharp','cat','B',this)" title="Category B: Below daily EMA but above weekly — watch zone, could reclaim">🟡 B</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="C" onclick="toggleMultiFilter('sharp','cat','C',this)" title="Category C: Fresh weekly EMA crossover — early stage momentum">🔵 C</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="AC" onclick="toggleMultiFilter('sharp','cat','AC',this)" title="A+C combined: Strongest setup — above all EMAs AND fresh crossover">💎 A+C</button>
           </div>
           <div class="mom-filter-group">
             <button class="sort-btn multi-active" data-filter-group="sharp-score" data-filter-val="all" onclick="toggleMultiFilter('sharp','score','all',this)">All</button>
-            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="high" onclick="toggleMultiFilter('sharp','score','high',this)" title="High Conviction: Score 80-100">🔥 High</button>
-            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="building" onclick="toggleMultiFilter('sharp','score','building',this)" title="Building: Score 60-79">⚡ Building</button>
+            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="high" onclick="toggleMultiFilter('sharp','score','high',this)" title="High Conviction: Momentum Score 80-100 — strong on all parameters">🔥 High</button>
+            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="building" onclick="toggleMultiFilter('sharp','score','building',this)" title="Building: Momentum Score 60-79 — getting stronger">⚡ Building</button>
           </div>
-          <div class="mom-filter-group" style="border-left:1px solid var(--border);padding-left:6px">
-            <span style="font-size:10px;color:var(--amber);font-weight:600;margin-right:2px" title="Qullamaggie Pattern Filters">QM</span>
-            <button class="sort-btn multi-active" data-filter-group="sharp-qm" data-filter-val="all" onclick="toggleMultiFilter('sharp','qm','all',this)" title="Show all stocks">All</button>
-            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="EP" onclick="toggleMultiFilter('sharp','qm','EP',this)" title="Episodic Pivot — Gap up 5%+ on 2x volume">🔥 EP</button>
-            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="VCP" onclick="toggleMultiFilter('sharp','qm','VCP',this)" title="Volatility Contraction Pattern — tight base after big move">📐 VCP</button>
-            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="HTF" onclick="toggleMultiFilter('sharp','qm','HTF',this)" title="High Tight Flag — 80%+ move → tight pullback">🏴 HTF</button>
-            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="reclaim" onclick="toggleMultiFilter('sharp','qm','reclaim',this)" title="EMA Reclaim — shakeout recovery, was below 9 EMA yesterday, reclaimed today">🔄 Reclaim</button>
-            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="ready" onclick="toggleMultiFilter('sharp','qm','ready',this)" title="Breakout Ready — within 3% of pivot level">🎯 Near Pivot</button>
-          </div>
-          <select class="sort-sel" onchange="setMomSelectFilter('sharp','zoneD',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Daily 9 EMA">
+          <select class="sort-sel" onchange="setMomSelectFilter('sharp','zoneD',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="How far is price from the daily 9 EMA — IN ZONE means close to EMA (ideal for entry)">
             <option value="all">Daily EMA Zone: All</option>
             <option value="in">🟢 In Zone (&lt;3%)</option>
             <option value="near">🟡 Near (3-5%)</option>
             <option value="far">🔴 Far (&gt;5%)</option>
           </select>
-          <select class="sort-sel" onchange="setMomSelectFilter('sharp','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Weekly 9 EMA">
+          <select class="sort-sel" onchange="setMomSelectFilter('sharp','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="How far is price from the weekly 9 EMA">
             <option value="all">Weekly EMA Zone: All</option>
             <option value="in">🟢 In Zone (&lt;3%)</option>
             <option value="near">🟡 Near (3-5%)</option>
             <option value="far">🔴 Far (&gt;5%)</option>
           </select>
-          <select class="sort-sel" onchange="setMomSelectFilter('sharp','dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% away from 52-week high">
+          <select class="sort-sel" onchange="setMomSelectFilter('sharp','dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="How far from 52-week high — closer to 0% = near all-time breakout">
             <option value="all">52W Distance: All</option>
             <option value="b1">&lt;5% (near breakout)</option>
             <option value="b2">5-10%</option>
@@ -2001,36 +2052,23 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <select class="sort-sel" id="sharp-sector-filter" onchange="setMomSelectFilter('sharp','sector',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none">
             <option value="all">All Sectors</option>
           </select>
-          <button class="sort-btn" id="sharp-star-filter" onclick="toggleMomStarFilter('sharp',this)" title="Show only starred stocks">⭐ Starred</button>
+          <button class="sort-btn" id="sharp-star-filter" onclick="toggleMomStarFilter('sharp',this)" title="Show only stocks you've starred">⭐ Starred</button>
           <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
           <div id="sharp-color-filter" style="display:flex;gap:3px"></div>
         </div>
         <div class="mom-export-btns">
           <button class="col-toggle-btn" onclick="toggleColPanel('sharp',this)">⚙️ Columns</button>
-          <button class="sort-btn" onclick="document.getElementById('sharp-glossary').style.display=document.getElementById('sharp-glossary').style.display==='none'?'block':'none'" style="font-size:10px;padding:2px 8px" title="Show glossary of QM terms and column descriptions">ℹ️ Glossary</button>
+          <button class="sort-btn" onclick="document.getElementById('sharp-glossary').style.display=document.getElementById('sharp-glossary').style.display==='none'?'block':'none'" style="font-size:10px;padding:2px 8px" title="Quick reference for column names and abbreviations">ℹ️ Glossary</button>
           <span class="mom-updated" id="sharp-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="sharp-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('sharp')">📊 TradingView</button>
           <button class="mom-export-btn" onclick="exportMomCSV('sharp')">⬇ CSV</button>
         </div>
       </div>
-      <!-- QM Glossary -->
-      <div id="sharp-glossary" style="display:none;margin:0 0 8px 0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:10px;color:var(--muted);line-height:1.8">
-        <span style="font-weight:600;color:var(--text);font-size:12px">📖 Qullamaggie Pattern Glossary</span><br><br>
-        <b style="color:var(--amber)">What is Qullamaggie?</b> Mark Minervini-inspired momentum pattern detection. These patterns identify stocks that made explosive moves and are now consolidating — potential breakout setups.<br><br>
-        <b style="color:#F97316">🔥 EP (Episodic Pivot):</b> Stock gapped up 5%+ on 2x average volume in the last 3 days. A catalyst-driven move (earnings beat, news, upgrade). The gap area often becomes support — look for pullback entries near the gap.<br>
-        <b style="color:#3B82F6">📐 VCP (Volatility Contraction Pattern):</b> Stock ran 20%+ in 20 days, then pulled back into a TIGHT consolidation (&lt;8% range). Volume declines during the base. The tighter the consolidation and drier the volume, the better. Entry: break above pivot level on volume.<br>
-        <b style="color:#EF4444">🏴 HTF (High Tight Flag):</b> RARE and most powerful. Stock surged 80%+ in 40 days, pulled back less than 25%, and formed a tight flag (&lt;10% range). William O'Neil called these "the most bullish pattern." Entry: break above flag high.<br>
-        <b style="color:#8B5CF6">🔄 EMA Reclaim:</b> Stock was below the daily 9 EMA yesterday but closed above it today. This is a shakeout recovery — weak hands got stopped out, now price is reclaiming its trend. Often a high-probability entry.<br><br>
-        <b style="color:var(--text)">Column Guide:</b><br>
-        <b>Pivot:</b> The breakout price level. ✅ ABOVE = confirmed breakout (closed above). 🎯 = within 3% (watchlist for tomorrow). Green row = broke out, Amber row = near pivot.<br>
-        <b>Base %:</b> Pullback depth from the recent high. Lower = tighter = better. Under 15% = strong hands holding. Over 25% = weak structure, avoid.<br>
-        <b>Contract:</b> Contraction ratio — how tight the consolidation is vs the initial move. Higher = tighter = better setup. 0.7+ is ideal. Think of it as "the spring is coiled."<br>
-        <b>Vol Dry:</b> Is volume declining during consolidation? ✅ Yes = sellers exhausted (bullish). ⚡ Partial = somewhat. ❌ No = still active selling (weak).<br>
-        <b>Base Days:</b> How long the stock has been consolidating. 10-40 days = ideal. Too short (&lt;7d) = not enough time to absorb supply. Too long (&gt;60d) = momentum fading.<br>
-        <b>Reclaim:</b> Did the stock reclaim 9 EMA today after being below it? A shakeout recovery signal.<br><br>
-        <b style="color:var(--text)">Row Colors:</b> 🟢 Green border = confirmed breakout (above pivot). 🟡 Amber border = near breakout (within 3% of pivot). No border = setup building, not actionable yet.<br>
-        <b style="color:var(--text)">Ideal Setup:</b> VCP or HTF pattern + Base% under 15 + Contraction 0.5+ + Vol Dry ✅ + Near Pivot 🎯 + Category A or AC = highest probability breakout.
+      <!-- Quick Glossary (compact) -->
+      <div id="sharp-glossary" style="display:none;margin:0 0 6px 0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:10px;color:var(--muted);line-height:1.7">
+        <span style="font-weight:600;color:var(--text)">📖 Quick Glossary</span> <span style="color:var(--dim)">(for full guide click "📖 How This Works" above)</span><br>
+        <b>QM:</b> Qullamaggie pattern (EP/VCP/HTF/Reclaim) · <b>Pivot:</b> Breakout price level · <b>Base %:</b> Pullback depth (lower=better) · <b>Contract:</b> Consolidation tightness (higher=better) · <b>Vol Dry:</b> Volume declining in base? · <b>Base Days:</b> Days in consolidation · <b>Reclaim:</b> Bounced back above 9 EMA · <b>Cat:</b> A=bullish, B=watch, C=early, AC=strongest · <b>Score:</b> Momentum score 0-100 · <b>Res:</b> Quarterly results grade · <b>Smt$:</b> Smart money (FII/MF/Promoter) accumulation
       </div>
       <div class="mom-section">
         <div class="tbl-scroll">
@@ -2040,32 +2078,30 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Stock · Category</th>
               <th class="no-sort">Sector</th>
               <th class="no-sort">Industry</th>
-              <th onclick="sortMomTable('sharp','move_pct')">Move % ↕</th>
-              <th class="no-sort">Period</th>
               <th onclick="sortMomTable('sharp','ltp')">LTP ↕</th>
               <th onclick="sortMomTable('sharp','day_chg_pct')">Day % ↕</th>
               <th onclick="sortMomTable('sharp','week_chg_pct')">Week % ↕</th>
               <th onclick="sortMomTable('sharp','month_chg_pct')">Month % ↕</th>
-              <th onclick="sortMomTable('sharp','pct_from_ema9_daily')" title="Distance from daily 9 EMA — retrace opportunity zone. IN ZONE: &lt;3%, NEAR: 3-5%, FAR: &gt;5%">% Daily 9E ↕</th>
-              <th onclick="sortMomTable('sharp','pct_from_ema9_weekly')">% Weekly 9E ↕</th>
-              <th onclick="sortMomTable('sharp','high_52w')" title="52 Week High and % away">52W Away ↕</th>
-              <th class="no-sort" title="Volume on move day vs 20-day average">Vol on Move</th>
-              <th class="no-sort">Crossover?</th>
-              <th class="no-sort">Breakout?</th>
-              <th onclick="sortMomTable('sharp','momentum_score')" title="Momentum Score 0-100">Score ↕</th>
-              <th class="no-sort" title="Qullamaggie Pattern: EP (Episodic Pivot) / VCP (Volatility Contraction) / HTF (High Tight Flag)">QM</th>
-              <th onclick="sortMomTable('sharp','qm_pivot_level')" title="Breakout pivot price level — watch for close above this">Pivot ↕</th>
-              <th onclick="sortMomTable('sharp','qm_base_depth')" title="Pullback % from recent high — lower is tighter">Base % ↕</th>
-              <th onclick="sortMomTable('sharp','qm_contraction')" title="Consolidation tightness ratio — higher = tighter = better setup">Contract ↕</th>
-              <th class="no-sort" title="Volume declining during consolidation? Yes = drying up (bullish)">Vol Dry</th>
-              <th onclick="sortMomTable('sharp','qm_base_days')" title="Days in consolidation base">Base Days ↕</th>
-              <th class="no-sort" title="EMA Reclaim — was below 9 EMA yesterday, reclaimed today (shakeout signal)">Reclaim</th>
-              <th class="no-sort" title="Result grade">Res</th>
-              <th class="no-sort" title="Smart Money">Smt$</th>
-              <th class="no-sort">Exclude</th>
+              <th onclick="sortMomTable('sharp','pct_from_ema9_daily')" title="Distance from daily 9 EMA — how close is price to the short-term trend. IN ZONE (&lt;3%) = ideal for entry">% Daily 9E ↕</th>
+              <th onclick="sortMomTable('sharp','pct_from_ema9_weekly')" title="Distance from weekly 9 EMA — how close is price to the medium-term trend">% Weekly 9E ↕</th>
+              <th onclick="sortMomTable('sharp','high_52w')" title="How far from 52-week high — closer to 0% means near all-time breakout territory">52W Away ↕</th>
+              <th class="no-sort" title="Volume on the day the big move happened vs 20-day average — higher = more conviction behind the move">Vol on Move</th>
+              <th class="no-sort" title="Did 9 EMA cross above 20 EMA recently? A bullish trend confirmation signal">Crossover?</th>
+              <th class="no-sort" title="Is stock breaking out of a key level (52W high, resistance)? Shows type and how many days holding above">Breakout?</th>
+              <th onclick="sortMomTable('sharp','momentum_score')" title="Momentum Score 0-100 — composite score based on EMA alignment, volume, trend strength. 80+ = high conviction">Score ↕</th>
+              <th class="no-sort" title="Qullamaggie Pattern: 🔥 EP (Episodic Pivot) / 📐 VCP (Volatility Contraction) / 🏴 HTF (High Tight Flag) / 🔄 Reclaim">QM</th>
+              <th onclick="sortMomTable('sharp','qm_pivot_level')" title="Pivot Level — THE breakout price. If stock closes above this with volume → confirmed breakout. ✅ = above, 🎯 = within 3%">Pivot ↕</th>
+              <th onclick="sortMomTable('sharp','qm_base_depth')" title="Base Depth — how much did stock pull back from its high during consolidation. Lower = tighter = better. Under 15% ideal">Base % ↕</th>
+              <th onclick="sortMomTable('sharp','qm_contraction')" title="Contraction Ratio — how tight is the consolidation vs the initial move. Higher = tighter = better. 0.7+ is excellent. Like a coiled spring">Contract ↕</th>
+              <th class="no-sort" title="Volume Dry-Up — is volume declining during consolidation? ✅ Yes = sellers exhausted (bullish). ❌ No = still selling (weak)">Vol Dry</th>
+              <th onclick="sortMomTable('sharp','qm_base_days')" title="Base Duration — how many days in the consolidation. 10-40 ideal. Too short = unstable, too long = momentum fading">Base Days ↕</th>
+              <th class="no-sort" title="EMA Reclaim — stock was below 9 EMA yesterday, closed above today. Shakeout recovery = smart money buying the dip">Reclaim</th>
+              <th class="no-sort" title="Quarterly Results Grade — Blockbuster/Turnaround/Steady/Mixed/Weak (from Results Season tab)">Res</th>
+              <th class="no-sort" title="Smart Money Flow — are FII/MF/Promoters buying? 🟢 Accumulation = 2+ buying, 🔴 Distribution = selling">Smt$</th>
+              <th class="no-sort" title="Hide this stock from the tab">Exclude</th>
             </tr></thead>
             <tbody id="sharp-body">
-              <tr><td colspan="27"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">Loading sharp movers...</div></div></td></tr>
+              <tr><td colspan="25"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">Loading breakout setups...</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -5291,7 +5327,7 @@ let momFilters = {
   picks:   { cat:'all', zone:'all', zoneD:'all', zoneW:'all', dist52:'all' },
   exited:  {}
 };
-let momSort = { scanner:{key:'momentum_score',dir:-1}, ema:{key:'daily_crossover_date',dir:-1}, sharp:{key:'move_pct',dir:-1}, picks:{key:'move_since_star',dir:-1}, exited:{key:'exit_date',dir:-1} };
+let momSort = { scanner:{key:'momentum_score',dir:-1}, ema:{key:'daily_crossover_date',dir:-1}, sharp:{key:'momentum_score',dir:-1}, picks:{key:'move_since_star',dir:-1}, exited:{key:'exit_date',dir:-1} };
 let momStarred = new Set(); // momentum picks symbols
 let momExcluded = new Set(); // sharp movers excluded symbols
 let selectedExited = new Set();
@@ -5528,16 +5564,18 @@ async function loadMomEMA() {
 
 async function loadMomSharp() {
   try {
-    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_sharp_mover=eq.true&order=session_date.desc&limit=2000';
+    // Fetch all active stocks — we'll filter to QM-only on the client
+    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000';
     const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
     const resp = await fetch(url, { headers });
     const data = await resp.json();
     if (!data || !data.length) {
-      document.getElementById('sharp-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers yet</div></div></td></tr>';
+      document.getElementById('sharp-body').innerHTML = '<tr><td colspan="27"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups yet</div></div></td></tr>';
       return;
     }
     const latestDate = data[0].session_date;
-    momData.sharp = data.filter(s => s.session_date === latestDate);
+    // QM-only filter: keep stocks with a QM pattern OR EMA reclaim
+    momData.sharp = data.filter(s => s.session_date === latestDate && (s.qm_pattern || s.qm_ema_reclaim));
     document.getElementById('sharp-updated').textContent = 'Updated: ' + latestDate + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     // Load excluded
     const url2 = CONFIG.supabaseUrl + '/rest/v1/momentum_excluded?select=symbol';
@@ -5549,7 +5587,7 @@ async function loadMomSharp() {
     const sel = document.getElementById('sharp-sector-filter');
     sel.innerHTML = '<option value="all">All Sectors</option>' + sectors.map(s => `<option value="${s}">${s}</option>`).join('');
     renderSharp();
-  } catch(e) { console.error('Sharp load error:', e); }
+  } catch(e) { console.error('Breakout Setups load error:', e); }
 }
 
 async function loadMomPicks() {
@@ -5831,7 +5869,7 @@ function renderSharp() {
   const { key, dir } = momSort.sharp;
   data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
   if (!data.length) {
-    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers match filter</div></div></td></tr>';
+    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups match filter</div></div></td></tr>';
     return;
   }
   document.getElementById('sharp-body').innerHTML = data.map(s => {
@@ -5859,7 +5897,7 @@ function renderSharp() {
       <td>${s.daily_crossover_date?'<span style="color:var(--green);font-size:10px;font-weight:600">✅ Yes</span>':'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
       <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
-      <td><button class="sort-btn" onclick="excludeSharpStock('${s.symbol}')" title="Hide this stock from Sharp Movers" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
+      <td><button class="sort-btn" onclick="excludeSharpStock('${s.symbol}')" title="Hide from Breakout Setups" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
     </tr>`;
   }).join('');
   // Excluded section
@@ -6014,7 +6052,7 @@ async function excludeSharpStock(symbol) {
   momExcluded.add(symbol);
   await fetch(`${CONFIG.supabaseUrl}/rest/v1/momentum_excluded`, { method:'POST', headers, body: JSON.stringify({ symbol, excluded_at: new Date().toISOString() }) });
   renderSharp();
-  showToast(`${symbol} hidden from Sharp Movers`, 'info');
+  showToast(`${symbol} hidden from Breakout Setups`, 'info');
 }
 
 async function restoreSharpStock(symbol) {
@@ -7235,15 +7273,6 @@ const _origSharpRender2 = renderSharp;
 renderSharp = function() {
   const f = momFilters.sharp;
   let data = momData.sharp.filter(s => !momExcluded.has(s.symbol));
-  // Move — multi-select
-  const moveSet = multiFilters['sharp-move'];
-  if (moveSet && moveSet.size > 0) {
-    data = data.filter(s => {
-      if (moveSet.has('3d') && s.move_3d_pct && Math.abs(s.move_3d_pct) >= 20) return true;
-      if (moveSet.has('1m') && s.move_1m_pct && Math.abs(s.move_1m_pct) >= 30) return true;
-      return false;
-    });
-  }
   // Category — multi-select
   data = data.filter(s => multiFilterPass('sharp-cat', s.category));
   // Score — multi-select
@@ -7278,15 +7307,13 @@ renderSharp = function() {
   if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
   // COLOR FILTER
   data = data.filter(s => colorFilterPass(s.symbol));
-  // Compute move_pct
-  data = data.map(s => ({ ...s, move_pct: Math.max(Math.abs(s.move_3d_pct||0), Math.abs(s.move_1m_pct||0)) }));
   // Update count
   const sharpCntEl = document.getElementById('sharp-count');
   if (sharpCntEl) sharpCntEl.textContent = `Showing ${data.length} of ${momData.sharp.length}`;
   const { key, dir } = momSort.sharp;
   data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
   if (!data.length) {
-    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="27"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers match filter</div></div></td></tr>';
+    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="25"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups match filter</div></div></td></tr>';
     const excl = momData.sharp.filter(s => momExcluded.has(s.symbol));
     const exclSec = document.getElementById('sharp-excluded-section');
     document.getElementById('sharp-excluded-count').textContent = excl.length;
@@ -7298,9 +7325,6 @@ renderSharp = function() {
   }
   document.getElementById('sharp-body').innerHTML = data.map(s => {
     const starred = momStarred.has(s.symbol);
-    const is3d = s.move_3d_pct && Math.abs(s.move_3d_pct) >= 20;
-    const movePct = is3d ? s.move_3d_pct : s.move_1m_pct;
-    const period = is3d ? '3-Day' : '1-Month';
     const away52 = s.ltp && s.high_52w ? ((s.high_52w - s.ltp) / s.high_52w * 100).toFixed(1) + '%' : '—';
     // QM: breakout-ready check (within 3% of pivot, below pivot)
     const isBreakoutReady = s.qm_pivot_level && s.ltp && s.ltp > 0 && s.qm_pivot_level > s.ltp && ((s.qm_pivot_level - s.ltp) / s.ltp * 100) <= 3;
@@ -7311,8 +7335,6 @@ renderSharp = function() {
       <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)" title="Sector">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)" title="Industry">${s.industry||'—'}</td>
-      <td><span title="Sharp Move: ${movePct>=0?'+':''}${movePct?.toFixed(1)}% in ${period}${is3d?' — 20%+ in 3 days = explosive momentum':' — 30%+ in 1 month = strong sustained momentum'}" style="color:${movePct>=0?'#22C55E':'#EF4444'};font-weight:700;font-size:13px;cursor:help">${movePct>=0?'+':''}${movePct?.toFixed(1)}%</span></td>
-      <td><span title="${is3d?'3-Day Move: Stock moved 20%+ in last 3 trading days — explosive short-term momentum':'1-Month Move: Stock moved 30%+ in last month — strong sustained momentum trend'}" style="font-size:10px;color:var(--muted);cursor:help">${period}</span></td>
       <td title="Last Traded Price">₹${(s.ltp||0).toLocaleString('en-IN')}</td>
       <td>${fmtChg(s.day_chg_pct)}</td>
       <td>${fmtChg(s.week_chg_pct)}</td>
@@ -7333,7 +7355,7 @@ renderSharp = function() {
       <td>${getQMReclaim(s)}</td>
       <td>${rsGetResultBadgeHTML(s.symbol)}</td>
       <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
-      <td><button class="sort-btn" onclick="excludeSharpStock('${s.symbol}')" title="Hide this stock from Sharp Movers" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
+      <td><button class="sort-btn" onclick="excludeSharpStock('${s.symbol}')" title="Hide from Breakout Setups" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
     </tr>`;
   }).join('');
   // Excluded section
