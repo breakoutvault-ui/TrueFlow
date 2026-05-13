@@ -1951,42 +1951,87 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ── SHARP MOVERS TAB ── -->
   <div id="tab-sharpmovers" class="panel">
     <div class="momentum-panel">
+      <!-- Read Me Panel -->
+      <div id="sharp-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📖 Breakout Setups — How This Works</span>
+          <button onclick="document.getElementById('sharp-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          This tab finds stocks that have <b style="color:var(--text)">already made a big move</b> and are now <b style="color:var(--text)">cooling down in a tight consolidation</b> — waiting for the next breakout. Instead of chasing stocks AFTER they've broken out, this tab helps you <b style="color:var(--green)">spot them BEFORE</b> the breakout happens.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📐 The 3 Patterns</b><br><br>
+          <b style="color:#F97316">🔥 EP (Episodic Pivot)</b> — Stock gapped up 5%+ on 2x volume. <i>Wait for pullback to gap area, then enter.</i><br><br>
+          <b style="color:#3B82F6">📐 VCP (Volatility Contraction)</b> — 20%+ move then tight consolidation with declining volume. <i>Buy on break above Pivot Level with volume.</i><br><br>
+          <b style="color:#EF4444">🏴 HTF (High Tight Flag)</b> — RARE. 80%+ surge then &lt;25% pullback. <i>Entry on break above pivot.</i><br><br>
+          <b style="color:#8B5CF6">🔄 EMA Reclaim</b> — Dipped below 9 EMA yesterday, bounced back today. <i>Entry near 9 EMA level.</i>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Reading the Columns</b><br><br>
+          <b>Pivot</b> — THE breakout price. ✅ ABOVE = confirmed. 🎯 = within 3% (watch closely).<br>
+          <b>Base %</b> — Pullback depth. Under 15% = strong hands. Over 25% = avoid.<br>
+          <b>Contract</b> — Consolidation tightness. Higher = better. 0.7+ excellent.<br>
+          <b>Vol Dry</b> — Volume declining? ✅ = sellers exhausted. ❌ = still selling.<br>
+          <b>Base Days</b> — 10-40 days ideal. Too short = unstable. Too long = fading.<br>
+          <b>Reclaim</b> — Bounced back above 9 EMA after dip.
+        </div>
+        <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px 14px">
+          <b style="color:var(--green);font-size:12px">✅ Ideal Setup Checklist</b><br>
+          ☑️ Pattern: VCP or HTF &nbsp; ☑️ Base%: Under 15% &nbsp; ☑️ Contraction: 0.5+<br>
+          ☑️ Vol Dry: ✅ Yes &nbsp; ☑️ Pivot: 🎯 Within 3% &nbsp; ☑️ Category: A or AC<br>
+          <b>Entry:</b> Close above Pivot with volume &nbsp; <b>Stop:</b> Below base low
+        </div>
+      </div>
+
       <div class="mom-topbar">
         <div class="mom-filters">
-          <div class="mom-filter-group">
-            <button class="sort-btn multi-active" data-filter-group="sharp-move" data-filter-val="all" onclick="toggleMultiFilter('sharp','move','all',this)" title="Show all sharp movers">All</button>
-            <button class="sort-btn" data-filter-group="sharp-move" data-filter-val="3d" onclick="toggleMultiFilter('sharp','move','3d',this)" title="Stocks that moved 20%+ in last 3 days — explosive momentum">3-Day (20%+)</button>
-            <button class="sort-btn" data-filter-group="sharp-move" data-filter-val="1m" onclick="toggleMultiFilter('sharp','move','1m',this)" title="Stocks that moved 30%+ in last month — strong monthly momentum">1-Month (30%+)</button>
+          <button class="sort-btn" onclick="document.getElementById('sharp-readme').style.display=document.getElementById('sharp-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button>
+          <div class="mom-filter-group" style="border-left:1px solid var(--border);padding-left:6px">
+            <span style="font-size:10px;color:var(--amber);font-weight:600;margin-right:2px" title="Qullamaggie Pattern Filters">QM</span>
+            <button class="sort-btn multi-active" data-filter-group="sharp-qm" data-filter-val="all" onclick="toggleMultiFilter('sharp','qm','all',this)" title="Show all QM patterns">All</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="EP" onclick="toggleMultiFilter('sharp','qm','EP',this)" title="Episodic Pivot — Gap up 5%+ on 2x volume">🔥 EP</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="VCP" onclick="toggleMultiFilter('sharp','qm','VCP',this)" title="Volatility Contraction Pattern">📐 VCP</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="HTF" onclick="toggleMultiFilter('sharp','qm','HTF',this)" title="High Tight Flag — rare, powerful">🏴 HTF</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="reclaim" onclick="toggleMultiFilter('sharp','qm','reclaim',this)" title="EMA Reclaim — shakeout recovery">🔄 Reclaim</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="ready" onclick="toggleMultiFilter('sharp','qm','ready',this)" title="Within 3% of pivot — highest priority">🎯 Near Pivot</button>
           </div>
           <div class="mom-filter-group">
             <button class="sort-btn multi-active" data-filter-group="sharp-cat" data-filter-val="all" onclick="toggleMultiFilter('sharp','cat','all',this)">All Cat</button>
-            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="A" onclick="toggleMultiFilter('sharp','cat','A',this)" title="Category A: Daily+Weekly Bullish">🟢 A</button>
-            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="B" onclick="toggleMultiFilter('sharp','cat','B',this)" title="Category B: Watch Zone — below daily but above weekly EMA">🟡 B</button>
-            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="C" onclick="toggleMultiFilter('sharp','cat','C',this)" title="Category C: Weekly Crossover">🔵 C</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="A" onclick="toggleMultiFilter('sharp','cat','A',this)" title="Category A: Above all EMAs">🟢 A</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="B" onclick="toggleMultiFilter('sharp','cat','B',this)" title="Category B: Watch zone">🟡 B</button>
+            <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="C" onclick="toggleMultiFilter('sharp','cat','C',this)" title="Category C: Early stage">🔵 C</button>
             <button class="sort-btn" data-filter-group="sharp-cat" data-filter-val="AC" onclick="toggleMultiFilter('sharp','cat','AC',this)" title="A+C: Strongest">💎 A+C</button>
           </div>
           <div class="mom-filter-group">
             <button class="sort-btn multi-active" data-filter-group="sharp-score" data-filter-val="all" onclick="toggleMultiFilter('sharp','score','all',this)">All</button>
-            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="high" onclick="toggleMultiFilter('sharp','score','high',this)" title="High Conviction: Score 80-100">🔥 High</button>
-            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="building" onclick="toggleMultiFilter('sharp','score','building',this)" title="Building: Score 60-79">⚡ Building</button>
+            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="high" onclick="toggleMultiFilter('sharp','score','high',this)" title="Score 80-100">🔥 High</button>
+            <button class="sort-btn" data-filter-group="sharp-score" data-filter-val="building" onclick="toggleMultiFilter('sharp','score','building',this)" title="Score 60-79">⚡ Building</button>
           </div>
-          <div id="ms-sharp-zoneD-wrap" style="display:inline-block" title="Daily EMA Zone — select multiple buckets"></div>
-          <div id="ms-sharp-zoneW-wrap" style="display:inline-block" title="Weekly EMA Zone — select multiple buckets"></div>
-          <div id="ms-sharp-dist52-wrap" style="display:inline-block" title="52W Distance — select multiple buckets"></div>
+          <div id="ms-sharp-zoneD-wrap" style="display:inline-block"></div>
+          <div id="ms-sharp-zoneW-wrap" style="display:inline-block"></div>
+          <div id="ms-sharp-dist52-wrap" style="display:inline-block"></div>
           <select class="sort-sel" id="sharp-sector-filter" onchange="setMomSelectFilter('sharp','sector',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none">
             <option value="all">All Sectors</option>
           </select>
-          <button class="sort-btn" id="sharp-star-filter" onclick="toggleMomStarFilter('sharp',this)" title="Show only starred stocks">⭐ Starred</button>
+          <button class="sort-btn" id="sharp-star-filter" onclick="toggleMomStarFilter('sharp',this)" title="Show only starred">⭐ Starred</button>
           <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
           <div id="sharp-color-filter" style="display:flex;gap:3px"></div>
         </div>
         <div class="mom-export-btns">
           <button class="col-toggle-btn" onclick="toggleColPanel('sharp',this)">⚙️ Columns</button>
+          <button class="sort-btn" onclick="document.getElementById('sharp-glossary').style.display=document.getElementById('sharp-glossary').style.display==='none'?'block':'none'" style="font-size:10px;padding:2px 8px" title="Quick reference">ℹ️ Glossary</button>
           <span class="mom-updated" id="sharp-count" style="color:var(--cyan);font-weight:600">—</span>
           <span class="mom-updated" id="sharp-updated">—</span>
           <button class="mom-export-btn" onclick="exportMomTV('sharp')">📊 TradingView</button>
           <button class="mom-export-btn" onclick="exportMomCSV('sharp')">⬇ CSV</button>
         </div>
+      </div>
+      <!-- Quick Glossary -->
+      <div id="sharp-glossary" style="display:none;margin:0 0 6px 0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:10px;color:var(--muted);line-height:1.7">
+        <span style="font-weight:600;color:var(--text)">📖 Quick Glossary</span><br>
+        <b>QM:</b> Qullamaggie pattern (EP/VCP/HTF/Reclaim) · <b>Pivot:</b> Breakout price level · <b>Base %:</b> Pullback depth (lower=better) · <b>Contract:</b> Tightness (higher=better) · <b>Vol Dry:</b> Volume declining? · <b>Base Days:</b> Days consolidating · <b>Reclaim:</b> Bounced above 9 EMA · <b>Row Colors:</b> 🟢 = above pivot, 🟡 = near pivot
       </div>
       <!-- QM Setup Count Strip -->
       <div id="sharp-setup-strip" style="background:var(--glass);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
@@ -5257,7 +5302,7 @@ let momFilters = {
   picks:   { cat:'all', zone:'all', zoneD:'all', zoneW:'all', dist52:'all' },
   exited:  {}
 };
-let momSort = { scanner:{key:'momentum_score',dir:-1}, ema:{key:'daily_crossover_date',dir:-1}, sharp:{key:'move_pct',dir:-1}, picks:{key:'move_since_star',dir:-1}, exited:{key:'exit_date',dir:-1} };
+let momSort = { scanner:{key:'momentum_score',dir:-1}, ema:{key:'daily_crossover_date',dir:-1}, sharp:{key:'momentum_score',dir:-1}, picks:{key:'move_since_star',dir:-1}, exited:{key:'exit_date',dir:-1} };
 let momStarred = new Set(); // momentum picks symbols
 let momExcluded = new Set(); // sharp movers excluded symbols
 let selectedExited = new Set();
@@ -5494,16 +5539,18 @@ async function loadMomEMA() {
 
 async function loadMomSharp() {
   try {
-    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_sharp_mover=eq.true&order=session_date.desc&limit=2000';
+    // Fetch all active stocks — filter to QM-only on client
+    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000';
     const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
     const resp = await fetch(url, { headers });
     const data = await resp.json();
     if (!data || !data.length) {
-      document.getElementById('sharp-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">⚡</div><div class="mom-empty-text">No sharp movers yet</div></div></td></tr>';
+      document.getElementById('sharp-body').innerHTML = '<tr><td colspan="25"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups yet</div></div></td></tr>';
       return;
     }
     const latestDate = data[0].session_date;
-    momData.sharp = data.filter(s => s.session_date === latestDate);
+    // QM-only filter: keep stocks with a QM pattern OR EMA reclaim
+    momData.sharp = data.filter(s => s.session_date === latestDate && (s.qm_pattern || s.qm_ema_reclaim));
     document.getElementById('sharp-updated').textContent = 'Updated: ' + latestDate + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     // Load excluded
     const url2 = CONFIG.supabaseUrl + '/rest/v1/momentum_excluded?select=symbol';
@@ -5515,7 +5562,7 @@ async function loadMomSharp() {
     const sel = document.getElementById('sharp-sector-filter');
     sel.innerHTML = '<option value="all">All Sectors</option>' + sectors.map(s => `<option value="${s}">${s}</option>`).join('');
     renderSharp();
-  } catch(e) { console.error('Sharp load error:', e); }
+  } catch(e) { console.error('Breakout Setups load error:', e); }
 }
 
 async function loadMomPicks() {
@@ -7118,6 +7165,80 @@ renderEMA = function() {
 };
 
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// ROUND 8: QM Helper Functions
+// ═══════════════════════════════════════════════════
+function getQMBadge(s) {
+  if (!s.qm_pattern) return s.qm_ema_reclaim ? '<span title="EMA Reclaim — Stock was below 9 EMA yesterday but closed above it today. Shakeout recovery signal." style="color:#8B5CF6;font-size:10px;font-weight:700;background:#8B5CF622;padding:1px 6px;border-radius:8px;cursor:help">🔄 Reclaim</span>' : '<span style="color:var(--muted);font-size:10px">—</span>';
+  const map = {
+    'EP':  { icon:'🔥', color:'#F97316', label:'EP',  tip:'Episodic Pivot (EP) — Stock gapped up 5%+ on 2x average volume. Catalyst-driven move. Look for pullback to gap area for entry.' },
+    'VCP': { icon:'📐', color:'#3B82F6', label:'VCP', tip:'Volatility Contraction Pattern (VCP) — Big move then tight consolidation with declining volume. Entry on break above pivot level.' },
+    'HTF': { icon:'🏴', color:'#EF4444', label:'HTF', tip:'High Tight Flag (HTF) — RARE. 80%+ surge then shallow pullback into tight flag. Most powerful momentum setup.' }
+  };
+  const p = map[s.qm_pattern];
+  if (!p) return '<span style="color:var(--muted);font-size:10px">—</span>';
+  let badge = `<span title="${p.tip}" style="color:${p.color};font-size:10px;font-weight:700;background:${p.color}18;padding:1px 6px;border-radius:8px;cursor:help">${p.icon} ${p.label}</span>`;
+  if (s.qm_ema_reclaim) badge += ' <span style="color:#8B5CF6;font-size:9px;cursor:help" title="Also reclaimed 9 EMA today — double signal.">🔄</span>';
+  return badge;
+}
+
+function getQMBadgeForSymbol(symbol) {
+  const allMom = [...(momData.scanner||[]), ...(momData.sharp||[])];
+  const s = allMom.find(m => m.symbol === symbol);
+  if (!s) return '<span style="color:var(--muted);font-size:10px">—</span>';
+  return getQMBadge(s);
+}
+
+function getQMPivot(s) {
+  if (!s.qm_pivot_level) return '<span style="color:var(--muted);font-size:10px" title="No pivot level — no QM pattern detected">—</span>';
+  const pivot = s.qm_pivot_level;
+  const ltp = s.ltp || 0;
+  const distPct = ltp > 0 ? ((pivot - ltp) / ltp * 100) : 0;
+  const abovePivot = ltp >= pivot;
+  const nearPivot = !abovePivot && distPct <= 3;
+  let color = 'var(--muted)', extra = '';
+  let tip = `Pivot: ₹${pivot.toLocaleString('en-IN')}. `;
+  if (abovePivot) { color = '#22C55E'; extra = ' <span style="font-size:8px;color:#22C55E">✅ ABOVE</span>'; tip += 'CONFIRMED BREAKOUT — above pivot.'; }
+  else if (nearPivot) { color = '#FBbf24'; extra = ` <span style="font-size:8px;color:#FBbf24">🎯 ${distPct.toFixed(1)}%</span>`; tip += `NEAR — ${distPct.toFixed(1)}% away. Watch for breakout.`; }
+  else { extra = ` <span style="font-size:8px;color:var(--muted)">${distPct.toFixed(1)}%↑</span>`; tip += `${distPct.toFixed(1)}% away. Building.`; }
+  return `<span title="${tip}" style="color:${color};font-size:11px;font-weight:600;cursor:help">₹${pivot.toLocaleString('en-IN')}</span>${extra}`;
+}
+
+function getQMBaseDepth(s) {
+  if (s.qm_base_depth == null) return '<span style="color:var(--muted);font-size:10px" title="No base depth data">—</span>';
+  const d = s.qm_base_depth;
+  const color = d <= 10 ? 'var(--green)' : d <= 20 ? 'var(--amber)' : 'var(--red)';
+  const q = d <= 10 ? 'Shallow (excellent)' : d <= 15 ? 'Normal (good)' : d <= 20 ? 'Moderate' : 'Deep (risky)';
+  return `<span title="Base Depth: ${d.toFixed(1)}% — ${q}. Under 15% ideal." style="color:${color};font-size:11px;font-weight:600;cursor:help">${d.toFixed(1)}%</span>`;
+}
+
+function getQMContraction(s) {
+  if (s.qm_contraction == null) return '<span style="color:var(--muted);font-size:10px" title="No contraction data">—</span>';
+  const c = s.qm_contraction;
+  const color = c >= 0.7 ? 'var(--green)' : c >= 0.4 ? 'var(--amber)' : 'var(--muted)';
+  const q = c >= 0.7 ? 'Very tight (excellent)' : c >= 0.5 ? 'Good' : c >= 0.3 ? 'Moderate' : 'Loose';
+  return `<span title="Contraction: ${c.toFixed(2)} — ${q}. Higher = tighter = better. 0.7+ ideal." style="color:${color};font-size:11px;font-weight:600;cursor:help">${c.toFixed(2)}</span>`;
+}
+
+function getQMVolDry(v) {
+  if (!v) return '<span style="color:var(--muted);font-size:10px" title="No volume dry-up data">—</span>';
+  if (v === 'Yes') return '<span title="Volume Dry-Up: YES — sellers exhausted (bullish)" style="color:var(--green);font-size:10px;font-weight:600;cursor:help">✅ Yes</span>';
+  if (v === 'Partial') return '<span title="Volume Dry-Up: PARTIAL — somewhat declining" style="color:var(--amber);font-size:10px;font-weight:600;cursor:help">⚡ Partial</span>';
+  return '<span title="Volume Dry-Up: NO — still active selling (weak)" style="color:var(--red);font-size:10px;cursor:help">❌ No</span>';
+}
+
+function getQMBaseDays(s) {
+  if (s.qm_base_days == null) return '<span style="color:var(--muted);font-size:10px" title="No base days data">—</span>';
+  const d = s.qm_base_days;
+  const tip = d <= 10 ? 'Short base' : d <= 25 ? 'Normal (ideal)' : d <= 50 ? 'Extended' : 'Very long';
+  return `<span title="Base: ${d} days — ${tip}. Ideal 10-40 days." style="font-size:11px;color:var(--text);cursor:help">${d}d</span>`;
+}
+
+function getQMReclaim(s) {
+  if (!s.qm_ema_reclaim) return '<span style="color:var(--muted);font-size:10px" title="No EMA reclaim">—</span>';
+  return '<span title="EMA Reclaim — bounced back above 9 EMA after dip. Shakeout recovery." style="color:#8B5CF6;font-size:10px;font-weight:700;cursor:help">🔄 Yes</span>';
+}
+
 // ROUND 8: PATCH renderSharp — QM-only Breakout Setups with multi-select dropdowns
 // ═══════════════════════════════════════════════════
 const _origSharpRender2 = renderSharp;
