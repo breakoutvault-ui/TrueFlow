@@ -89,16 +89,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
    TOPBAR
 ══════════════════════════════════════ */
 #app{display:none;position:relative;z-index:1;min-height:100vh}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 10px;height:40px;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:100;gap:4px;flex-wrap:nowrap;overflow:visible}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;height:auto;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:100;gap:8px;flex-wrap:nowrap;overflow:visible}
 .brand{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:3px;color:var(--cyan);text-shadow:0 0 20px var(--cyan-glow);white-space:nowrap;cursor:pointer}
 .brand span{color:var(--muted);font-weight:400}
-.nav-tabs{display:flex;gap:3px;padding:3px;flex:1;min-width:0;overflow:hidden}
-.nav-tab{padding:6px 14px;border-radius:8px;border:1px solid transparent;background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;letter-spacing:.2px;transition:all .2s;white-space:nowrap}
+.nav-tabs{display:flex;gap:2px;padding:0 2px;flex:1;min-width:0;overflow:hidden}
+.nav-tab{padding:4px 12px;border-radius:6px;border:1px solid transparent;background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;letter-spacing:.2px;transition:all .2s;white-space:nowrap}
 .nav-tab:hover{color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.04)}
 .nav-tab.active{color:var(--cyan);background:rgba(6,214,160,0.1);border-color:rgba(6,214,160,0.25)}
 .topbar-right{display:flex;align-items:center;gap:8px}
-.mode-toggle{display:flex;gap:3px;background:rgba(255,255,255,0.03);border-radius:12px;padding:4px;border:1px solid rgba(255,255,255,0.06);flex-shrink:0}
-.mode-btn{padding:8px 18px;border-radius:9px;border:none;background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.3px;transition:all .25s cubic-bezier(.4,0,.2,1);white-space:nowrap}
+.mode-toggle{display:flex;gap:2px;background:rgba(255,255,255,0.03);border-radius:10px;padding:3px;border:1px solid rgba(255,255,255,0.06);flex-shrink:0}
+.mode-btn{padding:6px 14px;border-radius:8px;border:none;background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.3px;transition:all .25s cubic-bezier(.4,0,.2,1);white-space:nowrap}
 .mode-btn:hover{color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.04)}
 .mode-btn.active{color:#0B0F19;background:linear-gradient(135deg,#06D6A0,#00B4D8);box-shadow:0 2px 12px rgba(6,214,160,0.25)}
 .kite-btn{padding:5px 12px;border-radius:8px;border:1px solid rgba(0,255,136,.3);background:var(--green-dim);color:var(--green);cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;letter-spacing:.5px;transition:all .15s;white-space:nowrap}
@@ -630,12 +630,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 ══════════════════════════════════════ */
 @media(max-width:900px){
   .col-sec,.col-dvc,.col-st{display:none}
-  .nav-tab{font-size:10px;padding:5px 10px}
-  .mode-btn{font-size:11px;padding:6px 12px}
+  .nav-tab{font-size:10px;padding:4px 8px}
+  .mode-btn{font-size:11px;padding:5px 10px}
 }
 @media(max-width:600px){
   .panel{padding:12px 10px}
-  .topbar{padding:0 10px;height:auto;min-height:56px}
+  .topbar{padding:4px 10px;height:auto;min-height:auto}
   .metric-grid{grid-template-columns:repeat(2,1fr)}
 }
 
@@ -753,7 +753,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <text x="76" y="72" font-family="system-ui,-apple-system,sans-serif" font-size="30" font-weight="200" fill="white" letter-spacing="3">FLOW</text>
       </svg>
     </div>
-    <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+    <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
       <div class="mode-toggle">
         <button class="mode-btn active" id="mode-fo" onclick="switchMode('fo')">⚡ F&O</button>
         <button class="mode-btn" id="mode-eod" onclick="switchMode('eod')">📊 Market Pulse</button>
