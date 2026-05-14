@@ -1996,6 +1996,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="HTF" onclick="toggleMultiFilter('sharp','qm','HTF',this)" title="High Tight Flag — rare, powerful">🏴 HTF</button>
             <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="reclaim" onclick="toggleMultiFilter('sharp','qm','reclaim',this)" title="EMA Reclaim — shakeout recovery">🔄 Reclaim</button>
             <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="ready" onclick="toggleMultiFilter('sharp','qm','ready',this)" title="Within 3% of pivot — highest priority">🎯 Near Pivot</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="broken" onclick="toggleMultiFilter('sharp','qm','broken',this)" title="Confirmed breakout — closed above pivot level. Track post-breakout move.">✅ Broken Out</button>
           </div>
           <div class="mom-filter-group">
             <button class="sort-btn multi-active" data-filter-group="sharp-cat" data-filter-val="all" onclick="toggleMultiFilter('sharp','cat','all',this)">All Cat</button>
@@ -2031,7 +2032,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <!-- Quick Glossary -->
       <div id="sharp-glossary" style="display:none;margin:0 0 6px 0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:10px;color:var(--muted);line-height:1.7">
         <span style="font-weight:600;color:var(--text)">📖 Quick Glossary</span><br>
-        <b>QM:</b> Qullamaggie pattern (EP/VCP/HTF/Reclaim) · <b>Pivot:</b> Breakout price level · <b>Base %:</b> Pullback depth (lower=better) · <b>Contract:</b> Tightness (higher=better) · <b>Vol Dry:</b> Volume declining? · <b>Base Days:</b> Days consolidating · <b>Reclaim:</b> Bounced above 9 EMA · <b>Row Colors:</b> 🟢 = above pivot, 🟡 = near pivot
+        <b>QM:</b> Qullamaggie pattern (EP/VCP/HTF/Reclaim) · <b>Pivot:</b> Breakout price level · <b>Base %:</b> Pullback depth (lower=better) · <b>Contract:</b> Tightness (higher=better) · <b>Vol Dry:</b> Volume declining? · <b>Base Days:</b> Days consolidating · <b>Reclaim:</b> Bounced above 9 EMA · <b>Post-BO:</b> % move above pivot since breakout (🔄 ≤2% re-entry zone, ⚠️ >10% extended) · <b>Row Colors:</b> 🟢 = above pivot, 🟡 = near pivot
       </div>
       <!-- QM Setup Count Strip -->
       <div id="sharp-setup-strip" style="background:var(--glass);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
@@ -2074,12 +2075,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort" title="Volume Dry-Up — is volume declining during consolidation? ✅ Yes = sellers exhausted (bullish). ❌ No = still selling (weak)">Vol Dry</th>
               <th onclick="sortMomTable('sharp','qm_base_days')" title="Base Duration — how many days in the consolidation. 10-40 ideal. Too short = unstable, too long = momentum fading">Base Days ↕</th>
               <th class="no-sort" title="EMA Reclaim — stock was below 9 EMA yesterday, closed above today. Shakeout recovery = smart money buying the dip">Reclaim</th>
+              <th onclick="sortMomTable('sharp','_postbo_pct')" title="Post-Breakout Move — % move ABOVE the pivot level since breakout was confirmed. Shows how far the stock has run since breaking out. Near 0% = potential re-entry. 10%+ = already extended.">Post-BO ↕</th>
               <th class="no-sort" title="Quarterly Results Grade — Blockbuster/Turnaround/Steady/Mixed/Weak (from Results Season tab)">Res</th>
               <th class="no-sort" title="Smart Money Flow — are FII/MF/Promoters buying? 🟢 Accumulation = 2+ buying, 🔴 Distribution = selling">Smt$</th>
               <th class="no-sort" title="Hide this stock from the tab">Exclude</th>
             </tr></thead>
             <tbody id="sharp-body">
-              <tr><td colspan="25"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">Loading breakout setups...</div></div></td></tr>
+              <tr><td colspan="26"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">Loading breakout setups...</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -7239,6 +7241,21 @@ function getQMReclaim(s) {
   return '<span title="EMA Reclaim — bounced back above 9 EMA after dip. Shakeout recovery." style="color:#8B5CF6;font-size:10px;font-weight:700;cursor:help">🔄 Yes</span>';
 }
 
+function getPostBOMove(s) {
+  if (!s.qm_pivot_level || !s.ltp || s.ltp <= 0) return '<span style="color:var(--muted);font-size:10px" title="No pivot level — cannot calculate post-breakout move">—</span>';
+  const pivot = s.qm_pivot_level;
+  const ltp = s.ltp;
+  if (ltp < pivot) return '<span style="color:var(--muted);font-size:10px" title="Stock is still below pivot — no breakout yet">—</span>';
+  const movePct = ((ltp - pivot) / pivot) * 100;
+  let color = '#22C55E';
+  let label = '';
+  if (movePct <= 2) { label = '🔄 Re-entry zone'; color = '#22C55E'; }
+  else if (movePct <= 5) { label = '✅ Early move'; color = '#06D6A0'; }
+  else if (movePct <= 10) { label = '🚀 Running'; color = '#3B82F6'; }
+  else { label = '⚠️ Extended'; color = '#F97316'; }
+  return `<span title="Post-Breakout Move: +${movePct.toFixed(1)}% above pivot ₹${pivot.toLocaleString('en-IN')} — ${label}. ${movePct <= 2 ? 'Just broke out, could still enter near pivot.' : movePct <= 5 ? 'Early in the move, still tradeable.' : movePct <= 10 ? 'Move is underway, chase with caution.' : 'Already extended above pivot. Wait for pullback.'}" style="color:${color};font-size:11px;font-weight:700;cursor:help">+${movePct.toFixed(1)}%</span>`;
+}
+
 // ROUND 8: PATCH renderSharp — QM-only Breakout Setups with multi-select dropdowns
 // ═══════════════════════════════════════════════════
 const _origSharpRender2 = renderSharp;
@@ -7269,6 +7286,7 @@ renderSharp = function() {
         const distPct = ((s.qm_pivot_level - s.ltp) / s.ltp) * 100;
         if (distPct >= 0 && distPct <= 3) return true;
       }
+      if (qmSet.has('broken') && s.qm_pivot_level && s.ltp && s.ltp >= s.qm_pivot_level) return true;
       return false;
     });
   }
@@ -7285,13 +7303,18 @@ renderSharp = function() {
   if (f.dist52 && f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
   // COLOR FILTER
   data = data.filter(s => colorFilterPass(s.symbol));
+  // Compute Post-BO move % for sorting
+  data = data.map(s => {
+    const postbo = (s.qm_pivot_level && s.ltp && s.ltp >= s.qm_pivot_level) ? ((s.ltp - s.qm_pivot_level) / s.qm_pivot_level * 100) : -999;
+    return { ...s, _postbo_pct: postbo };
+  });
   // Update count
   const sharpCntEl = document.getElementById('sharp-count');
   if (sharpCntEl) sharpCntEl.textContent = `Showing ${data.length} of ${momData.sharp.length}`;
   const { key, dir } = momSort.sharp;
   data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
   if (!data.length) {
-    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="25"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups match filter</div></div></td></tr>';
+    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="26"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups match filter</div></div></td></tr>';
     const excl = momData.sharp.filter(s => momExcluded.has(s.symbol));
     const exclSec = document.getElementById('sharp-excluded-section');
     document.getElementById('sharp-excluded-count').textContent = excl.length;
@@ -7330,6 +7353,7 @@ renderSharp = function() {
       <td>${getQMVolDry(s.qm_vol_dryup)}</td>
       <td>${getQMBaseDays(s)}</td>
       <td>${getQMReclaim(s)}</td>
+      <td>${getPostBOMove(s)}</td>
       <td>${rsGetResultBadgeHTML(s.symbol)}</td>
       <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
       <td><button class="sort-btn" onclick="excludeSharpStock('${s.symbol}')" title="Hide from Breakout Setups" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
