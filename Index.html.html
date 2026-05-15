@@ -261,8 +261,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .mom-heat-neu{background:var(--bg3);color:var(--muted);border-color:var(--border)}
 .panel{display:none;padding:4px 10px;animation:fadeUp .2s ease}
 .panel.active{display:block}
-#momentum-container .panel, #results-container .panel { padding:2px 6px; }
-#momentum-container .fo-panel, #results-container .fo-panel { padding:2px 6px; gap:2px; }
+#momentum-container .panel, #results-container .panel, #banknifty-container .panel { padding:2px 6px; }
+#momentum-container .fo-panel, #results-container .fo-panel, #banknifty-container .fo-panel { padding:2px 6px; gap:2px; }
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ══════════════════════════════════════
@@ -758,6 +758,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="mode-btn active" id="mode-fo" onclick="switchMode('fo')">⚡ F&O</button>
         <button class="mode-btn" id="mode-eod" onclick="switchMode('eod')">📊 Market Pulse</button>
         <button class="mode-btn" id="mode-momentum" onclick="switchMode('momentum')">🚀 Momentum</button>
+        <button class="mode-btn" id="mode-banknifty" onclick="switchMode('banknifty')">🏦 BankNifty</button>
         <button class="mode-btn" id="mode-results" onclick="switchMode('results')">📋 Results</button>
       </div>
       <div class="nav-tabs" id="fo-tabs">
@@ -780,6 +781,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="nav-tab" onclick="switchTab('sharpmovers',this,'momentum')">🎯 Breakout Setups</button>
         <button class="nav-tab" onclick="switchTab('mypicks',this,'momentum')">⭐ My Picks</button>
         <button class="nav-tab" onclick="switchTab('exited',this,'momentum')">🚪 Exited</button>
+      </div>
+      <div class="nav-tabs" id="banknifty-tabs" style="display:none">
+        <button class="nav-tab active" onclick="switchTab('bnsession',this,'banknifty')">📊 Today's Session</button>
+        <button class="nav-tab" onclick="switchTab('bnstrategy',this,'banknifty')">📈 Strategy Tracker</button>
+        <button class="nav-tab" onclick="switchTab('bnpatterns',this,'banknifty')">🔍 Pattern Lab</button>
+        <button class="nav-tab" onclick="switchTab('bnpostmortem',this,'banknifty')">📋 EOD Post-Mortem</button>
+        <button class="nav-tab" onclick="switchTab('bnprep',this,'banknifty')">🎯 Pre-Market Prep</button>
       </div>
       <div class="nav-tabs" id="results-tabs" style="display:none">
         <button class="nav-tab active" onclick="switchTab('resultseason',this,'results')">📋 Results Season</button>
@@ -2156,6 +2164,217 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 </div>
 
 <!-- ═══════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- BANKNIFTY COMMAND CENTER -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="banknifty-container" style="display:none">
+
+  <!-- TAB 1: Today's Session -->
+  <div id="tab-bnsession" class="panel active">
+    <div class="fo-panel" style="gap:8px">
+      <!-- Header Strip -->
+      <div id="bn-header-strip" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+        <div class="metric-card" id="bn-ltp-card">
+          <div class="metric-label">BANKNIFTY</div>
+          <div class="metric-value" id="bn-ltp">—</div>
+          <div class="metric-sub" id="bn-chg">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">DAY RANGE</div>
+          <div class="metric-value" id="bn-range">—</div>
+          <div class="metric-sub" id="bn-range-vs-atr">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">ORB (15-min)</div>
+          <div class="metric-value" id="bn-orb">—</div>
+          <div class="metric-sub" id="bn-orb-type">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">DAILY TREND</div>
+          <div class="metric-value" id="bn-trend">—</div>
+          <div class="metric-sub" id="bn-ema-status">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">DAY TYPE</div>
+          <div class="metric-value" id="bn-daytype">—</div>
+          <div class="metric-sub" id="bn-daytype-sub">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">ATR (14)</div>
+          <div class="metric-value" id="bn-atr">—</div>
+          <div class="metric-sub">14-day avg range</div>
+        </div>
+      </div>
+
+      <!-- Key Levels Panel -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">📍 Key Levels</div>
+          <div id="bn-levels-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+            <span style="color:var(--muted)">Loading...</span>
+          </div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">💹 Option Chain Levels</div>
+          <div id="bn-oi-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+            <span style="color:var(--muted)">Loading...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Events Timeline -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">⚡ Big Candles (150+ pts)</div>
+          <div id="bn-big-candles" style="font-size:11px;line-height:2"><span style="color:var(--muted)">Loading...</span></div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">💥 Level Breaks</div>
+          <div id="bn-level-breaks" style="font-size:11px;line-height:2"><span style="color:var(--muted)">Loading...</span></div>
+        </div>
+      </div>
+
+      <!-- Session date -->
+      <div style="text-align:right;font-size:10px;color:var(--muted)" id="bn-session-date">—</div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Strategy Tracker -->
+  <div id="tab-bnstrategy" class="panel">
+    <div class="fo-panel" style="gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px;font-weight:700;color:var(--text)">📈 BankNifty Strategy Tracker</span>
+        <button class="sort-btn" onclick="document.getElementById('bn-trade-form').style.display=document.getElementById('bn-trade-form').style.display==='none'?'block':'none'" style="padding:4px 12px;background:rgba(6,214,160,0.1);border-color:rgba(6,214,160,0.3);color:#06D6A0;font-weight:600">+ Log Trade</button>
+      </div>
+      <!-- Trade Entry Form -->
+      <div id="bn-trade-form" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:11px">
+          <div><label style="color:var(--muted);font-size:10px">Direction</label><br><select id="bn-t-dir" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;color:var(--text);font-size:11px"><option value="CE">CE (Call)</option><option value="PE">PE (Put)</option></select></div>
+          <div><label style="color:var(--muted);font-size:10px">Entry Type</label><br><select id="bn-t-type" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;color:var(--text);font-size:11px"><option value="orb_break">ORB Breakout</option><option value="level_break">Key Level Break</option><option value="reentry">Re-entry (Pullback)</option><option value="consolidation_bo">Consolidation BO</option></select></div>
+          <div><label style="color:var(--muted);font-size:10px">Entry Time</label><br><input type="time" id="bn-t-etime" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;color:var(--text);font-size:11px"></div>
+          <div><label style="color:var(--muted);font-size:10px">Exit Time</label><br><input type="time" id="bn-t-xtime" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;color:var(--text);font-size:11px"></div>
+          <div><label style="color:var(--muted);font-size:10px">Strike</label><br><input type="number" id="bn-t-strike" placeholder="53500" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;color:var(--text);font-size:11px"></div>
+          <div><label style="color:var(--muted);font-size:10px">Entry ₹</label><br><input type="number" id="bn-t-entry" placeholder="150" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;color:var(--text);font-size:11px"></div>
+          <div><label style="color:var(--muted);font-size:10px">Exit ₹</label><br><input type="number" id="bn-t-exit" placeholder="200" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;color:var(--text);font-size:11px"></div>
+          <div><label style="color:var(--muted);font-size:10px">SL ₹</label><br><input type="number" id="bn-t-sl" placeholder="120" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;color:var(--text);font-size:11px"></div>
+        </div>
+        <div style="margin-top:8px"><input type="text" id="bn-t-notes" placeholder="Notes (optional)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--text);font-size:11px"></div>
+        <button onclick="saveBNTrade()" style="margin-top:8px;padding:6px 20px;background:linear-gradient(135deg,#06D6A0,#00B4D8);color:#0B0F19;border:none;border-radius:8px;font-weight:700;font-size:11px;cursor:pointer">Save Trade</button>
+      </div>
+      <!-- Stats Cards -->
+      <div id="bn-strategy-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+        <div class="metric-card"><div class="metric-label">TOTAL TRADES</div><div class="metric-value" id="bn-st-total">—</div></div>
+        <div class="metric-card"><div class="metric-label">WIN RATE</div><div class="metric-value" id="bn-st-winrate">—</div></div>
+        <div class="metric-card"><div class="metric-label">AVG WINNER</div><div class="metric-value" id="bn-st-avgwin">—</div></div>
+        <div class="metric-card"><div class="metric-label">AVG LOSER</div><div class="metric-value" id="bn-st-avgloss">—</div></div>
+        <div class="metric-card"><div class="metric-label">NET P&L</div><div class="metric-value" id="bn-st-pnl">—</div></div>
+        <div class="metric-card"><div class="metric-label">BEST DAY</div><div class="metric-value" id="bn-st-best">—</div></div>
+      </div>
+      <!-- Win Rate by Entry Type -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:8px">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">📊 Win Rate by Entry Type</div>
+        <div id="bn-winrate-by-type" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;font-size:11px"><span style="color:var(--muted)">No trades logged yet. Click "+ Log Trade" to start.</span></div>
+      </div>
+      <!-- Win Rate by Time -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:8px">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">⏰ Win Rate by Time of Day</div>
+        <div id="bn-winrate-by-time" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-size:11px"><span style="color:var(--muted)">Log trades to see time-based analysis</span></div>
+      </div>
+      <!-- Trade History -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:8px">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">📋 Recent Trades</div>
+        <div id="bn-trade-history" style="font-size:11px"><span style="color:var(--muted)">No trades yet</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: Pattern Lab -->
+  <div id="tab-bnpatterns" class="panel">
+    <div class="fo-panel" style="gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:14px;font-weight:700;color:var(--text)">🔍 BankNifty Pattern Lab</span>
+        <button class="sort-btn" onclick="document.getElementById('bn-obs-form').style.display=document.getElementById('bn-obs-form').style.display==='none'?'block':'none'" style="padding:4px 12px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600">+ Add Observation</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin:0">Auto-tracked patterns with win rates. Data builds over time as sessions accumulate.</p>
+      <!-- Add Observation Form -->
+      <div id="bn-obs-form" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:8px">
+        <input type="text" id="bn-obs-name" placeholder="Pattern name (e.g. 'Post-rally consolidation breakout')" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--text);font-size:11px;margin-bottom:6px">
+        <textarea id="bn-obs-desc" placeholder="Describe the pattern and conditions..." rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--text);font-size:11px;resize:vertical;margin-bottom:6px"></textarea>
+        <button onclick="saveBNObservation()" style="padding:6px 20px;background:linear-gradient(135deg,#3B82F6,#8B5CF6);color:white;border:none;border-radius:8px;font-weight:700;font-size:11px;cursor:pointer">Save Observation</button>
+      </div>
+      <!-- Auto-tracked Patterns -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:8px">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:10px">🤖 Auto-Tracked Patterns</div>
+        <div id="bn-auto-patterns" style="display:grid;grid-template-columns:1fr;gap:6px"><span style="color:var(--muted);font-size:11px">Collecting data... Patterns will appear after 5+ sessions.</span></div>
+      </div>
+      <!-- User Observations -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:8px">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:10px">📝 Your Observations</div>
+        <div id="bn-user-patterns"><span style="color:var(--muted);font-size:11px">Click "+ Add Observation" to start tracking your BankNifty patterns</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: EOD Post-Mortem -->
+  <div id="tab-bnpostmortem" class="panel">
+    <div class="fo-panel" style="gap:8px">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">📋 BankNifty EOD Post-Mortem</div>
+      <!-- Session selector -->
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <button class="sort-btn active" id="bn-pm-today" onclick="loadBNPostMortem('today')">Today</button>
+        <button class="sort-btn" id="bn-pm-prev" onclick="loadBNPostMortem('prev')">Previous Day</button>
+        <select id="bn-pm-date-sel" onchange="loadBNPostMortem(this.value)" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--text);font-size:11px">
+          <option value="">Select Date...</option>
+        </select>
+      </div>
+      <!-- Post-mortem content -->
+      <div id="bn-pm-content" style="font-size:12px;line-height:1.8">
+        <span style="color:var(--muted)">Loading post-mortem...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: Pre-Market Prep -->
+  <div id="tab-bnprep" class="panel">
+    <div class="fo-panel" style="gap:8px">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">🎯 Pre-Market Prep — BankNifty</div>
+      <p style="font-size:11px;color:var(--muted);margin:0">Based on previous session's close. Review before 9:15 AM.</p>
+      <!-- Carry-forward levels -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">📍 Tomorrow's Key Levels</div>
+          <div id="bn-prep-levels" style="font-size:12px;line-height:2"><span style="color:var(--muted)">Loading...</span></div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">💹 OI-Based Levels</div>
+          <div id="bn-prep-oi" style="font-size:12px;line-height:2"><span style="color:var(--muted)">Loading...</span></div>
+        </div>
+      </div>
+      <!-- Scenarios -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:8px">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">📐 Scenarios for Tomorrow</div>
+        <div id="bn-prep-scenarios" style="font-size:12px;line-height:1.8"><span style="color:var(--muted)">Loading...</span></div>
+      </div>
+      <!-- Strategy Reminders -->
+      <div style="background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:12px 16px;margin-top:8px">
+        <div style="font-size:10px;color:var(--amber);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">⚠️ Strategy Reminders</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.8">
+          🚫 No trades in first 15 mins (ORB forming)<br>
+          ⏰ Best setups come post first hour (after 10:15)<br>
+          📐 Wait for BO candle close + high/low break for entry<br>
+          🚫 No XXL BO candles — wait for retrace to key level<br>
+          📈 9 EMA + 20 EMA must align in break direction on 5m<br>
+          🔄 Triple alignment (Daily + 15m + 5m) = highest probability<br>
+          ⚠️ Counter-trend allowed in BNF but with caution<br>
+          🚫 No new entries after 3:00 PM<br>
+          🛑 Kill switch: 2 back-to-back SLs or >₹2K loss = stop trading
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <!-- RESULTS SEASON + ANALYTICS CONTAINER -->
 <!-- ═══════════════════════════════════════════════════ -->
 <div id="results-container" style="display:none">
@@ -3957,12 +4176,14 @@ function switchMode(mode) {
   document.getElementById('fo-tabs').style.display         = mode==='fo'       ? 'flex' : 'none';
   document.getElementById('eod-tabs').style.display        = mode==='eod'      ? 'flex' : 'none';
   document.getElementById('momentum-tabs').style.display   = mode==='momentum' ? 'flex' : 'none';
+  document.getElementById('banknifty-tabs').style.display  = mode==='banknifty'? 'flex' : 'none';
   document.getElementById('results-tabs').style.display    = mode==='results'  ? 'flex' : 'none';
   document.getElementById('live-pill').style.display       = mode==='fo'       ? 'flex' : 'none';
   // Show/hide containers
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('momentum-container').style.display = 'none';
   document.getElementById('results-container').style.display  = 'none';
+  document.getElementById('banknifty-container').style.display = 'none';
   if (mode==='fo') {
     switchTab('morning', document.querySelector('#fo-tabs .nav-tab'), 'fo');
   } else if (mode==='eod') {
@@ -3970,6 +4191,9 @@ function switchMode(mode) {
   } else if (mode==='momentum') {
     document.getElementById('momentum-container').style.display = 'block';
     switchTab('scanner', document.querySelector('#momentum-tabs .nav-tab'), 'momentum');
+  } else if (mode==='banknifty') {
+    document.getElementById('banknifty-container').style.display = 'block';
+    switchTab('bnsession', document.querySelector('#banknifty-tabs .nav-tab'), 'banknifty');
   } else if (mode==='results') {
     document.getElementById('results-container').style.display = 'block';
     switchTab('resultseason', document.querySelector('#results-tabs .nav-tab'), 'results');
@@ -3988,6 +4212,19 @@ function switchTab(tab, btn, mode) {
     if (tab==='sharpmovers') loadMomSharp();
     if (tab==='mypicks')    loadMomPicks();
     if (tab==='exited')     loadMomExited();
+    return;
+  }
+  if (mode === 'banknifty') {
+    document.querySelectorAll('#banknifty-container .panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#banknifty-tabs .nav-tab').forEach(b=>b.classList.remove('active'));
+    const el = document.getElementById('tab-'+tab);
+    if (el) el.classList.add('active');
+    if (btn) btn.classList.add('active');
+    if (tab==='bnsession')    loadBNSession();
+    if (tab==='bnstrategy')   loadBNStrategy();
+    if (tab==='bnpatterns')   loadBNPatterns();
+    if (tab==='bnpostmortem') loadBNPostMortem();
+    if (tab==='bnprep')       loadBNPrep();
     return;
   }
   if (mode === 'results') {
@@ -8718,6 +8955,488 @@ renderSharp = function() {
   _origSharpForStrip();
   renderSharpSetupStrip();
 };
+
+// ═══════════════════════════════════════════════════
+// BANKNIFTY COMMAND CENTER — DATA LOADING
+// ═══════════════════════════════════════════════════
+
+let bnSessionData = null;
+let bnTradesData = [];
+let bnPatternsData = [];
+let bnAllSessions = [];
+
+async function fetchBNSessions(limit = 30) {
+  const url = `${CONFIG.supabaseUrl}/rest/v1/banknifty_sessions?select=*&order=session_date.desc&limit=${limit}`;
+  const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+  try {
+    const resp = await fetch(url, { headers });
+    return await resp.json();
+  } catch (e) { console.error('BN sessions fetch error:', e); return []; }
+}
+
+async function fetchBNTrades() {
+  const url = `${CONFIG.supabaseUrl}/rest/v1/banknifty_trades?select=*&order=session_date.desc&limit=100`;
+  const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+  try {
+    const resp = await fetch(url, { headers });
+    return await resp.json();
+  } catch (e) { console.error('BN trades fetch error:', e); return []; }
+}
+
+async function fetchBNPatterns() {
+  const url = `${CONFIG.supabaseUrl}/rest/v1/banknifty_patterns?select=*&order=win_rate.desc`;
+  const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+  try {
+    const resp = await fetch(url, { headers });
+    return await resp.json();
+  } catch (e) { console.error('BN patterns fetch error:', e); return []; }
+}
+
+// ── TAB 1: Today's Session ──────────────────────
+async function loadBNSession() {
+  const sessions = await fetchBNSessions(1);
+  if (!sessions || !sessions.length) {
+    document.getElementById('bn-ltp').textContent = 'No data';
+    return;
+  }
+  const s = sessions[0];
+  bnSessionData = s;
+
+  // Header metrics
+  document.getElementById('bn-ltp').textContent = s.day_close?.toLocaleString('en-IN') || '—';
+  const chgColor = s.day_chg_pts >= 0 ? '#22C55E' : '#EF4444';
+  document.getElementById('bn-chg').innerHTML = `<span style="color:${chgColor}">${s.day_chg_pts >= 0 ? '+' : ''}${s.day_chg_pts} pts (${s.day_chg_pct}%)</span>`;
+  document.getElementById('bn-ltp-card').style.borderLeft = `3px solid ${chgColor}`;
+
+  document.getElementById('bn-range').textContent = `${s.day_range} pts`;
+  document.getElementById('bn-range-vs-atr').innerHTML = `${s.range_vs_atr}x ATR <span style="color:${s.range_vs_atr > 1 ? '#F97316' : s.range_vs_atr > 0.7 ? 'var(--amber)' : 'var(--green)'}">(${s.range_vs_atr > 1 ? 'Above avg' : s.range_vs_atr > 0.7 ? 'Normal' : 'Quiet'})</span>`;
+
+  document.getElementById('bn-orb').textContent = `${s.orb_range} pts`;
+  document.getElementById('bn-orb-type').innerHTML = `${s.is_wide_orb ? '<span style="color:#F97316">WIDE ORB</span> (>40% ATR)' : '<span style="color:#22C55E">NARROW ORB</span> — breakout setup'}`;
+
+  const trendMap = { bull: { emoji: '🟢', label: 'Bullish', color: '#22C55E' }, bear: { emoji: '🔴', label: 'Bearish', color: '#EF4444' }, neutral: { emoji: '🟡', label: 'Neutral', color: 'var(--amber)' } };
+  const tr = trendMap[s.daily_trend] || trendMap.neutral;
+  document.getElementById('bn-trend').innerHTML = `<span style="color:${tr.color}">${tr.emoji} ${tr.label}</span>`;
+  document.getElementById('bn-ema-status').textContent = `9E: ${s.ema9_daily?.toFixed(0)} | 20E: ${s.ema20_daily?.toFixed(0)}`;
+
+  const dayTypeMap = { trending_bull:'🟢 Trending Bull', trending_bear:'🔴 Trending Bear', reversal_bull:'🔄 Reversal Bull', reversal_bear:'🔄 Reversal Bear', range:'🟡 Range Day', consolidation_bo:'🔵 Consol → BO', unknown:'❓ Unknown' };
+  document.getElementById('bn-daytype').innerHTML = dayTypeMap[s.day_type] || s.day_type;
+  document.getElementById('bn-daytype-sub').textContent = `O:${s.day_open?.toFixed(0)} H:${s.day_high?.toFixed(0)} L:${s.day_low?.toFixed(0)} C:${s.day_close?.toFixed(0)}`;
+
+  document.getElementById('bn-atr').textContent = `${s.atr} pts`;
+
+  // Key levels
+  const lvl = (label, val, extra) => `<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">${label}</span><span style="color:var(--text);font-weight:600">${val?.toLocaleString('en-IN') || '—'}${extra || ''}</span></div>`;
+  document.getElementById('bn-levels-grid').innerHTML = [
+    lvl('PDH', s.pdh), lvl('PDL', s.pdl),
+    lvl('Week High', s.week_high), lvl('Week Low', s.week_low),
+    lvl('ORB High', s.orb_high), lvl('ORB Low', s.orb_low),
+    lvl('Day High', s.day_high), lvl('Day Low', s.day_low),
+  ].join('');
+
+  // OI levels
+  let oiSummary = null;
+  try { oiSummary = typeof s.oi_summary === 'string' ? JSON.parse(s.oi_summary) : s.oi_summary; } catch(e) {}
+  if (oiSummary) {
+    const topCE = (oiSummary.top_ce_strikes || []).map(x => `${x.strike?.toLocaleString('en-IN')} (${(x.oi/100000).toFixed(1)}L)`).join(', ');
+    const topPE = (oiSummary.top_pe_strikes || []).map(x => `${x.strike?.toLocaleString('en-IN')} (${(x.oi/100000).toFixed(1)}L)`).join(', ');
+    document.getElementById('bn-oi-grid').innerHTML = [
+      lvl('Max Pain', s.max_pain),
+      lvl('PCR (ATM±5)', s.pcr),
+      `<div style="grid-column:1/-1"><span style="color:var(--muted);font-size:10px">🔴 Resistance (CE OI):</span> <span style="font-size:10px;color:#EF4444">${topCE}</span></div>`,
+      `<div style="grid-column:1/-1"><span style="color:var(--muted);font-size:10px">🟢 Support (PE OI):</span> <span style="font-size:10px;color:#22C55E">${topPE}</span></div>`,
+    ].join('');
+  } else {
+    document.getElementById('bn-oi-grid').innerHTML = '<span style="color:var(--muted)">No OI data</span>';
+  }
+
+  // Big candles
+  let bigCandles = [];
+  try { bigCandles = typeof s.big_candles === 'string' ? JSON.parse(s.big_candles) : (s.big_candles || []); } catch(e) {}
+  if (bigCandles.length) {
+    document.getElementById('bn-big-candles').innerHTML = bigCandles.map(bc => {
+      const icon = bc.direction === 'bull' ? '🟢' : '🔴';
+      return `<div>${icon} <b>${bc.time}</b> — ${bc.body_pts} pts ${bc.direction === 'bull' ? '↑' : '↓'} <span style="color:var(--muted)">(O:${bc.open?.toFixed(0)} → C:${bc.close?.toFixed(0)})</span></div>`;
+    }).join('');
+  } else {
+    document.getElementById('bn-big-candles').innerHTML = '<span style="color:var(--muted)">No big candles today (all <150 pts)</span>';
+  }
+
+  // Level breaks
+  let levelBreaks = [];
+  try { levelBreaks = typeof s.level_breaks === 'string' ? JSON.parse(s.level_breaks) : (s.level_breaks || []); } catch(e) {}
+  if (levelBreaks.length) {
+    document.getElementById('bn-level-breaks').innerHTML = levelBreaks.map(lb => {
+      const icon = lb.direction === 'above' ? '⬆️' : '⬇️';
+      const color = lb.direction === 'above' ? '#22C55E' : '#EF4444';
+      return `<div>${icon} <b style="color:${color}">${lb.name}</b> (${lb.price?.toLocaleString('en-IN')}) at <b>${lb.break_time}</b></div>`;
+    }).join('');
+  } else {
+    document.getElementById('bn-level-breaks').innerHTML = '<span style="color:var(--muted)">No key levels broken today</span>';
+  }
+
+  document.getElementById('bn-session-date').textContent = `Session: ${s.session_date} · Last updated: ${new Date(s.created_at).toLocaleTimeString('en-IN')}`;
+}
+
+// ── TAB 2: Strategy Tracker ──────────────────────
+async function loadBNStrategy() {
+  bnTradesData = await fetchBNTrades();
+  renderBNStrategy();
+}
+
+function renderBNStrategy() {
+  const trades = bnTradesData || [];
+  if (!trades.length) return;
+
+  const wins = trades.filter(t => t.pnl > 0);
+  const losses = trades.filter(t => t.pnl < 0);
+  const totalPnl = trades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+  const avgWin = wins.length ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0;
+  const avgLoss = losses.length ? losses.reduce((s, t) => s + t.pnl, 0) / losses.length : 0;
+
+  document.getElementById('bn-st-total').textContent = trades.length;
+  document.getElementById('bn-st-winrate').innerHTML = `<span style="color:${wins.length/trades.length > 0.5 ? '#22C55E' : '#EF4444'}">${(wins.length / trades.length * 100).toFixed(0)}%</span>`;
+  document.getElementById('bn-st-avgwin').innerHTML = `<span style="color:#22C55E">₹${avgWin.toFixed(0)}</span>`;
+  document.getElementById('bn-st-avgloss').innerHTML = `<span style="color:#EF4444">₹${avgLoss.toFixed(0)}</span>`;
+  document.getElementById('bn-st-pnl').innerHTML = `<span style="color:${totalPnl >= 0 ? '#22C55E' : '#EF4444'}">₹${totalPnl.toFixed(0)}</span>`;
+
+  // Best day
+  const byDate = {};
+  trades.forEach(t => { byDate[t.session_date] = (byDate[t.session_date] || 0) + (t.pnl || 0); });
+  const bestDay = Object.entries(byDate).sort((a, b) => b[1] - a[1])[0];
+  document.getElementById('bn-st-best').textContent = bestDay ? `₹${bestDay[1].toFixed(0)} (${bestDay[0]})` : '—';
+
+  // Win rate by entry type
+  const byType = {};
+  trades.forEach(t => {
+    const tp = t.entry_type || 'unknown';
+    if (!byType[tp]) byType[tp] = { total: 0, wins: 0 };
+    byType[tp].total++;
+    if (t.pnl > 0) byType[tp].wins++;
+  });
+  const typeLabels = { orb_break: '📐 ORB Break', level_break: '💥 Level Break', reentry: '🔄 Re-entry', consolidation_bo: '📦 Consol BO', unknown: '❓ Other' };
+  document.getElementById('bn-winrate-by-type').innerHTML = Object.entries(byType).map(([tp, d]) => {
+    const wr = (d.wins / d.total * 100).toFixed(0);
+    const color = wr >= 50 ? '#22C55E' : '#EF4444';
+    return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+      <div style="font-weight:600;color:var(--text)">${typeLabels[tp] || tp}</div>
+      <div style="font-size:16px;font-weight:700;color:${color}">${wr}%</div>
+      <div style="color:var(--muted);font-size:10px">${d.wins}W / ${d.total - d.wins}L (${d.total} trades)</div>
+    </div>`;
+  }).join('');
+
+  // Win rate by time
+  const byTime = {};
+  trades.forEach(t => {
+    if (!t.entry_time) return;
+    const hour = t.entry_time.split(':')[0];
+    const bucket = `${hour}:00`;
+    if (!byTime[bucket]) byTime[bucket] = { total: 0, wins: 0 };
+    byTime[bucket].total++;
+    if (t.pnl > 0) byTime[bucket].wins++;
+  });
+  document.getElementById('bn-winrate-by-time').innerHTML = Object.entries(byTime).sort().map(([tm, d]) => {
+    const wr = (d.wins / d.total * 100).toFixed(0);
+    const color = wr >= 50 ? '#22C55E' : '#EF4444';
+    return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;text-align:center">
+      <div style="font-weight:600;color:var(--text);font-size:10px">${tm}</div>
+      <div style="font-size:14px;font-weight:700;color:${color}">${wr}%</div>
+      <div style="color:var(--muted);font-size:9px">${d.total} trades</div>
+    </div>`;
+  }).join('') || '<span style="color:var(--muted)">Log trades with entry times to see</span>';
+
+  // Trade history table
+  document.getElementById('bn-trade-history').innerHTML = `<table style="width:100%;border-collapse:collapse">
+    <tr style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">
+      <th style="text-align:left;padding:4px">Date</th><th>Dir</th><th>Type</th><th>Entry</th><th>Exit</th><th>P&L</th><th>Notes</th>
+    </tr>
+    ${trades.slice(0, 20).map(t => {
+      const pnlColor = t.pnl >= 0 ? '#22C55E' : '#EF4444';
+      return `<tr style="border-top:1px solid var(--border)">
+        <td style="padding:4px">${t.session_date}</td>
+        <td style="text-align:center;color:${t.direction === 'CE' ? '#22C55E' : '#EF4444'};font-weight:600">${t.direction}</td>
+        <td style="text-align:center;font-size:10px">${t.entry_type || '—'}</td>
+        <td style="text-align:center">₹${t.entry_premium || '—'}</td>
+        <td style="text-align:center">₹${t.exit_premium || '—'}</td>
+        <td style="text-align:center;color:${pnlColor};font-weight:600">₹${t.pnl?.toFixed(0) || '—'}</td>
+        <td style="font-size:10px;color:var(--muted)">${t.notes || ''}</td>
+      </tr>`;
+    }).join('')}
+  </table>`;
+}
+
+async function saveBNTrade() {
+  const dir = document.getElementById('bn-t-dir').value;
+  const type = document.getElementById('bn-t-type').value;
+  const etime = document.getElementById('bn-t-etime').value;
+  const xtime = document.getElementById('bn-t-xtime').value;
+  const strike = parseFloat(document.getElementById('bn-t-strike').value) || null;
+  const entry = parseFloat(document.getElementById('bn-t-entry').value) || 0;
+  const exit = parseFloat(document.getElementById('bn-t-exit').value) || 0;
+  const sl = parseFloat(document.getElementById('bn-t-sl').value) || null;
+  const notes = document.getElementById('bn-t-notes').value;
+
+  const pnl = exit - entry;
+  const pnl_pct = entry > 0 ? (pnl / entry * 100) : 0;
+  const today = new Date().toISOString().split('T')[0];
+
+  const record = {
+    session_date: today, direction: dir, entry_type: type,
+    entry_time: etime, exit_time: xtime, strike_price: strike,
+    entry_premium: entry, exit_premium: exit, sl_premium: sl,
+    pnl: pnl, pnl_pct: Math.round(pnl_pct * 100) / 100, notes: notes
+  };
+
+  try {
+    const url = `${CONFIG.supabaseUrl}/rest/v1/banknifty_trades`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(record)
+    });
+    if (resp.ok) {
+      document.getElementById('bn-trade-form').style.display = 'none';
+      // Clear form
+      ['bn-t-strike','bn-t-entry','bn-t-exit','bn-t-sl','bn-t-notes'].forEach(id => document.getElementById(id).value = '');
+      loadBNStrategy();
+    } else {
+      alert('Save failed: ' + resp.statusText);
+    }
+  } catch (e) { alert('Save error: ' + e.message); }
+}
+
+// ── TAB 3: Pattern Lab ──────────────────────────
+async function loadBNPatterns() {
+  bnPatternsData = await fetchBNPatterns();
+  bnAllSessions = await fetchBNSessions(30);
+  renderBNPatterns();
+}
+
+function renderBNPatterns() {
+  // Auto-tracked patterns from session data
+  const sessions = bnAllSessions || [];
+  if (sessions.length >= 3) {
+    const autoPatterns = [];
+
+    // Pattern 1: ORB type vs day outcome
+    const narrowORB = sessions.filter(s => !s.is_wide_orb);
+    const wideORB = sessions.filter(s => s.is_wide_orb);
+    const narrowTrending = narrowORB.filter(s => s.day_type?.includes('trending'));
+    const wideTrending = wideORB.filter(s => s.day_type?.includes('trending'));
+    if (narrowORB.length >= 2) autoPatterns.push({ name: 'Narrow ORB → Trending Day', rate: narrowORB.length ? (narrowTrending.length / narrowORB.length * 100).toFixed(0) : 0, sample: narrowORB.length, desc: 'How often does a narrow ORB lead to a trending day?' });
+    if (wideORB.length >= 2) autoPatterns.push({ name: 'Wide ORB → Range Day', rate: wideORB.length ? (wideORB.filter(s => s.day_type === 'range').length / wideORB.length * 100).toFixed(0) : 0, sample: wideORB.length, desc: 'How often does a wide ORB lead to ranging?' });
+
+    // Pattern 2: Big candle → continuation vs pullback
+    let bigCandleDays = 0, bigCandleTrending = 0;
+    sessions.forEach(s => {
+      let bc = []; try { bc = typeof s.big_candles === 'string' ? JSON.parse(s.big_candles) : (s.big_candles || []); } catch(e) {}
+      if (bc.length > 0) { bigCandleDays++; if (s.day_type?.includes('trending')) bigCandleTrending++; }
+    });
+    if (bigCandleDays >= 2) autoPatterns.push({ name: 'Big Candle Day → Trending', rate: (bigCandleTrending / bigCandleDays * 100).toFixed(0), sample: bigCandleDays, desc: '150+ pt candle days that ended as trending vs range' });
+
+    // Pattern 3: Range vs ATR
+    const aboveATR = sessions.filter(s => s.range_vs_atr > 1);
+    const belowATR = sessions.filter(s => s.range_vs_atr <= 0.7);
+    if (aboveATR.length >= 2) autoPatterns.push({ name: 'Above-ATR Range Days', rate: (aboveATR.filter(s => s.day_type?.includes('trending')).length / aboveATR.length * 100).toFixed(0), sample: aboveATR.length, desc: 'Days where range > ATR — trend strength indicator' });
+
+    // Pattern 4: Day type distribution
+    const dayTypes = {};
+    sessions.forEach(s => { dayTypes[s.day_type] = (dayTypes[s.day_type] || 0) + 1; });
+    autoPatterns.push({ name: 'Day Type Distribution', rate: null, sample: sessions.length, desc: Object.entries(dayTypes).map(([k, v]) => `${k}: ${v}`).join(' | ') });
+
+    document.getElementById('bn-auto-patterns').innerHTML = autoPatterns.map(p => `
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:600;color:var(--text)">${p.name}</div>
+          <div style="font-size:10px;color:var(--muted)">${p.desc}</div>
+        </div>
+        <div style="text-align:right">
+          ${p.rate !== null ? `<div style="font-size:18px;font-weight:700;color:${p.rate >= 50 ? '#22C55E' : '#EF4444'}">${p.rate}%</div>` : ''}
+          <div style="font-size:9px;color:var(--muted)">${p.sample} sessions</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // User observations
+  const patterns = bnPatternsData.filter(p => !p.auto_tracked) || [];
+  if (patterns.length) {
+    document.getElementById('bn-user-patterns').innerHTML = patterns.map(p => `
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:6px">
+        <div style="font-weight:600;color:var(--text)">${p.pattern_name}</div>
+        <div style="font-size:10px;color:var(--muted)">${p.description || ''}</div>
+        ${p.sample_count > 0 ? `<div style="margin-top:4px;font-size:11px">Win rate: <b style="color:${p.win_rate >= 50 ? '#22C55E' : '#EF4444'}">${p.win_rate}%</b> (${p.sample_count} samples)</div>` : '<div style="margin-top:4px;font-size:10px;color:var(--amber)">Tracking — no data yet</div>'}
+      </div>
+    `).join('');
+  }
+}
+
+async function saveBNObservation() {
+  const name = document.getElementById('bn-obs-name').value.trim();
+  const desc = document.getElementById('bn-obs-desc').value.trim();
+  if (!name) { alert('Enter a pattern name'); return; }
+  try {
+    const url = `${CONFIG.supabaseUrl}/rest/v1/banknifty_patterns`;
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ pattern_name: name, description: desc, auto_tracked: false })
+    });
+    document.getElementById('bn-obs-form').style.display = 'none';
+    document.getElementById('bn-obs-name').value = '';
+    document.getElementById('bn-obs-desc').value = '';
+    loadBNPatterns();
+  } catch (e) { alert('Save error: ' + e.message); }
+}
+
+// ── TAB 4: EOD Post-Mortem ──────────────────────
+async function loadBNPostMortem(which) {
+  const sessions = bnAllSessions.length ? bnAllSessions : await fetchBNSessions(10);
+  bnAllSessions = sessions;
+  if (!sessions.length) {
+    document.getElementById('bn-pm-content').innerHTML = '<span style="color:var(--muted)">No session data yet. The tracker runs EOD at 4 PM IST.</span>';
+    return;
+  }
+  // Populate date dropdown
+  const sel = document.getElementById('bn-pm-date-sel');
+  if (sel.options.length <= 1) {
+    sessions.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.session_date;
+      opt.textContent = s.session_date;
+      sel.appendChild(opt);
+    });
+  }
+  let session;
+  if (!which || which === 'today') session = sessions[0];
+  else if (which === 'prev') session = sessions[1] || sessions[0];
+  else session = sessions.find(s => s.session_date === which) || sessions[0];
+
+  renderBNPostMortem(session);
+}
+
+function renderBNPostMortem(s) {
+  if (!s) return;
+  const dayTypeMap = { trending_bull:'🟢 <b>Trending Bull</b>', trending_bear:'🔴 <b>Trending Bear</b>', reversal_bull:'🔄 Reversal Bull', reversal_bear:'🔄 Reversal Bear', range:'🟡 Range Day', consolidation_bo:'🔵 Consolidation → Breakout' };
+  const dt = dayTypeMap[s.day_type] || s.day_type;
+  const orbType = s.is_wide_orb ? '<span style="color:#F97316">WIDE</span>' : '<span style="color:#22C55E">NARROW</span>';
+  const trendEmoji = s.daily_trend === 'bull' ? '🟢 Bullish' : s.daily_trend === 'bear' ? '🔴 Bearish' : '🟡 Neutral';
+
+  let bigCandles = []; try { bigCandles = typeof s.big_candles === 'string' ? JSON.parse(s.big_candles) : (s.big_candles || []); } catch(e) {}
+  let levelBreaks = []; try { levelBreaks = typeof s.level_breaks === 'string' ? JSON.parse(s.level_breaks) : (s.level_breaks || []); } catch(e) {}
+  let oiSummary = null; try { oiSummary = typeof s.oi_summary === 'string' ? JSON.parse(s.oi_summary) : s.oi_summary; } catch(e) {}
+
+  let html = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">📊 ${s.session_date} — ${dt}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px;font-size:12px">
+        <div>Open: <b>${s.day_open?.toFixed(0)}</b> | High: <b style="color:#22C55E">${s.day_high?.toFixed(0)}</b> | Low: <b style="color:#EF4444">${s.day_low?.toFixed(0)}</b> | Close: <b>${s.day_close?.toFixed(0)}</b></div>
+        <div>Range: <b>${s.day_range}</b> pts | ATR: ${s.atr} | Range/ATR: <b>${s.range_vs_atr}</b></div>
+        <div>Change: <b style="color:${s.day_chg_pts >= 0 ? '#22C55E' : '#EF4444'}">${s.day_chg_pts >= 0 ? '+' : ''}${s.day_chg_pts} pts (${s.day_chg_pct}%)</b></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">📐 ORB: ${orbType} (${s.orb_range} pts)</div>
+        <div style="font-size:12px">High: ${s.orb_high?.toFixed(0)} | Low: ${s.orb_low?.toFixed(0)}</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">📉 EMA: ${trendEmoji}</div>
+        <div style="font-size:12px">9E: ${s.ema9_daily?.toFixed(0)} | 20E: ${s.ema20_daily?.toFixed(0)}</div>
+      </div>
+    </div>`;
+
+  if (oiSummary) {
+    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">💹 Option Chain</div>
+      <div style="font-size:12px">Max Pain: <b>${s.max_pain?.toLocaleString('en-IN')}</b> | PCR: <b>${s.pcr}</b> | CE Resistance: <b style="color:#EF4444">${oiSummary.highest_oi_ce_strike?.toLocaleString('en-IN')}</b> | PE Support: <b style="color:#22C55E">${oiSummary.highest_oi_pe_strike?.toLocaleString('en-IN')}</b></div>
+    </div>`;
+  }
+
+  if (bigCandles.length) {
+    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">⚡ Big Candles</div>
+      ${bigCandles.map(bc => `<div style="font-size:12px">${bc.direction === 'bull' ? '🟢' : '🔴'} <b>${bc.time}</b> — ${bc.body_pts} pts (O:${bc.open?.toFixed(0)} → C:${bc.close?.toFixed(0)})</div>`).join('')}
+    </div>`;
+  }
+
+  if (levelBreaks.length) {
+    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">💥 Level Breaks</div>
+      ${levelBreaks.map(lb => `<div style="font-size:12px">${lb.direction === 'above' ? '⬆️' : '⬇️'} <b>${lb.name}</b> (${lb.price?.toLocaleString('en-IN')}) at ${lb.break_time}</div>`).join('')}
+    </div>`;
+  }
+
+  html += `<div style="background:rgba(6,214,160,0.05);border:1px solid rgba(6,214,160,0.2);border-radius:10px;padding:12px 16px">
+    <div style="font-size:11px;font-weight:600;color:#06D6A0;margin-bottom:6px">🎯 Tomorrow's Reference (from this session)</div>
+    <div style="font-size:12px">PDH: <b>${s.day_high?.toFixed(0)}</b> | PDL: <b>${s.day_low?.toFixed(0)}</b> | Close: <b>${s.day_close?.toFixed(0)}</b></div>
+    ${oiSummary ? `<div style="font-size:12px">OI Support: <b style="color:#22C55E">${oiSummary.highest_oi_pe_strike?.toLocaleString('en-IN')}</b> | OI Resistance: <b style="color:#EF4444">${oiSummary.highest_oi_ce_strike?.toLocaleString('en-IN')}</b> | Max Pain: <b>${s.max_pain?.toLocaleString('en-IN')}</b></div>` : ''}
+  </div>`;
+
+  document.getElementById('bn-pm-content').innerHTML = html;
+}
+
+// ── TAB 5: Pre-Market Prep ──────────────────────
+async function loadBNPrep() {
+  const sessions = bnAllSessions.length ? bnAllSessions : await fetchBNSessions(5);
+  bnAllSessions = sessions;
+  if (!sessions.length) {
+    document.getElementById('bn-prep-levels').innerHTML = '<span style="color:var(--muted)">No data yet</span>';
+    return;
+  }
+  const prev = sessions[0]; // Most recent session = yesterday
+
+  // Key levels
+  const lvl = (label, val, note) => `<div><span style="color:var(--muted)">${label}:</span> <b style="color:var(--text)">${val?.toLocaleString('en-IN') || '—'}</b>${note ? ` <span style="font-size:10px;color:var(--muted)">${note}</span>` : ''}</div>`;
+
+  // Round number levels
+  const close = prev.day_close || 53000;
+  const roundBelow = Math.floor(close / 500) * 500;
+  const roundAbove = roundBelow + 500;
+
+  document.getElementById('bn-prep-levels').innerHTML = [
+    lvl('PDH (Resistance)', prev.day_high),
+    lvl('PDL (Support)', prev.day_low),
+    lvl('Prev Close', prev.day_close),
+    lvl('Week High', prev.week_high),
+    lvl('Week Low', prev.week_low),
+    lvl('Round Above', roundAbove),
+    lvl('Round Below', roundBelow),
+    lvl('ATR (14)', prev.atr, '— expected range'),
+  ].join('');
+
+  // OI levels
+  let oiSummary = null;
+  try { oiSummary = typeof prev.oi_summary === 'string' ? JSON.parse(prev.oi_summary) : prev.oi_summary; } catch(e) {}
+  if (oiSummary) {
+    document.getElementById('bn-prep-oi').innerHTML = [
+      lvl('Max Pain', prev.max_pain, '— magnet level'),
+      lvl('OI CE Resistance', oiSummary.highest_oi_ce_strike, `(${(oiSummary.highest_oi_ce_oi/100000).toFixed(1)}L OI)`),
+      lvl('OI PE Support', oiSummary.highest_oi_pe_strike, `(${(oiSummary.highest_oi_pe_oi/100000).toFixed(1)}L OI)`),
+      lvl('PCR (ATM±5)', prev.pcr, prev.pcr > 1.2 ? '— bullish bias' : prev.pcr < 0.8 ? '— bearish bias' : '— neutral'),
+    ].join('');
+  } else {
+    document.getElementById('bn-prep-oi').innerHTML = '<span style="color:var(--muted)">No OI data from previous session</span>';
+  }
+
+  // Scenarios
+  const trendLabel = prev.daily_trend === 'bull' ? '🟢 Bullish' : prev.daily_trend === 'bear' ? '🔴 Bearish' : '🟡 Neutral';
+  document.getElementById('bn-prep-scenarios').innerHTML = `
+    <div style="margin-bottom:8px"><b>Daily Trend:</b> ${trendLabel} (9E: ${prev.ema9_daily?.toFixed(0)} | 20E: ${prev.ema20_daily?.toFixed(0)})</div>
+    <div style="background:rgba(34,197,94,0.06);border-left:3px solid #22C55E;padding:8px 12px;border-radius:0 8px 8px 0;margin-bottom:6px">
+      <b style="color:#22C55E">📈 If opens above ${prev.day_high?.toFixed(0)} (PDH):</b><br>
+      Gap up — watch for continuation toward ${roundAbove}${oiSummary ? ` / OI resistance ${oiSummary.highest_oi_ce_strike}` : ''}. If ORB is narrow, breakout setup likely.
+    </div>
+    <div style="background:rgba(239,68,68,0.06);border-left:3px solid #EF4444;padding:8px 12px;border-radius:0 8px 8px 0;margin-bottom:6px">
+      <b style="color:#EF4444">📉 If opens below ${prev.day_low?.toFixed(0)} (PDL):</b><br>
+      Gap down — watch for ${roundBelow} support${oiSummary ? ` / OI support ${oiSummary.highest_oi_pe_strike}` : ''}. Counter-trend caution if daily trend is ${prev.daily_trend}.
+    </div>
+    <div style="background:rgba(251,191,36,0.06);border-left:3px solid var(--amber);padding:8px 12px;border-radius:0 8px 8px 0">
+      <b style="color:var(--amber)">🟡 If opens inside range (${prev.day_low?.toFixed(0)} - ${prev.day_high?.toFixed(0)}):</b><br>
+      Wait for ORB formation. Narrow ORB → high probability breakout setup. Wide ORB → look for reversal at key levels or consolidation before move.${prev.pcr ? ` PCR ${prev.pcr} suggests ${prev.pcr > 1.2 ? 'bullish' : prev.pcr < 0.8 ? 'bearish' : 'neutral'} bias.` : ''}
+    </div>
+  `;
+}
 
 // Initialize multi-select dropdowns for ALL tabs
 setTimeout(() => {
