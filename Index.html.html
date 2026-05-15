@@ -5416,6 +5416,9 @@ function renderMomTab(tab) {
 }
 
 // ── LOAD DATA ─────────────────────────────────────────
+// Global quality filter — remove penny/circuit stocks below ₹100
+const MOM_MIN_PRICE = 100;
+
 async function loadMomScanner() {
   try {
     const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=*&is_active=eq.true&order=session_date.desc,momentum_score.desc&limit=2000';
@@ -5426,9 +5429,8 @@ async function loadMomScanner() {
       document.getElementById('scanner-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">📡</div><div class="mom-empty-text">No momentum data yet</div><div class="mom-empty-sub">Backfill is running — check back after Telegram notification</div></div></td></tr>';
       return;
     }
-    // Get latest date only
     const latestDate = data[0].session_date;
-    momData.scanner = data.filter(s => s.session_date === latestDate);
+    momData.scanner = data.filter(s => s.session_date === latestDate && (s.ltp || 0) >= MOM_MIN_PRICE);
     document.getElementById('scanner-updated').textContent = 'Updated: ' + latestDate + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     // Build Fresh Crossover map — stocks with daily 9 EMA crossover in last 5 days
     const now = new Date();
@@ -5471,7 +5473,7 @@ async function loadMomEMA() {
       ...c,
       ...(stockMap[c.symbol] || {}),
       crossover_type_display: c.crossover_type,
-    }));
+    })).filter(s => (s.ltp || 0) >= MOM_MIN_PRICE);
     document.getElementById('ema-updated').textContent = 'Updated: ' + (latestDate || '—') + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     // Populate sector dropdown
     const sectors = [...new Set(momData.ema.map(s => s.sector).filter(Boolean))].sort();
@@ -5494,7 +5496,7 @@ async function loadMomSharp() {
     }
     const latestDate = data[0].session_date;
     // QM-only filter: keep stocks with a QM pattern OR EMA reclaim
-    momData.sharp = data.filter(s => s.session_date === latestDate && (s.qm_pattern || s.qm_ema_reclaim));
+    momData.sharp = data.filter(s => s.session_date === latestDate && (s.qm_pattern || s.qm_ema_reclaim) && (s.ltp || 0) >= MOM_MIN_PRICE);
     document.getElementById('sharp-updated').textContent = 'Updated: ' + latestDate + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     // Load excluded
     const url2 = CONFIG.supabaseUrl + '/rest/v1/momentum_excluded?select=symbol';
@@ -5540,7 +5542,7 @@ async function loadMomPicks() {
       notes: p.notes,
       move_since_star: stockMap[p.symbol] && p.ref_price ? round2((stockMap[p.symbol].ltp - p.ref_price) / p.ref_price * 100) : null,
       days_starred: daysSince(p.starred_at),
-    }));
+    })).filter(s => (s.ltp || 0) >= MOM_MIN_PRICE);
     document.getElementById('picks-updated').textContent = 'Updated: ' + (latestDate || '—') + ' · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     renderPicks();
   } catch(e) { console.error('Picks load error:', e); }
@@ -5554,7 +5556,7 @@ async function loadMomExited() {
     const data = await resp.json();
     // Deduplicate by symbol, keep latest
     const seen = new Set();
-    momData.exited = (data || []).filter(s => { if (seen.has(s.symbol)) return false; seen.add(s.symbol); return true; });
+    momData.exited = (data || []).filter(s => { if (seen.has(s.symbol)) return false; seen.add(s.symbol); return true; }).filter(s => (s.ltp || 0) >= MOM_MIN_PRICE);
     document.getElementById('exited-updated').textContent = `${momData.exited.length} stocks`;
     renderExited();
   } catch(e) { console.error('Exited load error:', e); }
