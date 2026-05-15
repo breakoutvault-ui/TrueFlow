@@ -1752,36 +1752,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <button class="sort-btn" data-filter-group="scanner-score" data-filter-val="watch" onclick="toggleMultiFilter('scanner','score','watch',this)" title="Watch: Score 40-59 — early stage, keep on radar">👀 Watch</button>
           </div>
           <!-- Signal filter -->
-          <select class="sort-sel" onchange="setMomSelectFilter('scanner','signal',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="Filter by signal type">
-            <option value="all">All Signals</option>
-            <option value="crossover">🔄 Crossover</option>
-            <option value="breakout">📈 Breakout</option>
-            <option value="sharp">⚡ Sharp Mover</option>
-            <option value="reentry">🔁 Re-entry</option>
-          </select>
-          <!-- Daily EMA Zone filter -->
-          <select class="sort-sel" onchange="setMomSelectFilter('scanner','zoneD',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Daily 9 EMA">
-            <option value="all">Daily EMA Zone: All</option>
-            <option value="in">🟢 In Zone (&lt;3%)</option>
-            <option value="near">🟡 Near (3-5%)</option>
-            <option value="far">🔴 Far (&gt;5%)</option>
-          </select>
-          <!-- Weekly EMA Zone filter -->
-          <select class="sort-sel" onchange="setMomSelectFilter('scanner','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Weekly 9 EMA">
-            <option value="all">Weekly EMA Zone: All</option>
-            <option value="in">🟢 In Zone (&lt;3%)</option>
-            <option value="near">🟡 Near (3-5%)</option>
-            <option value="far">🔴 Far (&gt;5%)</option>
-          </select>
-          <!-- % from 52W filter -->
-          <select class="sort-sel" onchange="setMomSelectFilter('scanner','dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% away from 52-week high">
-            <option value="all">52W Distance: All</option>
-            <option value="b1">&lt;5% (near breakout)</option>
-            <option value="b2">5-10%</option>
-            <option value="b3">10-15%</option>
-            <option value="b4">15-20%</option>
-            <option value="b5">&gt;20%</option>
-          </select>
+          <div id="ms-scanner-signal-wrap" style="display:inline-block"></div>
+          <div id="ms-scanner-zoneD-wrap" style="display:inline-block"></div>
+          <div id="ms-scanner-zoneW-wrap" style="display:inline-block"></div>
+          <div id="ms-scanner-dist52-wrap" style="display:inline-block"></div>
+          <div id="ms-scanner-result-wrap" style="display:inline-block"></div>
           <!-- Sector filter -->
           <select class="sort-sel" id="scanner-sector-filter" onchange="setMomSelectFilter('scanner','sector',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none">
             <option value="all">All Sectors</option>
@@ -1872,34 +1847,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <button class="sort-btn" data-filter-group="ema-score" data-filter-val="building" onclick="toggleMultiFilter('ema','score','building',this)" title="Building: Score 60-79">⚡ Building</button>
             <button class="sort-btn" data-filter-group="ema-score" data-filter-val="watch" onclick="toggleMultiFilter('ema','score','watch',this)" title="Watch: Score 40-59">👀 Watch</button>
           </div>
-          <select class="sort-sel" id="ema-breakout-filter" onchange="setMomSelectFilter('ema','breakout',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="Filter by breakout type">
-            <option value="all">All Breakouts</option>
-            <option value="ATH">ATH Breakout</option>
-            <option value="5Y">5 Year High</option>
-            <option value="3Y">3 Year High</option>
-            <option value="52W">52W High</option>
-            <option value="none">No Breakout</option>
-          </select>
-          <select class="sort-sel" onchange="setMomSelectFilter('ema','zoneD',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Daily 9 EMA">
-            <option value="all">Daily EMA Zone: All</option>
-            <option value="in">🟢 In Zone (&lt;3%)</option>
-            <option value="near">🟡 Near (3-5%)</option>
-            <option value="far">🔴 Far (&gt;5%)</option>
-          </select>
-          <select class="sort-sel" onchange="setMomSelectFilter('ema','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Weekly 9 EMA">
-            <option value="all">Weekly EMA Zone: All</option>
-            <option value="in">🟢 In Zone (&lt;3%)</option>
-            <option value="near">🟡 Near (3-5%)</option>
-            <option value="far">🔴 Far (&gt;5%)</option>
-          </select>
-          <select class="sort-sel" onchange="setMomSelectFilter('ema','dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% away from 52-week high">
-            <option value="all">52W Distance: All</option>
-            <option value="b1">&lt;5% (near breakout)</option>
-            <option value="b2">5-10%</option>
-            <option value="b3">10-15%</option>
-            <option value="b4">15-20%</option>
-            <option value="b5">&gt;20%</option>
-          </select>
+          <div id="ms-ema-breakout-wrap" style="display:inline-block"></div>
+          <div id="ms-ema-zoneD-wrap" style="display:inline-block"></div>
+          <div id="ms-ema-zoneW-wrap" style="display:inline-block"></div>
+          <div id="ms-ema-dist52-wrap" style="display:inline-block"></div>
+          <div id="ms-ema-result-wrap" style="display:inline-block"></div>
           <select class="sort-sel" id="ema-sector-filter" onchange="setMomSelectFilter('ema','sector',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none">
             <option value="all">All Sectors</option>
           </select>
@@ -2013,6 +1965,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <div id="ms-sharp-zoneD-wrap" style="display:inline-block"></div>
           <div id="ms-sharp-zoneW-wrap" style="display:inline-block"></div>
           <div id="ms-sharp-dist52-wrap" style="display:inline-block"></div>
+          <div id="ms-sharp-result-wrap" style="display:inline-block"></div>
           <select class="sort-sel" id="sharp-sector-filter" onchange="setMomSelectFilter('sharp','sector',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none">
             <option value="all">All Sectors</option>
           </select>
@@ -2112,20 +2065,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <button class="sort-btn" data-filter-group="picks-zone" data-filter-val="near" onclick="toggleMultiFilter('picks','zone','near',this)" title="NEAR: 3-5% from daily 9 EMA — watch for further pullback">🟡 Near</button>
             <button class="sort-btn" data-filter-group="picks-zone" data-filter-val="far" onclick="toggleMultiFilter('picks','zone','far',this)" title="FAR: More than 5% from daily 9 EMA — stock extended, avoid fresh entry">🔴 Far</button>
           </div>
-          <select class="sort-sel" onchange="setMomSelectFilter('picks','zoneW',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% distance from Weekly 9 EMA">
-            <option value="all">Weekly EMA Zone: All</option>
-            <option value="in">🟢 In Zone (&lt;3%)</option>
-            <option value="near">🟡 Near (3-5%)</option>
-            <option value="far">🔴 Far (&gt;5%)</option>
-          </select>
-          <select class="sort-sel" onchange="setMomSelectFilter('picks','dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="% away from 52-week high">
-            <option value="all">52W Distance: All</option>
-            <option value="b1">&lt;5% (near breakout)</option>
-            <option value="b2">5-10%</option>
-            <option value="b3">10-15%</option>
-            <option value="b4">15-20%</option>
-            <option value="b5">&gt;20%</option>
-          </select>
+          <div id="ms-picks-zoneW-wrap" style="display:inline-block"></div>
+          <div id="ms-picks-dist52-wrap" style="display:inline-block"></div>
+          <div id="ms-picks-result-wrap" style="display:inline-block"></div>
           <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
           <div id="picks-color-filter" style="display:flex;gap:3px"></div>
         </div>
@@ -7030,6 +6972,23 @@ renderScanner = function() {
     if (f.signal === 'sharp')     data = data.filter(s => s.is_sharp_mover);
     if (f.signal === 'reentry')   data = data.filter(s => s.is_reentry);
   }
+  // Multi-select signal filter
+  const sigSet = multiSelectFilters['scanner-signal'];
+  if (sigSet && sigSet.size > 0) {
+    data = data.filter(s => {
+      if (sigSet.has('crossover') && (s.daily_crossover_date || s.weekly_crossover_date)) return true;
+      if (sigSet.has('breakout') && s.breakout_type) return true;
+      if (sigSet.has('sharp') && s.is_sharp_mover) return true;
+      if (sigSet.has('reentry') && s.is_reentry) return true;
+      return false;
+    });
+  }
+  // Multi-select zone/dist52/result filters
+  data = data.filter(s => msZoneFilterPass('scanner', 'zoneD', s.pct_from_ema9_daily));
+  data = data.filter(s => msZoneFilterPass('scanner', 'zoneW', s.pct_from_ema9_weekly));
+  data = data.filter(s => msDist52FilterPass('scanner', 'dist52', s.ltp, s.high_52w));
+  data = data.filter(s => msResultFilterPass('scanner', s.symbol));
+  // Legacy single-select fallback
   if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
   if (f.zoneW !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
   if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
@@ -7122,9 +7081,27 @@ renderEMA = function() {
     });
   }
   if (f.breakout !== 'all') { if (f.breakout === 'none') data = data.filter(s => !s.breakout_type); else data = data.filter(s => s.breakout_type === f.breakout); }
+  // Multi-select breakout filter
+  const boSet = multiSelectFilters['ema-breakout'];
+  if (boSet && boSet.size > 0) {
+    data = data.filter(s => {
+      if (boSet.has('none') && !s.breakout_type) return true;
+      if (boSet.has('ATH') && s.breakout_type === 'ATH') return true;
+      if (boSet.has('5Y') && s.breakout_type === '5Y') return true;
+      if (boSet.has('3Y') && s.breakout_type === '3Y') return true;
+      if (boSet.has('52W') && s.breakout_type === '52W') return true;
+      return false;
+    });
+  }
   if (f.sector !== 'all')   data = data.filter(s => s.sector === f.sector);
   if (f._industry)           data = data.filter(s => s.industry === f._industry);
   if (f.star)                data = data.filter(s => momStarred.has(s.symbol));
+  // Multi-select zone/dist52/result filters
+  data = data.filter(s => msZoneFilterPass('ema', 'zoneD', s.pct_from_ema9_daily));
+  data = data.filter(s => msZoneFilterPass('ema', 'zoneW', s.pct_from_ema9_weekly));
+  data = data.filter(s => msDist52FilterPass('ema', 'dist52', s.ltp, s.high_52w));
+  data = data.filter(s => msResultFilterPass('ema', s.symbol));
+  // Legacy single-select fallback
   if (f.zoneD !== 'all')     data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
   if (f.zoneW !== 'all')     data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
   if (f.dist52 !== 'all')    data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
@@ -7393,6 +7370,10 @@ renderPicks = function() {
   if (f.zoneD !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
   if (f.zoneW !== 'all')  data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
   if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+  // Multi-select zone/dist52/result filters for Picks
+  data = data.filter(s => msZoneFilterPass('picks', 'zoneW', s.pct_from_ema9_weekly));
+  data = data.filter(s => msDist52FilterPass('picks', 'dist52', s.ltp, s.high_52w));
+  data = data.filter(s => msResultFilterPass('picks', s.symbol));
   // COLOR FILTER
   data = data.filter(s => colorFilterPass(s.symbol));
   const { key, dir } = momSort.picks;
@@ -8736,7 +8717,7 @@ renderSharp = function() {
   renderSharpSetupStrip();
 };
 
-// Initialize multi-select dropdowns for Breakout Setups
+// Initialize multi-select dropdowns for ALL tabs
 setTimeout(() => {
   const zoneOpts = [
     {val:'in', label:'🟢 In Zone (<3%)'},
@@ -8750,10 +8731,66 @@ setTimeout(() => {
     {val:'b4', label:'15-20%'},
     {val:'b5', label:'>20%'}
   ];
+  const signalOpts = [
+    {val:'crossover', label:'🔄 Crossover'},
+    {val:'breakout', label:'📈 Breakout'},
+    {val:'sharp', label:'⚡ Sharp Mover'},
+    {val:'reentry', label:'🔁 Re-entry'}
+  ];
+  const breakoutOpts = [
+    {val:'ATH', label:'ATH Breakout'},
+    {val:'5Y', label:'5 Year High'},
+    {val:'3Y', label:'3 Year High'},
+    {val:'52W', label:'52W High'},
+    {val:'none', label:'No Breakout'}
+  ];
+  const resultOpts = [
+    {val:'beat', label:'🟢 Blockbuster'},
+    {val:'turn', label:'⚡ Turnaround'},
+    {val:'steady', label:'🔵 Steady'},
+    {val:'mixed', label:'🟡 Mixed'},
+    {val:'weak', label:'🔴 Weak'},
+    {val:'none', label:'— No Result'}
+  ];
+  // Scanner
+  createMultiSelect('ms-scanner-signal-wrap', 'Signal', signalOpts, 'scanner', 'signal');
+  createMultiSelect('ms-scanner-zoneD-wrap', 'Daily 9E Zone', zoneOpts, 'scanner', 'zoneD');
+  createMultiSelect('ms-scanner-zoneW-wrap', 'Weekly 9E Zone', zoneOpts, 'scanner', 'zoneW');
+  createMultiSelect('ms-scanner-dist52-wrap', '52W Distance', dist52Opts, 'scanner', 'dist52');
+  createMultiSelect('ms-scanner-result-wrap', 'Results', resultOpts, 'scanner', 'result');
+  // EMA Signals
+  createMultiSelect('ms-ema-breakout-wrap', 'Breakout Type', breakoutOpts, 'ema', 'breakout');
+  createMultiSelect('ms-ema-zoneD-wrap', 'Daily 9E Zone', zoneOpts, 'ema', 'zoneD');
+  createMultiSelect('ms-ema-zoneW-wrap', 'Weekly 9E Zone', zoneOpts, 'ema', 'zoneW');
+  createMultiSelect('ms-ema-dist52-wrap', '52W Distance', dist52Opts, 'ema', 'dist52');
+  createMultiSelect('ms-ema-result-wrap', 'Results', resultOpts, 'ema', 'result');
+  // Breakout Setups
   createMultiSelect('ms-sharp-zoneD-wrap', 'Daily 9E Zone', zoneOpts, 'sharp', 'zoneD');
   createMultiSelect('ms-sharp-zoneW-wrap', 'Weekly 9E Zone', zoneOpts, 'sharp', 'zoneW');
   createMultiSelect('ms-sharp-dist52-wrap', '52W Distance', dist52Opts, 'sharp', 'dist52');
+  createMultiSelect('ms-sharp-result-wrap', 'Results', resultOpts, 'sharp', 'result');
+  // My Picks
+  createMultiSelect('ms-picks-zoneW-wrap', 'Weekly 9E Zone', zoneOpts, 'picks', 'zoneW');
+  createMultiSelect('ms-picks-dist52-wrap', '52W Distance', dist52Opts, 'picks', 'dist52');
+  createMultiSelect('ms-picks-result-wrap', 'Results', resultOpts, 'picks', 'result');
 }, 500);
+
+// Results filter helper — checks result grade against multi-select
+function msResultFilterPass(tab, symbol) {
+  const key = `${tab}-result`;
+  if (!multiSelectFilters[key]) return true;
+  const s = multiSelectFilters[key];
+  const r = rsGetResultForSymbol(symbol);
+  if (s.has('none') && !r) return true;
+  if (!r) return false;
+  const g = (r.grade || '').toLowerCase();
+  if (s.has('beat') && (g.includes('block') || g.includes('beat'))) return true;
+  if (s.has('turn') && (g.includes('turn') || g.includes('around'))) return true;
+  if (s.has('steady') && g.includes('steady')) return true;
+  if (s.has('mixed') && g.includes('mix')) return true;
+  if (s.has('weak') && g.includes('weak')) return true;
+  return false;
+}
 </script>
 </body>
 </html>
