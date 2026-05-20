@@ -7855,6 +7855,13 @@ function rsNormalizeName(name) {
 function rsMergeAndGrade() {
   if (!rsFile1Data || !rsFile2Data) { showToast('Upload both files first', 'error'); return; }
 
+  // Load existing stored data BEFORE overwriting
+  let existingData = [];
+  try {
+    const stored = localStorage.getItem('tf_rs_merged');
+    if (stored) existingData = JSON.parse(stored);
+  } catch(e) { console.warn('RS load existing error', e); }
+
   // Build lookup from File 2 by normalized name
   const f2Map = {};
   rsFile2Data.forEach(r => {
@@ -7862,7 +7869,7 @@ function rsMergeAndGrade() {
     if (key) f2Map[key] = r;
   });
 
-  rsMergedData = rsFile1Data.map(r1 => {
+  const newData = rsFile1Data.map(r1 => {
     const name1 = r1['Stock'] || '';
     const normKey = rsNormalizeName(name1);
     // Find match in File 2
@@ -7974,6 +7981,29 @@ function rsMergeAndGrade() {
     };
   });
 
+  // === ACCUMULATIVE MERGE: merge new rows into existing stored data ===
+  // Build a map of new data by key (symbol or normalized name)
+  const newMap = {};
+  newData.forEach(r => {
+    const key = (r.symbol || rsNormalizeName(r.name)).toLowerCase();
+    if (key) newMap[key] = r;
+  });
+
+  // Start with new data, then add old rows that aren't in the new upload
+  const merged = [...newData];
+  const newCount = newData.length;
+  let keptOld = 0;
+  existingData.forEach(old => {
+    const key = (old.symbol || rsNormalizeName(old.name)).toLowerCase();
+    if (key && !newMap[key]) {
+      merged.push(old); // Keep old row — not in new upload
+      keptOld++;
+    }
+    // If key exists in newMap, the new data takes precedence (already in merged)
+  });
+
+  rsMergedData = merged;
+
   rsSaveToStorage();
   showRSUI();
   renderResultsTable();
@@ -7983,7 +8013,8 @@ function rsMergeAndGrade() {
   if (sel) {
     sel.innerHTML = '<option value="all">All Sectors</option>' + sectors.map(s => `<option value="${s}">${s}</option>`).join('');
   }
-  showToast(`✅ Merged ${rsMergedData.length} results. ${rsMergedData.filter(r=>r.grade==='blockbuster').length} Blockbusters found!`, 'success');
+  const totalMsg = keptOld > 0 ? ` (${newCount} new/updated + ${keptOld} retained from previous uploads)` : '';
+  showToast(`✅ Merged ${rsMergedData.length} results${totalMsg}. ${rsMergedData.filter(r=>r.grade==='blockbuster').length} Blockbusters found!`, 'success');
 }
 
 function showRSUI() {
