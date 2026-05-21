@@ -6287,10 +6287,23 @@ function exportMomCSV(tab) {
 
 function getVisibleMomData(tab) {
   if (tab === 'scanner') {
-    // Apply same filters as renderScanner
     const f = momFilters.scanner;
     let data = [...momData.scanner];
-    if (f.period !== 'all') {
+    // Period — multi-select
+    const periodSet = multiFilters['scanner-period'];
+    if (periodSet && periodSet.size > 0) {
+      const now = new Date(), todayStr = now.toISOString().slice(0,10);
+      const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
+      const monthStart = new Date(); monthStart.setMonth(monthStart.getMonth() - 1);
+      data = data.filter(s => {
+        if (periodSet.has('today') && s.session_date === todayStr) return true;
+        if (periodSet.has('week') && new Date(s.session_date) >= weekStart) return true;
+        if (periodSet.has('month') && new Date(s.session_date) >= monthStart) return true;
+        return false;
+      });
+    }
+    // Legacy single-select period fallback
+    if ((!periodSet || periodSet.size === 0) && f.period !== 'all') {
       const now = new Date();
       const days = f.period === 'today' ? 1 : f.period === 'week' ? 7 : 30;
       data = data.filter(s => {
@@ -6299,21 +6312,64 @@ function getVisibleMomData(tab) {
         return (now - new Date(sig)) / 86400000 <= days;
       });
     }
-    if (f.cat !== 'all') data = data.filter(s => s.category === f.cat);
-    if (f.score !== 'all') data = data.filter(s => scoreFilter(s.momentum_score || 0, f.score));
+    // Category — multi-select
+    data = data.filter(s => multiFilterPass('scanner-cat', s.category));
+    // Legacy single-select category fallback
+    if (f.cat !== 'all' && (!multiFilters['scanner-cat'] || multiFilters['scanner-cat'].size === 0)) data = data.filter(s => s.category === f.cat);
+    // Score — multi-select
+    const scoreSet = multiFilters['scanner-score'];
+    if (scoreSet && scoreSet.size > 0) {
+      data = data.filter(s => {
+        const sc = s.momentum_score || 0;
+        if (scoreSet.has('high') && sc >= 80) return true;
+        if (scoreSet.has('building') && sc >= 60 && sc < 80) return true;
+        if (scoreSet.has('watch') && sc >= 40 && sc < 60) return true;
+        return false;
+      });
+    }
+    // Legacy single-select score fallback
+    if ((!scoreSet || scoreSet.size === 0) && f.score !== 'all') data = data.filter(s => scoreFilter(s.momentum_score || 0, f.score));
+    // Signal — legacy single-select
     if (f.signal !== 'all') {
       if (f.signal === 'crossover') data = data.filter(s => s.daily_crossover_date || s.weekly_crossover_date);
       if (f.signal === 'breakout')  data = data.filter(s => s.breakout_type);
       if (f.signal === 'sharp')     data = data.filter(s => s.is_sharp_mover);
       if (f.signal === 'reentry')   data = data.filter(s => s.is_reentry);
     }
+    // Signal — multi-select
+    const sigSet = typeof multiSelectFilters !== 'undefined' ? multiSelectFilters['scanner-signal'] : null;
+    if (sigSet && sigSet.size > 0) {
+      data = data.filter(s => {
+        if (sigSet.has('crossover') && (s.daily_crossover_date || s.weekly_crossover_date)) return true;
+        if (sigSet.has('breakout') && s.breakout_type) return true;
+        if (sigSet.has('sharp') && s.is_sharp_mover) return true;
+        if (sigSet.has('reentry') && s.is_reentry) return true;
+        return false;
+      });
+    }
+    // Multi-select zone/dist52/result filters
+    if (typeof msZoneFilterPass === 'function') {
+      data = data.filter(s => msZoneFilterPass('scanner', 'zoneD', s.pct_from_ema9_daily));
+      data = data.filter(s => msZoneFilterPass('scanner', 'zoneW', s.pct_from_ema9_weekly));
+    }
+    if (typeof msDist52FilterPass === 'function') data = data.filter(s => msDist52FilterPass('scanner', 'dist52', s.ltp, s.high_52w));
+    if (typeof msResultFilterPass === 'function') data = data.filter(s => msResultFilterPass('scanner', s.symbol));
+    // Legacy single-select zone/dist52
+    if (f.zoneD && f.zoneD !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+    if (f.zoneW && f.zoneW !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+    if (f.dist52 && f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
     if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
     if (f.star) data = data.filter(s => momStarred.has(s.symbol));
+    // Color filter
+    data = data.filter(s => colorFilterPass(s.symbol));
+    // Deduplicate
+    const seen = new Set();
+    data = data.filter(s => { if (seen.has(s.symbol)) return false; seen.add(s.symbol); return true; });
     return data;
   }
   if (tab === 'ema') {
     let data = [...momData.ema];
-    // Apply multi-select filters
+    // Cross — multi-select
     const crossSet = multiFilters['ema-cross'];
     if (crossSet && crossSet.size > 0) {
       const now = new Date();
@@ -6328,7 +6384,9 @@ function getVisibleMomData(tab) {
         return false;
       });
     }
+    // Category — multi-select
     data = data.filter(s => multiFilterPass('ema-cat', s.category));
+    // Score — multi-select
     const emaScoreSet = multiFilters['ema-score'];
     if (emaScoreSet && emaScoreSet.size > 0) {
       data = data.filter(s => {
@@ -6340,15 +6398,85 @@ function getVisibleMomData(tab) {
       });
     }
     const f = momFilters.ema;
+    // Breakout — legacy single-select
+    if (f.breakout && f.breakout !== 'all') { if (f.breakout === 'none') data = data.filter(s => !s.breakout_type); else data = data.filter(s => s.breakout_type === f.breakout); }
+    // Breakout — multi-select
+    const boSet = typeof multiSelectFilters !== 'undefined' ? multiSelectFilters['ema-breakout'] : null;
+    if (boSet && boSet.size > 0) {
+      data = data.filter(s => {
+        if (boSet.has('none') && !s.breakout_type) return true;
+        if (boSet.has('ATH') && s.breakout_type === 'ATH') return true;
+        if (boSet.has('5Y') && s.breakout_type === '5Y') return true;
+        if (boSet.has('3Y') && s.breakout_type === '3Y') return true;
+        if (boSet.has('52W') && s.breakout_type === '52W') return true;
+        return false;
+      });
+    }
     if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
+    if (f._industry) data = data.filter(s => s.industry === f._industry);
     if (f.star) data = data.filter(s => momStarred.has(s.symbol));
-    if (f.zoneD !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
-    if (f.zoneW !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
-    if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+    // Multi-select zone/dist52/result filters
+    if (typeof msZoneFilterPass === 'function') {
+      data = data.filter(s => msZoneFilterPass('ema', 'zoneD', s.pct_from_ema9_daily));
+      data = data.filter(s => msZoneFilterPass('ema', 'zoneW', s.pct_from_ema9_weekly));
+    }
+    if (typeof msDist52FilterPass === 'function') data = data.filter(s => msDist52FilterPass('ema', 'dist52', s.ltp, s.high_52w));
+    if (typeof msResultFilterPass === 'function') data = data.filter(s => msResultFilterPass('ema', s.symbol));
+    // Legacy single-select zone/dist52
+    if (f.zoneD && f.zoneD !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
+    if (f.zoneW && f.zoneW !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
+    if (f.dist52 && f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+    // Color filter
+    data = data.filter(s => colorFilterPass(s.symbol));
+    // Deduplicate
+    const seen = new Set();
+    data = data.filter(s => { if (seen.has(s.symbol)) return false; seen.add(s.symbol); return true; });
+    return data;
+  }
+  if (tab === 'sharp') {
+    let data = momData.sharp.filter(s => !momExcluded.has(s.symbol));
+    // Category — multi-select
+    data = data.filter(s => multiFilterPass('sharp-cat', s.category));
+    // Score — multi-select
+    const sharpScoreSet = multiFilters['sharp-score'];
+    if (sharpScoreSet && sharpScoreSet.size > 0) {
+      data = data.filter(s => {
+        const sc = s.momentum_score || 0;
+        if (sharpScoreSet.has('high') && sc >= 80) return true;
+        if (sharpScoreSet.has('building') && sc >= 60 && sc < 80) return true;
+        return false;
+      });
+    }
+    // QM Pattern — multi-select
+    const qmSet = multiFilters['sharp-qm'];
+    if (qmSet && qmSet.size > 0) {
+      data = data.filter(s => {
+        if (qmSet.has('EP') && s.qm_pattern === 'EP') return true;
+        if (qmSet.has('VCP') && s.qm_pattern === 'VCP') return true;
+        if (qmSet.has('HTF') && s.qm_pattern === 'HTF') return true;
+        if (qmSet.has('reclaim') && s.qm_ema_reclaim) return true;
+        if (qmSet.has('ready') && s.qm_pivot_level && s.ltp && s.ltp > 0) {
+          const distPct = ((s.qm_pivot_level - s.ltp) / s.ltp) * 100;
+          if (distPct >= 0 && distPct <= 3) return true;
+        }
+        if (qmSet.has('broken') && s.qm_pivot_level && s.ltp && s.ltp >= s.qm_pivot_level) return true;
+        return false;
+      });
+    }
+    const fSharp = momFilters.sharp;
+    if (fSharp.sector !== 'all') data = data.filter(s => s.sector === fSharp.sector);
+    if (fSharp._industry) data = data.filter(s => s.industry === fSharp._industry);
+    if (fSharp.star) data = data.filter(s => momStarred.has(s.symbol));
+    data = data.filter(s => msZoneFilterPass('sharp', 'zoneD', s.pct_from_ema9_daily));
+    data = data.filter(s => msZoneFilterPass('sharp', 'zoneW', s.pct_from_ema9_weekly));
+    data = data.filter(s => msDist52FilterPass('sharp', 'dist52', s.ltp, s.high_52w));
+    if (typeof msResultFilterPass === 'function') data = data.filter(s => msResultFilterPass('sharp', s.symbol));
+    if (fSharp.zoneD && fSharp.zoneD !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, fSharp.zoneD));
+    if (fSharp.zoneW && fSharp.zoneW !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, fSharp.zoneW));
+    if (fSharp.dist52 && fSharp.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, fSharp.dist52));
     data = data.filter(s => colorFilterPass(s.symbol));
     return data;
   }
-  if (tab === 'sharp')   return momData.sharp.filter(s => !momExcluded.has(s.symbol));
   if (tab === 'picks')   return momData.picks;
   if (tab === 'exited')  return momData.exited;
   return [];
@@ -7513,6 +7641,8 @@ renderSharp = function() {
   data = data.filter(s => msZoneFilterPass('sharp', 'zoneD', s.pct_from_ema9_daily));
   data = data.filter(s => msZoneFilterPass('sharp', 'zoneW', s.pct_from_ema9_weekly));
   data = data.filter(s => msDist52FilterPass('sharp', 'dist52', s.ltp, s.high_52w));
+  // Results filter (Blockbuster/Turnaround/Steady/Mixed/Weak)
+  data = data.filter(s => msResultFilterPass('sharp', s.symbol));
   // Legacy single-select fallback (if old filters still set)
   if (f.zoneD && f.zoneD !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
   if (f.zoneW && f.zoneW !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
@@ -8137,8 +8267,23 @@ function renderResultsTable() {
 }
 
 function rsExportTV() {
-  const symbols = rsMergedData.filter(r=>r.symbol).map(r=>'NSE:'+r.symbol).join(',');
-  navigator.clipboard.writeText(symbols).then(()=>showToast(`📊 ${rsMergedData.filter(r=>r.symbol).length} symbols copied`, 'success'));
+  let data = [...rsMergedData];
+  // Apply same filters as renderResultsTable
+  const gradeSet = multiFilters['rs-grade'];
+  if (gradeSet && gradeSet.size > 0) data = data.filter(r => gradeSet.has(r.grade));
+  const mcapSet = multiFilters['rs-mcap'];
+  if (mcapSet && mcapSet.size > 0) data = data.filter(r => mcapSet.has(r.mcapCat));
+  const smartSet = multiFilters['rs-smart'];
+  if (smartSet && smartSet.size > 0) data = data.filter(r => smartSet.has(r.smartMoney));
+  const momcatSet = multiFilters['rs-momcat'];
+  if (momcatSet && momcatSet.size > 0) data = data.filter(r => r.momCat && momcatSet.has(r.momCat));
+  const verdictSet = multiFilters['rs-verdict'];
+  if (verdictSet && verdictSet.size > 0) data = data.filter(r => verdictSet.has(r.verdict));
+  const sectorVal = document.getElementById('rs-sector-filter')?.value || 'all';
+  if (sectorVal !== 'all') data = data.filter(r => r.sector === sectorVal);
+  data = data.filter(r => colorFilterPass(r.symbol));
+  const symbols = data.filter(r=>r.symbol).map(r=>'NSE:'+r.symbol).join(',');
+  navigator.clipboard.writeText(symbols).then(()=>showToast(`📊 ${data.filter(r=>r.symbol).length} symbols copied`, 'success'));
 }
 
 // ═══════════════════════════════════════════════════
