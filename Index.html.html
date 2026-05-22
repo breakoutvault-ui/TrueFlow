@@ -88,7 +88,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* ══════════════════════════════════════
    TOPBAR
 ══════════════════════════════════════ */
-#app{display:none;position:relative;z-index:1;min-height:100vh}
+#app{display:none;position:relative;z-index:1}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;height:auto;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:100;gap:8px;flex-wrap:nowrap;overflow:visible}
 .brand{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:3px;color:var(--cyan);text-shadow:0 0 20px var(--cyan-glow);white-space:nowrap;cursor:pointer}
 .brand span{color:var(--muted);font-weight:400}
@@ -2079,6 +2079,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <div id="ms-picks-zoneW-wrap" style="display:inline-block"></div>
           <div id="ms-picks-dist52-wrap" style="display:inline-block"></div>
           <div id="ms-picks-result-wrap" style="display:inline-block"></div>
+          <button class="sort-btn" id="picks-strong-sec" onclick="toggleStrongSectorFilter('picks',this)" title="Show only stocks in sectors with strong quarterly results (from Sector Scorecard)">🏆 Strong Sectors</button>
           <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
           <div id="picks-color-filter" style="display:flex;gap:3px"></div>
         </div>
@@ -2591,8 +2592,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         </div>
         <!-- Sector Scorecard -->
         <div id="an-panel-sector" style="display:none">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Which sectors posted the strongest results this quarter? Sorted by average net profit growth. Helps with sector rotation decisions.</div>
-          <div id="sector-scorecard" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px"></div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Which sectors posted the strongest results this quarter? Size = number of results. Color = strength. Click any sector to filter Results tab.</div>
+          <!-- Summary strip -->
+          <div id="sector-sc-summary" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap"></div>
+          <!-- Heatmap -->
+          <div id="sector-scorecard" style="display:flex;flex-wrap:wrap;gap:4px;align-items:flex-start"></div>
         </div>
         <!-- Smart Money Tracker -->
         <div id="an-panel-smart" style="display:none">
@@ -8433,21 +8437,69 @@ function renderAnalyticsTab() {
   const gradeEmoji = g => g === 'strong' ? '🟢' : g === 'weak' ? '🔴' : '🟡';
   const gradeLabel = g => g === 'strong' ? 'STRONG' : g === 'weak' ? 'WEAK' : 'MIXED';
   const gradeColor = g => g === 'strong' ? '#22C55E' : g === 'weak' ? '#EF4444' : 'var(--amber)';
+  const gradeBg = g => g === 'strong' ? 'rgba(34,197,94,0.15)' : g === 'weak' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.10)';
+  const gradeBorder = g => g === 'strong' ? 'rgba(34,197,94,0.4)' : g === 'weak' ? 'rgba(239,68,68,0.35)' : 'rgba(245,158,11,0.3)';
 
-  document.getElementById('sector-scorecard').innerHTML = secArr.length ? secArr.map(s =>
-    `<div class="fo-card" style="padding:10px 12px;border-left:3px solid ${gradeColor(s.sectorGrade)};cursor:pointer" onclick="document.getElementById('rs-sector-filter').value='${s.sector}';document.querySelector('[onclick*=\\'switchTab\\'][onclick*=\\'results\\']')?.click();setTimeout(()=>renderResultsTable(),300)" title="Click to filter Results tab by ${s.sector}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <span style="font-weight:700;font-size:12px;color:var(--text)">${s.sector}</span>
-        <span style="font-size:10px;font-weight:600;color:${gradeColor(s.sectorGrade)}">${gradeEmoji(s.sectorGrade)} ${gradeLabel(s.sectorGrade)}</span>
+  // Summary strip
+  const strongCount = secArr.filter(s=>s.sectorGrade==='strong').length;
+  const mixedCount = secArr.filter(s=>s.sectorGrade==='mixed').length;
+  const weakCount = secArr.filter(s=>s.sectorGrade==='weak').length;
+  const summaryEl = document.getElementById('sector-sc-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:8px 16px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px;font-weight:800;color:#22C55E">${strongCount}</span>
+        <span style="font-size:11px;color:#22C55E;font-weight:600">STRONG<br><span style="font-weight:400;color:var(--muted);font-size:10px">Sectors</span></span>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">${s.stocks} results · <span style="color:#22C55E">${s.blockbusters} BB</span> · <span style="color:var(--amber)">${s.turnarounds} Turn</span> · <span style="color:var(--cyan)">${s.steady} Steady</span> · <span style="color:#EF4444">${s.weak} Weak</span></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px">
-        <div>Avg Rev <span style="color:${s.avgRev>0?'#22C55E':'#EF4444'};font-weight:600">${s.avgRev.toFixed(0)}%</span></div>
-        <div>Avg NP <span style="color:${s.avgNP>0?'#22C55E':'#EF4444'};font-weight:600">${s.avgNP.toFixed(0)}%</span></div>
-        <div>Avg OPM <span style="font-weight:600">${s.avgOPM.toFixed(1)}%</span></div>
+      <div style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:8px 16px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px;font-weight:800;color:var(--amber)">${mixedCount}</span>
+        <span style="font-size:11px;color:var(--amber);font-weight:600">MIXED<br><span style="font-weight:400;color:var(--muted);font-size:10px">Sectors</span></span>
       </div>
-    </div>`
-  ).join('') : '<div style="color:var(--muted);font-size:12px;padding:12px">Upload results data first — Sector Scorecard builds from your Results Season uploads.</div>';
+      <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:8px;padding:8px 16px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px;font-weight:800;color:#EF4444">${weakCount}</span>
+        <span style="font-size:11px;color:#EF4444;font-weight:600">WEAK<br><span style="font-weight:400;color:var(--muted);font-size:10px">Sectors</span></span>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 16px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px;font-weight:800;color:var(--cyan)">${secArr.length}</span>
+        <span style="font-size:11px;color:var(--text);font-weight:600">TOTAL<br><span style="font-weight:400;color:var(--muted);font-size:10px">Sectors</span></span>
+      </div>
+    `;
+  }
+
+  // Heatmap — size proportional to stock count, color by grade
+  const maxStocks = Math.max(...secArr.map(s=>s.stocks), 1);
+  document.getElementById('sector-scorecard').innerHTML = secArr.length ? secArr.map(s => {
+    // Size: min 140px, max 320px based on stock count relative to max
+    const sizeRatio = Math.max(0.35, s.stocks / maxStocks);
+    const width = Math.round(140 + sizeRatio * 180);
+    const height = Math.round(90 + sizeRatio * 60);
+    // NP growth bar (visual)
+    const npBar = Math.min(100, Math.max(0, (s.avgNP + 50) / 400 * 100));
+    const npCol = s.avgNP > 30 ? '#22C55E' : s.avgNP > 0 ? 'var(--amber)' : '#EF4444';
+    return `<div style="width:${width}px;min-height:${height}px;background:${gradeBg(s.sectorGrade)};border:1px solid ${gradeBorder(s.sectorGrade)};border-radius:10px;padding:10px 12px;cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden" onclick="document.getElementById('rs-sector-filter').value='${s.sector}';document.querySelector('[onclick*=\\'switchTab\\'][onclick*=\\'results\\']')?.click();setTimeout(()=>renderResultsTable(),300)" title="Click to filter Results tab by ${s.sector}"
+      onmouseover="this.style.transform='scale(1.03)';this.style.boxShadow='0 4px 20px ${gradeBorder(s.sectorGrade)}'"
+      onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">
+      <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--bg2);border-radius:0 0 10px 10px;overflow:hidden">
+        <div style="width:${npBar}%;height:100%;background:${npCol};border-radius:0 0 10px 10px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <span style="font-weight:700;font-size:12px;color:var(--text);line-height:1.2">${s.sector}</span>
+        <span style="font-size:9px;font-weight:700;color:${gradeColor(s.sectorGrade)};white-space:nowrap;padding:2px 6px;border-radius:4px;background:${gradeBg(s.sectorGrade)}">${gradeLabel(s.sectorGrade)}</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${s.stocks} results</div>
+      <div style="display:flex;gap:6px;font-size:10px;flex-wrap:wrap">
+        <span style="color:#22C55E;font-weight:600">${s.blockbusters} BB</span>
+        <span style="color:var(--amber);font-weight:600">${s.turnarounds} Turn</span>
+        <span style="color:var(--cyan)">${s.steady} Stdy</span>
+        <span style="color:#EF4444">${s.weak} Weak</span>
+      </div>
+      <div style="display:flex;gap:8px;font-size:10px;margin-top:6px">
+        <span>Rev <span style="color:${s.avgRev>0?'#22C55E':'#EF4444'};font-weight:700">${s.avgRev.toFixed(0)}%</span></span>
+        <span>NP <span style="color:${s.avgNP>0?'#22C55E':'#EF4444'};font-weight:700">${s.avgNP.toFixed(0)}%</span></span>
+        <span>OPM <span style="font-weight:600">${s.avgOPM.toFixed(1)}%</span></span>
+      </div>
+    </div>`;
+  }).join('') : '<div style="color:var(--muted);font-size:12px;padding:12px">Upload results data first — Sector Scorecard builds from your Results Season uploads.</div>';
 
   // 5. Smart Money Tracker: All 3 buying + strong results
   const smartMoney = rsMergedData.filter(r =>
