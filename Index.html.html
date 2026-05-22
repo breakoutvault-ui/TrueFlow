@@ -1771,6 +1771,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           </select>
           <!-- Star filter -->
           <button class="sort-btn" id="scanner-star-filter" onclick="toggleMomStarFilter('scanner',this)" title="Show only starred stocks">⭐ Starred</button>
+          <button class="sort-btn" id="scanner-strong-sec" onclick="toggleStrongSectorFilter('scanner',this)" title="Show only stocks in sectors with strong quarterly results (from Sector Scorecard)">🏆 Strong Sectors</button>
           <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
           <div id="scanner-color-filter" style="display:flex;gap:3px"></div>
         </div>
@@ -1864,6 +1865,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <option value="all">All Sectors</option>
           </select>
           <button class="sort-btn" id="ema-star-filter" onclick="toggleMomStarFilter('ema',this)" title="Show only starred stocks">⭐ Starred</button>
+          <button class="sort-btn" id="ema-strong-sec" onclick="toggleStrongSectorFilter('ema',this)" title="Show only stocks in sectors with strong quarterly results (from Sector Scorecard)">🏆 Strong Sectors</button>
           <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
           <div id="ema-color-filter" style="display:flex;gap:3px"></div>
         </div>
@@ -1978,6 +1980,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <option value="all">All Sectors</option>
           </select>
           <button class="sort-btn" id="sharp-star-filter" onclick="toggleMomStarFilter('sharp',this)" title="Show only starred">⭐ Starred</button>
+          <button class="sort-btn" id="sharp-strong-sec" onclick="toggleStrongSectorFilter('sharp',this)" title="Show only stocks in sectors with strong quarterly results (from Sector Scorecard)">🏆 Strong Sectors</button>
           <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
           <div id="sharp-color-filter" style="display:flex;gap:3px"></div>
         </div>
@@ -2486,6 +2489,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <div class="mom-filter-group">
             <button class="sort-btn" onclick="rsToggleNewInst(this)" id="rs-newinst-btn" title="Show only stocks where FII/MF had no holding last quarter but entered this quarter — fresh institutional interest">🆕 New Inst</button>
             <button class="sort-btn" onclick="rsToggleStar(this)" id="rs-star-btn" title="Show only starred stocks">⭐ Starred</button>
+            <button class="sort-btn" onclick="toggleStrongSectorFilter('rs',this)" id="rs-strong-sec" title="Show only stocks in sectors with strong quarterly results (from Sector Scorecard)">🏆 Strong Sectors</button>
           </div>
           <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
           <div id="rs-color-filter" style="display:flex;gap:3px"></div>
@@ -7361,6 +7365,8 @@ renderScanner = function() {
   if (f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
   if (f.sector !== 'all') data = data.filter(s => s.sector === f.sector);
   if (f.star) data = data.filter(s => momStarred.has(s.symbol));
+  // STRONG SECTORS FILTER
+  if (typeof strongSectorFilterPass === 'function') data = data.filter(s => strongSectorFilterPass('scanner', s.sector));
   // COLOR FILTER
   data = data.filter(s => colorFilterPass(s.symbol));
   // Deduplicate
@@ -7472,6 +7478,8 @@ renderEMA = function() {
   if (f.zoneD !== 'all')     data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
   if (f.zoneW !== 'all')     data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
   if (f.dist52 !== 'all')    data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+  // STRONG SECTORS FILTER
+  if (typeof strongSectorFilterPass === 'function') data = data.filter(s => strongSectorFilterPass('ema', s.sector));
   // COLOR FILTER
   data = data.filter(s => colorFilterPass(s.symbol));
   const seen = new Set();
@@ -7647,6 +7655,8 @@ renderSharp = function() {
   if (f.zoneD && f.zoneD !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_daily, f.zoneD));
   if (f.zoneW && f.zoneW !== 'all') data = data.filter(s => zoneFilter(s.pct_from_ema9_weekly, f.zoneW));
   if (f.dist52 && f.dist52 !== 'all') data = data.filter(s => dist52Filter(s.ltp, s.high_52w, f.dist52));
+  // STRONG SECTORS FILTER
+  if (typeof strongSectorFilterPass === 'function') data = data.filter(s => strongSectorFilterPass('sharp', s.sector));
   // COLOR FILTER
   data = data.filter(s => colorFilterPass(s.symbol));
   // Compute Post-BO move % for sorting
@@ -8366,40 +8376,69 @@ function renderAnalyticsTab() {
     urPool.sort((a,b)=>(b.np_growth||0)-(a.np_growth||0)).slice(0,12).map(rsAnalyticsCard).join('') :
     '<div style="color:var(--muted);font-size:12px;padding:12px">No underreacted stocks found.</div>';
 
-  // 4. Sector Scorecard — re-lookup sectors from momentum data at render time
+  // 4. Sector Scorecard — enhanced with scoring and cross-tab filter
   const secMap = {};
   const allMomForSec = [].concat(momData.scanner || [], momData.ema || [], momData.sharp || [], momData.picks || []);
   rsMergedData.forEach(r => {
-    // Try to get sector from momentum data if not already set
     let sec = r.sector;
     if ((!sec || sec === '' || sec === 'Unknown') && r.symbol) {
       const ms = allMomForSec.find(s => s.symbol === r.symbol);
       if (ms && ms.sector) { sec = ms.sector; r.sector = sec; }
     }
     if (!sec || sec === '' || sec === 'Unknown') return;
-    if (!secMap[sec]) secMap[sec] = { stocks: 0, revSum: 0, npSum: 0, opmSum: 0, revCount: 0, npCount: 0, opmCount: 0, blockbusters: 0 };
-    secMap[sec].stocks++;
-    if (r.rev_growth !== null) { secMap[sec].revSum += r.rev_growth; secMap[sec].revCount++; }
-    if (r.np_growth !== null) { secMap[sec].npSum += r.np_growth; secMap[sec].npCount++; }
-    if (r.opm !== null) { secMap[sec].opmSum += r.opm; secMap[sec].opmCount++; }
-    if (r.grade === 'blockbuster') secMap[sec].blockbusters++;
+    if (!secMap[sec]) secMap[sec] = { stocks: 0, revSum: 0, npSum: 0, opmSum: 0, revCount: 0, npCount: 0, opmCount: 0, blockbusters: 0, turnarounds: 0, steady: 0, mixed: 0, weak: 0 };
+    const s = secMap[sec];
+    s.stocks++;
+    if (r.rev_growth !== null) { s.revSum += r.rev_growth; s.revCount++; }
+    if (r.np_growth !== null) { s.npSum += r.np_growth; s.npCount++; }
+    if (r.opm !== null) { s.opmSum += r.opm; s.opmCount++; }
+    if (r.grade === 'blockbuster') s.blockbusters++;
+    else if (r.grade === 'turnaround') s.turnarounds++;
+    else if (r.grade === 'steady') s.steady++;
+    else if (r.grade === 'mixed') s.mixed++;
+    else if (r.grade === 'weak') s.weak++;
   });
-  const secArr = Object.entries(secMap).filter(([_,v])=>v.stocks>=2).map(([k,v])=>({
-    sector:k, stocks:v.stocks, avgRev: v.revCount?v.revSum/v.revCount:0,
-    avgNP: v.npCount?v.npSum/v.npCount:0, avgOPM: v.opmCount?v.opmSum/v.opmCount:0,
-    blockbusters: v.blockbusters
-  })).sort((a,b)=>b.avgNP-a.avgNP);
-  document.getElementById('sector-scorecard').innerHTML = secArr.length ? secArr.slice(0,10).map(s =>
-    `<div class="fo-card" style="padding:10px 12px">
-      <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">${s.sector}</div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">${s.stocks} results · ${s.blockbusters} blockbusters</div>
+  const secArr = Object.entries(secMap).filter(([_,v])=>v.stocks>=2).map(([k,v])=>{
+    const avgRev = v.revCount ? v.revSum/v.revCount : 0;
+    const avgNP = v.npCount ? v.npSum/v.npCount : 0;
+    const avgOPM = v.opmCount ? v.opmSum/v.opmCount : 0;
+    const strongCount = v.blockbusters + v.turnarounds;
+    // Sector grade: Strong if avgNP > 15 AND strong results >= 2 OR blockbusters >= 2
+    // Mixed if avgNP > 0 but doesn't meet Strong criteria
+    // Weak if avgNP <= 0 OR more weak than strong results
+    let sectorGrade = 'mixed';
+    if ((avgNP > 15 && strongCount >= 2) || v.blockbusters >= 3) sectorGrade = 'strong';
+    else if (avgNP <= 0 || v.weak > strongCount) sectorGrade = 'weak';
+    return {
+      sector: k, stocks: v.stocks, avgRev, avgNP, avgOPM,
+      blockbusters: v.blockbusters, turnarounds: v.turnarounds, steady: v.steady, mixed: v.mixed, weak: v.weak,
+      strongCount, sectorGrade
+    };
+  }).sort((a,b)=>b.avgNP-a.avgNP);
+
+  // Store strong sectors globally for cross-tab filtering
+  window.rsStrongSectors = new Set(secArr.filter(s => s.sectorGrade === 'strong').map(s => s.sector));
+  log_strong = secArr.filter(s => s.sectorGrade === 'strong').map(s => s.sector);
+  console.log('Strong Results Sectors:', log_strong);
+
+  const gradeEmoji = g => g === 'strong' ? '🟢' : g === 'weak' ? '🔴' : '🟡';
+  const gradeLabel = g => g === 'strong' ? 'STRONG' : g === 'weak' ? 'WEAK' : 'MIXED';
+  const gradeColor = g => g === 'strong' ? '#22C55E' : g === 'weak' ? '#EF4444' : 'var(--amber)';
+
+  document.getElementById('sector-scorecard').innerHTML = secArr.length ? secArr.map(s =>
+    `<div class="fo-card" style="padding:10px 12px;border-left:3px solid ${gradeColor(s.sectorGrade)};cursor:pointer" onclick="document.getElementById('rs-sector-filter').value='${s.sector}';document.querySelector('[onclick*=\\'switchTab\\'][onclick*=\\'results\\']')?.click();setTimeout(()=>renderResultsTable(),300)" title="Click to filter Results tab by ${s.sector}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-weight:700;font-size:12px;color:var(--text)">${s.sector}</span>
+        <span style="font-size:10px;font-weight:600;color:${gradeColor(s.sectorGrade)}">${gradeEmoji(s.sectorGrade)} ${gradeLabel(s.sectorGrade)}</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">${s.stocks} results · <span style="color:#22C55E">${s.blockbusters} BB</span> · <span style="color:var(--amber)">${s.turnarounds} Turn</span> · <span style="color:var(--cyan)">${s.steady} Steady</span> · <span style="color:#EF4444">${s.weak} Weak</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px">
         <div>Avg Rev <span style="color:${s.avgRev>0?'#22C55E':'#EF4444'};font-weight:600">${s.avgRev.toFixed(0)}%</span></div>
         <div>Avg NP <span style="color:${s.avgNP>0?'#22C55E':'#EF4444'};font-weight:600">${s.avgNP.toFixed(0)}%</span></div>
         <div>Avg OPM <span style="font-weight:600">${s.avgOPM.toFixed(1)}%</span></div>
       </div>
     </div>`
-  ).join('') : '<div style="color:var(--muted);font-size:12px;padding:12px">Need sector data from momentum hub.</div>';
+  ).join('') : '<div style="color:var(--muted);font-size:12px;padding:12px">Upload results data first — Sector Scorecard builds from your Results Season uploads.</div>';
 
   // 5. Smart Money Tracker: All 3 buying + strong results
   const smartMoney = rsMergedData.filter(r =>
@@ -8629,6 +8668,8 @@ renderResultsTable = function() {
   if (rsStarFilter) data = data.filter(r => rsStarred.has(r.symbol));
   // New Institutional filter
   if (rsNewInstFilter) data = data.filter(r => r._newInst);
+  // Strong Sectors filter
+  if (typeof strongSectorFilterPass === 'function') data = data.filter(r => strongSectorFilterPass('rs', r.sector));
 
   // Sort
   data.sort((a,b) => {
@@ -9688,6 +9729,58 @@ function msResultFilterPass(tab, symbol) {
   if (s.has('weak') && g.includes('weak')) return true;
   return false;
 }
+
+// ═══════════════════════════════════════════════════
+// STRONG SECTORS FILTER — cross-tab filter from Sector Scorecard
+// ═══════════════════════════════════════════════════
+window.rsStrongSectors = window.rsStrongSectors || new Set();
+const strongSecFilter = { scanner: false, ema: false, sharp: false, rs: false };
+
+function toggleStrongSectorFilter(tab, btn) {
+  if (!window.rsStrongSectors || window.rsStrongSectors.size === 0) {
+    showToast('No strong sectors computed yet — upload Results data and visit Analytics → Sector Scorecard first', 'info');
+    return;
+  }
+  strongSecFilter[tab] = !strongSecFilter[tab];
+  btn.classList.toggle('multi-active', strongSecFilter[tab]);
+  if (strongSecFilter[tab]) {
+    showToast(`🏆 Showing stocks in ${window.rsStrongSectors.size} strong sectors: ${[...window.rsStrongSectors].slice(0,5).join(', ')}${window.rsStrongSectors.size > 5 ? '...' : ''}`, 'success');
+  }
+  if (tab === 'rs') renderResultsTable();
+  else renderMomTab(tab);
+}
+
+function strongSectorFilterPass(tab, sector) {
+  if (!strongSecFilter[tab]) return true;
+  if (!window.rsStrongSectors || window.rsStrongSectors.size === 0) return true;
+  return window.rsStrongSectors.has(sector);
+}
+
+// Compute strong sectors on Results data load
+const _origRsLoadSS = rsLoadFromStorage;
+rsLoadFromStorage = function() {
+  _origRsLoadSS();
+  if (rsMergedData.length > 0) {
+    const ssMap = {};
+    rsMergedData.forEach(r => {
+      const sec = r.sector;
+      if (!sec || sec === '' || sec === 'Unknown') return;
+      if (!ssMap[sec]) ssMap[sec] = { npSum: 0, npCount: 0, blockbusters: 0, turnarounds: 0, weak: 0 };
+      if (r.np_growth !== null) { ssMap[sec].npSum += r.np_growth; ssMap[sec].npCount++; }
+      if (r.grade === 'blockbuster') ssMap[sec].blockbusters++;
+      else if (r.grade === 'turnaround') ssMap[sec].turnarounds++;
+      else if (r.grade === 'weak') ssMap[sec].weak++;
+    });
+    window.rsStrongSectors = new Set();
+    Object.entries(ssMap).forEach(([sec, v]) => {
+      if (v.npCount < 2) return;
+      const avgNP = v.npSum / v.npCount;
+      const strongCount = v.blockbusters + v.turnarounds;
+      if ((avgNP > 15 && strongCount >= 2) || v.blockbusters >= 3) window.rsStrongSectors.add(sec);
+    });
+    console.log('Strong sectors computed on load:', [...window.rsStrongSectors]);
+  }
+};
 </script>
 </body>
 </html>
