@@ -8377,14 +8377,23 @@ function renderAnalyticsTab() {
     '<div style="color:var(--muted);font-size:12px;padding:12px">No underreacted stocks found.</div>';
 
   // 4. Sector Scorecard — enhanced with scoring and cross-tab filter
-  const secMap = {};
+  // Re-lookup sectors from momentum data at render time (not just merge time)
   const allMomForSec = [].concat(momData.scanner || [], momData.ema || [], momData.sharp || [], momData.picks || []);
+  const momSectorMap = {};
+  allMomForSec.forEach(s => { if (s.symbol && s.sector) momSectorMap[s.symbol] = s.sector; });
+  // Also build from ema_filter (Morning Brief) data if available
+  if (typeof mbData !== 'undefined' && mbData && mbData.length) {
+    mbData.forEach(s => { if (s.symbol && s.sector) momSectorMap[s.symbol] = s.sector; });
+  }
+  // Re-assign sectors for any rsMergedData entries missing sector
+  rsMergedData.forEach(r => {
+    if ((!r.sector || r.sector === '' || r.sector === 'Unknown') && r.symbol && momSectorMap[r.symbol]) {
+      r.sector = momSectorMap[r.symbol];
+    }
+  });
+  const secMap = {};
   rsMergedData.forEach(r => {
     let sec = r.sector;
-    if ((!sec || sec === '' || sec === 'Unknown') && r.symbol) {
-      const ms = allMomForSec.find(s => s.symbol === r.symbol);
-      if (ms && ms.sector) { sec = ms.sector; r.sector = sec; }
-    }
     if (!sec || sec === '' || sec === 'Unknown') return;
     if (!secMap[sec]) secMap[sec] = { stocks: 0, revSum: 0, npSum: 0, opmSum: 0, revCount: 0, npCount: 0, opmCount: 0, blockbusters: 0, turnarounds: 0, steady: 0, mixed: 0, weak: 0 };
     const s = secMap[sec];
@@ -9783,4 +9792,4 @@ rsLoadFromStorage = function() {
 };
 </script>
 </body>
-</html>
+</html
