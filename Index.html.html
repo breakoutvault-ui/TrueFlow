@@ -2238,6 +2238,33 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         </div>
       </div>
 
+      <!-- Live Commentary Feed -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">🧠 Live Commentary</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span id="bnf-feed-status" style="font-size:9px;color:var(--muted)">—</span>
+            <button onclick="loadBNFLiveFeed()" style="font-size:9px;padding:2px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);cursor:pointer">⟳ Refresh</button>
+            <select id="bnf-feed-filter" onchange="renderBNFLiveFeed()" style="font-size:9px;padding:2px 6px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text)">
+              <option value="all">All Alerts</option>
+              <option value="orb">ORB</option>
+              <option value="big_candle">Big Candles</option>
+              <option value="ema">EMA</option>
+              <option value="level">Levels</option>
+              <option value="oi">OI / PCR</option>
+              <option value="ai">AI Reads</option>
+            </select>
+          </div>
+        </div>
+        <div id="bnf-live-feed" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+          <div style="text-align:center;padding:30px;color:var(--muted);font-size:11px">
+            <div style="font-size:24px;margin-bottom:6px">🧠</div>
+            Live commentary appears here during market hours<br>
+            <span style="font-size:10px">Powered by TrueFlow BNF Engine + Claude AI</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Session date -->
       <div style="text-align:right;font-size:10px;color:var(--muted)" id="bn-session-date">—</div>
     </div>
@@ -4228,7 +4255,7 @@ function switchTab(tab, btn, mode) {
     const el = document.getElementById('tab-'+tab);
     if (el) el.classList.add('active');
     if (btn) btn.classList.add('active');
-    if (tab==='bnsession')    loadBNSession();
+    if (tab==='bnsession')    { loadBNSession(); startBNFLivePoll(); }
     if (tab==='bnstrategy')   loadBNStrategy();
     if (tab==='bnpatterns')   loadBNPatterns();
     if (tab==='bnpostmortem') loadBNPostMortem();
@@ -4377,6 +4404,8 @@ async function loadMorningBrief() {
       mbSel.innerHTML = '<option value="all">All Sectors</option>' + sectors.map(s => `<option value="${s}"${s===currentVal?' selected':''}>${s}</option>`).join('');
     }
     renderMBTable();
+    // Re-compute strong sectors now that mbData (ema_filter with sectors) is available
+    if (typeof computeStrongSectors === 'function') computeStrongSectors();
   } catch(e) { console.error('MB load error:', e); }
 }
 
@@ -5694,6 +5723,8 @@ async function loadMomScanner() {
     sel.innerHTML = '<option value="all">All Sectors</option>' + sectors.map(s => `<option value="${s}">${s}</option>`).join('');
     // Build heatmap
     buildHeatmap(momData.scanner);
+    // Re-compute strong sectors now that momData.scanner is available
+    if (typeof computeStrongSectors === 'function') computeStrongSectors();
     renderScanner();
   } catch(e) { console.error('Scanner load error:', e); }
 }
@@ -5753,6 +5784,8 @@ async function loadMomSharp() {
     const sel = document.getElementById('sharp-sector-filter');
     sel.innerHTML = '<option value="all">All Sectors</option>' + sectors.map(s => `<option value="${s}">${s}</option>`).join('');
     renderSharp();
+    // Re-compute strong sectors now that momData.sharp is available
+    if (typeof computeStrongSectors === 'function') computeStrongSectors();
   } catch(e) { console.error('Breakout Setups load error:', e); }
 }
 
@@ -8159,6 +8192,8 @@ function rsMergeAndGrade() {
   }
   const totalMsg = keptOld > 0 ? ` (${newCount} new/updated + ${keptOld} retained from previous uploads)` : '';
   showToast(`✅ Merged ${rsMergedData.length} results${totalMsg}. ${rsMergedData.filter(r=>r.grade==='blockbuster').length} Blockbusters found!`, 'success');
+  // Compute strong sectors immediately after merge
+  if (typeof computeStrongSectors === 'function') computeStrongSectors();
 }
 
 function showRSUI() {
@@ -9235,6 +9270,100 @@ renderSharp = function() {
 };
 
 // ═══════════════════════════════════════════════════
+// BANKNIFTY LIVE COMMENTARY FEED
+// ═══════════════════════════════════════════════════
+let bnfLiveFeedData = [];
+let bnfFeedPollTimer = null;
+
+async function loadBNFLiveFeed() {
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const url = `${CONFIG.supabaseUrl}/rest/v1/bnf_live_alerts?session_date=eq.${today}&order=timestamp.desc&limit=100`;
+    const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+    const resp = await fetch(url, { headers });
+    if (!resp.ok) { console.warn('BNF feed fetch error:', resp.status); return; }
+    bnfLiveFeedData = await resp.json();
+    document.getElementById('bnf-feed-status').textContent = `${bnfLiveFeedData.length} alerts · ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+    renderBNFLiveFeed();
+  } catch(e) { console.error('BNF feed error:', e); }
+}
+
+function renderBNFLiveFeed() {
+  const container = document.getElementById('bnf-live-feed');
+  if (!container) return;
+  const filter = document.getElementById('bnf-feed-filter')?.value || 'all';
+
+  let data = bnfLiveFeedData;
+  if (filter !== 'all') {
+    const filterMap = {
+      'orb': ['orb_formed','orb_break'],
+      'big_candle': ['big_candle'],
+      'ema': ['ema_test','ema_daily'],
+      'level': ['level_break'],
+      'oi': ['oi_pcr','oi_maxpain','oi_ce_wall','oi_pe_wall'],
+      'ai': ['ai_narrative']
+    };
+    const types = filterMap[filter] || [];
+    data = data.filter(a => types.includes(a.alert_type));
+  }
+
+  if (!data.length) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:11px">No alerts yet for this filter</div>';
+    return;
+  }
+
+  container.innerHTML = data.map(a => {
+    const time = new Date(a.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const typeIcon = {
+      'startup':'🏦', 'orb_formed':'📐', 'orb_break':'🔥',
+      'big_candle':'⚡', 'ema_test':'📊', 'ema_daily':'🔔',
+      'level_break':'💥', 'oi_pcr':'📊', 'oi_maxpain':'🎯',
+      'oi_ce_wall':'🔴', 'oi_pe_wall':'🟢',
+      'ai_narrative':'🧠', 'eod_close':'🏁'
+    }[a.alert_type] || '📌';
+
+    const convColor = {
+      'HIGH':'var(--green)', 'MEDIUM':'var(--amber)', 'LOW':'var(--muted)', 'INFO':'var(--cyan)'
+    }[a.conviction] || 'var(--muted)';
+
+    const typeBadge = a.alert_type.replace(/_/g,' ').toUpperCase();
+
+    // Format body — strip HTML tags for dashboard display, keep structure
+    const cleanBody = (a.body || '')
+      .replace(/<b>/g,'').replace(/<\/b>/g,'')
+      .replace(/━+/g,'')
+      .split('\n').filter(l => l.trim()).join('\n');
+
+    const isNarrative = a.alert_type === 'ai_narrative';
+
+    return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;${isNarrative ? 'border-left:3px solid var(--cyan)' : a.conviction === 'HIGH' ? 'border-left:3px solid var(--green)' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:12px">${typeIcon}</span>
+          <span style="font-size:9px;padding:1px 6px;border-radius:4px;background:var(--bg2);color:${convColor};font-weight:600;letter-spacing:0.5px">${typeBadge}</span>
+          <span style="font-size:9px;padding:1px 5px;border-radius:4px;background:${convColor}22;color:${convColor}">${a.conviction}</span>
+        </div>
+        <span style="font-size:9px;color:var(--muted)">${time}</span>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:3px">${a.headline}</div>
+      <pre style="font-size:10px;color:var(--muted);white-space:pre-wrap;margin:0;font-family:inherit;line-height:1.5">${cleanBody}</pre>
+    </div>`;
+  }).join('');
+}
+
+// Auto-poll during market hours (every 30 seconds)
+function startBNFLivePoll() {
+  if (bnfFeedPollTimer) return;
+  loadBNFLiveFeed();
+  bnfFeedPollTimer = setInterval(() => {
+    const h = new Date().getHours(), m = new Date().getMinutes();
+    const t = h * 60 + m;
+    // 9:15 AM to 3:45 PM IST (adjust for browser timezone if needed)
+    if (t >= 555 && t <= 945) loadBNFLiveFeed();
+  }, 30000);
+}
+
+// ═══════════════════════════════════════════════════
 // BANKNIFTY COMMAND CENTER — DATA LOADING
 // ═══════════════════════════════════════════════════
 
@@ -9817,30 +9946,61 @@ function strongSectorFilterPass(tab, sector) {
   return window.rsStrongSectors.has(sector);
 }
 
-// Compute strong sectors on Results data load
+// ═══════════════════════════════════════════════════
+// STRONG SECTORS — standalone compute function
+// Re-assigns sectors from momData/mbData then computes strong set.
+// Called from: rsLoadFromStorage, loadMomScanner, loadMorningBrief, rsMergeAndGrade
+// Whichever loads last will have both datasets and produce the correct result.
+// ═══════════════════════════════════════════════════
+function computeStrongSectors() {
+  if (!rsMergedData || !rsMergedData.length) return;
+
+  // Step 1: Re-assign missing sectors from all available sources
+  const momSectorMap = {};
+  [].concat(momData.scanner || [], momData.ema || [], momData.sharp || [], momData.picks || [])
+    .forEach(s => { if (s.symbol && s.sector) momSectorMap[s.symbol] = s.sector; });
+  if (typeof mbData !== 'undefined' && mbData && mbData.length) {
+    mbData.forEach(s => { if (s.symbol && s.sector) momSectorMap[s.symbol] = s.sector; });
+  }
+  let patched = 0;
+  rsMergedData.forEach(r => {
+    if ((!r.sector || r.sector === '' || r.sector === 'Unknown') && r.symbol && momSectorMap[r.symbol]) {
+      r.sector = momSectorMap[r.symbol];
+      patched++;
+    }
+  });
+  if (patched > 0) {
+    console.log(`[StrongSectors] Patched ${patched} results entries with sectors from momentum/MB data`);
+    // Persist the patched sectors so next page load has them
+    try { localStorage.setItem('tf_rs_merged', JSON.stringify(rsMergedData)); } catch(e) {}
+  }
+
+  // Step 2: Compute strong sectors
+  const ssMap = {};
+  rsMergedData.forEach(r => {
+    const sec = r.sector;
+    if (!sec || sec === '' || sec === 'Unknown') return;
+    if (!ssMap[sec]) ssMap[sec] = { npSum: 0, npCount: 0, blockbusters: 0, turnarounds: 0, weak: 0 };
+    if (r.np_growth !== null) { ssMap[sec].npSum += r.np_growth; ssMap[sec].npCount++; }
+    if (r.grade === 'blockbuster') ssMap[sec].blockbusters++;
+    else if (r.grade === 'turnaround') ssMap[sec].turnarounds++;
+    else if (r.grade === 'weak') ssMap[sec].weak++;
+  });
+  window.rsStrongSectors = new Set();
+  Object.entries(ssMap).forEach(([sec, v]) => {
+    if (v.npCount < 2) return;
+    const avgNP = v.npSum / v.npCount;
+    const strongCount = v.blockbusters + v.turnarounds;
+    if ((avgNP > 15 && strongCount >= 2) || v.blockbusters >= 3) window.rsStrongSectors.add(sec);
+  });
+  console.log(`[StrongSectors] Computed ${window.rsStrongSectors.size} strong sectors:`, [...window.rsStrongSectors]);
+}
+
+// Hook into rsLoadFromStorage
 const _origRsLoadSS = rsLoadFromStorage;
 rsLoadFromStorage = function() {
   _origRsLoadSS();
-  if (rsMergedData.length > 0) {
-    const ssMap = {};
-    rsMergedData.forEach(r => {
-      const sec = r.sector;
-      if (!sec || sec === '' || sec === 'Unknown') return;
-      if (!ssMap[sec]) ssMap[sec] = { npSum: 0, npCount: 0, blockbusters: 0, turnarounds: 0, weak: 0 };
-      if (r.np_growth !== null) { ssMap[sec].npSum += r.np_growth; ssMap[sec].npCount++; }
-      if (r.grade === 'blockbuster') ssMap[sec].blockbusters++;
-      else if (r.grade === 'turnaround') ssMap[sec].turnarounds++;
-      else if (r.grade === 'weak') ssMap[sec].weak++;
-    });
-    window.rsStrongSectors = new Set();
-    Object.entries(ssMap).forEach(([sec, v]) => {
-      if (v.npCount < 2) return;
-      const avgNP = v.npSum / v.npCount;
-      const strongCount = v.blockbusters + v.turnarounds;
-      if ((avgNP > 15 && strongCount >= 2) || v.blockbusters >= 3) window.rsStrongSectors.add(sec);
-    });
-    console.log('Strong sectors computed on load:', [...window.rsStrongSectors]);
-  }
+  computeStrongSectors();
 };
 </script>
 </body>
