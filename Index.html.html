@@ -767,6 +767,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="nav-tab" onclick="switchTab('alerts',this,'fo')">🔔 Live Alerts</button>
         <button class="nav-tab" onclick="switchTab('alerthistory',this,'fo')">📋 Alert History</button>
         <button class="nav-tab" onclick="switchTab('fowatchlist',this,'fo')">📌 Watchlists</button>
+        <button class="nav-tab" onclick="switchTab('nextdaywl',this,'fo')">🎯 Next Day WL</button>
       </div>
       <div class="nav-tabs" id="eod-tabs" style="display:none">
         <button class="nav-tab active" onclick="switchTab('sector',this,'eod')">🏭 Sectors</button>
@@ -1530,6 +1531,131 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               </td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ NEXT DAY WATCHLIST TAB ══ -->
+  <div id="tab-nextdaywl" class="panel">
+    <div class="fo-panel" style="gap:8px">
+      <!-- README Panel -->
+      <div id="nextdaywl-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">🎯 Next Day Watchlist — How This Works</span>
+          <button onclick="document.getElementById('nextdaywl-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Every evening at 6:30 PM, TrueFlow scores all 213 F&O stocks and picks the <b style="color:var(--text)">highest conviction setups for the next trading day</b>. You get up to 10 bullish + 10 bearish picks — independently scored. Use bullish picks on green days, bearish on red days.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Scoring Parameters (100 pts max)</b><br><br>
+          <b>OI Buildup (25pts)</b> — Long Buildup for bull, Short Buildup for bear picks<br>
+          <b>EMA Proximity (20pts)</b> — Closer to 9 EMA = higher probability of ORB trigger<br>
+          <b>Today's Candle (15pts)</b> — Strong directional close confirms momentum<br>
+          <b>Volume Ratio (15pts)</b> — Above-avg volume = institutional interest<br>
+          <b>Delivery % (10pts)</b> — High delivery = genuine buying, not just trading<br>
+          <b>Sector Strength (10pts)</b> — Strong sector = tailwind for individual stocks<br>
+          <b>Fresh Crossover (5pts)</b> — Recent 9/20 EMA crossover = new trend
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🔒 Hard Filters</b><br>
+          Bull picks: stock MUST be above both 9 EMA and 20 EMA (price > 9E > 20E)<br>
+          Bear picks: stock MUST be below both 9 EMA and 20 EMA (price < 9E < 20E)<br>
+          Minimum score: 60 — below this, stock is not included regardless
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">⚡ Conviction Levels</b><br>
+          🔥 <b>HIGH (75+)</b> — Multiple strong signals aligned. Priority picks.<br>
+          ⚡ <b>MEDIUM (60-74)</b> — Good setup but fewer confirming signals.
+        </div>
+        <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--green);font-size:12px">✅ How to Use</b><br>
+          ☑️ Check this tab or Telegram at 6:30 PM for next day's picks<br>
+          ☑️ Mark the levels on TradingView before 9:15 AM<br>
+          ☑️ During market hours, if an ORB alert fires on a watchlist stock → it gets a 🎯 badge<br>
+          ☑️ Post-market, check Performance tab to see how picks performed<br>
+          ☑️ Over time, the analytics show which conviction bands and parameters win most
+        </div>
+        <div style="background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.2);border-radius:8px;padding:12px 14px">
+          <b style="color:var(--amber);font-size:12px">📈 Self-Improving Analytics</b><br>
+          The Performance tab tracks every pick's outcome. Over weeks, you'll see patterns like:<br>
+          • "HIGH conviction picks win 72% of the time"<br>
+          • "Bearish picks work best when OI = Short Buildup"<br>
+          • "Volume Ratio >2x predicts 65% directional accuracy"<br>
+          Use these insights to refine your trading rules.
+        </div>
+      </div>
+
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
+        <button class="sort-btn" onclick="document.getElementById('nextdaywl-readme').style.display=document.getElementById('nextdaywl-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600">📖 How This Works</button>
+        <button class="sort-btn active" id="wl-tab-picks" onclick="switchWLTab('picks')" style="font-size:10px;padding:3px 10px">🎯 Today's Picks</button>
+        <button class="sort-btn" id="wl-tab-perf" onclick="switchWLTab('perf')" style="font-size:10px;padding:3px 10px">📊 Performance</button>
+        <button class="sort-btn" id="wl-tab-analytics" onclick="switchWLTab('analytics')" style="font-size:10px;padding:3px 10px">🧠 Analytics</button>
+        <span style="margin-left:auto;font-size:10px;color:var(--muted)" id="wl-updated">—</span>
+        <button onclick="loadNextDayWL()" style="font-size:9px;padding:2px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);cursor:pointer">⟳</button>
+      </div>
+
+      <!-- Picks Panel -->
+      <div id="wl-picks-panel">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <!-- Bull Picks -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+            <div style="font-size:11px;color:var(--green);font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between">
+              <span>🟢 BULLISH SETUPS</span>
+              <span id="wl-bull-count" style="font-size:10px;color:var(--muted)">—</span>
+            </div>
+            <div id="wl-bull-list" style="font-size:11px;line-height:2.2">
+              <span style="color:var(--muted)">Loading...</span>
+            </div>
+          </div>
+          <!-- Bear Picks -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+            <div style="font-size:11px;color:var(--red);font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between">
+              <span>🔴 BEARISH SETUPS</span>
+              <span id="wl-bear-count" style="font-size:10px;color:var(--muted)">—</span>
+            </div>
+            <div id="wl-bear-list" style="font-size:11px;line-height:2.2">
+              <span style="color:var(--muted)">Loading...</span>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:9px;color:var(--muted);margin-top:6px" id="wl-target-date">—</div>
+      </div>
+
+      <!-- Performance Panel -->
+      <div id="wl-perf-panel" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+          <div class="metric-card"><div class="metric-label">Bull Win Rate</div><div class="metric-value" id="wl-bull-wr">—</div></div>
+          <div class="metric-card"><div class="metric-label">Bear Win Rate</div><div class="metric-value" id="wl-bear-wr">—</div></div>
+          <div class="metric-card"><div class="metric-label">ORB Triggered</div><div class="metric-value" id="wl-orb-rate">—</div></div>
+          <div class="metric-card"><div class="metric-label">Overall Accuracy</div><div class="metric-value" id="wl-overall">—</div></div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">Recent Performance (Last 30 Days)</div>
+          <div id="wl-perf-table" style="font-size:11px">
+            <span style="color:var(--muted)">Loading performance data...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Panel -->
+      <div id="wl-analytics-panel" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+            <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">🔥 Win Rate by Conviction</div>
+            <div id="wl-conv-analysis" style="font-size:11px;line-height:2"><span style="color:var(--muted)">Loading...</span></div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+            <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">📊 Win Rate by Parameter</div>
+            <div id="wl-param-analysis" style="font-size:11px;line-height:2"><span style="color:var(--muted)">Loading...</span></div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;grid-column:1/-1">
+            <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px">💡 Key Insights</div>
+            <div id="wl-insights" style="font-size:11px;line-height:2"><span style="color:var(--muted)">Need at least 5 days of data to generate insights...</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -4637,6 +4763,7 @@ function switchTab(tab, btn, mode) {
   if (tab==='alerts')       { loadLiveAlerts(); }
   if (tab==='optchain')     renderOptionChain();
   if (tab==='alerthistory') loadAlertHistory();
+  if (tab==='nextdaywl') loadNextDayWL();
 }
 
 // ═══════════════════════════════════════════════════
@@ -8944,6 +9071,186 @@ toggleMultiFilter = function(tab, type, val, btn) {
 // ROUND 6: Load results from localStorage on startup
 // ═══════════════════════════════════════════════════
 setTimeout(() => rsLoadFromStorage(), 1500);
+
+// ═══════════════════════════════════════════════════
+// NEXT DAY WATCHLIST — DATA + RENDERING
+// ═══════════════════════════════════════════════════
+let wlPicks = [];
+let wlPerf = [];
+
+function switchWLTab(tab) {
+  document.getElementById('wl-picks-panel').style.display = tab === 'picks' ? '' : 'none';
+  document.getElementById('wl-perf-panel').style.display = tab === 'perf' ? '' : 'none';
+  document.getElementById('wl-analytics-panel').style.display = tab === 'analytics' ? '' : 'none';
+  ['picks','perf','analytics'].forEach(t => {
+    const btn = document.getElementById('wl-tab-'+t);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  if (tab === 'perf') loadWLPerformance();
+  if (tab === 'analytics') loadWLAnalytics();
+}
+
+async function loadNextDayWL() {
+  try {
+    // Get latest picks (most recent session_date)
+    const url = `${CONFIG.supabaseUrl}/rest/v1/watchlist_picks?select=*&order=session_date.desc,score.desc&limit=40`;
+    const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+    const resp = await fetch(url, { headers });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data.length) {
+      document.getElementById('wl-bull-list').innerHTML = '<span style="color:var(--muted)">No picks yet — runs at 6:30 PM</span>';
+      document.getElementById('wl-bear-list').innerHTML = '<span style="color:var(--muted)">No picks yet — runs at 6:30 PM</span>';
+      return;
+    }
+
+    // Filter to latest session
+    const latestDate = data[0].session_date;
+    wlPicks = data.filter(p => p.session_date === latestDate);
+
+    // Store symbols for alert engine badge lookup
+    window.wlPickSymbols = new Set(wlPicks.map(p => p.symbol));
+
+    renderWLPicks();
+  } catch(e) { console.error('WL load error:', e); }
+}
+
+function renderWLPicks() {
+  const bulls = wlPicks.filter(p => p.direction === 'BULL').sort((a,b) => b.score - a.score);
+  const bears = wlPicks.filter(p => p.direction === 'BEAR').sort((a,b) => b.score - a.score);
+
+  const renderList = (picks) => {
+    if (!picks.length) return '<span style="color:var(--muted)">No qualifying picks</span>';
+    return picks.map((p, i) => {
+      const conv = p.conviction === 'HIGH' ? '🔥' : '⚡';
+      const scoreColor = p.score >= 75 ? 'var(--green)' : 'var(--amber)';
+      const reasons = JSON.parse(p.reasons || '{}');
+      const topReason = Object.values(reasons)[0] || '';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <span style="color:var(--muted);font-size:9px">${i+1}.</span>
+          <b style="color:var(--text)">${p.symbol}</b>
+          <span style="font-size:9px;color:var(--muted)">₹${(p.ltp||0).toLocaleString('en-IN')}</span>
+          <span style="font-size:9px;color:var(--muted)">${p.sector||''}</span>
+        </div>
+        <div style="text-align:right">
+          <span style="color:${scoreColor};font-weight:700">${conv}${p.score.toFixed(0)}</span>
+          <span style="font-size:8px;color:var(--muted);display:block">${p.oi_buildup||''} | Vol:${p.vol_ratio||0}x</span>
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  document.getElementById('wl-bull-list').innerHTML = renderList(bulls);
+  document.getElementById('wl-bear-list').innerHTML = renderList(bears);
+  document.getElementById('wl-bull-count').textContent = `${bulls.length} stocks`;
+  document.getElementById('wl-bear-count').textContent = `${bears.length} stocks`;
+
+  if (wlPicks.length > 0) {
+    document.getElementById('wl-target-date').textContent = `For: ${wlPicks[0].target_date} | Generated: ${wlPicks[0].session_date}`;
+    document.getElementById('wl-updated').textContent = `Updated: ${wlPicks[0].session_date}`;
+  }
+}
+
+async function loadWLPerformance() {
+  try {
+    const url = `${CONFIG.supabaseUrl}/rest/v1/watchlist_performance?select=*&order=target_date.desc&limit=200`;
+    const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+    const resp = await fetch(url, { headers });
+    if (!resp.ok) return;
+    wlPerf = await resp.json();
+
+    if (!wlPerf.length) {
+      document.getElementById('wl-perf-table').innerHTML = '<span style="color:var(--muted)">No performance data yet — check after first full trading day</span>';
+      return;
+    }
+
+    // Summary stats
+    const bulls = wlPerf.filter(p => p.direction === 'BULL');
+    const bears = wlPerf.filter(p => p.direction === 'BEAR');
+    const bullWin = bulls.filter(p => p.direction_correct).length;
+    const bearWin = bears.filter(p => p.direction_correct).length;
+    const orbTriggered = wlPerf.filter(p => p.orb_triggered).length;
+    const totalCorrect = wlPerf.filter(p => p.direction_correct).length;
+
+    document.getElementById('wl-bull-wr').innerHTML = bulls.length ? `<span style="color:var(--green)">${(bullWin/bulls.length*100).toFixed(0)}%</span>` : '—';
+    document.getElementById('wl-bear-wr').innerHTML = bears.length ? `<span style="color:var(--red)">${(bearWin/bears.length*100).toFixed(0)}%</span>` : '—';
+    document.getElementById('wl-orb-rate').innerHTML = `${orbTriggered}/${wlPerf.length}`;
+    document.getElementById('wl-overall').innerHTML = `<span style="color:${totalCorrect/wlPerf.length > 0.55 ? 'var(--green)' : 'var(--amber)'}">${(totalCorrect/wlPerf.length*100).toFixed(0)}%</span>`;
+
+    // Recent results table
+    const dates = [...new Set(wlPerf.map(p => p.target_date))].slice(0, 10);
+    let tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="border-bottom:1px solid var(--border)">' +
+      '<th style="text-align:left;padding:4px">Date</th><th>Symbol</th><th>Dir</th><th>Score</th><th>Move%</th><th>Result</th><th>ORB</th></tr></thead><tbody>';
+
+    for (const date of dates) {
+      const dayPicks = wlPerf.filter(p => p.target_date === date).sort((a,b) => b.pick_score - a.pick_score);
+      for (const p of dayPicks) {
+        const icon = p.direction_correct ? '✅' : '❌';
+        const moveColor = p.move_pct > 0 ? 'var(--green)' : p.move_pct < 0 ? 'var(--red)' : 'var(--muted)';
+        tableHtml += `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:3px 4px;color:var(--muted)">${p.target_date}</td>
+          <td style="font-weight:600;color:var(--text)">${p.symbol}</td>
+          <td>${p.direction === 'BULL' ? '🟢' : '🔴'}</td>
+          <td style="color:${p.pick_score >= 75 ? 'var(--green)' : 'var(--amber)'}">${p.pick_score?.toFixed(0)}</td>
+          <td style="color:${moveColor}">${p.move_pct > 0 ? '+' : ''}${p.move_pct?.toFixed(1)}%</td>
+          <td>${icon}</td>
+          <td>${p.orb_triggered ? '🔔' : '—'}</td>
+        </tr>`;
+      }
+    }
+    tableHtml += '</tbody></table>';
+    document.getElementById('wl-perf-table').innerHTML = tableHtml;
+  } catch(e) { console.error('WL perf error:', e); }
+}
+
+async function loadWLAnalytics() {
+  if (!wlPerf.length) await loadWLPerformance();
+  if (!wlPerf.length) return;
+
+  // Conviction analysis
+  const high = wlPerf.filter(p => p.pick_score >= 75);
+  const med = wlPerf.filter(p => p.pick_score >= 60 && p.pick_score < 75);
+  const highWin = high.filter(p => p.direction_correct).length;
+  const medWin = med.filter(p => p.direction_correct).length;
+
+  document.getElementById('wl-conv-analysis').innerHTML = `
+    <div>🔥 <b>HIGH (75+):</b> ${high.length ? `${(highWin/high.length*100).toFixed(0)}% win rate (${highWin}/${high.length})` : 'No data'}</div>
+    <div>⚡ <b>MEDIUM (60-74):</b> ${med.length ? `${(medWin/med.length*100).toFixed(0)}% win rate (${medWin}/${med.length})` : 'No data'}</div>
+    <div style="margin-top:6px;color:var(--cyan)">📈 <b>Avg move:</b> HIGH ${high.length ? (high.reduce((s,p) => s + Math.abs(p.move_pct||0), 0)/high.length).toFixed(1) : '—'}% | MED ${med.length ? (med.reduce((s,p) => s + Math.abs(p.move_pct||0), 0)/med.length).toFixed(1) : '—'}%</div>
+  `;
+
+  // Parameter analysis
+  const withOI = wlPerf.filter(p => p.oi_buildup && p.oi_buildup !== 'Unknown');
+  const oiWin = withOI.filter(p => p.direction_correct).length;
+  const orbPicks = wlPerf.filter(p => p.orb_triggered);
+  const orbWin = orbPicks.filter(p => p.direction_correct).length;
+
+  document.getElementById('wl-param-analysis').innerHTML = `
+    <div>📊 <b>OI Aligned:</b> ${withOI.length ? `${(oiWin/withOI.length*100).toFixed(0)}% (${oiWin}/${withOI.length})` : 'No data'}</div>
+    <div>🔔 <b>ORB Triggered:</b> ${orbPicks.length ? `${(orbWin/orbPicks.length*100).toFixed(0)}% correct (${orbWin}/${orbPicks.length})` : 'No data'}</div>
+    <div>🟢 <b>Bull picks:</b> ${(() => { const b = wlPerf.filter(p=>p.direction==='BULL'); const w = b.filter(p=>p.direction_correct).length; return b.length ? `${(w/b.length*100).toFixed(0)}%` : '—'; })()}</div>
+    <div>🔴 <b>Bear picks:</b> ${(() => { const b = wlPerf.filter(p=>p.direction==='BEAR'); const w = b.filter(p=>p.direction_correct).length; return b.length ? `${(w/b.length*100).toFixed(0)}%` : '—'; })()}</div>
+  `;
+
+  // Insights
+  const insights = [];
+  if (high.length >= 5 && highWin/high.length > 0.65) insights.push(`🔥 HIGH conviction picks have ${(highWin/high.length*100).toFixed(0)}% accuracy — trust them`);
+  if (high.length >= 5 && highWin/high.length < 0.45) insights.push(`⚠️ HIGH conviction picks underperforming at ${(highWin/high.length*100).toFixed(0)}% — check parameters`);
+  if (orbPicks.length >= 3 && orbWin/orbPicks.length > 0.7) insights.push(`🔔 When ORB triggers on watchlist stock, ${(orbWin/orbPicks.length*100).toFixed(0)}% hit direction — strong signal`);
+
+  const bullPerf = wlPerf.filter(p => p.direction === 'BULL');
+  const bearPerf = wlPerf.filter(p => p.direction === 'BEAR');
+  if (bullPerf.length >= 5 && bearPerf.length >= 5) {
+    const bullWR = bullPerf.filter(p=>p.direction_correct).length / bullPerf.length;
+    const bearWR = bearPerf.filter(p=>p.direction_correct).length / bearPerf.length;
+    if (bullWR > bearWR + 0.15) insights.push(`📈 Bullish picks outperform bearish by ${((bullWR-bearWR)*100).toFixed(0)}pp — market has bull bias`);
+    if (bearWR > bullWR + 0.15) insights.push(`📉 Bearish picks outperform bullish by ${((bearWR-bullWR)*100).toFixed(0)}pp — market has bear bias`);
+  }
+
+  if (!insights.length) insights.push('Need more data to generate insights. Keep tracking for 5+ trading days.');
+  document.getElementById('wl-insights').innerHTML = insights.map(i => `<div>${i}</div>`).join('');
+}
 
 // ═══════════════════════════════════════════════════
 // ROUND 6: TIMESTAMP FIX — show date + time everywhere
