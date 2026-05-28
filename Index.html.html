@@ -834,6 +834,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   ══════════════════════════════════════ -->
   <div id="tab-morning" class="panel active">
     <div class="fo-panel">
+      <!-- README Panel -->
+      <div id="morning-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">🌅 Morning Brief — How This Works</span>
+          <button onclick="document.getElementById('morning-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Your <b style='color:var(--text)'>pre-market command center</b>. Shows the EMA trend status, delivery data, volume activity, and OI buildup for all 213 F&O stocks — computed from yesterday's EOD data at 4 PM. Use this to build your <b style='color:var(--green)'>watchlist before 9:15 AM</b>.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Reading the Data</b><br>
+          <b>Trend</b> — Bull (price > 9E > 20E), Bear (price < 9E < 20E), Neutral (mixed).<br><b>Vol Ratio</b> — Today's volume vs 20-day avg. >1.5x = institutional interest.<br><b>Del %</b> — Delivery percentage. >40% = genuine buying, not just trading.<br><b>OI Buildup</b> — Long Buildup (bullish) / Short Buildup (bearish) / Short Covering / Long Unwinding.<br><b>ATR</b> — 14-day average range. Higher = more volatile.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Filter <b style='color:var(--green)'>Bull trend</b> + <b>Vol Ratio >1.5x</b> → high-conviction long candidates<br>☑️ Check <b>OI Buildup = Long Buildup</b> → confirms institutional buying<br>☑️ Sort by <b>52W Away %</b> ascending → stocks near breakout<br>☑️ Copy symbols to TradingView for chart analysis before market opens
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('morning-readme').style.display=document.getElementById('morning-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <!-- Market strip -->
       <div class="fo-strip">
         <div class="fo-card" style="flex:none;min-width:auto">
@@ -980,6 +1002,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   ══════════════════════════════════════ -->
   <div id="tab-sectorpulse" class="panel">
     <div class="fo-panel">
+      <!-- README Panel -->
+      <div id="sectorpulse-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📡 Sector Pulse — How This Works</span>
+          <button onclick="document.getElementById('sectorpulse-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Real-time sector-level view of where F&O money is flowing. Shows how many stocks in each sector are <b style='color:var(--green)'>bullish vs bearish</b> based on EMA trends. Helps you identify which sectors are leading the market and which are lagging.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Reading the Data</b><br>
+          <b>Bull/Bear/Neutral Count</b> — Number of F&O stocks in each trend within the sector.<br><b>Bull %</b> — Percentage of sector stocks in bullish trend. >70% = strong sector.<br><b>Sentiment</b> — 🟢 Bullish (>60% bull), 🔴 Bearish (>60% bear), 🟡 Mixed.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Trade stocks FROM the strongest sectors — sector tailwind boosts individual stock moves<br>☑️ Avoid going long in weak sectors even if individual stock looks good<br>☑️ Compare with Alert History win rates by sector for confirmation
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('sectorpulse-readme').style.display=document.getElementById('sectorpulse-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <!-- Market breadth strip -->
       <div class="fo-strip">
         <div class="fo-card" style="flex:none">
@@ -1042,6 +1086,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   ══════════════════════════════════════ -->
   <div id="tab-alerts" class="panel">
     <div class="fo-panel">
+      <!-- README Panel -->
+      <div id="alerts-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">🔔 Live Alerts — How This Works</span>
+          <button onclick="document.getElementById('alerts-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Shows <b style='color:var(--text)'>real-time ORB alerts</b> generated by the alert engine during market hours (9:15 AM - 3:30 PM). Each alert means a stock has broken its 15-minute Opening Range with EMA confirmation.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Alert Types</b><br>
+          <b>ORB Breakout</b> — Stock broke above 15-min high with bull EMA alignment → CALL signal.<br><b>ORB Breakdown</b> — Stock broke below 15-min low with bear EMA alignment → PUT signal.<br><b>XXL Candle</b> — Breakout candle body is >70% of ORB range → high conviction.<br><b>Stage 1/2</b> — Stage 1 = EMA aligned pre-break. Stage 2 = break confirmed with candle close.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">⚡ Conviction Indicators</b><br>
+          <b>XXL Candle ✅</b> — Big breakout candle, strong momentum<br><b>Fresh Crossover ✅</b> — 9/20 EMA just crossed, trend is new<br><b>Sector Pulse ✅</b> — Sector is aligned with the trade direction<br>More ✅ = Higher conviction. Look for 2+ factors before entering.
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('alerts-readme').style.display=document.getElementById('alerts-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <div style="display:grid;grid-template-columns:2fr 3fr;gap:12px;min-height:600px">
         <!-- Left: filters + alert list -->
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -1199,6 +1265,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   ══════════════════════════════════════ -->
   <div id="tab-alerthistory" class="panel">
     <div class="fo-panel">
+      <!-- README Panel -->
+      <div id="alerthistory-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📋 Alert History — How This Works</span>
+          <button onclick="document.getElementById('alerthistory-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Historical record of every ORB alert fired by the engine. Shows whether each alert <b style='color:var(--green)'>hit target</b> or <b style='color:var(--red)'>failed</b>, with win rate analytics by direction, sector, and ORB type.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Analytics Explained</b><br>
+          <b>Direction Accuracy</b> — Win rate for CALL vs PUT alerts. Helps you know if the engine is better at catching bulls or bears.<br><b>Sector Win Rate</b> — Which sectors have the highest alert success rate.<br><b>ORB Type Accuracy</b> — Performance breakdown by XXL, Stage 2, etc.<br><b>Daily Performance</b> — Bar chart showing wins/losses per day.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Focus on sectors with >60% win rate<br>☑️ If CALL win rate >> PUT win rate, favor long trades<br>☑️ Use the date filter to check recent performance trends<br>☑️ Click any alert row for detailed breakdown
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('alerthistory-readme').style.display=document.getElementById('alerthistory-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <!-- Period toggle + download -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <div style="display:flex;gap:4px">
@@ -1375,6 +1463,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   ══════════════════════════════════════ -->
   <div id="tab-fowatchlist" class="panel">
     <div class="fo-panel">
+      <!-- README Panel -->
+      <div id="fowatchlist-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📌 Watchlists — How This Works</span>
+          <button onclick="document.getElementById('fowatchlist-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Create and manage <b style='color:var(--text)'>named watchlists</b> of F&O stocks. Watchlists persist in your browser's localStorage — they stay even after refresh.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Features</b><br>
+          <b>Multiple Lists</b> — Create separate watchlists for different strategies (e.g., 'ORB Candidates', 'Swing Longs', 'Earnings Plays').<br><b>Quick Add</b> — Type symbol name and add to any list.<br><b>TradingView Copy</b> — Copy all symbols in a list for quick TradingView multi-chart setup.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Build your morning watchlist from Morning Brief → filter bull + high volume → add to watchlist<br>☑️ During market hours, monitor only your watchlisted stocks<br>☑️ Post-market, review which watchlisted stocks gave alerts
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('fowatchlist-readme').style.display=document.getElementById('fowatchlist-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
         <div class="wl-tabs-strip" id="fo-wl-tabs-strip"></div>
         <button class="wl-add-tab" onclick="addFOWatchlist()" title="Create new watchlist">＋</button>
@@ -1732,6 +1842,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ── SCANNER TAB ── -->
   <div id="tab-scanner" class="panel active">
     <div class="momentum-panel">
+      <!-- README Panel -->
+      <div id="scanner-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📡 Momentum Scanner — How This Works</span>
+          <button onclick="document.getElementById('scanner-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Scans the entire NSE market (1,400+ stocks) for <b style='color:var(--text)'>momentum setups</b>. Stocks are ranked by a composite <b style='color:var(--cyan)'>Score</b> based on price momentum, volume surge, EMA alignment, and 52-week high proximity.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Reading the Columns</b><br>
+          <b>Category</b> — A (above all EMAs), B (above 20+50, not 9), C (above 50+200), AC (A + crossover).<br><b>Day/Week/Month %</b> — Price change over different timeframes. Green = up, Red = down.<br><b>% Daily 9E</b> — Distance from 9 EMA. Positive = above (bullish).<br><b>52W Away</b> — Distance from 52-week high. 0% = at high. <5% = near breakout.<br><b>Vol on Move</b> — Volume confirmation. Very High/High/Low.<br><b>Crossover</b> — ✅ = 9 EMA just crossed above 20 EMA (fresh trend start).<br><b>Score</b> — Composite momentum score (0-100). Higher = stronger setup.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ Ideal Scanner Workflow</b><br>
+          ☑️ Filter <b>Category A or AC</b> (strongest EMA alignment)<br>☑️ Sort by <b>Score ↓</b> (highest momentum first)<br>☑️ Look for <b>Vol on Move = High/Very High</b> (volume confirms)<br>☑️ Check <b>Crossover ✅</b> for fresh entry timing<br>☑️ Verify on TradingView chart before trading
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('scanner-readme').style.display=document.getElementById('scanner-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <!-- Sector heatmap strip -->
       <div id="mom-heatmap-strip" class="mom-heatmap"></div>
       <!-- Top bar -->
@@ -1821,6 +1953,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ── EMA SIGNALS TAB ── -->
   <div id="tab-emasignals" class="panel">
     <div class="momentum-panel">
+      <!-- README Panel -->
+      <div id="emasignals-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">🔄 EMA Signals — How This Works</span>
+          <button onclick="document.getElementById('emasignals-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Finds stocks where <b style='color:var(--text)'>EMA crossovers just happened</b> — the 9 EMA crossed above or below the 20 EMA. These are <b style='color:var(--green)'>early trend change signals</b> before the big move begins.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Signal Types</b><br>
+          <b>Bullish Crossover (9E × 20E ↑)</b> — 9 EMA crossed ABOVE 20 EMA. Fresh uptrend starting. Best if price is also above both EMAs.<br><b>Bearish Crossover (9E × 20E ↓)</b> — 9 EMA crossed BELOW 20 EMA. Downtrend starting.<br><b>Fresh</b> — Crossover happened within last 3 days. Highest priority.<br><b>Mature</b> — Crossover happened 4-10 days ago. Still valid but may have moved.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Filter <b>Fresh Crossovers</b> only → these are actionable NOW<br>☑️ Bullish cross + <b>Category A</b> = high-conviction long<br>☑️ Wait for price to <b>retest 9 EMA from above</b> → that's your entry<br>☑️ Stoploss below 20 EMA
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('emasignals-readme').style.display=document.getElementById('emasignals-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <!-- Trending Sectors & Industries strip -->
       <div id="ema-trending-strip" style="background:var(--glass);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
         <div style="flex:1;min-width:280px">
@@ -2061,6 +2215,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ── MY PICKS TAB ── -->
   <div id="tab-mypicks" class="panel">
     <div class="momentum-panel">
+      <!-- README Panel -->
+      <div id="mypicks-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">⭐ My Picks — How This Works</span>
+          <button onclick="document.getElementById('mypicks-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Your personal <b style='color:var(--text)'>starred stocks</b> — stocks you've bookmarked from the Scanner, EMA Signals, or Breakout Setups tabs. Think of it as your <b style='color:var(--green)'>active monitoring list</b>.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Features</b><br>
+          <b>Star from any tab</b> — Click the ⭐ icon on any stock row to add it here.<br><b>Same data columns</b> — Shows all momentum data so you can track your picks daily.<br><b>Persisted in Supabase</b> — Your stars survive across browsers and devices.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Star 10-15 stocks from Scanner each weekend<br>☑️ Monitor them daily for entry signals (EMA test, breakout, volume surge)<br>☑️ Remove when trade is taken or setup invalidated<br>☑️ Keep the list lean — too many stars = no focus
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('mypicks-readme').style.display=document.getElementById('mypicks-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <div class="mom-topbar">
         <div class="mom-filters">
           <div class="mom-filter-group">
@@ -2129,8 +2305,26 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ── EXITED TAB ── -->
   <div id="tab-exited" class="panel">
     <div class="momentum-panel">
+      <!-- README Panel -->
+      <div id="exited-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">🚪 Exited — How This Works</span>
+          <button onclick="document.getElementById('exited-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Stocks that were in your picks but have been <b style='color:var(--text)'>removed/exited</b>. Helps you track what you passed on or exited — useful for reviewing missed opportunities and learning.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Review weekly — did any exited stock break out after you removed it?<br>☑️ Pattern recognition — are you exiting too early on certain setups?<br>☑️ Use as a learning journal alongside JournalX
+        </div>
+      </div>
+
       <div class="mom-topbar">
         <div class="mom-filters">
+          <button class="sort-btn" onclick="document.getElementById('exited-readme').style.display=document.getElementById('exited-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button>
+
           <span style="font-size:12px;color:var(--muted)">Stocks that closed below daily 9 EMA for 2 consecutive days</span>
         </div>
         <div class="mom-export-btns">
@@ -2175,6 +2369,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
   <!-- TAB 1: Today's Session -->
   <div id="tab-bnsession" class="panel active">
+      <!-- README Panel -->
+      <div id="bnsession-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📊 Today's Session — How This Works</span>
+          <button onclick="document.getElementById('bnsession-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Your <b style='color:var(--text)'>BankNifty command center</b> for the current trading session. Shows ORB levels, day type classification, key levels, OI data, big candle events, level breaks, and <b style='color:var(--cyan)'>live AI-powered commentary</b>.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Key Metrics</b><br>
+          <b>ORB (15-min)</b> — Opening Range from 9:15-9:30 AM. NARROW = breakout likely. WIDE = range day likely.<br><b>Day Type</b> — Trending Bull/Bear, Reversal, Range, Consolidation Breakout.<br><b>Key Levels</b> — PDH/PDL (prev day), Week H/L, ORB H/L, Round numbers (500 levels).<br><b>OI Levels</b> — Max Pain, PCR, highest CE/PE OI strikes (resistance/support).
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🧠 Live Commentary</b><br>
+          AI-powered alerts during market hours:<br><b>ORB Break</b> — Breakout/breakdown with conviction rating<br><b>Big Candles</b> — 150+ pt 5-min candles with context<br><b>EMA Tests</b> — Price testing key EMAs<br><b>OI Shifts</b> — PCR changes, max pain movement<br><b>AI Narrative</b> — Every 30 min, Claude reads the market and gives a directional take
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('bnsession-readme').style.display=document.getElementById('bnsession-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
     <div class="fo-panel" style="gap:8px">
       <!-- Header Strip -->
       <div id="bn-header-strip" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
@@ -2272,6 +2488,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
   <!-- TAB 2: Strategy Tracker -->
   <div id="tab-bnstrategy" class="panel">
+      <!-- README Panel -->
+      <div id="bnstrategy-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📈 Strategy Tracker — How This Works</span>
+          <button onclick="document.getElementById('bnstrategy-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Tracks your <b style='color:var(--text)'>BankNifty ORB trading performance</b>. Log trades with entry/exit, ORB type, and get automatic P&L tracking with analytics.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 What's Tracked</b><br>
+          <b>ORB Type</b> — Which type of ORB setup triggered the trade.<br><b>Direction</b> — CALL (bullish break) or PUT (bearish break).<br><b>Entry/Exit</b> — Premium paid and received.<br><b>Win Rate</b> — Running win rate by ORB type and day of week.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Log every BankNifty trade immediately after exit<br>☑️ Review weekly — which ORB types are most profitable?<br>☑️ Which days of the week work best?<br>☑️ Use data to refine your ORB rules
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('bnstrategy-readme').style.display=document.getElementById('bnstrategy-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
     <div class="fo-panel" style="gap:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:14px;font-weight:700;color:var(--text)">📈 BankNifty Strategy Tracker</span>
@@ -2321,6 +2559,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
   <!-- TAB 3: Pattern Lab -->
   <div id="tab-bnpatterns" class="panel">
+      <!-- README Panel -->
+      <div id="bnpatterns-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">🔍 Pattern Lab — How This Works</span>
+          <button onclick="document.getElementById('bnpatterns-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Historical analysis of <b style='color:var(--text)'>BankNifty day-type patterns</b>. Shows how often each day type (trending, reversal, range) occurs and what typically follows.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Pattern Metrics</b><br>
+          <b>Frequency</b> — How often each day type occurs (%).<br><b>Follow-through</b> — What usually happens the next day after each type.<br><b>Win Rate</b> — If you traded that pattern, what's the success rate.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Yesterday was a Trending Bull? Check what usually follows<br>☑️ Use for pre-market bias — don't fight the pattern probability<br>☑️ Combine with OI data from Today's Session for full picture
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('bnpatterns-readme').style.display=document.getElementById('bnpatterns-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
     <div class="fo-panel" style="gap:8px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:14px;font-weight:700;color:var(--text)">🔍 BankNifty Pattern Lab</span>
@@ -2348,10 +2608,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
   <!-- TAB 4: EOD Post-Mortem -->
   <div id="tab-bnpostmortem" class="panel">
+      <!-- README Panel -->
+      <div id="bnpostmortem-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📋 EOD Post-Mortem — How This Works</span>
+          <button onclick="document.getElementById('bnpostmortem-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          End-of-day analysis of <b style='color:var(--text)'>past BankNifty sessions</b>. Each session card shows the complete story — ORB, day type, range, big candles, level breaks, and OI snapshot.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Review yesterday's session before trading today<br>☑️ Compare your trades with what actually happened<br>☑️ Look for recurring patterns across multiple sessions<br>☑️ Use the narrative to understand market structure evolution
+        </div>
+      </div>
+
     <div class="fo-panel" style="gap:8px">
       <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">📋 BankNifty EOD Post-Mortem</div>
       <!-- Session selector -->
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <button class="sort-btn" onclick="document.getElementById('bnpostmortem-readme').style.display=document.getElementById('bnpostmortem-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button>
+
         <button class="sort-btn active" id="bn-pm-today" onclick="loadBNPostMortem('today')">Today</button>
         <button class="sort-btn" id="bn-pm-prev" onclick="loadBNPostMortem('prev')">Previous Day</button>
         <select id="bn-pm-date-sel" onchange="loadBNPostMortem(this.value)" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--text);font-size:11px">
@@ -2367,6 +2645,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
   <!-- TAB 5: Pre-Market Prep -->
   <div id="tab-bnprep" class="panel">
+      <!-- README Panel -->
+      <div id="bnprep-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">🎯 Pre-Market Prep — How This Works</span>
+          <button onclick="document.getElementById('bnprep-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Your <b style='color:var(--text)'>daily BankNifty prep sheet</b>. Shows key levels, OI-derived support/resistance, and a preparation checklist for the upcoming session.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 What You Get</b><br>
+          <b>Key Levels</b> — PDH/PDL, Week H/L, Round numbers, Daily EMAs.<br><b>OI Levels</b> — Max Pain, CE/PE walls from previous session's OI.<br><b>Expected Scenario</b> — Based on day type patterns and OI positioning.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Check this tab every morning at 9:00 AM<br>☑️ Mark your levels on TradingView BankNifty chart<br>☑️ Know the ORB + EMA levels BEFORE 9:15 AM<br>☑️ Decide bias (bull/bear/neutral) BEFORE market opens — don't change mid-session
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('bnprep-readme').style.display=document.getElementById('bnprep-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
     <div class="fo-panel" style="gap:8px">
       <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">🎯 Pre-Market Prep — BankNifty</div>
       <p style="font-size:11px;color:var(--muted);margin:0">Based on previous session's close. Review before 9:15 AM.</p>
@@ -2413,6 +2713,32 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- TAB: Results Season -->
   <div id="tab-resultseason" class="panel active">
     <div class="fo-panel">
+      <!-- README Panel -->
+      <div id="resultseason-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">📋 Results Season — How This Works</span>
+          <button onclick="document.getElementById('resultseason-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Merges quarterly earnings data with quality/smart money metrics to create a <b style='color:var(--text)'>comprehensive results dashboard</b>. Upload two CSVs from Trendlyne → get auto-graded results with actionable filters.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Grading System</b><br>
+          <b style='color:var(--green)'>🟢 Blockbuster</b> — Rev >20%, NP >30%, OPM expanding. The best results.<br><b style='color:var(--amber)'>⚡ Turnaround</b> — NP growth >100%. Company turning profitable.<br><b style='color:var(--text)'>⚪ Steady</b> — Positive growth but moderate.<br><b style='color:var(--muted)'>🟡 Mixed</b> — Revenue up but profit down (or vice versa).<br><b style='color:var(--red)'>🔴 Weak</b> — Both revenue and profit declining.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 Verdict System</b><br>
+          <b style='color:var(--green)'>✅ Confirmed</b> — Stock moved up after good results. Market agrees.<br><b style='color:var(--amber)'>🔥 Underreacted</b> — Good results but stock hasn't moved yet. OPPORTUNITY.<br><b style='color:var(--muted)'>⚠️ Priced In</b> — Good results but stock already ran up before. Be cautious.<br><b style='color:var(--red)'>🪤 Trap</b> — Stock up despite weak results. Avoid.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Upload File 1 (Results) + File 2 (Quality) from Trendlyne → Click Merge & Grade<br>☑️ Filter <b>Blockbuster + Underreacted</b> → best trading opportunities<br>☑️ Check <b>Smart $ = Accumulation</b> for institutional backing<br>☑️ Use <b>Strong Sectors</b> filter on Momentum tabs to find stocks from winning sectors
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('resultseason-readme').style.display=document.getElementById('resultseason-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <!-- Upload Zone -->
       <div id="rs-upload-section" style="margin-bottom:12px">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:stretch">
@@ -2587,6 +2913,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- TAB: Analytics -->
   <div id="tab-analytics" class="panel">
     <div class="fo-panel">
+      <!-- README Panel -->
+      <div id="analytics-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:var(--text);font-size:14px">🏆 Analytics — How This Works</span>
+          <button onclick="document.getElementById('analytics-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
+          Deep analytics on the Results data. Six sub-tabs that slice and dice earnings data to find <b style='color:var(--text)'>alpha opportunities</b> that others miss.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">📊 The 6 Sub-Tabs</b><br>
+          <b>Alpha Picks</b> — Blockbusters with strong category + momentum. Cream of the crop.<br><b>Multi-Bagger Radar</b> — Small/mid caps with explosive growth. High risk, high reward.<br><b>Underreacted</b> — Great results, stock hasn't moved. Your edge.<br><b>Sector Scorecard</b> — Which sectors had the best earnings season. Drives the Strong Sectors filter.<br><b>Smart Money</b> — Stocks with FII/DII accumulation + strong results.<br><b>New Inst Entry</b> — Fresh institutional positions. Big money entering new names.
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
+          ☑️ Start with <b>Sector Scorecard</b> → identify winning sectors<br>☑️ Go to <b>Underreacted</b> → find overlooked opportunities IN those sectors<br>☑️ Cross-check with <b>Smart Money</b> → is big money agreeing?<br>☑️ Use these picks in Momentum Scanner with Strong Sectors filter
+        </div>
+      </div>
+      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('analytics-readme').style.display=document.getElementById('analytics-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
+
+
       <div id="analytics-empty" style="text-align:center;padding:40px;color:var(--muted)">
         <div style="font-size:40px;margin-bottom:12px">🏆</div>
         <div style="font-size:14px;font-weight:600">Upload results data first</div>
