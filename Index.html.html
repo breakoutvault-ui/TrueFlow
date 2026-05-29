@@ -5122,8 +5122,26 @@ async function loadSectorPulse() {
     const url = CONFIG.supabaseUrl + '/rest/v1/sector_pulse?select=*&order=avg_chg.desc';
     const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
     const resp = await fetch(url, { headers });
-    const data = await resp.json();
+    let data = await resp.json();
     if (!data || data.length === 0) return;
+
+    // ── DEDUP FIX (permanent) ──
+    // The table can hold rows from multiple session_dates and occasional duplicate
+    // sector rows. Keep ONLY the latest session_date, then ONE row per sector
+    // (the most recently updated one). This stops the heatmap from repeating sectors.
+    const latestDate = data.reduce((m, s) => (s.session_date > m ? s.session_date : m), data[0].session_date);
+    data = data.filter(s => s.session_date === latestDate);
+    const seen = {};
+    for (const s of data) {
+      const key = (s.sector || '').trim();
+      if (!key) continue;
+      const existing = seen[key];
+      if (!existing || (s.updated_at || '') > (existing.updated_at || '')) {
+        seen[key] = s;
+      }
+    }
+    data = Object.values(seen).sort((a, b) => (b.avg_chg || 0) - (a.avg_chg || 0));
+    if (data.length === 0) return;
 
     // Update last updated time
     const upd = data[0].updated_at ? new Date(data[0].updated_at) : null;
