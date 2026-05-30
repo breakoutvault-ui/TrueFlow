@@ -780,6 +780,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="nav-tab active" onclick="switchTab('scanner',this,'momentum')">📡 Scanner</button>
         <button class="nav-tab" onclick="switchTab('emasignals',this,'momentum')">🔄 EMA Signals</button>
         <button class="nav-tab" onclick="switchTab('sharpmovers',this,'momentum')">🎯 Breakout Setups</button>
+        <button class="nav-tab" onclick="switchTab('smartmoney',this,'momentum')">🏦 Smart Money</button>
         <button class="nav-tab" onclick="switchTab('mypicks',this,'momentum')">⭐ My Picks</button>
         <button class="nav-tab" onclick="switchTab('exited',this,'momentum')">🚪 Exited</button>
       </div>
@@ -2484,6 +2485,277 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
     </div>
   </div>
+
+<div id="tab-smartmoney" class="panel">
+  <div class="momentum-panel">
+
+    <!-- Read Me -->
+    <div id="sm-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(0,212,255,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-weight:700;color:var(--text);font-size:14px">🏦 Smart Money — How This Works</span>
+        <button onclick="document.getElementById('sm-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+      </div>
+      Bulk &amp; block deals from NSE, every trading day. We keep only meaningful deals (₹1 cr+), tag who's institutional vs a ⭐ marquee investor, and score each stock by whether smart money is <b>accumulating</b> or <b>distributing</b> over the last 30 days.
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:12px 0">
+        <b style="color:var(--cyan);font-size:12px">🌡️ The Cooking Tiers</b><br><br>
+        <b style="color:var(--green)">🔥 LOADING UP</b> — A ⭐ star is buying, or 2+ institutions are buying with repeat purchases. The strongest "it's cooking" signal.<br>
+        <b style="color:var(--cyan)">📈 ACCUMULATING</b> — Steady net institutional buying; multiple buyers or one buying repeatedly.<br>
+        <b style="color:var(--amber)">👀 NIBBLING</b> — Light/early institutional buying. On the radar.<br>
+        <b style="color:var(--muted)">⚪ QUIET</b> — No meaningful smart-money flow.<br>
+        <b style="color:var(--red)">🧊 OFFLOADING</b> — Institutions net selling. Caution.
+      </div>
+      <b style="color:var(--gold)">⭐ Stars</b> = curated marquee investors (mutual funds, sovereign/FII funds, insurers) whose buying carries the most weight. <b>Net flow</b> = buy value − sell value. Hover any tier badge for its meaning.
+    </div>
+
+    <!-- Sub-tabs -->
+    <div class="deals-subtabs">
+      <button class="deals-subtab active" id="sm-sub-board" onclick="smSetView('leaderboard',this)">🔥 Cooking Leaderboard</button>
+      <button class="deals-subtab" id="sm-sub-deals" onclick="smSetView('deals',this)">📋 All Deals</button>
+    </div>
+
+    <div class="mom-topbar">
+      <div class="mom-filters" id="sm-filters"><!-- filters injected by JS --></div>
+      <div class="mom-export-btns">
+        <button class="sort-btn" onclick="document.getElementById('sm-readme').style.display=document.getElementById('sm-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:var(--cyan-dim);border-color:var(--border2);color:var(--cyan);font-weight:600" title="Learn how this tab works">📖 How This Works</button>
+        <button class="mom-export-btn" onclick="smCopyTV()" title="Copy filtered stock symbols for TradingView watchlist">📊 TradingView</button>
+        <span class="mom-updated" id="sm-count" style="color:var(--cyan);font-weight:600">—</span>
+      </div>
+    </div>
+
+    <div class="tbl-scroll" style="margin-top:8px">
+      <table class="mom-table" id="sm-table" style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead id="sm-thead"></thead>
+        <tbody id="sm-tbody">
+          <tr><td colspan="12"><div class="mom-empty"><div class="mom-empty-icon">🏦</div><div class="mom-empty-text">Loading smart-money data…</div><div class="mom-empty-sub">Fetching from Supabase</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const SM = { scores:[], deals:[], view:'leaderboard', win:'30d',
+  tier:'all', instOnly:false, dealType:'all', side:'all', minCr:0, q:'',
+  sortKey:'cooking_score', sortDir:-1, loaded:false };
+
+const SM_TIERS = {
+  LOADING_UP:   {label:'🔥 LOADING UP',   color:'var(--green)', tip:'A ⭐ star is buying, or 2+ institutions buying with repeat purchases. Strongest accumulation signal.'},
+  ACCUMULATING: {label:'📈 ACCUMULATING', color:'var(--cyan)',  tip:'Steady net institutional buying — multiple buyers, or one buying repeatedly.'},
+  NIBBLING:     {label:'👀 NIBBLING',     color:'var(--amber)', tip:'Light or early institutional buying. On the radar.'},
+  QUIET:        {label:'⚪ QUIET',         color:'var(--muted)', tip:'No meaningful smart-money flow in the window.'},
+  OFFLOADING:   {label:'🧊 OFFLOADING',   color:'var(--red)',   tip:'Institutions are net sellers — trimming or exiting. Caution.'}
+};
+const SM_TIER_ORDER = { LOADING_UP:5, ACCUMULATING:4, NIBBLING:3, QUIET:2, OFFLOADING:1 };
+
+async function smGet(table, query){
+  try{
+    const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}?${query}`,
+      { headers:{ apikey:CONFIG.supabaseKey, Authorization:'Bearer '+CONFIG.supabaseKey } });
+    return r.ok ? await r.json() : [];
+  }catch(e){ return []; }
+}
+
+async function loadSmartMoney(){
+  if (SM.loaded){ smRender(); return; }
+  SM.scores = await smGet('smart_money_scores', 'select=*');
+  // deals: last 30 days, paginated
+  const since = new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+  let all=[], off=0;
+  while(true){
+    const batch = await smGet('smart_money_deals',
+      `select=deal_date,symbol,scrip_name,client_name,investor_class,is_star,side,quantity,price,value,deal_type&deal_date=gte.${since}&order=deal_date.desc&limit=1000&offset=${off}`);
+    all = all.concat(batch);
+    if (batch.length < 1000) break;
+    off += 1000;
+  }
+  SM.deals = all;
+  SM.loaded = true;
+  smRender();
+}
+
+function smCr(v){ if(v===null||v===undefined) return '—'; return (v/1e7).toFixed(1); }
+function smClassTag(d){
+  if(d.is_star) return '<span title="Marquee ⭐ star investor" style="color:var(--gold)">⭐</span>';
+  if(d.investor_class==='institutional') return '<span title="Institutional" style="color:var(--cyan)">🏛️</span>';
+  return '<span title="Individual / other" style="color:var(--muted)">·</span>';
+}
+
+function smSetView(v, btn){
+  SM.view = v;
+  document.querySelectorAll('#tab-smartmoney .deals-subtab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  SM.sortKey = (v==='leaderboard') ? 'cooking_score' : 'value';
+  SM.sortDir = -1;
+  smRender();
+}
+function smSetTier(t, btn){
+  SM.tier = t;
+  document.querySelectorAll('#sm-filters [data-sm-tier]').forEach(b=>b.classList.remove('multi-active'));
+  if(btn) btn.classList.add('multi-active');
+  smRender();
+}
+function smSetWin(w, btn){
+  SM.win = w;
+  document.querySelectorAll('#sm-filters [data-sm-win]').forEach(b=>b.classList.remove('multi-active'));
+  if(btn) btn.classList.add('multi-active');
+  smRender();
+}
+function smSetDealType(t, btn){
+  SM.dealType=t;
+  document.querySelectorAll('#sm-filters [data-sm-dt]').forEach(b=>b.classList.remove('multi-active'));
+  if(btn) btn.classList.add('multi-active');
+  smRender();
+}
+function smSetSide(s, btn){
+  SM.side=s;
+  document.querySelectorAll('#sm-filters [data-sm-side]').forEach(b=>b.classList.remove('multi-active'));
+  if(btn) btn.classList.add('multi-active');
+  smRender();
+}
+function smToggleInst(btn){ SM.instOnly=!SM.instOnly; btn.classList.toggle('multi-active',SM.instOnly); smRender(); }
+function smSetMin(v){ SM.minCr = parseFloat(v)||0; smRender(); }
+function smSetSearch(v){ SM.q = (v||'').trim().toUpperCase(); smRender(); }
+function smSort(key){ if(SM.sortKey===key){ SM.sortDir*=-1; } else { SM.sortKey=key; SM.sortDir=-1; } smRender(); }
+
+function smFiltersBar(){
+  if(SM.view==='leaderboard'){
+    const chip=(t)=>{const m=SM_TIERS[t]; return `<button class="sort-btn" data-sm-tier="${t}" onclick="smSetTier('${t}',this)" title="${m.tip}" style="color:${m.color}">${m.label}</button>`;};
+    return `
+      <div class="mom-filter-group">
+        <button class="sort-btn multi-active" data-sm-tier="all" onclick="smSetTier('all',this)">All</button>
+        ${chip('LOADING_UP')}${chip('ACCUMULATING')}${chip('NIBBLING')}${chip('OFFLOADING')}${chip('QUIET')}
+      </div>
+      <div class="mom-filter-group" style="border-left:1px solid var(--border);padding-left:6px">
+        <span style="font-size:10px;color:var(--muted)">Window</span>
+        <button class="sort-btn multi-active" data-sm-win="30d" onclick="smSetWin('30d',this)" title="Activity over the last 30 days">30D</button>
+        <button class="sort-btn" data-sm-win="7d" onclick="smSetWin('7d',this)" title="Fresh activity in the last 7 days">7D</button>
+      </div>
+      <button class="sort-btn" id="sm-inst" onclick="smToggleInst(this)" title="Only stocks with institutional/⭐ buyers">🏛️ Institutional only</button>
+      <select class="sort-sel" onchange="smSetMin(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px">
+        <option value="0">Any net size</option><option value="5">Net ≥ ₹5 cr</option><option value="25">Net ≥ ₹25 cr</option><option value="100">Net ≥ ₹100 cr</option>
+      </select>
+      <input type="text" placeholder="🔎 symbol / buyer" oninput="smSetSearch(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;color:var(--text);font-size:11px;outline:none;width:140px">`;
+  }
+  return `
+    <div class="mom-filter-group">
+      <button class="sort-btn multi-active" data-sm-dt="all" onclick="smSetDealType('all',this)">All</button>
+      <button class="sort-btn" data-sm-dt="bulk" onclick="smSetDealType('bulk',this)" title="Bulk deals (≥0.5% of equity)">Bulk</button>
+      <button class="sort-btn" data-sm-dt="block" onclick="smSetDealType('block',this)" title="Block deals (large negotiated)">Block</button>
+    </div>
+    <div class="mom-filter-group">
+      <button class="sort-btn multi-active" data-sm-side="all" onclick="smSetSide('all',this)">Buy+Sell</button>
+      <button class="sort-btn" data-sm-side="BUY" onclick="smSetSide('BUY',this)" style="color:var(--green)">Buy</button>
+      <button class="sort-btn" data-sm-side="SELL" onclick="smSetSide('SELL',this)" style="color:var(--red)">Sell</button>
+    </div>
+    <button class="sort-btn" id="sm-inst" onclick="smToggleInst(this)" title="Only institutional / ⭐ counterparties">🏛️ Institutional only</button>
+    <select class="sort-sel" onchange="smSetMin(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px">
+      <option value="0">Any value</option><option value="5">≥ ₹5 cr</option><option value="25">≥ ₹25 cr</option><option value="100">≥ ₹100 cr</option>
+    </select>
+    <input type="text" placeholder="🔎 symbol / buyer" oninput="smSetSearch(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;color:var(--text);font-size:11px;outline:none;width:140px">`;
+}
+
+function smVisibleBoard(){
+  let rows = SM.scores.slice();
+  if(SM.tier!=='all') rows = rows.filter(r=>r.tier===SM.tier);
+  if(SM.instOnly) rows = rows.filter(r=>(r.inst_buyers_30d||0)>0);
+  const netKey = SM.win==='7d' ? 'net_value_7d' : 'net_value_30d';
+  if(SM.minCr>0) rows = rows.filter(r=>Math.abs(r[netKey]||0) >= SM.minCr*1e7);
+  if(SM.q) rows = rows.filter(r=>(r.symbol||'').toUpperCase().includes(SM.q) || (r.top_buyer||'').toUpperCase().includes(SM.q));
+  const k = SM.sortKey;
+  rows.sort((a,b)=>{
+    let av,bv;
+    if(k==='tier'){ av=SM_TIER_ORDER[a.tier]||0; bv=SM_TIER_ORDER[b.tier]||0; }
+    else { av=a[k]; bv=b[k]; if(typeof av==='string'){av=av||'';bv=bv||'';return SM.sortDir*av.localeCompare(bv);} av=av||0; bv=bv||0; }
+    return SM.sortDir*(av-bv);
+  });
+  return rows;
+}
+function smVisibleDeals(){
+  let rows = SM.deals.slice();
+  if(SM.dealType!=='all') rows = rows.filter(r=>r.deal_type===SM.dealType);
+  if(SM.side!=='all') rows = rows.filter(r=>r.side===SM.side);
+  if(SM.instOnly) rows = rows.filter(r=>r.is_star || r.investor_class==='institutional');
+  if(SM.minCr>0) rows = rows.filter(r=>(r.value||0) >= SM.minCr*1e7);
+  if(SM.q) rows = rows.filter(r=>(r.symbol||'').toUpperCase().includes(SM.q) || (r.client_name||'').toUpperCase().includes(SM.q));
+  const k=SM.sortKey;
+  rows.sort((a,b)=>{ let av=a[k],bv=b[k]; if(typeof av==='string'){return SM.sortDir*(av||'').localeCompare(bv||'');} return SM.sortDir*((av||0)-(bv||0)); });
+  return rows;
+}
+
+function smRender(){
+  document.getElementById('sm-filters').innerHTML = smFiltersBar();
+  const thead=document.getElementById('sm-thead'), tbody=document.getElementById('sm-tbody');
+  const arrow=(k)=> SM.sortKey===k ? (SM.sortDir<0?' ▼':' ▲') : '';
+  if(SM.view==='leaderboard'){
+    const rows=smVisibleBoard();
+    const netLabel = SM.win==='7d' ? 'Net 7D' : 'Net 30D';
+    const netKey = SM.win==='7d' ? 'net_value_7d' : 'net_value_30d';
+    thead.innerHTML=`<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">
+      <th style="text-align:left;padding:6px 8px">#</th>
+      <th style="text-align:left;padding:6px 8px;cursor:pointer" onclick="smSort('symbol')">Symbol${arrow('symbol')}</th>
+      <th style="text-align:left;padding:6px 8px;cursor:pointer" onclick="smSort('tier')">Tier${arrow('tier')}</th>
+      <th style="text-align:right;padding:6px 8px;cursor:pointer" onclick="smSort('cooking_score')">Score${arrow('cooking_score')}</th>
+      <th style="text-align:right;padding:6px 8px;cursor:pointer" onclick="smSort('${netKey}')">${netLabel} (₹cr)${arrow(netKey)}</th>
+      <th style="text-align:right;padding:6px 8px;cursor:pointer" onclick="smSort('inst_buyers_30d')">Inst${arrow('inst_buyers_30d')}</th>
+      <th style="text-align:right;padding:6px 8px;cursor:pointer" onclick="smSort('repeat_buyers_30d')">Repeat${arrow('repeat_buyers_30d')}</th>
+      <th style="text-align:right;padding:6px 8px;cursor:pointer" onclick="smSort('star_buyers_30d')">⭐${arrow('star_buyers_30d')}</th>
+      <th style="text-align:left;padding:6px 8px">Top Buyer</th>
+      <th style="text-align:left;padding:6px 8px">Last Deal</th></tr>`;
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="10"><div class="mom-empty"><div class="mom-empty-icon">🔍</div><div class="mom-empty-text">No stocks match these filters</div></div></td></tr>`; }
+    else tbody.innerHTML = rows.map((r,i)=>{
+      const m=SM_TIERS[r.tier]||SM_TIERS.QUIET;
+      const net=r[netKey]||0; const netCol = net>0?'var(--green)':(net<0?'var(--red)':'var(--muted)');
+      return `<tr style="border-top:1px solid var(--border)">
+        <td style="padding:5px 8px;color:var(--muted)">${i+1}</td>
+        <td style="padding:5px 8px;font-weight:700;color:var(--text)">${r.symbol}</td>
+        <td style="padding:5px 8px"><span title="${m.tip}" style="color:${m.color};font-weight:600;cursor:help">${m.label}</span></td>
+        <td style="padding:5px 8px;text-align:right;font-weight:700;color:${m.color}">${(r.cooking_score||0).toFixed(0)}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:600;color:${netCol}">${net>0?'+':''}${smCr(net)}</td>
+        <td style="padding:5px 8px;text-align:right">${r.inst_buyers_30d||0}</td>
+        <td style="padding:5px 8px;text-align:right">${r.repeat_buyers_30d||0}</td>
+        <td style="padding:5px 8px;text-align:right;color:var(--gold)">${r.star_buyers_30d? '★'+r.star_buyers_30d : '—'}</td>
+        <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.top_buyer||'—'}</td>
+        <td style="padding:5px 8px;color:var(--muted);font-size:10px">${r.last_deal_date||'—'}</td></tr>`;
+    }).join('');
+    document.getElementById('sm-count').textContent = `${rows.length} stocks`;
+  } else {
+    const rows=smVisibleDeals();
+    thead.innerHTML=`<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">
+      <th style="text-align:left;padding:6px 8px;cursor:pointer" onclick="smSort('deal_date')">Date${arrow('deal_date')}</th>
+      <th style="text-align:left;padding:6px 8px;cursor:pointer" onclick="smSort('symbol')">Symbol${arrow('symbol')}</th>
+      <th style="text-align:left;padding:6px 8px">Type</th>
+      <th style="text-align:left;padding:6px 8px">Client</th>
+      <th style="text-align:center;padding:6px 8px">Class</th>
+      <th style="text-align:center;padding:6px 8px;cursor:pointer" onclick="smSort('side')">Side${arrow('side')}</th>
+      <th style="text-align:right;padding:6px 8px;cursor:pointer" onclick="smSort('quantity')">Qty${arrow('quantity')}</th>
+      <th style="text-align:right;padding:6px 8px;cursor:pointer" onclick="smSort('price')">Price${arrow('price')}</th>
+      <th style="text-align:right;padding:6px 8px;cursor:pointer" onclick="smSort('value')">Value (₹cr)${arrow('value')}</th></tr>`;
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="9"><div class="mom-empty"><div class="mom-empty-icon">🔍</div><div class="mom-empty-text">No deals match these filters</div></div></td></tr>`; }
+    else tbody.innerHTML = rows.slice(0,1500).map(r=>{
+      const sideCol = r.side==='BUY'?'var(--green)':'var(--red)';
+      return `<tr style="border-top:1px solid var(--border)">
+        <td style="padding:5px 8px;color:var(--muted);font-size:10px">${r.deal_date}</td>
+        <td style="padding:5px 8px;font-weight:700;color:var(--text)">${r.symbol}</td>
+        <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.deal_type}</td>
+        <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.client_name||'—'}</td>
+        <td style="padding:5px 8px;text-align:center">${smClassTag(r)}</td>
+        <td style="padding:5px 8px;text-align:center;font-weight:700;color:${sideCol}">${r.side}</td>
+        <td style="padding:5px 8px;text-align:right">${(r.quantity||0).toLocaleString('en-IN')}</td>
+        <td style="padding:5px 8px;text-align:right">${r.price!=null?Number(r.price).toFixed(2):'—'}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:600;color:${sideCol}">${smCr(r.value)}</td></tr>`;
+    }).join('');
+    document.getElementById('sm-count').textContent = `${rows.length} deals${rows.length>1500?' (showing 1500)':''}`;
+  }
+}
+
+function smCopyTV(){
+  const syms = SM.view==='leaderboard'
+    ? smVisibleBoard().map(r=>'NSE:'+r.symbol)
+    : [...new Set(smVisibleDeals().map(r=>'NSE:'+r.symbol))];
+  if(!syms.length){ showToast('Nothing to copy','error'); return; }
+  navigator.clipboard.writeText(syms.join(',')).then(()=>showToast('✅ Copied '+syms.length+' symbols for TradingView','success'));
+}
+</script>
 
 </div>
 
@@ -4721,6 +4993,7 @@ function switchTab(tab, btn, mode) {
     if (tab==='sharpmovers') loadMomSharp();
     if (tab==='mypicks')    loadMomPicks();
     if (tab==='exited')     loadMomExited();
+    if (tab==='smartmoney') loadSmartMoney();
     return;
   }
   if (mode === 'banknifty') {
