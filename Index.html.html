@@ -2494,16 +2494,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <span style="font-weight:700;color:var(--text);font-size:14px">🏦 Smart Money — How This Works</span>
         <button onclick="document.getElementById('sm-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
       </div>
-      Bulk &amp; block deals from NSE, every trading day. We keep meaningful deals (₹1 cr+), tag who's institutional vs a ⭐ marquee investor, and score each stock by whether smart money is <b>accumulating</b> or <b>distributing</b> over the last 30 days. Each stock is cross-referenced with your Momentum universe for sector, EMA category and 52W distance.
+      Bulk &amp; block deals from NSE, every trading day. We keep meaningful deals (₹1 cr+), tag who's institutional vs a ⭐ marquee investor, and score each stock by whether smart money is <b>accumulating</b> or <b>distributing</b> over the last 30 days. Each stock is cross-referenced with your Momentum universe for sector, EMA category, % from 9 EMA, returns and more.
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:12px 0">
-        <b style="color:var(--cyan);font-size:12px">🌡️ Cooking Tiers</b> <span style="color:var(--dim)">(net selling always overrides — a net-sold stock is never "loading up")</span><br><br>
-        <b style="color:var(--green)">🔥 LOADING UP</b> — Net buying, AND a ⭐ star is buying or 2+ institutions buying with repeat purchases.<br>
+        <b style="color:var(--cyan);font-size:12px">🌡️ Cooking Tiers</b> <span style="color:var(--dim)">(net selling always overrides)</span><br><br>
+        <b style="color:var(--green)">🔥 LOADING UP</b> — Net buying + a ⭐ star buying, or 2+ institutions with repeat purchases.<br>
         <b style="color:var(--cyan)">📈 ACCUMULATING</b> — Net buying with multiple institutions or repeat buying.<br>
         <b style="color:var(--amber)">👀 NIBBLING</b> — Net buying, light/early single-institution interest.<br>
         <b style="color:var(--muted)">⚪ QUIET</b> — No meaningful net flow.<br>
         <b style="color:var(--red)">🧊 OFFLOADING</b> — Net selling. Caution.
       </div>
-      <b style="color:var(--gold)">⭐ Stars</b> = curated marquee investors (mutual funds, sovereign/FII funds, insurers). <b>Score</b> 0–100 weights stars heaviest, then institutions, repeat buying and net inflow — and is 0 whenever the stock is net-sold. Hover any column header or tier badge for its meaning.
+      <b style="color:var(--gold)">⭐ Stars</b> = curated marquee investors. <b>Score</b> 0–100 weights stars heaviest, then institutions, repeat buying and net inflow; it is 0 whenever a stock is net-sold. Hover any column header, the score, a symbol, or a tier badge for details.
     </div>
 
     <div class="deals-subtabs">
@@ -2519,7 +2519,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="sort-btn" onclick="document.getElementById('sm-readme').style.display=document.getElementById('sm-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:var(--cyan-dim);border-color:var(--border2);color:var(--cyan);font-weight:600" title="Learn how this tab works">📖 How This Works</button>
         <button class="mom-export-btn" onclick="smCopyTV()" title="Copy the filtered symbols as an NSE: watchlist for TradingView">📊 TradingView</button>
         <span class="mom-updated" id="sm-count" style="color:var(--cyan);font-weight:600">—</span>
-        <span class="mom-updated" id="sm-updated" title="When the scorer last refreshed this data">—</span>
+        <span class="mom-updated" id="sm-updated" title="Data coverage and last refresh">—</span>
       </div>
     </div>
     <div id="sm-colpanel" style="display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;margin-top:6px;font-size:11px;color:var(--text2);flex-wrap:wrap;gap:10px"></div>
@@ -2528,7 +2528,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <table class="mom-table" id="sm-table" style="width:100%;border-collapse:collapse;font-size:11px">
         <thead id="sm-thead"></thead>
         <tbody id="sm-tbody">
-          <tr><td colspan="14"><div class="mom-empty"><div class="mom-empty-icon">🏦</div><div class="mom-empty-text">Loading smart-money data…</div></div></td></tr>
+          <tr><td colspan="20"><div class="mom-empty"><div class="mom-empty-icon">🏦</div><div class="mom-empty-text">Loading smart-money data…</div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -2539,33 +2539,47 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 const SM = { scores:[], deals:[], mom:{}, view:'leaderboard', win:'30d',
   tier:'all', score:'all', cat:'all', sector:'all', dist52:'all',
   instOnly:false, starOnly:false, dealType:'all', side:'all', minCr:0, q:'',
-  sortKey:'cooking_score', sortDir:-1, loaded:false, updated:null, hidden:{} };
+  sortKey:'cooking_score', sortDir:-1, loaded:false, updated:null, dmin:null, dmax:null,
+  hidden:null };
 
 const SM_TIERS = {
-  LOADING_UP:   {label:'🔥 LOADING UP',   color:'var(--green)', tip:'Net buying, AND a ⭐ star is buying or 2+ institutions buying with repeat purchases. Strongest signal.'},
+  LOADING_UP:   {label:'🔥 LOADING UP',   color:'var(--green)', tip:'Net buying + a ⭐ star buying or 2+ institutions with repeat purchases. Strongest signal.'},
   ACCUMULATING: {label:'📈 ACCUMULATING', color:'var(--cyan)',  tip:'Net buying with multiple institutions or repeat buying.'},
   NIBBLING:     {label:'👀 NIBBLING',     color:'var(--amber)', tip:'Net buying, light or early single-institution interest.'},
   QUIET:        {label:'⚪ QUIET',         color:'var(--muted)', tip:'No meaningful net flow.'},
   OFFLOADING:   {label:'🧊 OFFLOADING',   color:'var(--red)',   tip:'Net selling — institutions trimming or exiting. Caution.'}
 };
 const SM_TORDER = { LOADING_UP:5, ACCUMULATING:4, NIBBLING:3, QUIET:2, OFFLOADING:1 };
+const _h = (fn,...a)=> (typeof window[fn]==='function' ? window[fn](...a) : '');
 
-// leaderboard columns (header tooltips + toggleable)
+// leaderboard columns (m = cross-referenced momentum row on r._m)
 const SM_COLS = [
-  {key:'rank',  label:'#',         tip:'Row rank by the current sort', align:'left',  always:true},
-  {key:'symbol',label:'Symbol',    tip:'NSE symbol — click to open the chart on TradingView', align:'left', always:true},
-  {key:'tier',  label:'Tier',      tip:'Cooking tier — net selling always overrides buying. Hover a badge for its meaning.', align:'left'},
-  {key:'cooking_score', label:'Score', tip:'0–100 conviction. Weights ⭐ stars heaviest, then institutions, repeat buying and net inflow. 0 if the stock is net-sold.', align:'right'},
-  {key:'net',   label:'Net (₹cr)', tip:'Net smart-money flow = total buy value − sell value over the selected window', align:'right'},
-  {key:'inst_buyers_30d', label:'Inst', tip:'Distinct institutional net-buyers in the window', align:'right'},
-  {key:'repeat_buyers_30d', label:'Repeat', tip:'Buyers who accumulated on 2 or more separate days', align:'right'},
-  {key:'star_buyers_30d', label:'⭐', tip:'Number of marquee ⭐ star investors net-buying', align:'right'},
-  {key:'sector', label:'Sector',   tip:'Sector (cross-referenced from your Momentum data)', align:'left'},
-  {key:'category', label:'Cat',    tip:'EMA trend category from Momentum: A = daily+weekly bullish, B = watch zone, C = weekly cross, AC = strongest', align:'center'},
-  {key:'pct_from_52w', label:'%52W', tip:'% away from the 52-week high — closer to 0 = nearer a breakout', align:'right'},
-  {key:'ltp',   label:'Price',     tip:'Last traded price (from your Momentum data)', align:'right'},
-  {key:'top_buyer', label:'Top Buyer', tip:'Largest single net-buyer in the window', align:'left'},
-  {key:'last_deal_date', label:'Last Deal', tip:'Date of the most recent qualifying deal', align:'left'}
+  {key:'rank',  label:'#',         tip:'Row rank by the current sort', al:'left',  always:true},
+  {key:'symbol',label:'Symbol',    tip:'NSE symbol — hover for company name, click to open the chart', al:'left', always:true},
+  {key:'tier',  label:'Tier',      tip:'Cooking tier — net selling always overrides buying. Hover a badge for its meaning.', al:'left'},
+  {key:'cooking_score', label:'Score', tip:'0–100 conviction. Weights ⭐ stars heaviest, then institutions, repeat buying and net inflow. 0 if net-sold. Hover a value for its reading.', al:'right'},
+  {key:'net',   label:'Net (₹cr)', tip:'Net smart-money flow = buy value − sell value over the window', al:'right'},
+  {key:'inst_buyers_30d', label:'Inst', tip:'Distinct institutional net-buyers', al:'right'},
+  {key:'repeat_buyers_30d', label:'Repeat', tip:'Buyers who accumulated on 2+ separate days', al:'right'},
+  {key:'star_buyers_30d', label:'⭐', tip:'Marquee ⭐ star investors net-buying', al:'right'},
+  {key:'sector', label:'Sector',   tip:'Sector (from Momentum data)', al:'left'},
+  {key:'category', label:'Cat',    tip:'EMA category: A=daily+weekly bullish, B=watch, C=weekly cross, AC=strongest', al:'center'},
+  {key:'pct9d', label:'%9E (D)',   tip:'% from the daily 9 EMA — how extended above/below the 9 EMA the stock is', al:'right'},
+  {key:'zone9d',label:'9E Zone',   tip:'Daily 9 EMA zone bucket', al:'center', defHide:true},
+  {key:'pct9w', label:'%9E (W)',   tip:'% from the weekly 9 EMA', al:'right', defHide:true},
+  {key:'mom',   label:'Mom',       tip:'Momentum score from your Momentum scan', al:'center'},
+  {key:'day',   label:'1D %',      tip:'1-day price change', al:'right', defHide:true},
+  {key:'week',  label:'1W %',      tip:'1-week price change', al:'right', defHide:true},
+  {key:'month', label:'1M %',      tip:'1-month price change', al:'right'},
+  {key:'emaD',  label:'EMA (D)',   tip:'Daily price vs 9/20 EMA', al:'center', defHide:true},
+  {key:'emaW',  label:'EMA (W)',   tip:'Weekly price vs 9/20 EMA', al:'center', defHide:true},
+  {key:'vol',   label:'Vol',       tip:'Volume class', al:'center', defHide:true},
+  {key:'brk',   label:'Breakout',  tip:'Breakout type / holding status', al:'center', defHide:true},
+  {key:'hi52',  label:'52W High',  tip:'52-week high price', al:'right', defHide:true},
+  {key:'ltp',   label:'Price',     tip:'Last traded price', al:'right', defHide:true},
+  {key:'industry', label:'Industry', tip:'Industry (from Momentum data)', al:'left', defHide:true},
+  {key:'top_buyer', label:'Top Buyer', tip:'Largest single net-buyer in the window', al:'left'},
+  {key:'last_deal_date', label:'Last Deal', tip:'Date of the most recent qualifying deal', al:'left'}
 ];
 
 async function smGet(table, query){
@@ -2577,36 +2591,38 @@ async function smGet(table, query){
 }
 
 async function loadSmartMoney(){
+  if (SM.hidden===null){ SM.hidden={}; SM_COLS.forEach(c=>{ if(c.defHide) SM.hidden[c.key]=true; }); }
   if (SM.loaded){ smRender(); return; }
-  // momentum cross-ref (latest row per symbol)
-  const mom = await smGet('momentum_stocks','select=symbol,sector,industry,category,ltp,mcap,pct_from_52w&is_active=eq.true&order=session_date.desc&limit=2000');
+  const mom = await smGet('momentum_stocks','select=*&is_active=eq.true&order=session_date.desc&limit=2000');
   const mm = {}; mom.forEach(s=>{ if(!mm[s.symbol]) mm[s.symbol]=s; });
   SM.mom = mm;
-  // scores
   SM.scores = await smGet('smart_money_scores','select=*');
-  SM.scores.forEach(r=>{ const m=mm[r.symbol]||{};
-    r.sector=m.sector||null; r.industry=m.industry||null; r.category=m.category||null;
-    r.ltp=(m.ltp!=null)?+m.ltp:null; r.mcap=(m.mcap!=null)?+m.mcap:null;
-    r.pct_from_52w=(m.pct_from_52w!=null)?+m.pct_from_52w:null;
-  });
+  SM.scores.forEach(r=>{ r._m = mm[r.symbol] || {}; r.sector=r._m.sector||null; r.category=r._m.category||null; });
   SM.updated = SM.scores.reduce((mx,r)=> (r.updated_at && r.updated_at>mx)?r.updated_at:mx, '');
-  // deals (last 30d, paginated)
-  const since = new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+  const since = new Date(Date.now()-90*864e5).toISOString().slice(0,10);
   let all=[], off=0;
   while(true){
     const b = await smGet('smart_money_deals',
       `select=deal_date,symbol,scrip_name,client_name,investor_class,is_star,side,quantity,price,value,deal_type&deal_date=gte.${since}&order=deal_date.desc&limit=1000&offset=${off}`);
-    all=all.concat(b); if(b.length<1000) break; off+=1000;
+    all=all.concat(b); if(b.length<1000||off>8000) break; off+=1000;
   }
   all.forEach(d=>{ d.sector=(mm[d.symbol]||{}).sector||null; });
-  SM.deals=all; SM.loaded=true; smRender();
+  SM.deals=all;
+  if(all.length){ const ds=all.map(d=>d.deal_date).sort(); SM.dmin=ds[0]; SM.dmax=ds[ds.length-1]; }
+  SM.loaded=true; smRender();
 }
 
 function smCr(v){ return (v===null||v===undefined)?'—':(v/1e7).toFixed(1); }
+function smPct(v){ return (v===null||v===undefined)?'—':`<span style="color:${_h('chgColor',v)||'var(--text2)'}">${v>=0?'+':''}${Number(v).toFixed(2)}%</span>`; }
 function smClassTag(d){
   if(d.is_star) return '<span title="Marquee ⭐ star investor" style="color:var(--gold)">⭐</span>';
   if(d.investor_class==='institutional') return '<span title="Institutional" style="color:var(--cyan)">🏛️</span>';
   return '<span title="Individual / other" style="color:var(--muted)">·</span>';
+}
+function smScoreTip(r){
+  const s=r.cooking_score||0;
+  const lvl = s>=80?'very high conviction':s>=60?'high conviction':s>=40?'building':s>0?'early / low':'no net buying';
+  return (`Score ${s.toFixed(0)} — ${lvl}. `+(SM_TIERS[r.tier]?SM_TIERS[r.tier].tip:'')).replace(/"/g,'&quot;');
 }
 
 function smSetView(v,btn){ SM.view=v;
@@ -2616,10 +2632,10 @@ function smSetView(v,btn){ SM.view=v;
   document.getElementById('sm-colpanel').style.display='none';
   smRender();
 }
-function smChip(v,grp,btn){ SM[grp]=v;
-  document.querySelectorAll(`#sm-filters [data-sm-${grp}]`).forEach(b=>b.classList.remove('multi-active'));
-  if(btn) btn.classList.add('multi-active'); smRender(); }
-function smToggle(grp,btn){ SM[grp]=!SM[grp]; btn.classList.toggle('multi-active',SM[grp]); smRender(); }
+// click an active chip to clear it back to "all" (#4)
+function smChip(v,grp){ SM[grp]=(SM[grp]===v && v!=='all')?'all':v; smRender(); }
+function smWin(v){ SM.win=v; smRender(); }
+function smToggle(grp){ SM[grp]=!SM[grp]; smRender(); }
 function smSel(grp,v){ SM[grp]=v; smRender(); }
 function smSearch(v){ SM.q=(v||'').trim().toUpperCase(); smRender(); }
 function smSort(k){ if(SM.sortKey===k) SM.sortDir*=-1; else {SM.sortKey=k; SM.sortDir=-1;} smRender(); }
@@ -2633,83 +2649,62 @@ function smOpts(field){ return [...new Set(SM.scores.map(r=>r[field]).filter(Boo
 function smNetKey(){ return SM.win==='7d'?'net_value_7d':'net_value_30d'; }
 
 function smFiltersBar(){
-  const updated = SM.updated ? ('Updated '+new Date(SM.updated).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})) : '';
-  document.getElementById('sm-updated').textContent = updated;
+  let stamp='';
+  if(SM.dmin) stamp+='Deals '+SM.dmin+' → '+SM.dmax+'  ·  ';
+  if(SM.updated) stamp+='Updated '+new Date(SM.updated).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('sm-updated').textContent=stamp;
+  const A=(grp,val,label,extra='')=>`<button class="sort-btn ${SM[grp]===val?'multi-active':''}" onclick="smChip('${val}','${grp}')" ${extra}>${label}</button>`;
+  const T=(grp)=>`<button class="sort-btn ${SM[grp]?'multi-active':''}" onclick="smToggle('${grp}')"`;
+
   if(SM.view==='deals'){
     return `
-      <div class="mom-filter-group">
-        <button class="sort-btn multi-active" data-sm-dealType="all" onclick="smChip('all','dealType',this)">All</button>
-        <button class="sort-btn" data-sm-dealType="bulk" onclick="smChip('bulk','dealType',this)" title="Bulk deals (≥0.5% of equity)">Bulk</button>
-        <button class="sort-btn" data-sm-dealType="block" onclick="smChip('block','dealType',this)" title="Block deals (large negotiated)">Block</button>
-      </div>
-      <div class="mom-filter-group">
-        <button class="sort-btn multi-active" data-sm-side="all" onclick="smChip('all','side',this)">Buy+Sell</button>
-        <button class="sort-btn" data-sm-side="BUY" onclick="smChip('BUY','side',this)" style="color:var(--green)">Buy</button>
-        <button class="sort-btn" data-sm-side="SELL" onclick="smChip('SELL','side',this)" style="color:var(--red)">Sell</button>
-      </div>
-      <button class="sort-btn" ${SM.instOnly?'class="sort-btn multi-active"':''} onclick="smToggle('instOnly',this)" title="Only institutional / ⭐ counterparties">🏛️ Institutional</button>
+      <div class="mom-filter-group">${A('dealType','all','All')}${A('dealType','bulk','Bulk','title="Bulk deals (≥0.5% of equity)"')}${A('dealType','block','Block','title="Block deals (large negotiated)"')}</div>
+      <div class="mom-filter-group">${A('side','all','Buy+Sell')}<button class="sort-btn ${SM.side==='BUY'?'multi-active':''}" onclick="smChip('BUY','side')" style="color:var(--green)">Buy</button><button class="sort-btn ${SM.side==='SELL'?'multi-active':''}" onclick="smChip('SELL','side')" style="color:var(--red)">Sell</button></div>
+      ${T('instOnly')} title="Only institutional / ⭐ counterparties">🏛️ Institutional</button>
       <select class="sort-sel" onchange="smSel('minCr',parseFloat(this.value)||0)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px"><option value="0">Any value</option><option value="5">≥ ₹5 cr</option><option value="25">≥ ₹25 cr</option><option value="100">≥ ₹100 cr</option></select>
       <input type="text" placeholder="🔎 symbol / buyer" oninput="smSearch(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;color:var(--text);font-size:11px;outline:none;width:140px">`;
   }
   if(SM.view==='sector'){
-    return `<span style="font-size:11px;color:var(--muted)">Net smart-money flow by sector over the last 30 days — which sectors are being accumulated vs distributed. Sorted by net flow.</span>`;
+    return `<span style="font-size:11px;color:var(--muted)">Net smart-money flow by sector (last 30 days) — which sectors are being accumulated vs distributed. Sorted by net flow.</span>`;
   }
-  // leaderboard
-  const tchip=(t)=>{const m=SM_TIERS[t];return `<button class="sort-btn" data-sm-tier="${t}" onclick="smChip('${t}','tier',this)" title="${m.tip}" style="color:${m.color}">${m.label}</button>`;};
-  const secOpts = ['<option value="all">All Sectors</option>'].concat(smOpts('sector').map(s=>`<option value="${s}"${SM.sector===s?' selected':''}>${s}</option>`)).join('');
+  const tchip=(t)=>{const m=SM_TIERS[t];return `<button class="sort-btn ${SM.tier===t?'multi-active':''}" onclick="smChip('${t}','tier')" title="${m.tip}" style="color:${m.color}">${m.label}</button>`;};
+  const secOpts=['<option value="all">All Sectors</option>'].concat(smOpts('sector').map(s=>`<option value="${s}"${SM.sector===s?' selected':''}>${s}</option>`)).join('');
   return `
-    <div class="mom-filter-group">
-      <button class="sort-btn multi-active" data-sm-tier="all" onclick="smChip('all','tier',this)">All</button>
-      ${tchip('LOADING_UP')}${tchip('ACCUMULATING')}${tchip('NIBBLING')}${tchip('OFFLOADING')}${tchip('QUIET')}
-    </div>
-    <div class="mom-filter-group" style="border-left:1px solid var(--border);padding-left:6px">
-      <span style="font-size:10px;color:var(--muted)">Window</span>
-      <button class="sort-btn multi-active" data-sm-win="30d" onclick="smChip('30d','win',this)" title="Activity over the last 30 days">30D</button>
-      <button class="sort-btn" data-sm-win="7d" onclick="smChip('7d','win',this)" title="Fresh activity in the last 7 days">7D</button>
-    </div>
-    <div class="mom-filter-group">
-      <button class="sort-btn multi-active" data-sm-score="all" onclick="smChip('all','score',this)">Any score</button>
-      <button class="sort-btn" data-sm-score="high" onclick="smChip('high','score',this)" title="High conviction: score 80–100">🔥 High</button>
-      <button class="sort-btn" data-sm-score="building" onclick="smChip('building','score',this)" title="Building: score 60–79">⚡ Building</button>
-      <button class="sort-btn" data-sm-score="watch" onclick="smChip('watch','score',this)" title="Watch: score 40–59">👀 Watch</button>
-    </div>
-    <div class="mom-filter-group">
-      <button class="sort-btn multi-active" data-sm-cat="all" onclick="smChip('all','cat',this)">All Cat</button>
-      <button class="sort-btn" data-sm-cat="A" onclick="smChip('A','cat',this)" title="Category A: daily + weekly bullish">🟢 A</button>
-      <button class="sort-btn" data-sm-cat="B" onclick="smChip('B','cat',this)" title="Category B: watch zone">🟡 B</button>
-      <button class="sort-btn" data-sm-cat="C" onclick="smChip('C','cat',this)" title="Category C: weekly crossover">🔵 C</button>
-      <button class="sort-btn" data-sm-cat="AC" onclick="smChip('AC','cat',this)" title="A+C: strongest">💎 A+C</button>
-    </div>
+    <div class="mom-filter-group">${A('tier','all','All')}${tchip('LOADING_UP')}${tchip('ACCUMULATING')}${tchip('NIBBLING')}${tchip('OFFLOADING')}${tchip('QUIET')}</div>
+    <div class="mom-filter-group" style="border-left:1px solid var(--border);padding-left:6px"><span style="font-size:10px;color:var(--muted)">Window</span>
+      <button class="sort-btn ${SM.win==='30d'?'multi-active':''}" onclick="smWin('30d')" title="Last 30 days">30D</button>
+      <button class="sort-btn ${SM.win==='7d'?'multi-active':''}" onclick="smWin('7d')" title="Last 7 days">7D</button></div>
+    <div class="mom-filter-group">${A('score','all','Any score')}${A('score','high','🔥 High','title="Score 80–100"')}${A('score','building','⚡ Building','title="Score 60–79"')}${A('score','watch','👀 Watch','title="Score 40–59"')}</div>
+    <div class="mom-filter-group">${A('cat','all','All Cat')}${A('cat','A','🟢 A','title="Daily + weekly bullish"')}${A('cat','B','🟡 B','title="Watch zone"')}${A('cat','C','🔵 C','title="Weekly crossover"')}${A('cat','AC','💎 A+C','title="Strongest"')}</div>
     <select class="sort-sel" onchange="smSel('sector',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px">${secOpts}</select>
     <select class="sort-sel" onchange="smSel('dist52',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px" title="Distance from 52-week high">
-      <option value="all"${SM.dist52==='all'?' selected':''}>Any 52W</option>
-      <option value="near"${SM.dist52==='near'?' selected':''}>Near high (≤10%)</option>
-      <option value="far"${SM.dist52==='far'?' selected':''}>Far from high (≥25%)</option>
-    </select>
-    <button class="sort-btn ${SM.instOnly?'multi-active':''}" onclick="smToggle('instOnly',this)" title="Only stocks with institutional buyers">🏛️ Institutional</button>
-    <button class="sort-btn ${SM.starOnly?'multi-active':''}" onclick="smToggle('starOnly',this)" title="Only stocks with ⭐ star-investor buying">⭐ Stars only</button>
+      <option value="all"${SM.dist52==='all'?' selected':''}>Any 52W</option><option value="near"${SM.dist52==='near'?' selected':''}>Near high (≤10%)</option><option value="far"${SM.dist52==='far'?' selected':''}>Far (≥25%)</option></select>
+    ${T('instOnly')} title="Only stocks with institutional buyers">🏛️ Institutional</button>
+    ${T('starOnly')} title="Only stocks with ⭐ star buying">⭐ Stars only</button>
     <select class="sort-sel" onchange="smSel('minCr',parseFloat(this.value)||0)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px"><option value="0">Any net size</option><option value="5">Net ≥ ₹5 cr</option><option value="25">Net ≥ ₹25 cr</option><option value="100">Net ≥ ₹100 cr</option></select>
     <input type="text" placeholder="🔎 symbol / buyer" oninput="smSearch(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;color:var(--text);font-size:11px;outline:none;width:140px">`;
 }
 
 function smVisBoard(){
-  let rows=SM.scores.slice();
-  const nk=smNetKey();
+  let rows=SM.scores.slice(); const nk=smNetKey();
   if(SM.tier!=='all') rows=rows.filter(r=>r.tier===SM.tier);
   if(SM.score!=='all') rows=rows.filter(r=>{const s=r.cooking_score||0; return SM.score==='high'?s>=80:SM.score==='building'?(s>=60&&s<80):(s>=40&&s<60);});
   if(SM.cat!=='all') rows=rows.filter(r=>r.category===SM.cat);
   if(SM.sector!=='all') rows=rows.filter(r=>r.sector===SM.sector);
-  if(SM.dist52!=='all') rows=rows.filter(r=>{ if(r.pct_from_52w==null) return false; const a=Math.abs(r.pct_from_52w); return SM.dist52==='near'?a<=10:a>=25; });
+  if(SM.dist52!=='all') rows=rows.filter(r=>{const p=r._m.pct_from_52w; const hi=r._m.high_52w, lt=r._m.ltp; let a=null; if(p!=null)a=Math.abs(p); else if(hi&&lt)a=Math.abs((hi-lt)/hi*100); if(a==null)return false; return SM.dist52==='near'?a<=10:a>=25;});
   if(SM.instOnly) rows=rows.filter(r=>(r.inst_buyers_30d||0)>0);
   if(SM.starOnly) rows=rows.filter(r=>(r.star_buyers_30d||0)>0);
   if(SM.minCr>0) rows=rows.filter(r=>Math.abs(r[nk]||0)>=SM.minCr*1e7);
   if(SM.q) rows=rows.filter(r=>(r.symbol||'').toUpperCase().includes(SM.q)||(r.top_buyer||'').toUpperCase().includes(SM.q));
   const k=SM.sortKey;
-  rows.sort((a,b)=>{ let av,bv;
-    if(k==='tier'){av=SM_TORDER[a.tier]||0;bv=SM_TORDER[b.tier]||0;}
-    else if(k==='net'){av=a[nk]||0;bv=b[nk]||0;}
-    else {av=a[k];bv=b[k]; if(typeof av==='string'||typeof bv==='string') return SM.sortDir*String(av||'').localeCompare(String(bv||'')); av=av||0;bv=bv||0;}
-    return SM.sortDir*(av-bv); });
+  const sv=(r)=>{ switch(k){ case 'net':return r[nk]||0; case 'tier':return SM_TORDER[r.tier]||0;
+    case 'pct9d':return r._m.pct_from_ema9_daily; case 'pct9w':return r._m.pct_from_ema9_weekly;
+    case 'mom':return r._m.momentum_score; case 'day':return r._m.day_chg_pct; case 'week':return r._m.week_chg_pct;
+    case 'month':return r._m.month_chg_pct; case 'hi52':return r._m.high_52w; case 'ltp':return r._m.ltp;
+    case 'industry':return r._m.industry; default:return r[k]; } };
+  rows.sort((a,b)=>{ let av=sv(a),bv=sv(b);
+    if(typeof av==='string'||typeof bv==='string') return SM.sortDir*String(av||'').localeCompare(String(bv||''));
+    return SM.sortDir*((av||0)-(bv||0)); });
   return rows;
 }
 function smVisDeals(){
@@ -2735,6 +2730,41 @@ function smSectorAgg(){
   return rows;
 }
 
+function smCell(c,r,i,nk){
+  const m=SM_TIERS[r.tier]||SM_TIERS.QUIET, x=r._m||{};
+  const net=r[nk]||0, nc=net>0?'var(--green)':(net<0?'var(--red)':'var(--muted)');
+  const td=(al,html,extra='')=>`<td style="padding:5px 8px;text-align:${al}" ${extra}>${html}</td>`;
+  switch(c.key){
+    case 'rank': return td('left',`<span style="color:var(--muted)">${i+1}</span>`);
+    case 'symbol': return `<td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')">${r.symbol}</td>`;
+    case 'tier': return `<td style="padding:5px 8px"><span title="${m.tip}" style="color:${m.color};font-weight:600;cursor:help">${m.label}</span></td>`;
+    case 'cooking_score': return `<td style="padding:5px 8px;text-align:right;font-weight:700;color:${m.color};cursor:help" title="${smScoreTip(r)}">${(r.cooking_score||0).toFixed(0)}</td>`;
+    case 'net': return td('right',`<span style="font-weight:600;color:${nc}">${net>0?'+':''}${smCr(net)}</span>`);
+    case 'inst_buyers_30d': return td('right',r.inst_buyers_30d||0);
+    case 'repeat_buyers_30d': return td('right',r.repeat_buyers_30d||0);
+    case 'star_buyers_30d': return td('right',`<span style="color:var(--gold)">${r.star_buyers_30d?'★'+r.star_buyers_30d:'—'}</span>`);
+    case 'sector': return td('left',`<span style="color:var(--text2);font-size:10px">${r.sector||'—'}</span>`);
+    case 'category': return td('center',_h('getCatBadge',r.category)||(r.category||'—'));
+    case 'pct9d': return td('right',smPct(x.pct_from_ema9_daily));
+    case 'zone9d': return td('center',_h('getZoneTag',x.pct_from_ema9_daily)||'—');
+    case 'pct9w': return td('right',smPct(x.pct_from_ema9_weekly));
+    case 'mom': return td('center',_h('getScoreTag',x.momentum_score||0)||'—');
+    case 'day': return td('right',_h('fmtChg',x.day_chg_pct)||'—');
+    case 'week': return td('right',_h('fmtChg',x.week_chg_pct)||'—');
+    case 'month': return td('right',_h('fmtChg',x.month_chg_pct)||'—');
+    case 'emaD': return td('center',_h('getEMAStatus',x.above_ema9_daily,x.above_ema20_daily)||'—');
+    case 'emaW': return td('center',_h('getEMAStatus',x.above_ema9_weekly,x.above_ema20_weekly)||'—');
+    case 'vol': return td('center',_h('getVolClass',x.vol_class)||'—');
+    case 'brk': return td('center',_h('getBreakoutBadge',x.breakout_type,x.breakout_holding)||'—');
+    case 'hi52': return td('right',x.high_52w!=null?Number(x.high_52w).toFixed(1):'—');
+    case 'ltp': return td('right',x.ltp!=null?Number(x.ltp).toFixed(1):'—');
+    case 'industry': return td('left',`<span style="color:var(--text2);font-size:10px">${x.industry||'—'}</span>`);
+    case 'top_buyer': return td('left',`<span style="color:var(--text2);font-size:10px">${r.top_buyer||'—'}</span>`);
+    case 'last_deal_date': return td('left',`<span style="color:var(--muted);font-size:10px">${r.last_deal_date||'—'}</span>`);
+    default: return '<td></td>';
+  }
+}
+
 function smRender(){
   document.getElementById('sm-filters').innerHTML=smFiltersBar();
   document.getElementById('sm-colbtn').style.display = SM.view==='leaderboard'?'inline-block':'none';
@@ -2743,42 +2773,21 @@ function smRender(){
   const nk=smNetKey();
 
   if(SM.view==='leaderboard'){
-    const rows=smVisBoard();
-    const cols=SM_COLS.filter(c=>!SM.hidden[c.key]);
+    const rows=smVisBoard(); const cols=SM_COLS.filter(c=>!SM.hidden[c.key]);
     thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+cols.map(c=>{
-      const sortable=c.key!=='rank';
-      const lbl=(c.key==='net')?`Net ${SM.win==='7d'?'7D':'30D'} (₹cr)`:c.label;
-      return `<th title="${c.tip}" style="text-align:${c.align};padding:6px 8px;${sortable?'cursor:pointer':''}" ${sortable?`onclick="smSort('${c.key}')"`:''}>${lbl}${sortable?arrow(c.key):''}</th>`;
+      const sortable=c.key!=='rank'; const lbl=(c.key==='net')?`Net ${SM.win==='7d'?'7D':'30D'} (₹cr)`:c.label;
+      return `<th title="${c.tip}" style="text-align:${c.al};padding:6px 8px;${sortable?'cursor:pointer':''}" ${sortable?`onclick="smSort('${c.key}')"`:''}>${lbl}${sortable?arrow(c.key):''}</th>`;
     }).join('')+'</tr>';
     if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${cols.length}"><div class="mom-empty"><div class="mom-empty-icon">🔍</div><div class="mom-empty-text">No stocks match these filters</div></div></td></tr>`; }
-    else tbody.innerHTML=rows.map((r,i)=>{
-      const m=SM_TIERS[r.tier]||SM_TIERS.QUIET; const net=r[nk]||0; const nc=net>0?'var(--green)':(net<0?'var(--red)':'var(--muted)');
-      const cell=(c)=>{ switch(c.key){
-        case 'rank': return `<td style="padding:5px 8px;color:var(--muted)">${i+1}</td>`;
-        case 'symbol': return `<td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')">${r.symbol}</td>`;
-        case 'tier': return `<td style="padding:5px 8px"><span title="${m.tip}" style="color:${m.color};font-weight:600;cursor:help">${m.label}</span></td>`;
-        case 'cooking_score': return `<td style="padding:5px 8px;text-align:right;font-weight:700;color:${m.color}">${(r.cooking_score||0).toFixed(0)}</td>`;
-        case 'net': return `<td style="padding:5px 8px;text-align:right;font-weight:600;color:${nc}">${net>0?'+':''}${smCr(net)}</td>`;
-        case 'inst_buyers_30d': return `<td style="padding:5px 8px;text-align:right">${r.inst_buyers_30d||0}</td>`;
-        case 'repeat_buyers_30d': return `<td style="padding:5px 8px;text-align:right">${r.repeat_buyers_30d||0}</td>`;
-        case 'star_buyers_30d': return `<td style="padding:5px 8px;text-align:right;color:var(--gold)">${r.star_buyers_30d?'★'+r.star_buyers_30d:'—'}</td>`;
-        case 'sector': return `<td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.sector||'—'}</td>`;
-        case 'category': return `<td style="padding:5px 8px;text-align:center;color:var(--text2)">${r.category||'—'}</td>`;
-        case 'pct_from_52w': return `<td style="padding:5px 8px;text-align:right;color:var(--text2)">${r.pct_from_52w!=null?r.pct_from_52w.toFixed(1)+'%':'—'}</td>`;
-        case 'ltp': return `<td style="padding:5px 8px;text-align:right;color:var(--text2)">${r.ltp!=null?Number(r.ltp).toFixed(1):'—'}</td>`;
-        case 'top_buyer': return `<td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.top_buyer||'—'}</td>`;
-        case 'last_deal_date': return `<td style="padding:5px 8px;color:var(--muted);font-size:10px">${r.last_deal_date||'—'}</td>`;
-        default: return '<td></td>';
-      }};
-      return '<tr style="border-top:1px solid var(--border)">'+cols.map(cell).join('')+'</tr>';
-    }).join('');
+    else tbody.innerHTML=rows.map((r,i)=>'<tr style="border-top:1px solid var(--border)">'+cols.map(c=>smCell(c,r,i,nk)).join('')+'</tr>').join('');
     document.getElementById('sm-count').textContent=`${rows.length} stocks`;
 
   } else if(SM.view==='sector'){
     const rows=smSectorAgg();
-    const cols=[['sector','Sector','Sector (from Momentum data)','left'],['net','Net Flow (₹cr)','Total net smart-money flow across all stocks in the sector','right'],['loading','🔥 Loading','Stocks tagged LOADING UP in this sector','right'],['offloading','🧊 Offloading','Stocks tagged OFFLOADING in this sector','right'],['stars','⭐','Total star-investor buys across the sector','right'],['n','Stocks','Stocks with smart-money activity in the sector','right'],['top','Top Net Stock','Stock with the largest net inflow in the sector','left']];
-    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+cols.map(c=>`<th title="${c[2]}" style="text-align:${c[3]};padding:6px 8px;${c[0]!=='top'&&c[0]!=='sector'?'cursor:pointer':''}" ${c[0]!=='top'&&c[0]!=='sector'?`onclick="smSort('${c[0]}')"`:''}>${c[1]}${SM.sortKey===c[0]?(SM.sortDir<0?' ▼':' ▲'):''}</th>`).join('')+'</tr>';
-    tbody.innerHTML=rows.map(s=>{const nc=s.net>0?'var(--green)':(s.net<0?'var(--red)':'var(--muted)');
+    const cols=[['sector','Sector','Sector (from Momentum data)','left'],['net','Net Flow (₹cr)','Total net smart-money flow across the sector','right'],['loading','🔥 Loading','Stocks tagged LOADING UP','right'],['offloading','🧊 Offloading','Stocks tagged OFFLOADING','right'],['stars','⭐','Total star buys in the sector','right'],['n','Stocks','Stocks with activity','right'],['top','Top Net Stock','Largest net inflow in the sector','left']];
+    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+cols.map(c=>{const sb=c[0]!=='top'&&c[0]!=='sector';return `<th title="${c[2]}" style="text-align:${c[3]};padding:6px 8px;${sb?'cursor:pointer':''}" ${sb?`onclick="smSort('${c[0]}')"`:''}>${c[1]}${SM.sortKey===c[0]?(SM.sortDir<0?' ▼':' ▲'):''}</th>`;}).join('')+'</tr>';
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="mom-empty"><div class="mom-empty-icon">🌐</div><div class="mom-empty-text">No sector data — cross-reference is empty</div></div></td></tr>`; }
+    else tbody.innerHTML=rows.map(s=>{const nc=s.net>0?'var(--green)':(s.net<0?'var(--red)':'var(--muted)');
       return `<tr style="border-top:1px solid var(--border)">
         <td style="padding:5px 8px;font-weight:600;color:var(--text)">${s.sector}</td>
         <td style="padding:5px 8px;text-align:right;font-weight:700;color:${nc}">${s.net>0?'+':''}${smCr(s.net)}</td>
@@ -2786,19 +2795,19 @@ function smRender(){
         <td style="padding:5px 8px;text-align:right;color:var(--red)">${s.offloading||'—'}</td>
         <td style="padding:5px 8px;text-align:right;color:var(--gold)">${s.stars||'—'}</td>
         <td style="padding:5px 8px;text-align:right;color:var(--text2)">${s.n}</td>
-        <td style="padding:5px 8px;color:var(--text2);font-size:10px">${s.top||'—'}</td></tr>`;
+        <td style="padding:5px 8px;color:var(--text2);font-size:10px;cursor:pointer" title="${s.top?(_h('getStockTitle',s.top)||s.top):''}" onclick="${s.top?`window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.top}','_blank')`:''}">${s.top||'—'}</td></tr>`;
     }).join('');
     document.getElementById('sm-count').textContent=`${rows.length} sectors`;
 
   } else {
     const rows=smVisDeals();
-    const dc=[['deal_date','Date','Trade date',1],['symbol','Symbol','NSE symbol',1],['deal_type','Type','Bulk or block deal',0],['sector','Sector','Sector (from Momentum)',0],['client_name','Client','Counterparty name as filed',0],['cls','Class','⭐ star / 🏛️ institution / · individual',0],['side','Side','Buy or sell',1],['quantity','Qty','Shares traded',1],['price','Price','Trade price',1],['value','Value (₹cr)','Trade value',1]];
-    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+dc.map(c=>`<th title="${c[2]}" style="text-align:${c[0]==='side'||c[0]==='cls'?'center':(['quantity','price','value'].includes(c[0])?'right':'left')};padding:6px 8px;${c[3]?'cursor:pointer':''}" ${c[3]?`onclick="smSort('${c[0]}')"`:''}>${c[1]}${c[3]?arrow(c[0]):''}</th>`).join('')+'</tr>';
+    const dc=[['deal_date','Date','Trade date',1,'left'],['symbol','Symbol','NSE symbol — hover for company name',1,'left'],['deal_type','Type','Bulk or block',0,'left'],['sector','Sector','Sector (from Momentum)',0,'left'],['client_name','Client','Counterparty as filed',0,'left'],['cls','Class','⭐ star / 🏛️ institution / · individual',0,'center'],['side','Side','Buy or sell',1,'center'],['quantity','Qty','Shares traded',1,'right'],['price','Price','Trade price',1,'right'],['value','Value (₹cr)','Trade value',1,'right']];
+    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+dc.map(c=>`<th title="${c[2]}" style="text-align:${c[4]};padding:6px 8px;${c[3]?'cursor:pointer':''}" ${c[3]?`onclick="smSort('${c[0]}')"`:''}>${c[1]}${c[3]?arrow(c[0]):''}</th>`).join('')+'</tr>';
     if(!rows.length){ tbody.innerHTML=`<tr><td colspan="10"><div class="mom-empty"><div class="mom-empty-icon">🔍</div><div class="mom-empty-text">No deals match these filters</div></div></td></tr>`; }
     else tbody.innerHTML=rows.slice(0,1500).map(r=>{const sc=r.side==='BUY'?'var(--green)':'var(--red)';
       return `<tr style="border-top:1px solid var(--border)">
         <td style="padding:5px 8px;color:var(--muted);font-size:10px">${r.deal_date}</td>
-        <td style="padding:5px 8px;font-weight:700;color:var(--text)">${r.symbol}</td>
+        <td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')">${r.symbol}</td>
         <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.deal_type}</td>
         <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.sector||'—'}</td>
         <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.client_name||'—'}</td>
