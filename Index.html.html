@@ -2508,7 +2508,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
     <div class="deals-subtabs">
       <button class="deals-subtab active" id="sm-sub-board" onclick="smSetView('leaderboard',this)">🔥 Cooking Leaderboard</button>
+      <button class="deals-subtab" id="sm-sub-netflow" onclick="smSetView('netflow',this)">📈 Net Flow</button>
       <button class="deals-subtab" id="sm-sub-sector" onclick="smSetView('sector',this)">🌐 Sector Flow</button>
+      <button class="deals-subtab" id="sm-sub-star" onclick="smSetView('star',this)">⭐ Star Activity</button>
       <button class="deals-subtab" id="sm-sub-deals" onclick="smSetView('deals',this)">📋 All Deals</button>
     </div>
 
@@ -2520,7 +2522,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="mom-export-btn" onclick="smCopyTV()" title="Copy the filtered symbols as an NSE: watchlist for TradingView">📊 TradingView</button>
         <span class="mom-updated" id="sm-count" style="color:var(--cyan);font-weight:600">—</span>
         <span class="mom-updated" id="sm-updated" title="Data coverage and last refresh">—</span>
-        <span style="font-size:9px;color:var(--dim);margin-left:6px;border:1px solid var(--border);border-radius:8px;padding:1px 6px" title="Smart Money build version">SM v3.2</span>
+        <span style="font-size:9px;color:var(--dim);margin-left:6px;border:1px solid var(--border);border-radius:8px;padding:1px 6px" title="Smart Money build version">SM v4.0</span>
       </div>
     </div>
     <div id="sm-colpanel" style="display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;margin-top:6px;font-size:11px;color:var(--text2);flex-wrap:wrap;gap:10px"></div>
@@ -2535,11 +2537,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
   </div>
 </div>
+<div id="sm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)smCloseStock()">
+  <div id="sm-modal-body" style="background:var(--bg1);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;width:min(680px,92vw);max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5)"></div>
+</div>
 
 <script>
 const SM = { scores:[], deals:[], mom:{}, view:'leaderboard', win:'30d',
   tier:'all', score:'all', cat:'all', sector:'all', dist52:'all',
-  instOnly:false, starOnly:false, dealType:'all', side:'all', minCr:0, q:'',
+  instOnly:false, starOnly:false, dealType:'all', side:'all', minCr:0, q:'', flowSide:'buy',
   sortKey:'cooking_score', sortDir:-1, loaded:false, updated:null, dmin:null, dmax:null,
   hidden:null };
 
@@ -2629,7 +2634,7 @@ function smScoreTip(r){
 function smSetView(v,btn){ SM.view=v;
   document.querySelectorAll('#tab-smartmoney .deals-subtab').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  SM.sortKey = v==='leaderboard'?'cooking_score':(v==='sector'?'net':'value'); SM.sortDir=-1;
+  SM.sortKey = (v==='leaderboard')?'cooking_score':((v==='sector'||v==='netflow'||v==='star')?'net':'value'); SM.sortDir=-1;
   document.getElementById('sm-colpanel').style.display='none';
   smRender();
 }
@@ -2657,6 +2662,15 @@ function smFiltersBar(){
   const A=(grp,val,label,extra='')=>`<button class="sort-btn ${SM[grp]===val?'multi-active':''}" onclick="smChip('${val}','${grp}')" ${extra}>${label}</button>`;
   const T=(grp)=>`<button class="sort-btn ${SM[grp]?'multi-active':''}" onclick="smToggle('${grp}')"`;
 
+  if(SM.view==='netflow'){
+    return `<div class="mom-filter-group"><span style="font-size:10px;color:var(--muted)">Show</span>
+      <button class="sort-btn ${SM.flowSide!=='sell'?'multi-active':''}" onclick="smSel('flowSide','buy')" style="color:var(--green)">▲ Most accumulated</button>
+      <button class="sort-btn ${SM.flowSide==='sell'?'multi-active':''}" onclick="smSel('flowSide','sell')" style="color:var(--red)">▼ Most distributed</button></div>
+      <span style="font-size:11px;color:var(--muted)">Biggest net rupee flows over 30 days. Click a stock for its full deal history.</span>`;
+  }
+  if(SM.view==='star'){
+    return `<span style="font-size:11px;color:var(--muted)">What the marquee ⭐ investors are doing (last ~90 days). Click a star to see their deals.</span>`;
+  }
   if(SM.view==='deals'){
     return `
       <div class="mom-filter-group">${A('dealType','all','All')}${A('dealType','bulk','Bulk','title="Bulk deals (≥0.5% of equity)"')}${A('dealType','block','Block','title="Block deals (large negotiated)"')}</div>
@@ -2737,7 +2751,7 @@ function smCell(c,r,i,nk){
   const td=(al,html,extra='')=>`<td style="padding:5px 8px;text-align:${al}" ${extra}>${html}</td>`;
   switch(c.key){
     case 'rank': return td('left',`<span style="color:var(--muted)">${i+1}</span>`);
-    case 'symbol': return `<td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')">${r.symbol}</td>`;
+    case 'symbol': return `<td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="smShowStock('${r.symbol}')">${r.symbol}</td>`;
     case 'tier': return `<td style="padding:5px 8px"><span title="${m.tip}" style="color:${m.color};font-weight:600;cursor:help">${m.label}</span></td>`;
     case 'cooking_score': return `<td style="padding:5px 8px;text-align:right;font-weight:700;color:${m.color};cursor:help" title="${smScoreTip(r)}">${(r.cooking_score||0).toFixed(0)}</td>`;
     case 'net': return td('right',`<span style="font-weight:600;color:${nc}">${net>0?'+':''}${smCr(net)}</span>`);
@@ -2805,6 +2819,35 @@ function smRender(){
     }).join('');
     const buyN=rows.filter(s=>s.net>0).length, sellN=rows.filter(s=>s.net<0).length;
     document.getElementById('sm-count').textContent=`${rows.length} sectors \u00b7 \u25b2 ${buyN} bought  \u25bc ${sellN} sold`;
+  } else if(SM.view==='netflow'){
+    const rows=smNetFlowRows(); const buy=SM.flowSide!=='sell';
+    const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.net_value_30d||0)));
+    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+['#','Symbol','Net 30D (\u20b9cr)','Sector','Cat','Tier','Top Buyer'].map((h,k)=>`<th style="text-align:${k===0?'left':'left'};padding:6px 8px">${h}</th>`).join('')+'</tr>';
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="mom-empty"><div class="mom-empty-icon">\U0001F4C8</div><div class="mom-empty-text">Nothing here</div></div></td></tr>`; }
+    else tbody.innerHTML=rows.map((r,i)=>{const mm=SM_TIERS[r.tier]||SM_TIERS.QUIET; const net=r.net_value_30d||0; const nc=net>0?'var(--green)':'var(--red)'; const w=Math.abs(net)/maxAbs*100;
+      const bar=`<div style="position:relative;height:13px;width:150px;background:var(--bg3);border-radius:4px;display:inline-block;vertical-align:middle"><div style="position:absolute;top:2px;bottom:2px;left:0;width:${w}%;background:${nc};border-radius:3px"></div></div>`;
+      return `<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="smShowStock('${r.symbol}')" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+        <td style="padding:6px 8px;color:var(--muted)">${i+1}</td>
+        <td style="padding:6px 8px;font-weight:700;color:var(--text)" title="${(_h('getStockTitle',r.symbol)||r.symbol)}">${r.symbol}</td>
+        <td style="padding:6px 8px">${bar}<span style="font-weight:700;color:${nc};margin-left:8px">${net>0?'+':''}${smCr(net)}</span></td>
+        <td style="padding:6px 8px;color:var(--text2);font-size:10px">${r.sector||'\u2014'}</td>
+        <td style="padding:6px 8px;text-align:center">${_h('getCatBadge',r.category)||(r.category||'\u2014')}</td>
+        <td style="padding:6px 8px"><span style="color:${mm.color};font-weight:600">${mm.label}</span></td>
+        <td style="padding:6px 8px;color:var(--text2);font-size:10px">${r.top_buyer||'\u2014'}</td></tr>`;}).join('');
+    document.getElementById('sm-count').textContent=`Top ${rows.length} ${buy?'accumulated':'distributed'}`;
+  } else if(SM.view==='star'){
+    const rows=smStarAgg();
+    const cols=[['star','\u2b50 Star Investor','left',0],['net','Net (\u20b9cr)','right',1],['stocks','# Stocks','right',1],['top','Top Stock','left',0],['last','Last Active','left',0]];
+    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+cols.map(c=>`<th style="text-align:${c[2]};padding:6px 8px;${c[3]?'cursor:pointer':''}" ${c[3]?`onclick="smSort('${c[0]}')"`:''}>${c[1]}${SM.sortKey===c[0]?(SM.sortDir<0?' \u25bc':' \u25b2'):''}</th>`).join('')+'</tr>';
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="5"><div class="mom-empty"><div class="mom-empty-icon">\u2b50</div><div class="mom-empty-text">No star activity in the window</div></div></td></tr>`; }
+    else tbody.innerHTML=rows.map(s=>{const nc=s.net>0?'var(--green)':(s.net<0?'var(--red)':'var(--muted)'); const safe=(s.star||'').replace(/'/g,"\\'");
+      return `<tr style="border-top:1px solid var(--border);cursor:pointer" title="Click to see ${safe} deals" onclick="smStarDrill('${safe}')" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+        <td style="padding:6px 8px;font-weight:600;color:var(--gold)">${s.star}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:700;color:${nc}">${s.net>0?'+':''}${smCr(s.net)}</td>
+        <td style="padding:6px 8px;text-align:right;color:var(--text2)">${s.stocks}</td>
+        <td style="padding:6px 8px;color:var(--text2);font-size:10px">${s.top||'\u2014'}</td>
+        <td style="padding:6px 8px;color:var(--muted);font-size:10px">${s.last||'\u2014'}</td></tr>`;}).join('');
+    document.getElementById('sm-count').textContent=`${rows.length} active stars`;
   } else {
     const rows=smVisDeals();
     const dc=[['deal_date','Date','Trade date',1,'left'],['symbol','Symbol','NSE symbol — hover for company name',1,'left'],['deal_type','Type','Bulk or block',0,'left'],['sector','Sector','Sector (from Momentum)',0,'left'],['client_name','Client','Counterparty as filed',0,'left'],['cls','Class','⭐ star / 🏛️ institution / · individual',0,'center'],['side','Side','Buy or sell',1,'center'],['quantity','Qty','Shares traded',1,'right'],['price','Price','Trade price',1,'right'],['value','Value (₹cr)','Trade value',1,'right']];
@@ -2813,7 +2856,7 @@ function smRender(){
     else tbody.innerHTML=rows.slice(0,1500).map(r=>{const sc=r.side==='BUY'?'var(--green)':'var(--red)';
       return `<tr style="border-top:1px solid var(--border)">
         <td style="padding:5px 8px;color:var(--muted);font-size:10px">${r.deal_date}</td>
-        <td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')">${r.symbol}</td>
+        <td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="smShowStock('${r.symbol}')">${r.symbol}</td>
         <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.deal_type}</td>
         <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.sector||'—'}</td>
         <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.client_name||'—'}</td>
@@ -2834,6 +2877,53 @@ function smDrillSector(s){
   document.getElementById('sm-sub-board').classList.add('active');
   smRender();
 }
+function smNetFlowRows(){
+  const buy=SM.flowSide!=='sell';
+  let rows=SM.scores.filter(r=> buy ? (r.net_value_30d||0)>0 : (r.net_value_30d||0)<0);
+  rows.sort((a,b)=> buy ? (b.net_value_30d||0)-(a.net_value_30d||0) : (a.net_value_30d||0)-(b.net_value_30d||0));
+  return rows.slice(0,40);
+}
+function smStarAgg(){
+  const map={};
+  SM.deals.filter(d=>d.is_star).forEach(d=>{ const k=d.client_name||'?'; if(!map[k]) map[k]={star:k,net:0,syms:{},last:''};
+    const m=map[k]; const v=d.value||0; m.net += d.side==='BUY'?v:-v; m.syms[d.symbol]=(m.syms[d.symbol]||0)+(d.side==='BUY'?v:-v);
+    if(d.deal_date>m.last) m.last=d.deal_date; });
+  let rows=Object.values(map).map(m=>{ const top=Object.entries(m.syms).sort((a,b)=>b[1]-a[1])[0];
+    return {star:m.star, net:m.net, stocks:Object.keys(m.syms).length, top:top?top[0]:null, last:m.last}; });
+  const k=SM.sortKey==='stocks'?'stocks':'net';
+  rows.sort((a,b)=> SM.sortDir*((a[k]||0)-(b[k]||0)));
+  return rows;
+}
+function smStarDrill(s){ SM.q=(s||'').toUpperCase(); SM.view='deals'; SM.sortKey='value'; SM.sortDir=-1;
+  document.querySelectorAll('#tab-smartmoney .deals-subtab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sm-sub-deals').classList.add('active'); smRender(); }
+function smShowStock(sym){
+  const r=SM.scores.find(x=>x.symbol===sym)||{symbol:sym,_m:(SM.mom[sym]||{})};
+  const m=SM_TIERS[r.tier]||null; const x=r._m||SM.mom[sym]||{};
+  const dl=SM.deals.filter(d=>d.symbol===sym).sort((a,b)=> a.deal_date<b.deal_date?1:-1);
+  const buyV=dl.filter(d=>d.side==='BUY').reduce((s,d)=>s+(d.value||0),0);
+  const sellV=dl.filter(d=>d.side==='SELL').reduce((s,d)=>s+(d.value||0),0);
+  const rowsH=dl.slice(0,200).map(d=>{const sc=d.side==='BUY'?'var(--green)':'var(--red)';
+    return `<tr style="border-top:1px solid var(--border)"><td style="padding:4px 6px;color:var(--muted);font-size:10px">${d.deal_date}</td><td style="padding:4px 6px;font-size:10px">${d.client_name||'\u2014'}</td><td style="padding:4px 6px;text-align:center">${smClassTag(d)}</td><td style="padding:4px 6px;text-align:center;color:${sc};font-weight:700">${d.side}</td><td style="padding:4px 6px;text-align:right">${(d.quantity||0).toLocaleString('en-IN')}</td><td style="padding:4px 6px;text-align:right;color:${sc}">${smCr(d.value)}</td></tr>`;}).join('');
+  document.getElementById('sm-modal-body').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div><span style="font-size:18px;font-weight:800;color:var(--text)">${sym}</span> <span style="color:var(--muted);font-size:11px">${(_h('getStockTitle',sym)||'')}</span><br>
+      ${m?`<span style="color:${m.color};font-weight:600;font-size:12px">${m.label}</span> \u00b7 score ${(r.cooking_score||0).toFixed(0)}`:'<span style="color:var(--muted);font-size:12px">No smart-money score</span>'}</div>
+      <button onclick="smCloseStock()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">\u2715</button></div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;font-size:11px;color:var(--text2)">
+      <span>Sector: <b>${r.sector||x.sector||'\u2014'}</b></span>
+      <span>Net 30D: <b style="color:${(r.net_value_30d||0)>=0?'var(--green)':'var(--red)'}">${smCr(r.net_value_30d)} cr</b></span>
+      <span>Inst: <b>${r.inst_buyers_30d||0}</b></span><span>\u2b50 <b>${r.star_buyers_30d||0}</b></span>
+      <span>%9E(D): <b>${x.pct_from_ema9_daily!=null?Number(x.pct_from_ema9_daily).toFixed(2)+'%':'\u2014'}</b></span>
+      <span>1M: <b>${x.month_chg_pct!=null?Number(x.month_chg_pct).toFixed(1)+'%':'\u2014'}</b></span></div>
+    <div style="display:flex;gap:10px;margin-bottom:8px;align-items:stretch">
+      <div style="flex:1;background:rgba(0,255,136,0.1);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--muted)">Total Bought</div><div style="color:var(--green);font-weight:700">\u20b9${smCr(buyV)} cr</div></div>
+      <div style="flex:1;background:rgba(255,68,102,0.1);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--muted)">Total Sold</div><div style="color:var(--red);font-weight:700">\u20b9${smCr(sellV)} cr</div></div>
+      <button onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${sym}','_blank')" style="background:var(--cyan-dim);border:1px solid var(--border2);color:var(--cyan);border-radius:8px;padding:0 14px;cursor:pointer;font-weight:600">\U0001F4CA Chart</button></div>
+    <div style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="position:sticky;top:0;background:var(--bg1)"><th style="text-align:left;padding:4px 6px">Date</th><th style="text-align:left;padding:4px 6px">Client</th><th style="padding:4px 6px">Cls</th><th style="padding:4px 6px">Side</th><th style="text-align:right;padding:4px 6px">Qty</th><th style="text-align:right;padding:4px 6px">\u20b9cr</th></tr></thead><tbody>${rowsH||'<tr><td colspan="6" style="padding:10px;color:var(--muted);text-align:center">No deals in the loaded window</td></tr>'}</tbody></table></div>`;
+  document.getElementById('sm-modal').style.display='flex';
+}
+function smCloseStock(){ document.getElementById('sm-modal').style.display='none'; }
 function smCopyTV(){
   let syms;
   if(SM.view==='leaderboard') syms=smVisBoard().map(r=>'NSE:'+r.symbol);
