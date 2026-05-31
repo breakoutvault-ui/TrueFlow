@@ -760,6 +760,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="mode-btn" id="mode-momentum" onclick="switchMode('momentum')">🚀 Momentum</button>
         <button class="mode-btn" id="mode-banknifty" onclick="switchMode('banknifty')">🏦 BankNifty</button>
         <button class="mode-btn" id="mode-results" onclick="switchMode('results')">📋 Results</button>
+        <button class="mode-btn" id="mode-rotation" onclick="switchMode('rotation')">🔄 Rotation</button>
       </div>
       <div class="nav-tabs" id="fo-tabs">
         <button class="nav-tab active" onclick="switchTab('morning',this,'fo')">🌅 Morning Brief</button>
@@ -794,6 +795,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div class="nav-tabs" id="results-tabs" style="display:none">
         <button class="nav-tab active" onclick="switchTab('resultseason',this,'results')">📋 Results Season</button>
         <button class="nav-tab" onclick="switchTab('analytics',this,'results')">🏆 Analytics</button>
+      </div>
+      <div class="nav-tabs" id="rotation-tabs" style="display:none">
+        <button class="nav-tab active" id="rot-tab-score" onclick="rotSetView('scorecard',this)">🔥 Sector Scorecard</button>
+        <button class="nav-tab" id="rot-tab-radar" onclick="rotSetView('radar',this)">🔄 Rotation Radar</button>
+        <button class="nav-tab" id="rot-tab-drill" onclick="rotSetView('drill',this)">🔍 Sector Detail</button>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -3563,6 +3569,275 @@ function smCopyTV(){
   </div>
 
 </div>
+<div id="rotation-container" style="display:none">
+  <div class="momentum-panel">
+
+    <div id="rot-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(0,212,255,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-weight:700;color:var(--text);font-size:14px">🔄 Sector Rotation — How This Works</span>
+        <button onclick="document.getElementById('rot-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+      </div>
+      This tab is a <b>sector-level roll-up of your other tabs</b> — EMA Signals, Breakout Setups and Smart Money — grouped by sector. No uploads, no external files; it refreshes automatically with everything else.
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:12px 0">
+        <b style="color:var(--cyan);font-size:12px">📊 Rotation Score (0–100)</b><br><br>
+        <b style="color:var(--green)">EMA strength 35%</b> — % of the sector's stocks bullish (above 20 EMA daily)<br>
+        <b style="color:var(--gold)">Breakout activity 15%</b> — breakout setups, sharp movers, QM patterns in the sector<br>
+        <b style="color:var(--cyan)">Momentum + 1W return 25%</b><br>
+        <b style="color:var(--amber)">Smart-money flow 25%</b> — net institutional deal flow into the sector
+      </div>
+      <b>Trend ▲/▼</b> flags sectors where the recent pace (7-day smart-money flow, 1-week returns) is accelerating vs the medium term — i.e. money rotating <i>in</i> or <i>out</i>. Click any sector to drill into its stocks and jump straight to EMA / Breakout / Smart Money filtered to it.
+    </div>
+
+    <div class="mom-topbar">
+      <div class="mom-filters" id="rot-filters"></div>
+      <div class="mom-export-btns">
+        <button class="col-toggle-btn" id="rot-colbtn" onclick="rotToggleColPanel(this)" title="Show / hide columns">⚙️ Columns</button>
+        <button class="sort-btn" onclick="document.getElementById('rot-readme').style.display=document.getElementById('rot-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:var(--cyan-dim);border-color:var(--border2);color:var(--cyan);font-weight:600" title="Learn how this tab works">📖 How This Works</button>
+        <button class="mom-export-btn" onclick="rotCopyTV()" title="Copy the visible sectors' top stocks as a TradingView watchlist">📊 TradingView</button>
+        <span class="mom-updated" id="rot-count" style="color:var(--cyan);font-weight:600">—</span>
+        <span class="mom-updated" id="rot-updated" title="Last refresh">—</span>
+        <span style="font-size:9px;color:var(--dim);margin-left:6px;border:1px solid var(--border);border-radius:8px;padding:1px 6px" title="Rotation build version">ROT v1.0</span>
+      </div>
+    </div>
+    <div id="rot-colpanel" style="display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;margin-top:6px;font-size:11px;color:var(--text2);flex-wrap:wrap;gap:10px"></div>
+
+    <div class="tbl-scroll" id="rot-tablewrap" style="margin-top:8px">
+      <table class="mom-table" id="rot-table" style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead id="rot-thead"></thead>
+        <tbody id="rot-tbody"><tr><td colspan="12"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">Loading sector data…</div></div></td></tr></tbody>
+      </table>
+    </div>
+    <div id="rot-detail" style="display:none;margin-top:8px"></div>
+  </div>
+</div>
+
+<script>
+const ROT = { sectors:[], momMap:{}, smBySym:{}, view:'scorecard', sortKey:'score', sortDir:-1,
+  q:'', minN:3, sel:null, loaded:false, updated:null, hidden:null };
+const _hr = (fn,...a)=> (typeof window[fn]==='function' ? window[fn](...a) : '');
+
+const ROT_COLS = [
+  {key:'rank',   label:'#',        tip:'Rank by Rotation Score', al:'left', always:true},
+  {key:'sector', label:'Sector',   tip:'Sector (from your Momentum universe). Click a row to drill in.', al:'left', always:true},
+  {key:'score',  label:'Rotation', tip:'Composite 0–100: EMA strength 35% + breakout activity 15% + momentum/1W return 25% + smart-money flow 25%', al:'right'},
+  {key:'trend',  label:'Trend',    tip:'▲ money rotating in (accelerating) · ▼ rotating out · → stable', al:'center'},
+  {key:'breadth',label:'Breadth',  tip:'% of the sector\u2019s stocks above the daily 20 EMA (bullish)', al:'right'},
+  {key:'avg1D',  label:'1D %',     tip:'Average 1-day return across the sector', al:'right', defHide:true},
+  {key:'avg1W',  label:'1W %',     tip:'Average 1-week return across the sector', al:'right'},
+  {key:'avg1M',  label:'1M %',     tip:'Average 1-month return across the sector', al:'right', defHide:true},
+  {key:'avgMom', label:'Momentum', tip:'Average momentum score across the sector', al:'right'},
+  {key:'breakouts', label:'Setups', tip:'Breakout setups / sharp movers / QM patterns in the sector', al:'right', defHide:true},
+  {key:'smflow', label:'Smart $',  tip:'Net institutional deal flow (₹cr, 30d) + 🔥 loading / 🧊 offloading counts', al:'right'},
+  {key:'n',      label:'Stocks',   tip:'Number of stocks in the sector', al:'right'}
+];
+
+async function rotGet(table, query){
+  try{ const r=await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}?${query}`,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}}); return r.ok?await r.json():[]; }
+  catch(e){ return []; }
+}
+function rotNorm(vals){ const mn=Math.min(...vals), mx=Math.max(...vals); return v=> (mx===mn)?50:((v-mn)/(mx-mn))*100; }
+function rotCr(v){ return (v===null||v===undefined)?'—':(v/1e7).toFixed(1); }
+function rotPct(v){ if(v===null||v===undefined||isNaN(v)) return '—'; const c=v>=0?'var(--green)':'var(--red)'; return `<span style="color:${c}">${v>=0?'+':''}${Number(v).toFixed(2)}%</span>`; }
+
+async function loadRotation(){
+  if(ROT.hidden===null){ ROT.hidden={}; ROT_COLS.forEach(c=>{ if(c.defHide) ROT.hidden[c.key]=true; }); }
+  if(ROT.loaded){ rotRender(); return; }
+  const mom = await rotGet('momentum_stocks','select=*&is_active=eq.true&order=session_date.desc&limit=2000');
+  const mm={}; mom.forEach(s=>{ if(!mm[s.symbol]) mm[s.symbol]=s; }); ROT.momMap=mm;
+  const scores = await rotGet('smart_money_scores','select=*');
+  const smBySym={}; scores.forEach(r=>smBySym[r.symbol]=r); ROT.smBySym=smBySym;
+  const secs={};
+  Object.values(mm).forEach(s=>{
+    const sec=s.sector||'— Unknown —';
+    if(!secs[sec]) secs[sec]={sector:sec,stocks:[],n:0,bull:0,momSum:0,d1:0,w1:0,m1:0,near52:0,breakouts:0,fresh:0,catA:0,adv:0,dec:0,sm_net30:0,sm_net7:0,sm_loading:0,sm_offloading:0,sm_stars:0};
+    const g=secs[sec]; g.stocks.push(s); g.n++;
+    if(s.above_ema20_daily) g.bull++;
+    g.momSum+=(+s.momentum_score||0); g.d1+=(+s.day_chg_pct||0); g.w1+=(+s.week_chg_pct||0); g.m1+=(+s.month_chg_pct||0);
+    if(s.day_chg_pct>0) g.adv++; else if(s.day_chg_pct<0) g.dec++;
+    if(s.category==='A'||s.category==='AC') g.catA++;
+    if(s.category==='C') g.fresh++;
+    if(s.breakout_type||s.is_sharp_mover||s.qm_pattern) g.breakouts++;
+    let dist=null; if(s.pct_from_52w!=null) dist=Math.abs(+s.pct_from_52w); else if(s.high_52w&&s.ltp) dist=Math.abs((s.high_52w-s.ltp)/s.high_52w*100);
+    if(dist!=null&&dist<=10) g.near52++;
+    const sm=smBySym[s.symbol];
+    if(sm){ g.sm_net30+=(+sm.net_value_30d||0); g.sm_net7+=(+sm.net_value_7d||0); g.sm_stars+=(+sm.star_buyers_30d||0); if(sm.tier==='LOADING_UP')g.sm_loading++; if(sm.tier==='OFFLOADING')g.sm_offloading++; }
+  });
+  let arr=Object.values(secs);
+  arr.forEach(g=>{ g.breadth=g.bull/g.n*100; g.avgMom=g.momSum/g.n; g.avg1D=g.d1/g.n; g.avg1W=g.w1/g.n; g.avg1M=g.m1/g.n; });
+  const nB=rotNorm(arr.map(g=>g.breakouts)), nM=rotNorm(arr.map(g=>g.avgMom)), nR=rotNorm(arr.map(g=>g.avg1W)), nS=rotNorm(arr.map(g=>g.sm_net30));
+  arr.forEach(g=>{
+    g.score=Math.round(0.35*g.breadth + 0.15*nB(g.breakouts) + 0.25*(0.6*nM(g.avgMom)+0.4*nR(g.avg1W)) + 0.25*nS(g.sm_net30));
+    let a=0;
+    if(g.sm_net7>0 && g.sm_net7*4>g.sm_net30) a++;
+    if(g.sm_net30<0) a--;
+    if(g.avg1W>0 && g.avg1W*4>g.avg1M) a++;
+    if(g.avg1W<0 && g.avg1W*4<g.avg1M) a--;
+    g.accel=a; g.trend=a>=1?'in':(a<=-1?'out':'flat');
+  });
+  ROT.sectors=arr; ROT.loaded=true;
+  ROT.updated=scores.reduce((mx,r)=>(r.updated_at&&r.updated_at>mx)?r.updated_at:mx,'');
+  rotRender();
+}
+
+function rotSetView(v,btn){ ROT.view=v;
+  document.querySelectorAll('#rotation-tabs .nav-tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  ROT.sortKey = v==='scorecard'?'score':ROT.sortKey;
+  document.getElementById('rot-colpanel').style.display='none';
+  rotRender();
+}
+function rotSort(k){ if(ROT.sortKey===k) ROT.sortDir*=-1; else {ROT.sortKey=k; ROT.sortDir=-1;} rotRender(); }
+function rotSearch(v){ ROT.q=(v||'').trim().toUpperCase(); rotRender(); }
+function rotSel(v){ ROT.minN=parseInt(v)||0; rotRender(); }
+function rotToggleCol(k){ ROT.hidden[k]=!ROT.hidden[k]; rotRender(); }
+function rotToggleColPanel(btn){ const p=document.getElementById('rot-colpanel'); const show=p.style.display==='none'; p.style.display=show?'flex':'none';
+  if(show) p.innerHTML='<b style="color:var(--text);width:100%">Show columns:</b>'+ROT_COLS.filter(c=>!c.always).map(c=>`<label style="cursor:pointer"><input type="checkbox" ${ROT.hidden[c.key]?'':'checked'} onchange="rotToggleCol('${c.key}')"> ${c.label}</label>`).join(''); }
+function rotPickSector(s){ ROT.sel=s; ROT.view='drill';
+  document.querySelectorAll('#rotation-tabs .nav-tab').forEach(b=>b.classList.remove('active'));
+  const db=document.getElementById('rot-tab-drill'); if(db) db.classList.add('active');
+  rotRender(); }
+function rotStock(sym){ if(typeof smShowStock==='function') smShowStock(sym); else window.open('https://www.tradingview.com/chart/?symbol=NSE:'+sym,'_blank'); }
+function rotJump(target, sector){
+  switchMode('momentum');
+  const map={ema:['emasignals','ema','ema-sector-filter'], sharp:['sharpmovers','sharp','sharp-sector-filter'], sm:['smartmoney',null,null]};
+  const m=map[target]; const btn=document.querySelector(`#momentum-tabs button[onclick*="${m[0]}"]`);
+  if(typeof switchTab==='function') switchTab(m[0], btn, 'momentum');
+  setTimeout(()=>{
+    if(target==='sm'){ if(typeof SM!=='undefined'){ SM.sector=sector; SM.view='leaderboard'; if(typeof smRender==='function') smRender(); } }
+    else { if(typeof setMomSelectFilter==='function') setMomSelectFilter(m[1],'sector',sector); const sel=document.getElementById(m[2]); if(sel) sel.value=sector; }
+  }, 650);
+}
+
+function rotVisible(){
+  let rows=ROT.sectors.filter(g=>g.n>=ROT.minN);
+  if(ROT.q) rows=rows.filter(g=>(g.sector||'').toUpperCase().includes(ROT.q));
+  const k=ROT.sortKey;
+  rows.sort((a,b)=>{ let av=a[k],bv=b[k]; if(typeof av==='string'||typeof bv==='string') return ROT.sortDir*String(av||'').localeCompare(String(bv||'')); return ROT.sortDir*((av||0)-(bv||0)); });
+  return rows;
+}
+function rotHeat(score){ // 0-100 -> red..amber..green
+  if(score>=70) return 'var(--green)'; if(score>=55) return 'var(--cyan)'; if(score>=40) return 'var(--amber)'; if(score>=25) return 'var(--text2)'; return 'var(--red)';
+}
+function rotTrendTag(t){ return t==='in'?'<span style="color:var(--green);font-weight:700" title="Money rotating in (accelerating)">▲ IN</span>':t==='out'?'<span style="color:var(--red);font-weight:700" title="Money rotating out">▼ OUT</span>':'<span style="color:var(--muted)" title="Stable">→</span>'; }
+function rotSmCell(g){ const nc=g.sm_net30>0?'var(--green)':(g.sm_net30<0?'var(--red)':'var(--muted)'); const chips=(g.sm_loading?`<span style="color:var(--green)" title="loading up">🔥${g.sm_loading}</span> `:'')+(g.sm_offloading?`<span style="color:var(--red)" title="offloading">🧊${g.sm_offloading}</span>`:''); return `<span style="color:${nc};font-weight:600">${g.sm_net30>0?'+':''}${rotCr(g.sm_net30)}</span> <span style="font-size:9px">${chips}</span>`; }
+
+function rotCell(c,g,i){
+  const td=(al,h,ex='')=>`<td style="padding:6px 8px;text-align:${al}" ${ex}>${h}</td>`;
+  switch(c.key){
+    case 'rank': return td('left',`<span style="color:var(--muted)">${i+1}</span>`);
+    case 'sector': return td('left',`<span style="font-weight:700;color:var(--text)">${g.sector}</span>`);
+    case 'score': return td('right',`<span style="font-weight:800;color:${rotHeat(g.score)}">${g.score}</span>`);
+    case 'trend': return td('center',rotTrendTag(g.trend));
+    case 'breadth': return td('right',`<span style="color:${g.breadth>=50?'var(--green)':'var(--text2)'}">${g.breadth.toFixed(0)}%</span>`);
+    case 'avg1D': return td('right',rotPct(g.avg1D));
+    case 'avg1W': return td('right',rotPct(g.avg1W));
+    case 'avg1M': return td('right',rotPct(g.avg1M));
+    case 'avgMom': return td('right',g.avgMom.toFixed(0));
+    case 'breakouts': return td('right',g.breakouts||'—');
+    case 'smflow': return td('right',rotSmCell(g));
+    case 'n': return td('right',`<span style="color:var(--text2)">${g.n}</span>`);
+    default: return '<td></td>';
+  }
+}
+
+function rotFiltersBar(){
+  let stamp=''; if(ROT.updated) stamp='Updated '+new Date(ROT.updated).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  const u=document.getElementById('rot-updated'); if(u) u.textContent=stamp;
+  if(ROT.view==='radar') return `<span style="font-size:11px;color:var(--muted)">Sectors where the recent pace is <b style="color:var(--green)">accelerating</b> (rotating in) or <b style="color:var(--red)">fading</b> (rotating out), vs the medium term. Catch rotation early.</span>`;
+  if(ROT.view==='drill'){
+    const opts=ROT.sectors.slice().sort((a,b)=>b.score-a.score).map(g=>`<option value="${g.sector}"${ROT.sel===g.sector?' selected':''}>${g.sector} (${g.score})</option>`).join('');
+    return `<span style="font-size:11px;color:var(--muted);margin-right:6px">Sector:</span><select class="sort-sel" onchange="rotPickSector(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px"><option value="">— choose —</option>${opts}</select>`;
+  }
+  return `<input type="text" placeholder="🔎 sector" oninput="rotSearch(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;color:var(--text);font-size:11px;outline:none;width:130px">
+    <span style="font-size:10px;color:var(--muted)">Min stocks</span>
+    <select class="sort-sel" onchange="rotSel(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px"><option value="1"${ROT.minN===1?' selected':''}>1+</option><option value="3"${ROT.minN===3?' selected':''}>3+</option><option value="5"${ROT.minN===5?' selected':''}>5+</option></select>`;
+}
+
+function rotStockRow(s){
+  const sm=ROT.smBySym[s.symbol];
+  return `<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="rotStock('${s.symbol}')" title="${(_hr('getStockTitle',s.symbol)||s.symbol)}">
+    <td style="padding:4px 8px;font-weight:700;color:var(--text)">${s.symbol}</td>
+    <td style="padding:4px 8px;text-align:center">${_hr('getCatBadge',s.category)||(s.category||'—')}</td>
+    <td style="padding:4px 8px;text-align:right">${(+s.momentum_score||0).toFixed(0)}</td>
+    <td style="padding:4px 8px;text-align:right">${rotPct(s.week_chg_pct)}</td>
+    <td style="padding:4px 8px;text-align:right">${s.pct_from_ema9_daily!=null?rotPct(s.pct_from_ema9_daily):'—'}</td>
+    <td style="padding:4px 8px;text-align:center">${sm&&sm.tier==='LOADING_UP'?'<span style="color:var(--green)">🔥</span>':(sm&&sm.tier==='OFFLOADING'?'<span style="color:var(--red)">🧊</span>':'')}</td></tr>`;
+}
+
+function rotRender(){
+  document.getElementById('rot-filters').innerHTML=rotFiltersBar();
+  document.getElementById('rot-colbtn').style.display = ROT.view==='scorecard'?'inline-block':'none';
+  const table=document.getElementById('rot-tablewrap'), detail=document.getElementById('rot-detail');
+  const thead=document.getElementById('rot-thead'), tbody=document.getElementById('rot-tbody');
+  const arrow=(k)=>ROT.sortKey===k?(ROT.sortDir<0?' ▼':' ▲'):'';
+
+  if(ROT.view==='scorecard'){
+    table.style.display=''; detail.style.display='none';
+    const rows=rotVisible(); const cols=ROT_COLS.filter(c=>!ROT.hidden[c.key]);
+    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+cols.map(c=>{const sortable=c.key!=='rank';return `<th title="${c.tip}" style="text-align:${c.al};padding:6px 8px;${sortable?'cursor:pointer':''}" ${sortable?`onclick="rotSort('${c.key}')"`:''}>${c.label}${sortable?arrow(c.key):''}</th>`;}).join('')+'</tr>';
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${cols.length}"><div class="mom-empty"><div class="mom-empty-icon">🔍</div><div class="mom-empty-text">No sectors match</div></div></td></tr>`; }
+    else tbody.innerHTML=rows.map((g,i)=>`<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="rotPickSector('${(g.sector||'').replace(/'/g,"\\'")}')" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">`+cols.map(c=>rotCell(c,g,i)).join('')+'</tr>').join('');
+    document.getElementById('rot-count').textContent=`${rows.length} sectors`;
+
+  } else if(ROT.view==='radar'){
+    table.style.display='none'; detail.style.display='';
+    const ins=ROT.sectors.filter(g=>g.trend==='in'&&g.n>=ROT.minN).sort((a,b)=>(b.accel-a.accel)||(b.score-a.score));
+    const outs=ROT.sectors.filter(g=>g.trend==='out'&&g.n>=ROT.minN).sort((a,b)=>(a.accel-b.accel)||(a.score-b.score));
+    const card=(g,inFlag)=>`<div onclick="rotPickSector('${(g.sector||'').replace(/'/g,"\\'")}')" style="cursor:pointer;background:var(--bg2);border:1px solid ${inFlag?'var(--green-glow,rgba(0,255,136,0.2))':'rgba(255,68,102,0.2)'};border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+      <div><span style="font-weight:700;color:var(--text)">${g.sector}</span> <span style="font-size:10px;color:var(--muted)">${g.n} stocks</span><br>
+      <span style="font-size:10px;color:var(--muted)">Breadth ${g.breadth.toFixed(0)}% · 1W ${rotPct(g.avg1W)} · Smart $ ${g.sm_net30>0?'+':''}${rotCr(g.sm_net30)}cr</span></div>
+      <div style="text-align:right"><div style="font-weight:800;color:${rotHeat(g.score)};font-size:16px">${g.score}</div><div style="font-size:9px;color:var(--muted)">score</div></div></div>`;
+    detail.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div><div style="font-weight:700;color:var(--green);margin-bottom:8px">🔼 Rotating In (${ins.length})</div><div style="display:flex;flex-direction:column;gap:6px">${ins.map(g=>card(g,true)).join('')||'<span style="color:var(--muted);font-size:11px">None right now</span>'}</div></div>
+      <div><div style="font-weight:700;color:var(--red);margin-bottom:8px">🔽 Rotating Out (${outs.length})</div><div style="display:flex;flex-direction:column;gap:6px">${outs.map(g=>card(g,false)).join('')||'<span style="color:var(--muted);font-size:11px">None right now</span>'}</div></div></div>`;
+    document.getElementById('rot-count').textContent=`▲ ${ins.length} in · ▼ ${outs.length} out`;
+
+  } else { // drill / sector detail
+    table.style.display='none'; detail.style.display='';
+    const g=ROT.sectors.find(x=>x.sector===ROT.sel);
+    if(!g){ detail.innerHTML='<div class="mom-empty"><div class="mom-empty-icon">🔍</div><div class="mom-empty-text">Pick a sector above to drill in</div></div>'; document.getElementById('rot-count').textContent='—'; return; }
+    const lead=g.stocks.slice().sort((a,b)=>(+b.momentum_score||0)-(+a.momentum_score||0)).slice(0,12);
+    const lag=g.stocks.slice().sort((a,b)=>(+a.week_chg_pct||0)-(+b.week_chg_pct||0)).slice(0,8);
+    const smActive=g.stocks.filter(s=>{const sm=ROT.smBySym[s.symbol];return sm&&(sm.tier==='LOADING_UP'||sm.tier==='ACCUMULATING');}).slice(0,12);
+    const tbl=(rows)=>`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--bg1)"><th style="text-align:left;padding:4px 8px">Symbol</th><th style="padding:4px 8px">Cat</th><th style="text-align:right;padding:4px 8px">Mom</th><th style="text-align:right;padding:4px 8px">1W</th><th style="text-align:right;padding:4px 8px">%9E</th><th style="padding:4px 8px">SM</th></tr></thead><tbody>${rows.map(rotStockRow).join('')||'<tr><td colspan="6" style="padding:8px;color:var(--muted);text-align:center">None</td></tr>'}</tbody></table>`;
+    const sec=(g.sector||'').replace(/'/g,"\\'");
+    detail.innerHTML=`
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <div><span style="font-size:18px;font-weight:800;color:var(--text)">${g.sector}</span> ${rotTrendTag(g.trend)}
+            <span style="margin-left:10px;font-weight:800;color:${rotHeat(g.score)}">Score ${g.score}</span></div>
+          <div style="display:flex;gap:6px">
+            <button class="sort-btn" onclick="rotJump('ema','${sec}')" style="color:var(--cyan)" title="Open EMA Signals filtered to this sector">→ EMA Signals</button>
+            <button class="sort-btn" onclick="rotJump('sharp','${sec}')" style="color:var(--gold)" title="Open Breakout Setups filtered to this sector">→ Breakout</button>
+            <button class="sort-btn" onclick="rotJump('sm','${sec}')" style="color:var(--green)" title="Open Smart Money filtered to this sector">→ Smart Money</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--text2)">
+          <span>Breadth <b>${g.breadth.toFixed(0)}%</b></span><span>1W <b>${rotPct(g.avg1W)}</b></span><span>1M <b>${rotPct(g.avg1M)}</b></span>
+          <span>Momentum <b>${g.avgMom.toFixed(0)}</b></span><span>Smart $ <b style="color:${g.sm_net30>=0?'var(--green)':'var(--red)'}">${g.sm_net30>0?'+':''}${rotCr(g.sm_net30)}cr</b></span>
+          <span>Setups <b>${g.breakouts}</b></span><span>🔥<b>${g.sm_loading}</b> 🧊<b>${g.sm_offloading}</b></span><span><b>${g.n}</b> stocks</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div style="font-weight:700;color:var(--green);margin-bottom:6px">🏆 Leaders (by momentum)</div>${tbl(lead)}</div>
+        <div><div style="font-weight:700;color:var(--amber);margin-bottom:6px">🏦 Smart-money active</div>${tbl(smActive)}</div>
+      </div>
+      <div style="margin-top:12px"><div style="font-weight:700;color:var(--red);margin-bottom:6px">📉 Laggards (weakest 1W)</div>${tbl(lag)}</div>`;
+    document.getElementById('rot-count').textContent=`${g.sector} · ${g.n} stocks`;
+  }
+}
+
+function rotCopyTV(){
+  let syms=[];
+  if(ROT.view==='drill'){ const g=ROT.sectors.find(x=>x.sector===ROT.sel); if(g) syms=g.stocks.map(s=>'NSE:'+s.symbol); }
+  else { const rows = ROT.view==='radar'?ROT.sectors.filter(g=>g.trend==='in'):rotVisible(); rows.forEach(g=>g.stocks.slice().sort((a,b)=>(+b.momentum_score||0)-(+a.momentum_score||0)).slice(0,5).forEach(s=>syms.push('NSE:'+s.symbol))); }
+  syms=[...new Set(syms)];
+  if(!syms.length){ if(typeof showToast==='function') showToast('Nothing to copy','error'); return; }
+  navigator.clipboard.writeText(syms.join(',')).then(()=>{ if(typeof showToast==='function') showToast('✅ Copied '+syms.length+' symbols',' success'.trim()); });
+}
+</script>
+
+
 
 <!-- ══ UPLOAD MODAL ══ -->
 <div class="modal-bg" id="modal-bg">
@@ -5136,12 +5411,14 @@ function switchMode(mode) {
   document.getElementById('momentum-tabs').style.display   = mode==='momentum' ? 'flex' : 'none';
   document.getElementById('banknifty-tabs').style.display  = mode==='banknifty'? 'flex' : 'none';
   document.getElementById('results-tabs').style.display    = mode==='results'  ? 'flex' : 'none';
+  document.getElementById('rotation-tabs').style.display   = mode==='rotation' ? 'flex' : 'none';
   document.getElementById('live-pill').style.display       = mode==='fo'       ? 'flex' : 'none';
   // Show/hide containers
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('momentum-container').style.display = 'none';
   document.getElementById('results-container').style.display  = 'none';
   document.getElementById('banknifty-container').style.display = 'none';
+  var _rc=document.getElementById('rotation-container'); if(_rc) _rc.style.display='none';
   if (mode==='fo') {
     switchTab('morning', document.querySelector('#fo-tabs .nav-tab'), 'fo');
   } else if (mode==='eod') {
@@ -5155,6 +5432,9 @@ function switchMode(mode) {
   } else if (mode==='results') {
     document.getElementById('results-container').style.display = 'block';
     switchTab('resultseason', document.querySelector('#results-tabs .nav-tab'), 'results');
+  } else if (mode==='rotation') {
+    document.getElementById('rotation-container').style.display = 'block';
+    loadRotation();
   }
 }
 
