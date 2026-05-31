@@ -2520,7 +2520,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="mom-export-btn" onclick="smCopyTV()" title="Copy the filtered symbols as an NSE: watchlist for TradingView">📊 TradingView</button>
         <span class="mom-updated" id="sm-count" style="color:var(--cyan);font-weight:600">—</span>
         <span class="mom-updated" id="sm-updated" title="Data coverage and last refresh">—</span>
-        <span style="font-size:9px;color:var(--dim);margin-left:6px;border:1px solid var(--border);border-radius:8px;padding:1px 6px" title="Smart Money build version">SM v3.1</span>
+        <span style="font-size:9px;color:var(--dim);margin-left:6px;border:1px solid var(--border);border-radius:8px;padding:1px 6px" title="Smart Money build version">SM v3.2</span>
       </div>
     </div>
     <div id="sm-colpanel" style="display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;margin-top:6px;font-size:11px;color:var(--text2);flex-wrap:wrap;gap:10px"></div>
@@ -2666,7 +2666,7 @@ function smFiltersBar(){
       <input type="text" placeholder="🔎 symbol / buyer" oninput="smSearch(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;color:var(--text);font-size:11px;outline:none;width:140px">`;
   }
   if(SM.view==='sector'){
-    return `<span style="font-size:11px;color:var(--muted)">Net smart-money flow by sector (last 30 days) — which sectors are being accumulated vs distributed. Sorted by net flow.</span>`;
+    return `<span style="font-size:11px;color:var(--muted)">Net smart-money flow by sector (last 30 days). Green bars = accumulation, red = distribution. <b style="color:var(--text2)">Click any sector</b> to drill into its stocks.</span>`;
   }
   const tchip=(t)=>{const m=SM_TIERS[t];return `<button class="sort-btn ${SM.tier===t?'multi-active':''}" onclick="smChip('${t}','tier')" title="${m.tip}" style="color:${m.color}">${m.label}</button>`;};
   const secOpts=['<option value="all">All Sectors</option>'].concat(smOpts('sector').map(s=>`<option value="${s}"${SM.sector===s?' selected':''}>${s}</option>`)).join('');
@@ -2785,21 +2785,26 @@ function smRender(){
 
   } else if(SM.view==='sector'){
     const rows=smSectorAgg();
-    const cols=[['sector','Sector','Sector (from Momentum data)','left'],['net','Net Flow (₹cr)','Total net smart-money flow across the sector','right'],['loading','🔥 Loading','Stocks tagged LOADING UP','right'],['offloading','🧊 Offloading','Stocks tagged OFFLOADING','right'],['stars','⭐','Total star buys in the sector','right'],['n','Stocks','Stocks with activity','right'],['top','Top Net Stock','Largest net inflow in the sector','left']];
-    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+cols.map(c=>{const sb=c[0]!=='top'&&c[0]!=='sector';return `<th title="${c[2]}" style="text-align:${c[3]};padding:6px 8px;${sb?'cursor:pointer':''}" ${sb?`onclick="smSort('${c[0]}')"`:''}>${c[1]}${SM.sortKey===c[0]?(SM.sortDir<0?' ▼':' ▲'):''}</th>`;}).join('')+'</tr>';
-    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="mom-empty"><div class="mom-empty-icon">🌐</div><div class="mom-empty-text">No sector data — cross-reference is empty</div></div></td></tr>`; }
-    else tbody.innerHTML=rows.map(s=>{const nc=s.net>0?'var(--green)':(s.net<0?'var(--red)':'var(--muted)');
-      return `<tr style="border-top:1px solid var(--border)">
-        <td style="padding:5px 8px;font-weight:600;color:var(--text)">${s.sector}</td>
-        <td style="padding:5px 8px;text-align:right;font-weight:700;color:${nc}">${s.net>0?'+':''}${smCr(s.net)}</td>
-        <td style="padding:5px 8px;text-align:right;color:var(--green)">${s.loading||'—'}</td>
-        <td style="padding:5px 8px;text-align:right;color:var(--red)">${s.offloading||'—'}</td>
-        <td style="padding:5px 8px;text-align:right;color:var(--gold)">${s.stars||'—'}</td>
-        <td style="padding:5px 8px;text-align:right;color:var(--text2)">${s.n}</td>
-        <td style="padding:5px 8px;color:var(--text2);font-size:10px;cursor:pointer" title="${s.top?(_h('getStockTitle',s.top)||s.top):''}" onclick="${s.top?`window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.top}','_blank')`:''}">${s.top||'—'}</td></tr>`;
+    const maxAbs=Math.max(1,...rows.map(s=>Math.abs(s.net)));
+    const cols=[['sector','Sector','Sector (from Momentum data)','left'],['net','Net Flow (\u20b9cr)','Net smart-money flow \u2014 green = accumulation, red = distribution','left'],['act','Activity','Stocks loading up vs offloading','center'],['stars','\u2b50','Total star buys','right'],['n','Stocks','Stocks with activity','right'],['top','Top Net Stock','Largest net inflow \u2014 click row to drill in','left']];
+    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+cols.map(c=>{const sb=['net','stars','n'].includes(c[0]);return `<th title="${c[2]}" style="text-align:${c[3]};padding:6px 8px;${sb?'cursor:pointer':''}" ${sb?`onclick="smSort('${c[0]}')"`:''}>${c[1]}${SM.sortKey===c[0]?(SM.sortDir<0?' \u25bc':' \u25b2'):''}</th>`;}).join('')+'</tr>';
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="6"><div class="mom-empty"><div class="mom-empty-icon">\ud83c\udf10</div><div class="mom-empty-text">No sector data \u2014 cross-reference is empty</div></div></td></tr>`; }
+    else tbody.innerHTML=rows.map(s=>{
+      const nc=s.net>0?'var(--green)':(s.net<0?'var(--red)':'var(--muted)');
+      const w=Math.abs(s.net)/maxAbs*48;
+      const safe=(s.sector||'').replace(/'/g,"\\'");
+      const bar=`<div style="position:relative;height:14px;width:170px;background:var(--bg3);border-radius:4px;display:inline-block;vertical-align:middle"><div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted);opacity:.5"></div><div style="position:absolute;top:2px;bottom:2px;${s.net>=0?'left:50%':'right:50%'};width:${w}%;background:${nc};border-radius:3px"></div></div>`;
+      const chips=(s.loading?`<span style="background:rgba(0,255,136,0.14);color:var(--green);border-radius:10px;padding:1px 7px;margin:0 2px;font-size:10px">\ud83d\udd25 ${s.loading}</span>`:'')+(s.offloading?`<span style="background:rgba(255,68,102,0.14);color:var(--red);border-radius:10px;padding:1px 7px;margin:0 2px;font-size:10px">\ud83e\uddca ${s.offloading}</span>`:'')+((!s.loading&&!s.offloading)?'<span style="color:var(--muted)">\u2014</span>':'');
+      return `<tr style="border-top:1px solid var(--border);cursor:pointer" title="Click to see ${safe} stocks" onclick="smDrillSector('${safe}')" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+        <td style="padding:6px 8px;font-weight:600;color:var(--text)">${s.sector}</td>
+        <td style="padding:6px 8px">${bar}<span style="font-weight:700;color:${nc};margin-left:8px">${s.net>0?'+':''}${smCr(s.net)}</span></td>
+        <td style="padding:6px 8px;text-align:center">${chips}</td>
+        <td style="padding:6px 8px;text-align:right;color:var(--gold)">${s.stars||'\u2014'}</td>
+        <td style="padding:6px 8px;text-align:right;color:var(--text2)">${s.n}</td>
+        <td style="padding:6px 8px;color:var(--text2);font-size:10px">${s.top||'\u2014'} <span style="color:var(--cyan)">\u2197</span></td></tr>`;
     }).join('');
-    document.getElementById('sm-count').textContent=`${rows.length} sectors`;
-
+    const buyN=rows.filter(s=>s.net>0).length, sellN=rows.filter(s=>s.net<0).length;
+    document.getElementById('sm-count').textContent=`${rows.length} sectors \u00b7 \u25b2 ${buyN} bought  \u25bc ${sellN} sold`;
   } else {
     const rows=smVisDeals();
     const dc=[['deal_date','Date','Trade date',1,'left'],['symbol','Symbol','NSE symbol — hover for company name',1,'left'],['deal_type','Type','Bulk or block',0,'left'],['sector','Sector','Sector (from Momentum)',0,'left'],['client_name','Client','Counterparty as filed',0,'left'],['cls','Class','⭐ star / 🏛️ institution / · individual',0,'center'],['side','Side','Buy or sell',1,'center'],['quantity','Qty','Shares traded',1,'right'],['price','Price','Trade price',1,'right'],['value','Value (₹cr)','Trade value',1,'right']];
@@ -2822,6 +2827,13 @@ function smRender(){
   }
 }
 
+function smDrillSector(s){
+  SM.sector = smOpts('sector').includes(s) ? s : 'all';
+  SM.view='leaderboard'; SM.sortKey='cooking_score'; SM.sortDir=-1;
+  document.querySelectorAll('#tab-smartmoney .deals-subtab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sm-sub-board').classList.add('active');
+  smRender();
+}
 function smCopyTV(){
   let syms;
   if(SM.view==='leaderboard') syms=smVisBoard().map(r=>'NSE:'+r.symbol);
