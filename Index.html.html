@@ -2312,6 +2312,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th onclick="sortMomTable('sharp','day_chg_pct')">Day % ↕</th>
               <th onclick="sortMomTable('sharp','week_chg_pct')">Week % ↕</th>
               <th onclick="sortMomTable('sharp','month_chg_pct')">Month % ↕</th>
+              <th class="no-sort" title="Daily EMA Status — ▲9/▼9 ▲20/▼20: price above/below the daily 9 & 20 EMA (same as EMA Signals)">Daily EMA Status</th>
+              <th class="no-sort" title="Weekly EMA Status — ▲9/▼9 ▲20/▼20: price above/below the weekly 9 & 20 EMA (same as EMA Signals)">Weekly EMA Status</th>
               <th onclick="sortMomTable('sharp','pct_from_ema9_daily')" title="Distance from daily 9 EMA — how close is price to the short-term trend. IN ZONE (&lt;3%) = ideal for entry">% Daily 9E ↕</th>
               <th onclick="sortMomTable('sharp','pct_from_ema9_weekly')" title="Distance from weekly 9 EMA — how close is price to the medium-term trend">% Weekly 9E ↕</th>
               <th onclick="sortMomTable('sharp','high_52w')" title="How far from 52-week high — closer to 0% means near all-time breakout territory">52W Away ↕</th>
@@ -3614,7 +3616,7 @@ function smCopyTV(){
         <button class="mom-export-btn" onclick="rotCopyTV()" title="Copy the visible sectors' top stocks as a TradingView watchlist">📊 TradingView</button>
         <span class="mom-updated" id="rot-count" style="color:var(--cyan);font-weight:600">—</span>
         <span class="mom-updated" id="rot-updated" title="Last refresh">—</span>
-        <span style="font-size:9px;color:var(--dim);margin-left:6px;border:1px solid var(--border);border-radius:8px;padding:1px 6px" title="Rotation build version">ROT v1.2</span>
+        <span style="font-size:9px;color:var(--dim);margin-left:6px;border:1px solid var(--border);border-radius:8px;padding:1px 6px" title="Rotation build version">ROT v1.4</span>
       </div>
     </div>
     <div id="rot-colpanel" style="display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;margin-top:6px;font-size:11px;color:var(--text2);flex-wrap:wrap;gap:10px"></div>
@@ -3829,16 +3831,38 @@ function rotFiltersBar(){
     <select class="sort-sel" onchange="rotSel(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px"><option value="1"${ROT.minN===1?' selected':''}>1+</option><option value="3"${ROT.minN===3?' selected':''}>3+</option><option value="5"${ROT.minN===5?' selected':''}>5+</option></select>`;
 }
 
+function rotSmTier(sm){
+  if(!sm||!sm.tier) return '<span style="color:var(--dim);font-size:10px" title="No recent institutional deals">—</span>';
+  const m={LOADING_UP:['🔥','var(--green)','Loading Up'],ACCUMULATING:['📈','var(--green)','Accumulating'],NIBBLING:['🌱','var(--cyan)','Nibbling'],OFFLOADING:['🧊','var(--red)','Offloading'],QUIET:['·','var(--muted)','Quiet']};
+  const e=m[sm.tier]||['·','var(--muted)',sm.tier];
+  const net=(sm.net_value_30d!=null)?` · net ₹${rotCr(sm.net_value_30d)}cr/30d`:'';
+  const sc=(sm.cooking_score!=null)?`, score ${sm.cooking_score}`:'';
+  return `<span style="color:${e[1]};font-weight:700;font-size:10px;cursor:default" title="Smart money: ${e[2]}${sc}${net}">${e[0]} ${e[2]}</span>`;
+}
+function tfBreakoutCell(s){
+  if(s.qm_pattern) return _hr('getQMBadge',s)||'🚀';
+  if(s.breakout_type) return _hr('getBreakoutBadge',s.breakout_type,s.breakout_holding)||'<span style="color:var(--gold)" title="breakout">🚀</span>';
+  if(s.is_sharp_mover) return '<span style="color:var(--gold);font-size:10px" title="Sharp mover">⚡ Sharp</span>';
+  return '<span style="color:var(--dim);font-size:10px">—</span>';
+}
+function tfResultCell(sym){
+  if(typeof rsGetResultForSymbol!=='function') return '<span style="color:var(--dim);font-size:10px">—</span>';
+  const r=rsGetResultForSymbol(sym); if(!r) return '<span style="color:var(--dim);font-size:10px" title="No results in — upload Trendlyne CSVs in the Results tab">—</span>';
+  return (typeof rsGetGradeBadge==='function')?rsGetGradeBadge(r.grade):('['+r.grade+']');
+}
 function rotStockRow(s){
   const sm=ROT.smBySym[s.symbol];
-  const smTxt = sm? (sm.tier==='LOADING_UP'?'Smart money LOADING UP':sm.tier==='OFFLOADING'?'Smart money OFFLOADING':sm.tier==='ACCUMULATING'?'Smart money accumulating':sm.tier) : 'No recent institutional deals';
-  return `<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="rotStock('${s.symbol}')" title="Click for ${s.symbol} detail — ${(_hr('getStockTitle',s.symbol)||s.symbol)}">
-    <td style="padding:4px 8px;font-weight:700;color:var(--text)" title="${s.symbol}">${s.symbol}${tfBreakoutBadge(s.symbol)}${tfResultBadge(s.symbol)}</td>
-    <td style="padding:4px 8px;text-align:center" title="Category: A=strong fundamentals, C=fresh crossover, AC=both">${_hr('getCatBadge',s.category)||(s.category||'—')}</td>
-    <td style="padding:4px 8px;text-align:right" title="Momentum score ${(+s.momentum_score||0).toFixed(0)}">${(+s.momentum_score||0).toFixed(0)}</td>
+  const starred=(typeof momStarred!=='undefined'&&momStarred&&momStarred.has)?momStarred.has(s.symbol):false;
+  return `<tr style="border-top:1px solid var(--border)">
+    <td style="padding:4px 6px;text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="event.stopPropagation();if(typeof toggleMomStar==='function')toggleMomStar('${s.symbol}',this)" title="Star / add to watchlist">${starred?'⭐':'☆'}</button></td>
+    <td style="padding:4px 8px;font-weight:700;color:var(--text);cursor:pointer" onclick="rotStock('${s.symbol}')" title="Click for ${s.symbol} detail — ${(_hr('getStockTitle',s.symbol)||s.symbol)}">${s.symbol}</td>
+    <td style="padding:4px 8px;text-align:center" title="Category">${_hr('getCatBadge',s.category)||(s.category||'—')}</td>
+    <td style="padding:4px 8px;text-align:center" title="Breakout / QM setup">${tfBreakoutCell(s)}</td>
+    <td style="padding:4px 8px;text-align:center" title="Latest results grade">${tfResultCell(s.symbol)}</td>
+    <td style="padding:4px 8px;text-align:right" title="Momentum score">${(+s.momentum_score||0).toFixed(0)}</td>
     <td style="padding:4px 8px;text-align:right" title="1-week return">${rotPct(s.week_chg_pct)}</td>
-    <td style="padding:4px 8px;text-align:right" title="Distance from daily 9 EMA — near 0% = at the EMA retracement entry zone">${s.pct_from_ema9_daily!=null?rotPct(s.pct_from_ema9_daily):'—'}</td>
-    <td style="padding:4px 8px;text-align:center" title="${smTxt}">${sm&&sm.tier==='LOADING_UP'?'<span style="color:var(--green)">🔥</span>':(sm&&sm.tier==='OFFLOADING'?'<span style="color:var(--red)">🧊</span>':'')}</td></tr>`;
+    <td style="padding:4px 8px;text-align:right" title="Distance from daily 9 EMA — near 0% = entry zone">${s.pct_from_ema9_daily!=null?rotPct(s.pct_from_ema9_daily):'—'}</td>
+    <td style="padding:4px 8px;text-align:left" title="Smart-money tier">${rotSmTier(sm)}</td></tr>`;
 }
 
 function rotRender(){
@@ -3878,7 +3902,7 @@ function rotRender(){
     const lead=g.stocks.slice().sort((a,b)=>(+b.momentum_score||0)-(+a.momentum_score||0)).slice(0,12);
     const lag=g.stocks.slice().sort((a,b)=>(+a.week_chg_pct||0)-(+b.week_chg_pct||0)).slice(0,8);
     const smActive=g.stocks.filter(s=>{const sm=ROT.smBySym[s.symbol];return sm&&(sm.tier==='LOADING_UP'||sm.tier==='ACCUMULATING');}).slice(0,12);
-    const tbl=(rows)=>`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--bg1)"><th style="text-align:left;padding:4px 8px" title="Stock symbol — click a row for detail">Symbol</th><th style="padding:4px 8px" title="Category: A / C / AC">Cat</th><th style="text-align:right;padding:4px 8px" title="Momentum score">Mom</th><th style="text-align:right;padding:4px 8px" title="1-week return">1W</th><th style="text-align:right;padding:4px 8px" title="Distance from daily 9 EMA (entry zone near 0%)">%9E</th><th style="padding:4px 8px" title="Smart-money status: 🔥 loading · 🧊 offloading">SM</th></tr></thead><tbody>${rows.map(rotStockRow).join('')||'<tr><td colspan="6" style="padding:8px;color:var(--muted);text-align:center">None</td></tr>'}</tbody></table>`;
+    const tbl=(rows)=>`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--bg1)"><th style="padding:4px 6px" title="Star / add to watchlist">⭐</th><th style="text-align:left;padding:4px 8px" title="Stock symbol — click for detail">Symbol</th><th style="padding:4px 8px" title="Category A / B / C / A+C">Cat</th><th style="padding:4px 8px" title="Breakout or QM pattern setup">Setup</th><th style="padding:4px 8px" title="Latest results grade">Results</th><th style="text-align:right;padding:4px 8px" title="Momentum score">Mom</th><th style="text-align:right;padding:4px 8px" title="1-week return">1W</th><th style="text-align:right;padding:4px 8px" title="Distance from daily 9 EMA (entry zone near 0%)">%9E</th><th style="text-align:left;padding:4px 8px" title="Smart-money tier">SM</th></tr></thead><tbody>${rows.map(rotStockRow).join('')||'<tr><td colspan="9" style="padding:8px;color:var(--muted);text-align:center">None</td></tr>'}</tbody></table>`;
     const sec=(g.sector||'').replace(/'/g,"\\'");
     detail.innerHTML=`
       <button onclick="rotBack()" class="sort-btn" style="margin-bottom:10px;font-weight:600;color:var(--cyan);background:var(--cyan-dim);border-color:var(--border2);padding:5px 12px" title="Return to the full sector ranking">← Back to Scorecard</button>
@@ -7329,7 +7353,7 @@ function renderEMA() {
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
       <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
-      <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span>${secBadge(s.sector)}<br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
+      <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
       <td style="font-size:11px">${s.crossover_type==='daily'&&s.crossover_date?s.crossover_date:'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${dcDays!==null?dcDays+'d':'—'}</td>
       <td style="font-size:11px">${s.crossover_type==='weekly'&&s.crossover_date?s.crossover_date:'—'}</td>
@@ -7383,8 +7407,8 @@ function renderSharp() {
     const away52 = s.ltp && s.high_52w ? ((s.high_52w - s.ltp) / s.high_52w * 100).toFixed(1) + '%' : '—';
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}${tfResultBadge(s.symbol)}</td>
-      <td style="font-size:11px;color:var(--muted)">${s.sector||'—'} ${secBadge(s.sector)}</td>
+      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td><span style="color:${movePct>=0?'#22C55E':'#EF4444'};font-weight:700;font-size:13px">${movePct>=0?'+':''}${movePct?.toFixed(1)}%</span></td>
       <td><span style="font-size:10px;color:var(--muted)">${period}</span></td>
@@ -8836,7 +8860,7 @@ renderEMA = function() {
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
       <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
-      <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
+      <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span>${secBadge(s.sector)}<br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
       <td style="font-size:11px">${s.crossover_type==='daily'&&s.crossover_date?s.crossover_date:'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${dcDays!==null?dcDays+'d':'—'}</td>
       <td style="font-size:11px">${s.crossover_type==='weekly'&&s.crossover_date?s.crossover_date:'—'}</td>
@@ -9010,7 +9034,7 @@ renderSharp = function() {
   const { key, dir } = momSort.sharp;
   data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
   if (!data.length) {
-    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="26"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups match filter</div></div></td></tr>';
+    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="28"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups match filter</div></div></td></tr>';
     const excl = momData.sharp.filter(s => momExcluded.has(s.symbol));
     const exclSec = document.getElementById('sharp-excluded-section');
     document.getElementById('sharp-excluded-count').textContent = excl.length;
@@ -9029,12 +9053,14 @@ renderSharp = function() {
     return `<tr style="${rowStyle}">
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
       <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
-      <td style="font-size:11px;color:var(--muted)" title="Sector">${s.sector||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)" title="Sector">${s.sector||'—'} ${secBadge(s.sector)}</td>
       <td style="font-size:11px;color:var(--muted)" title="Industry">${s.industry||'—'}</td>
       <td title="Last Traded Price">₹${(s.ltp||0).toLocaleString('en-IN')}</td>
       <td>${fmtChg(s.day_chg_pct)}</td>
       <td>${fmtChg(s.week_chg_pct)}</td>
       <td>${fmtChg(s.month_chg_pct)}</td>
+      <td>${getEMAStatus(s.above_ema9_daily, s.above_ema20_daily)}</td>
+      <td>${getEMAStatus(s.above_ema9_weekly, s.above_ema20_weekly)}</td>
       <td>${getZoneTag(s.pct_from_ema9_daily)}</td>
       <td>${s.pct_from_ema9_weekly!==null&&s.pct_from_ema9_weekly!==undefined?`<span style="color:${chgColor(s.pct_from_ema9_weekly)}">${s.pct_from_ema9_weekly>=0?'+':''}${s.pct_from_ema9_weekly.toFixed(2)}%</span>`:'—'}</td>
       <td><span style="font-size:11px;color:var(--muted)">${away52}</span></td>
