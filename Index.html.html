@@ -689,6 +689,76 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .spark-bar.dn{background:#EF4444}
 .spark-bar.flat{background:var(--muted)}
 </style>
+<style>
+/* ═══ VOLUME BUILDUP TAB ═══ */
+.vbt-info{display:flex;align-items:center;gap:14px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;flex-wrap:wrap}
+.vbt-info .txt{font-size:12px;color:var(--text2);line-height:1.55;flex:1;min-width:260px}
+.vbt-info b{color:var(--text)}
+.vbt-pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-size:11px;font-weight:600;padding:7px 12px;border-radius:99px;cursor:pointer;white-space:nowrap}
+.vbt-pill:hover{border-color:var(--border3);color:var(--text)}
+.vbt-ver{font-size:9px;color:var(--dim);border:1px solid var(--border);border-radius:8px;padding:2px 7px}
+.vbt-hiw{display:none;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;font-size:12.5px;line-height:1.7;color:var(--text2)}
+.vbt-hiw.open{display:block}
+.vbt-hiw h4{color:var(--cyan);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:13px 0 5px}
+.vbt-hiw h4:first-child{margin-top:0}
+.vbt-hiw b{color:var(--text)}
+.vbt-hiw .k{display:inline-block;min-width:82px;color:var(--text);font-weight:700}
+.vbt-hiw code{font-family:'JetBrains Mono',monospace;background:var(--bg3);padding:1px 6px;border-radius:5px;color:var(--cyan);font-size:11px}
+.vbt-views{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.vbt-view{background:var(--bg1);border:1px solid var(--border);color:var(--muted);font-weight:600;font-size:13px;padding:9px 16px;border-radius:99px;cursor:pointer;transition:.18s}
+.vbt-view.active{background:linear-gradient(135deg,var(--cyan-dim),var(--purple-dim));border-color:var(--border3);color:var(--text);box-shadow:0 0 16px var(--cyan-glow)}
+.vbt-datewin{display:inline-flex;background:var(--bg2);border:1px solid var(--border2);border-radius:99px;padding:3px;gap:2px}
+.vbt-dw{font-size:11.5px;font-weight:600;color:var(--muted);padding:6px 13px;border-radius:99px;cursor:pointer;border:none;background:none;font-family:inherit}
+.vbt-dw.active{background:var(--cyan-dim);color:var(--cyan);box-shadow:inset 0 0 0 1px var(--border3)}
+.vbt-crange{display:none;align-items:center;gap:6px;margin-left:8px}
+.vbt-crange.show{display:inline-flex}
+.vbt-crange input{background:var(--bg2);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);padding:6px 9px;font-size:11px;font-family:inherit}
+.vbt-filters{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.vbt-sel,.vbt-search{background:var(--bg2);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);padding:8px 11px;font-size:12px;font-family:inherit}
+.vbt-search{min-width:150px}
+.vbt-toggle{display:flex;align-items:center;gap:7px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--text2);cursor:pointer;user-select:none}
+.vbt-toggle.on{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.vbt-stamp{font-size:11px;color:var(--muted)}
+.vbt-stamp .hi{color:var(--green);font-weight:700}
+.vbt-card{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);overflow:auto}
+#tab-volume table{width:100%;border-collapse:collapse;font-size:12.5px}
+#tab-volume thead th{position:sticky;top:0;background:var(--bg2);color:var(--muted);font-weight:600;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;padding:10px;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap;z-index:2;cursor:help}
+#tab-volume thead th.r{text-align:right}
+#tab-volume thead th.c{text-align:center}
+#tab-volume tbody td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+#tab-volume tbody tr{transition:background .12s}
+#tab-volume tbody tr:hover{background:var(--cyan-dim)}
+.vbt-sym{font-weight:700;color:var(--text);font-size:13px}
+.vbt-sym a{color:var(--muted);font-size:10px;margin-left:5px;text-decoration:none}
+.vbt-rank{color:var(--dim);font-weight:700;font-size:11px}
+.vbt-star{cursor:pointer;color:var(--dim);font-size:14px}
+.vbt-sector{color:var(--text2);font-size:11.5px}
+.vbt-bars{display:inline-flex;align-items:flex-end;gap:2px;height:30px;cursor:help}
+.vbt-bar{border-radius:2px 2px 0 0}
+.vbt-rvol{font-weight:700;font-family:'JetBrains Mono',monospace;cursor:help}
+.vbt-l5{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;cursor:help}
+.vbt-l5 .u{color:var(--green)}.vbt-l5 .d{color:var(--red)}
+.vbt-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap;cursor:help}
+.vbt-setup{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.vbt-dash{color:var(--dim)}
+.vbt-trend{font-size:11px;font-weight:700;cursor:help}
+.vbt-rising{color:var(--green)}.vbt-flat{color:var(--amber)}.vbt-fading{color:var(--red)}
+.vbt-score{display:inline-flex;align-items:center;justify-content:center;min-width:34px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;padding:3px 8px;border-radius:8px;cursor:help}
+.vbt-s-hi{background:rgba(0,255,136,.14);color:var(--green)}
+.vbt-s-mid{background:rgba(245,158,11,.14);color:var(--amber)}
+.vbt-s-lo{background:var(--bg3);color:var(--muted)}
+.vbt-sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.vbt-sec-card{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:.18s}
+.vbt-sec-card:hover{border-color:var(--border3);box-shadow:0 0 18px var(--cyan-glow);transform:translateY(-2px)}
+.vbt-sec-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.vbt-sec-name{font-weight:700;font-size:14px;color:var(--text)}
+.vbt-sec-cnt{font-size:11px;color:var(--muted)}
+.vbt-sec-track{height:9px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:8px}
+.vbt-sec-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--cyan),var(--green))}
+.vbt-sec-foot{display:flex;justify-content:space-between;font-size:11px;color:var(--text2)}
+.vbt-sec-top{color:var(--cyan);font-weight:700}
+</style>
+
 </head>
 <body>
 
@@ -782,6 +852,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="nav-tab" onclick="switchTab('emasignals',this,'momentum')">🔄 EMA Signals</button>
         <button class="nav-tab" onclick="switchTab('sharpmovers',this,'momentum')">🎯 Breakout Setups</button>
         <button class="nav-tab" onclick="switchTab('smartmoney',this,'momentum')">🏦 Smart Money</button>
+        <button class="nav-tab" onclick="switchTab('volume',this,'momentum')">🌊 Volume</button>
         <button class="nav-tab" onclick="switchTab('mypicks',this,'momentum')">⭐ My Picks</button>
         <button class="nav-tab" onclick="switchTab('exited',this,'momentum')">🚪 Exited</button>
       </div>
@@ -1973,6 +2044,88 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
      MOMENTUM HUB
 ══════════════════════════════════════ -->
 <div id="momentum-container" style="display:none">
+  <div id="tab-volume" class="panel">
+    <div class="vbt-info">
+      <span style="font-size:20px">🌊</span>
+      <span class="txt"><b>Volume Buildup</b> — stocks where traded volume is <b>climbing across recent sessions</b>, the footprint of quiet accumulation that rarely shows up as a reported bulk deal. Each row cross-references its <b>EMA category, breakout setup, results grade and smart-money tier</b>. The <b style="color:var(--cyan)">date window</b> sets how far back "buildup" is measured.</span>
+      <span class="vbt-pill" onclick="document.getElementById('vbt-hiw').classList.toggle('open')">📖 How This Works</span>
+      <span class="vbt-ver">VOL v1.0</span>
+    </div>
+    <div class="vbt-hiw" id="vbt-hiw">
+      <h4>What this tab finds</h4>
+      Big institutions accumulate quietly over days — their algos drip-feed orders so it rarely appears as a reported bulk/block deal (which is what the <b>Smart Money</b> tab catches). What it <i>does</i> leave behind is a <b>rising volume footprint</b>: each session trades more than the 20-day norm and the ratio keeps climbing. This tab surfaces those names so you spot accumulation <b>before</b> the breakout.
+      <h4>The date window</h4>
+      <div><span class="k">Today</span> rank by today's volume vs its 20-day average (single-day shockers).</div>
+      <div><span class="k">This Week</span> 5-session buildup — the classic staircase. <b>Default.</b></div>
+      <div><span class="k">This Month</span> ~20-session buildup — slower, structural accumulation.</div>
+      <div><span class="k">Custom</span> measure buildup over a chosen span.</div>
+      <h4>Reading the columns</h4>
+      <div><span class="k">Last 5</span> price action — green ↑ closed up, red ↓ down, oldest → newest.</div>
+      <div><span class="k">Vol Buildup</span> each bar = that session's volume ÷ 20-day average; newest highlighted. Rising staircase = building up.</div>
+      <div><span class="k">RVOL ×</span> latest session's volume vs 20-day average. <code>2.0×</code> = twice the normal volume.</div>
+      <div><span class="k">Trend</span> ▲ Rising / ■ Flat / ▼ Fading — slope of the bars across the window.</div>
+      <div><span class="k">EMA</span> your category — 🟢 A, 🟡 B, 🔵 C, 💎 A+C (hover for the rule).</div>
+      <div><span class="k">Setup</span> active breakout / Qullamaggie pattern (EP, VCP, HTF, Reclaim).</div>
+      <div><span class="k">Results</span> latest earnings grade (from your Results tab — upload results to populate).</div>
+      <div><span class="k">Smart $</span> smart-money tier from bulk/block deals.</div>
+      <div><span class="k">Score</span> <code>RVOL×16 + slope×14 + (sustained&gt;1.4× ? +12)</code>, capped 0–100.</div>
+      <h4>How to use it</h4>
+      The best longs line up: <b>rising volume + Cat A/A+C + a breakout setup + accumulating smart money</b>. Use "Rising only" + RVOL ≥ 2× to cut noise, then scan the chips for confluence.
+      <div style="margin-top:10px;color:var(--muted);font-size:11px">Note: "This Week" uses the new <code>vol5_ratios</code> field once Monday's scan populates it; until then it reconstructs from recent session history. "This Month"/"Custom" use whatever history is available and deepen over time.</div>
+    </div>
+    <div class="vbt-views">
+      <button class="vbt-view active" onclick="volSetView('board',this)">🔥 Buildup Leaderboard</button>
+      <button class="vbt-view" onclick="volSetView('sector',this)">🗺️ By Sector</button>
+      <span style="flex:1"></span>
+      <div class="vbt-datewin">
+        <button class="vbt-dw" onclick="volSetWin('today',this)">Today</button>
+        <button class="vbt-dw active" onclick="volSetWin('week',this)">This Week</button>
+        <button class="vbt-dw" onclick="volSetWin('month',this)">This Month</button>
+        <button class="vbt-dw" onclick="volSetWin('custom',this)">Custom</button>
+      </div>
+      <div class="vbt-crange" id="vbt-crange">
+        <input type="date" id="vbt-from"><span style="color:var(--muted);font-size:11px">→</span><input type="date" id="vbt-to">
+      </div>
+    </div>
+    <div class="vbt-filters" id="vbt-filters">
+      <select class="vbt-sel" id="vol-sector" onchange="renderVolume()"><option value="all">All Sectors</option></select>
+      <div class="vbt-toggle on" id="vol-rising" onclick="this.classList.toggle('on');renderVolume()">📈 Rising only</div>
+      <select class="vbt-sel" id="vol-rvol" onchange="renderVolume()">
+        <option value="0">RVOL ≥ any</option>
+        <option value="1.5">RVOL ≥ 1.5×</option>
+        <option value="2" selected>RVOL ≥ 2×</option>
+        <option value="3">RVOL ≥ 3×</option>
+      </select>
+      <input class="vbt-search" id="vol-q" placeholder="Search symbol…" oninput="renderVolume()">
+      <span style="flex:1"></span>
+      <span class="vbt-stamp">Window: <span class="hi" id="vol-winlbl">This Week (5 sessions)</span> · <span id="vol-cnt">0</span> building up · Updated <span class="hi" id="vol-updated">—</span></span>
+    </div>
+    <div class="vbt-card" id="vol-board-wrap">
+      <table>
+        <thead><tr>
+          <th title="Rank by Buildup Score (highest first)">#</th>
+          <th class="c" title="Star this stock to add it to My Picks">★</th>
+          <th title="NSE symbol — opens in TradingView">Symbol</th>
+          <th class="c" title="Last 5 sessions of PRICE action — green up, red down, oldest to newest">Last 5</th>
+          <th title="Sector (from your Momentum universe)">Sector</th>
+          <th class="c" title="VOLUME over the selected window — each bar = that session's volume divided by its 20-day average. Newest bar highlighted. Rising staircase = volume building up.">Vol Buildup</th>
+          <th class="r" title="Relative Volume — latest session's volume divided by 20-day average. 2.0x means twice the normal volume.">RVOL ×</th>
+          <th class="c" title="Direction of the volume bars across the window: Rising / Flat / Fading">Trend</th>
+          <th class="c" title="Your EMA category. A: above daily 9+20 AND weekly 9+20 (strongest). B: below daily 9 but above weekly (watch). C: fresh weekly crossover (early). A+C: daily bullish + weekly crossover (best).">EMA</th>
+          <th class="c" title="Active breakout / Qullamaggie pattern: EP, VCP, HTF, Reclaim.">Setup</th>
+          <th class="c" title="Latest earnings grade from the Results tab.">Results</th>
+          <th class="c" title="Smart-money tier from bulk/block deals.">Smart $</th>
+          <th class="r" title="Buildup Score 0-100 = RVOL x16 + slope x14 + (+12 if volume sustained above 1.4x average).">Score</th>
+        </tr></thead>
+        <tbody id="vol-body"><tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">Loading volume data…</td></tr></tbody>
+      </table>
+    </div>
+    <div id="vol-sector-wrap" style="display:none">
+      <div style="font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px 2px">Sectors ranked by how many stocks are building volume — bar = avg buildup score</div>
+      <div class="vbt-sec-grid" id="vol-sec-grid"></div>
+    </div>
+  </div>
+
 
   <!-- ── SCANNER TAB ── -->
   <div id="tab-scanner" class="panel active">
@@ -5566,6 +5719,7 @@ function switchTab(tab, btn, mode) {
     if (tab==='mypicks')    loadMomPicks();
     if (tab==='exited')     loadMomExited();
     if (tab==='smartmoney') loadSmartMoney();
+    if (tab==='volume')     loadVolume();
     return;
   }
   if (mode === 'banknifty') {
@@ -11571,5 +11725,228 @@ rsLoadFromStorage = function() {
   computeStrongSectors();
 };
 </script>
+<script>
+/* ═══ VOLUME BUILDUP TAB — logic ═══ */
+let VOLstate = { view:'board', win:'week', rows:[], hist:{}, tierMap:{}, gradeMap:{}, loaded:false, updated:'—' };
+const VOL_WIN_N   = { today:1, week:5, month:20, custom:10 };
+const VOL_WIN_LBL = { today:'Today (1 session)', week:'This Week (5 sessions)', month:'This Month (~20 sessions)', custom:'Custom range' };
+
+async function volGet(q){
+  try{
+    const r = await fetch(CONFIG.supabaseUrl + '/rest/v1/' + q,
+      { headers:{ apikey:CONFIG.supabaseKey, Authorization:'Bearer ' + CONFIG.supabaseKey } });
+    return r.ok ? await r.json() : [];
+  }catch(e){ return []; }
+}
+
+async function loadVolume(){
+  if (VOLstate.loaded){ renderVolume(); return; }
+  try{
+    const latest = await volGet('momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000');
+    if (!latest || !latest.length){
+      document.getElementById('vol-body').innerHTML = '<tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">No volume data yet — check back after the evening scan.</td></tr>';
+      return;
+    }
+    const latestDate = latest[0].session_date;
+    const snap = latest.filter(s => s.session_date === latestDate && (s.ltp || 0) >= 100);
+    VOLstate.updated = latestDate;
+
+    // recent history (slim) for window reconstruction — ~6 sessions
+    const histRows = await volGet('momentum_stocks?select=symbol,session_date,vol_ratio&order=session_date.desc&limit=9000');
+    const hist = {};
+    histRows.forEach(r => { (hist[r.symbol] = hist[r.symbol] || []).push(r); });
+    Object.keys(hist).forEach(sym => {
+      hist[sym] = hist[sym]
+        .sort((a,b) => (a.session_date < b.session_date ? -1 : 1))
+        .map(r => (r.vol_ratio != null ? +r.vol_ratio : null))
+        .filter(x => x != null);
+    });
+    VOLstate.hist = hist;
+
+    // smart-money tier map
+    const sm = await volGet('smart_money_scores?select=symbol,tier,cooking_score');
+    const tierMap = {}; (sm || []).forEach(r => { tierMap[r.symbol] = { tier:r.tier, score:r.cooking_score }; });
+    VOLstate.tierMap = tierMap;
+
+    // results grade map (client-side, from Results tab)
+    const gradeMap = {};
+    if (typeof rsMergedData !== 'undefined' && rsMergedData && rsMergedData.length){
+      rsMergedData.forEach(r => { if (r.symbol) gradeMap[r.symbol] = r.grade; });
+    }
+    VOLstate.gradeMap = gradeMap;
+
+    VOLstate.rows = snap.map(s => {
+      let vol5 = null;
+      if (s.vol5_ratios && typeof s.vol5_ratios === 'string' && s.vol5_ratios.indexOf(',') > -1){
+        vol5 = s.vol5_ratios.split(',').map(parseFloat).filter(x => !isNaN(x));
+      }
+      const setup = s.qm_pattern || (s.qm_ema_reclaim ? 'Reclaim' : (s.breakout_type || null));
+      return {
+        symbol:s.symbol, sector:s.sector || '—', cat:s.category || null, setup,
+        last5:s.last5_summary || '—', ltp:s.ltp,
+        volRatio:(s.vol_ratio != null ? +s.vol_ratio : null), vol5
+      };
+    });
+
+    const sectors = [...new Set(VOLstate.rows.map(r => r.sector).filter(x => x && x !== '—'))].sort();
+    const sel = document.getElementById('vol-sector');
+    if (sel) sel.innerHTML = '<option value="all">All Sectors</option>' + sectors.map(s => `<option>${s}</option>`).join('');
+    const upd = document.getElementById('vol-updated'); if (upd) upd.textContent = latestDate;
+
+    VOLstate.loaded = true;
+    renderVolume();
+  }catch(e){ console.error('Volume load error:', e); }
+}
+
+function volSeries(r){
+  const n = VOL_WIN_N[VOLstate.win] || 5;
+  let base = null;
+  if (VOLstate.win !== 'month' && VOLstate.win !== 'custom' && r.vol5 && r.vol5.length >= n){
+    base = r.vol5.slice(-n);
+  }
+  if (!base){
+    const h = VOLstate.hist[r.symbol] || [];
+    if (h.length) base = h.slice(-n);
+    else if (r.volRatio != null) base = [r.volRatio];
+    else base = [];
+  }
+  if (base.length && r.volRatio != null) base[base.length - 1] = r.volRatio; // anchor latest to today's ratio
+  return base;
+}
+function volSlope(v){ return v.length < 2 ? 0 : (v[v.length-1] - v[0]); }
+function volTrend(v){
+  if (!v.length) return 'flat';
+  const s = volSlope(v);
+  if (v.length < 2) return v[0] >= 1.5 ? 'rising' : 'flat';
+  return s >= 0.6 ? 'rising' : (s >= 0 ? 'flat' : 'fading');
+}
+function volScore(v){
+  if (!v.length) return 0;
+  const rvol = v[v.length-1], sl = volSlope(v), avg = v.reduce((a,b)=>a+b,0)/v.length;
+  return Math.max(0, Math.min(100, Math.round(rvol*16 + sl*14 + (avg > 1.4 ? 12 : 0))));
+}
+function volBars(v){
+  if (!v.length) return '<span class="vbt-dash">—</span>';
+  const max = Math.max(3.6, ...v), w = Math.max(3, Math.floor(150/v.length));
+  return `<span class="vbt-bars" title="${v.map(x=>x.toFixed(1)+'x').join('  ')}">` + v.map((r,i)=>{
+    const h = Math.max(3, Math.round(r/max*30)), newest = i === v.length-1;
+    const col = newest ? (r >= 1.5 ? 'var(--green)' : 'var(--amber)') : 'var(--cyan)';
+    const op = newest ? 1 : (0.4 + i/v.length*0.5);
+    return `<span class="vbt-bar" style="width:${w}px;height:${h}px;background:${col};opacity:${op}"></span>`;
+  }).join('') + '</span>';
+}
+function volLast5(s){
+  if (!s || s === '—') return '<span class="vbt-dash">—</span>';
+  return '<span class="vbt-l5" title="Last 5 sessions price: ' + s + '">' +
+    s.split('').map(c => c === '↑' ? '<span class="u">↑</span>' : (c === '↓' ? '<span class="d">↓</span>' : c)).join('') + '</span>';
+}
+function volSetupChip(s){ return s ? `<span class="vbt-chip vbt-setup" title="Breakout / QM pattern: ${s}">${s}</span>` : '<span class="vbt-dash">—</span>'; }
+function volEmaCell(cat){ return cat ? (typeof getCatBadge==='function' ? getCatBadge(cat) : cat) : '<span class="vbt-dash">—</span>'; }
+function volGradeCell(sym){
+  const g = VOLstate.gradeMap[sym];
+  if (!g) return '<span class="vbt-dash">—</span>';
+  return (typeof rsGetGradeBadge==='function') ? rsGetGradeBadge(g) : g;
+}
+function volTierCell(sym){
+  const t = VOLstate.tierMap[sym];
+  if (!t || !t.tier || t.tier === 'QUIET') return '<span class="vbt-dash">—</span>';
+  const m = (typeof SM_TIERS!=='undefined') ? SM_TIERS[t.tier] : null;
+  if (!m) return '<span class="vbt-dash">—</span>';
+  return `<span style="color:${m.color};font-weight:700;font-size:10.5px" title="${m.tip||''}">${m.label}</span>`;
+}
+function volScoreTag(n){ const c = n>=60?'vbt-s-hi':n>=40?'vbt-s-mid':'vbt-s-lo'; return `<span class="vbt-score ${c}" title="Buildup Score ${n}/100">${n}</span>`; }
+function volRvolCell(v){
+  if (!v.length) return '<span class="vbt-dash">—</span>';
+  const last = v[v.length-1], col = last>=2?'var(--green)':last>=1.5?'var(--amber)':'var(--text2)';
+  return `<span class="vbt-rvol" style="color:${col}" title="Relative volume: ${last.toFixed(1)}x the 20-day average">${last.toFixed(1)}×</span>`;
+}
+
+function volSetView(v, btn){
+  VOLstate.view = v;
+  document.querySelectorAll('#tab-volume .vbt-view').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('vbt-filters').style.display   = v==='board'  ? 'flex'  : 'none';
+  document.getElementById('vol-board-wrap').style.display = v==='board'  ? 'block' : 'none';
+  document.getElementById('vol-sector-wrap').style.display= v==='sector' ? 'block' : 'none';
+  renderVolume();
+}
+function volSetWin(w, btn){
+  VOLstate.win = w;
+  document.querySelectorAll('#tab-volume .vbt-dw').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('vbt-crange').classList.toggle('show', w==='custom');
+  const lbl = document.getElementById('vol-winlbl'); if (lbl) lbl.textContent = VOL_WIN_LBL[w];
+  renderVolume();
+}
+
+function volFiltered(){
+  const sec    = (document.getElementById('vol-sector')||{}).value || 'all';
+  const rising = document.getElementById('vol-rising') && document.getElementById('vol-rising').classList.contains('on');
+  const minr   = parseFloat((document.getElementById('vol-rvol')||{}).value || '0');
+  const q      = ((document.getElementById('vol-q')||{}).value || '').toUpperCase();
+  return VOLstate.rows.map(r => { const v = volSeries(r); return { ...r, v, score:volScore(v) }; })
+    .filter(r => {
+      if (!r.v.length) return false;
+      if (sec !== 'all' && r.sector !== sec) return false;
+      if (rising && volTrend(r.v) === 'fading') return false;
+      if (r.v[r.v.length-1] < minr) return false;
+      if (q && !r.symbol.includes(q)) return false;
+      return true;
+    })
+    .sort((a,b) => b.score - a.score);
+}
+
+function renderVolume(){
+  if (!VOLstate.loaded) return;
+  if (VOLstate.view === 'board'){
+    const rows = volFiltered();
+    const cnt = document.getElementById('vol-cnt'); if (cnt) cnt.textContent = rows.length;
+    if (!rows.length){
+      document.getElementById('vol-body').innerHTML = '<tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">No stocks match — loosen the filters (lower RVOL or turn off Rising only).</td></tr>';
+      return;
+    }
+    document.getElementById('vol-body').innerHTML = rows.map((d,i) => {
+      const tr = volTrend(d.v);
+      const tcls = tr==='rising'?'vbt-rising':tr==='flat'?'vbt-flat':'vbt-fading';
+      const tlbl = tr==='rising'?'▲ Rising':tr==='flat'?'■ Flat':'▼ Fading';
+      const tvUrl = 'https://www.tradingview.com/chart/?symbol=NSE:' + encodeURIComponent(d.symbol);
+      return `<tr>
+        <td class="vbt-rank">${i+1}</td>
+        <td class="c"><span class="vbt-star">☆</span></td>
+        <td><span class="vbt-sym">${d.symbol}<a href="${tvUrl}" target="_blank" rel="noopener" title="Open ${d.symbol} in TradingView">↗</a></span></td>
+        <td class="c">${volLast5(d.last5)}</td>
+        <td class="vbt-sector">${d.sector}</td>
+        <td class="c">${volBars(d.v)}</td>
+        <td class="r">${volRvolCell(d.v)}</td>
+        <td class="c"><span class="vbt-trend ${tcls}" title="Volume trend over the window">${tlbl}</span></td>
+        <td class="c">${volEmaCell(d.cat)}</td>
+        <td class="c">${volSetupChip(d.setup)}</td>
+        <td class="c">${volGradeCell(d.symbol)}</td>
+        <td class="c">${volTierCell(d.symbol)}</td>
+        <td class="r">${volScoreTag(d.score)}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    const bySec = {};
+    VOLstate.rows.forEach(r => {
+      const v = volSeries(r);
+      if (!v.length || volTrend(v) === 'fading') return;
+      (bySec[r.sector] = bySec[r.sector] || []).push(volScore(v));
+    });
+    const cards = Object.entries(bySec)
+      .map(([s,arr]) => ({ s, n:arr.length, avg:Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) }))
+      .sort((a,b) => b.n - a.n || b.avg - a.avg);
+    const maxAvg = Math.max(...cards.map(c=>c.avg), 1);
+    const grid = document.getElementById('vol-sec-grid');
+    grid.innerHTML = cards.length ? cards.map(c => `
+      <div class="vbt-sec-card">
+        <div class="vbt-sec-head"><span class="vbt-sec-name">${c.s}</span><span class="vbt-sec-cnt">${c.n} stock${c.n>1?'s':''} building</span></div>
+        <div class="vbt-sec-track"><div class="vbt-sec-fill" style="width:${Math.round(c.avg/maxAvg*100)}%"></div></div>
+        <div class="vbt-sec-foot"><span>avg score <b style="color:var(--text)">${c.avg}</b></span></div>
+      </div>`).join('') : '<div style="color:var(--muted);padding:20px">No sectors building volume right now.</div>';
+  }
+}
+</script>
+
 </body>
 </html
