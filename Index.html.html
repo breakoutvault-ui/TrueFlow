@@ -993,9 +993,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="sortable-th" onclick="setMBSort('vol')" title="Sort by Volume">Vol ×avg <span class="sort-arrow" id="mba-vol">↕</span></th>
               <th class="sortable-th" onclick="setMBSort('del')" title="Sort by Delivery %">Del % <span class="sort-arrow" id="mba-del">↕</span></th>
               <th class="sortable-th" onclick="setMBSort('conviction')" title="Conviction Score 0-100: combines EMA trend, OI buildup, volume, delivery %, 52W proximity. Higher = better setup">Score <span class="sort-arrow" id="mba-conviction">↓</span></th>
+              <th>Last 5</th>
             </tr></thead>
             <tbody id="mb-body">
-              <tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">
+              <tr><td colspan="16" style="text-align:center;padding:40px;color:var(--muted)">
                 Loading EMA data...
               </td></tr>
             </tbody>
@@ -1530,10 +1531,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th>Vol ×avg</th>
               <th>Del %</th>
               <th>Score</th>
+              <th>Last 5</th>
               <th style="width:40px">✕</th>
             </tr></thead>
             <tbody id="fo-wl-body">
-              <tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">
+              <tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">
                 Select or create a watchlist to see stocks here
               </td></tr>
             </tbody>
@@ -2171,6 +2173,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort" style="width:32px">⭐</th>
               <th class="no-sort">Stock · Category</th>
               <th class="no-sort">Sector / Industry</th>
+              <th class="no-sort" title="Last 5 days price action — green = closed up, red = closed down. Oldest → newest, left to right">Last 5</th>
               <th onclick="sortMomTable('ema','daily_crossover_date')">Daily Cross ↕</th>
               <th onclick="sortMomTable('ema','daily_cross_days')">Days Since ↕</th>
               <th onclick="sortMomTable('ema','weekly_crossover_date')">Weekly Cross ↕</th>
@@ -2189,7 +2192,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort" title="Smart Money">Smt$</th>
             </tr></thead>
             <tbody id="ema-body">
-              <tr><td colspan="19"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">Loading EMA signals...</div></div></td></tr>
+              <tr><td colspan="20"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">Loading EMA signals...</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -2308,6 +2311,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort">Stock · Category</th>
               <th class="no-sort">Sector</th>
               <th class="no-sort">Industry</th>
+              <th class="no-sort" title="Last 5 days price action — green = closed up, red = closed down. Oldest → newest, left to right">Last 5</th>
               <th onclick="sortMomTable('sharp','ltp')">LTP ↕</th>
               <th onclick="sortMomTable('sharp','day_chg_pct')">Day % ↕</th>
               <th onclick="sortMomTable('sharp','week_chg_pct')">Week % ↕</th>
@@ -2483,10 +2487,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th onclick="sortMomTable('exited','pct_from_ema9_weekly')">% Weekly 9E ↕</th>
               <th onclick="sortMomTable('exited','day_chg_pct')">Day % ↕</th>
               <th onclick="sortMomTable('exited','week_chg_pct')">Week % ↕</th>
+              <th class="no-sort">Last 5</th>
               <th class="no-sort">Action</th>
             </tr></thead>
             <tbody id="exited-body">
-              <tr><td colspan="11"><div class="mom-empty"><div class="mom-empty-icon">🚪</div><div class="mom-empty-text">No exited stocks</div><div class="mom-empty-sub">Stocks that break below daily 9 EMA for 2 days appear here</div></div></td></tr>
+              <tr><td colspan="12"><div class="mom-empty"><div class="mom-empty-icon">🚪</div><div class="mom-empty-text">No exited stocks</div><div class="mom-empty-sub">Stocks that break below daily 9 EMA for 2 days appear here</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -2593,7 +2598,8 @@ const SM_COLS = [
   {key:'ltp',   label:'Price',     tip:'Last traded price', al:'right', defHide:true},
   {key:'industry', label:'Industry', tip:'Industry (from Momentum data)', al:'left', defHide:true},
   {key:'top_buyer', label:'Top Buyer', tip:'Largest single net-buyer in the window', al:'left'},
-  {key:'last_deal_date', label:'Last Deal', tip:'Date of the most recent qualifying deal', al:'left'}
+  {key:'last_deal_date', label:'Last Deal', tip:'Date of the most recent qualifying deal', al:'left'},
+  {key:'last5', label:'Last 5', tip:'Last 5 sessions price action', al:'center'}
 ];
 
 async function smGet(table, query){
@@ -2784,6 +2790,7 @@ function smCell(c,r,i,nk){
     case 'industry': return td('left',`<span style="color:var(--text2);font-size:10px">${x.industry||'—'}</span>`);
     case 'top_buyer': return td('left',`<span style="color:var(--text2);font-size:10px">${r.top_buyer||'—'}</span>`);
     case 'last_deal_date': return td('left',`<span style="color:var(--muted);font-size:10px">${r.last_deal_date||'—'}</span>`);
+    case 'last5': return td('center', spark(r.symbol, x));
     default: return '<td></td>';
   }
 }
@@ -2830,8 +2837,8 @@ function smRender(){
   } else if(SM.view==='netflow'){
     const rows=smNetFlowRows(); const buy=SM.flowSide!=='sell';
     const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.net_value_30d||0)));
-    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+['#','Symbol','Net 30D (\u20b9cr)','Sector','Cat','Tier','Top Buyer'].map((h,k)=>`<th style="text-align:${k===0?'left':'left'};padding:6px 8px">${h}</th>`).join('')+'</tr>';
-    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="mom-empty"><div class="mom-empty-icon">\U0001F4C8</div><div class="mom-empty-text">Nothing here</div></div></td></tr>`; }
+    thead.innerHTML='<tr style="position:sticky;top:0;background:var(--bg1);z-index:2">'+['#','Symbol','Net 30D (\u20b9cr)','Sector','Cat','Tier','Top Buyer','Last 5'].map((h,k)=>`<th style="text-align:${k===0?'left':'left'};padding:6px 8px">${h}</th>`).join('')+'</tr>';
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="8"><div class="mom-empty"><div class="mom-empty-icon">\U0001F4C8</div><div class="mom-empty-text">Nothing here</div></div></td></tr>`; }
     else tbody.innerHTML=rows.map((r,i)=>{const mm=SM_TIERS[r.tier]||SM_TIERS.QUIET; const net=r.net_value_30d||0; const nc=net>0?'var(--green)':'var(--red)'; const w=Math.abs(net)/maxAbs*100;
       const bar=`<div style="position:relative;height:13px;width:150px;background:var(--bg3);border-radius:4px;display:inline-block;vertical-align:middle"><div style="position:absolute;top:2px;bottom:2px;left:0;width:${w}%;background:${nc};border-radius:3px"></div></div>`;
       return `<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="smShowStock('${r.symbol}')" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
@@ -2841,7 +2848,8 @@ function smRender(){
         <td style="padding:6px 8px;color:var(--text2);font-size:10px">${r.sector||'\u2014'}</td>
         <td style="padding:6px 8px;text-align:center">${_h('getCatBadge',r.category)||(r.category||'\u2014')}</td>
         <td style="padding:6px 8px"><span style="color:${mm.color};font-weight:600">${mm.label}</span></td>
-        <td style="padding:6px 8px;color:var(--text2);font-size:10px">${r.top_buyer||'\u2014'}</td></tr>`;}).join('');
+        <td style="padding:6px 8px;color:var(--text2);font-size:10px">${r.top_buyer||'\u2014'}</td>
+        <td style="padding:6px 8px;text-align:center">${spark(r.symbol, r._m)}</td></tr>`;}).join('');
     document.getElementById('sm-count').textContent=`Top ${rows.length} ${buy?'accumulated':'distributed'}`;
   } else if(SM.view==='star'){
     const rows=smStarAgg();
@@ -3483,6 +3491,7 @@ function smCopyTV(){
               <th onclick="sortRS('broker_upside')" class="sortable-th" title="Broker consensus target upside % — positive = analysts see more upside">Target ↕</th>
               <th title="Market Capitalization: L=Large (>20K Cr), M=Mid (5-20K), S=Small (<5K)">MCap</th>
               <th title="Current market price">Price</th>
+              <th title="Last 5 sessions price action">Last 5</th>
             </tr></thead>
             <tbody id="rs-body">
               <tr><td colspan="28" style="text-align:center;padding:40px;color:var(--muted)">Upload Trendlyne CSV files above to see results data.</td></tr>
@@ -3862,7 +3871,8 @@ function rotStockRow(s){
     <td style="padding:4px 8px;text-align:right" title="Momentum score">${(+s.momentum_score||0).toFixed(0)}</td>
     <td style="padding:4px 8px;text-align:right" title="1-week return">${rotPct(s.week_chg_pct)}</td>
     <td style="padding:4px 8px;text-align:right" title="Distance from daily 9 EMA — near 0% = entry zone">${s.pct_from_ema9_daily!=null?rotPct(s.pct_from_ema9_daily):'—'}</td>
-    <td style="padding:4px 8px;text-align:left" title="Smart-money tier">${rotSmTier(sm)}</td></tr>`;
+    <td style="padding:4px 8px;text-align:left" title="Smart-money tier">${rotSmTier(sm)}</td>
+    <td style="padding:4px 8px;text-align:center" title="Last 5 sessions price action">${spark(s.symbol,s)}</td></tr>`;
 }
 
 function rotRender(){
@@ -3902,7 +3912,7 @@ function rotRender(){
     const lead=g.stocks.slice().sort((a,b)=>(+b.momentum_score||0)-(+a.momentum_score||0)).slice(0,12);
     const lag=g.stocks.slice().sort((a,b)=>(+a.week_chg_pct||0)-(+b.week_chg_pct||0)).slice(0,8);
     const smActive=g.stocks.filter(s=>{const sm=ROT.smBySym[s.symbol];return sm&&(sm.tier==='LOADING_UP'||sm.tier==='ACCUMULATING');}).slice(0,12);
-    const tbl=(rows)=>`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--bg1)"><th style="padding:4px 6px" title="Star / add to watchlist">⭐</th><th style="text-align:left;padding:4px 8px" title="Stock symbol — click for detail">Symbol</th><th style="padding:4px 8px" title="Category A / B / C / A+C">Cat</th><th style="padding:4px 8px" title="Breakout or QM pattern setup">Setup</th><th style="padding:4px 8px" title="Latest results grade">Results</th><th style="text-align:right;padding:4px 8px" title="Momentum score">Mom</th><th style="text-align:right;padding:4px 8px" title="1-week return">1W</th><th style="text-align:right;padding:4px 8px" title="Distance from daily 9 EMA (entry zone near 0%)">%9E</th><th style="text-align:left;padding:4px 8px" title="Smart-money tier">SM</th></tr></thead><tbody>${rows.map(rotStockRow).join('')||'<tr><td colspan="9" style="padding:8px;color:var(--muted);text-align:center">None</td></tr>'}</tbody></table>`;
+    const tbl=(rows)=>`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--bg1)"><th style="padding:4px 6px" title="Star / add to watchlist">⭐</th><th style="text-align:left;padding:4px 8px" title="Stock symbol — click for detail">Symbol</th><th style="padding:4px 8px" title="Category A / B / C / A+C">Cat</th><th style="padding:4px 8px" title="Breakout or QM pattern setup">Setup</th><th style="padding:4px 8px" title="Latest results grade">Results</th><th style="text-align:right;padding:4px 8px" title="Momentum score">Mom</th><th style="text-align:right;padding:4px 8px" title="1-week return">1W</th><th style="text-align:right;padding:4px 8px" title="Distance from daily 9 EMA (entry zone near 0%)">%9E</th><th style="text-align:left;padding:4px 8px" title="Smart-money tier">SM</th><th style="padding:4px 8px" title="Last 5 sessions price action">Last 5</th></tr></thead><tbody>${rows.map(rotStockRow).join('')||'<tr><td colspan="10" style="padding:8px;color:var(--muted);text-align:center">None</td></tr>'}</tbody></table>`;
     const sec=(g.sector||'').replace(/'/g,"\\'");
     detail.innerHTML=`
       <button onclick="rotBack()" class="sort-btn" style="margin-bottom:10px;font-weight:600;color:var(--cyan);background:var(--cyan-dim);border-color:var(--border2);padding:5px 12px" title="Return to the full sector ranking">← Back to Scorecard</button>
@@ -4047,6 +4057,7 @@ function doLogin() {
     startKiteStatusPoll();
     initFOTabs();
     initMomentumHub();
+    loadLast5Map();
   } else {
     const err = document.getElementById('login-err');
     err.textContent = '❌ Incorrect password';
@@ -5691,7 +5702,7 @@ async function loadMorningBrief() {
     const dateResp = await fetch(dateUrl, { headers });
     const dateData = await dateResp.json();
     if (!dateData || dateData.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     const latestDate = dateData[0].session_date;
@@ -5700,7 +5711,7 @@ async function loadMorningBrief() {
     const resp = await fetch(url, { headers });
     const data = await resp.json();
     if (!data || data.length === 0) {
-      document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
+      document.getElementById('mb-body').innerHTML = '<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--muted)">No EMA data yet — run EOD script after 4 PM</td></tr>';
       return;
     }
     mbData = data;
@@ -5790,7 +5801,7 @@ function renderMBTable() {
   if (mbCntEl) mbCntEl.textContent = `Showing ${filtered.length} of ${mbData.length}`;
 
   if (filtered.length === 0) {
-    document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
+    document.getElementById('mb-body').innerHTML = '<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
     return;
   }
   const rows = filtered.map(s => {
@@ -7036,7 +7047,9 @@ async function loadMomScanner() {
     // Build Fresh Crossover map — stocks with daily 9 EMA crossover in last 5 days
     const now = new Date();
     window.momCrossoverMap = {};
+    if (!window.last5BySym) window.last5BySym = {};
     momData.scanner.forEach(s => {
+      window.last5BySym[s.symbol] = { summary: s.last5_summary, chg: (s.day_chg_pct !== undefined ? s.day_chg_pct : null) };
       if (s.daily_crossover_date) {
         const ageDays = (now - new Date(s.daily_crossover_date)) / 86400000;
         if (ageDays <= 5) window.momCrossoverMap[s.symbol] = s.daily_crossover_date;
@@ -7238,7 +7251,7 @@ function renderScanner() {
       <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span> ${getCatBadge(s.category)}</td>
       <td><span style="font-size:11px;color:var(--muted)">${s.sector||'—'}</span></td>
       <td><span style="font-size:11px;color:var(--muted)">${s.industry||'—'}</span></td>
-      <td class="l5-summary">${getLast5(s.last5_summary)}</td>
+      <td>${spark(s.symbol, s)}</td>
       <td><span style="font-weight:600">₹${(s.ltp||0).toLocaleString('en-IN')}</span></td>
       <td>${fmtChg(s.day_chg_pct)}</td>
       <td>${fmtChg(s.week_chg_pct)}</td>
@@ -7343,7 +7356,7 @@ function renderEMA() {
     return typeof av === 'string' ? av.localeCompare(bv) * dir : (av - bv) * dir;
   });
   if (!data.length) {
-    document.getElementById('ema-body').innerHTML = '<tr><td colspan="17"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">No EMA signals match filter</div></div></td></tr>';
+    document.getElementById('ema-body').innerHTML = '<tr><td colspan="18"><div class="mom-empty"><div class="mom-empty-icon">🔄</div><div class="mom-empty-text">No EMA signals match filter</div></div></td></tr>';
     return;
   }
   document.getElementById('ema-body').innerHTML = data.map(s => {
@@ -7488,7 +7501,7 @@ function renderPicks() {
       <td style="font-size:11px">${s.daily_crossover_date||'—'}</td>
       <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
-      <td class="l5-summary">${getLast5(s.last5_summary)}</td>
+      <td>${spark(s.symbol, s)}</td>
       <td><input class="mom-note-input" value="${s.notes||''}" placeholder="Add note..." onblur="saveMomNote('${s.symbol}',this.value)"></td>
       <td><button class="sort-btn" onclick="removeMomPick('${s.symbol}')" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
     </tr>`;
@@ -7507,7 +7520,7 @@ function renderExited() {
   const exitCntEl = document.getElementById('exited-count');
   if (exitCntEl) exitCntEl.textContent = `Showing ${data.length} of ${momData.exited.length}`;
   if (!data.length) {
-    document.getElementById('exited-body').innerHTML = '<tr><td colspan="11"><div class="mom-empty"><div class="mom-empty-icon">🚪</div><div class="mom-empty-text">No exited stocks</div></div></td></tr>';
+    document.getElementById('exited-body').innerHTML = '<tr><td colspan="12"><div class="mom-empty"><div class="mom-empty-icon">🚪</div><div class="mom-empty-text">No exited stocks</div></div></td></tr>';
     return;
   }
   document.getElementById('exited-body').innerHTML = data.map(s => {
@@ -7524,6 +7537,7 @@ function renderExited() {
       <td>${s.pct_from_ema9_weekly!==null&&s.pct_from_ema9_weekly!==undefined?`<span style="color:${chgColor(s.pct_from_ema9_weekly)}">${s.pct_from_ema9_weekly>=0?'+':''}${s.pct_from_ema9_weekly.toFixed(2)}%</span>`:'—'}</td>
       <td>${fmtChg(s.day_chg_pct)}</td>
       <td>${fmtChg(s.week_chg_pct)}</td>
+      <td style="text-align:center" title="Last 5 sessions price action">${spark(s.symbol,s)}</td>
       <td style="display:flex;gap:4px">
         <button class="sort-btn" onclick="restoreMomStock('${s.symbol}')" title="Move back to active tracking" style="font-size:10px;color:var(--green);padding:2px 8px">🔄 Restore</button>
         <button class="sort-btn" onclick="deleteMomStock('${s.symbol}')" title="Delete permanently" style="font-size:10px;color:var(--red);padding:2px 8px">🗑</button>
@@ -8407,11 +8421,11 @@ function renderFOWLTable() {
   stocks = stocks.filter(s => colorFilterPass(s.symbol));
   if (countEl) countEl.textContent = `Showing ${stocks.length} of ${wl.symbols.length}`;
   if (!stocks.length) {
-    body.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted)">${wl.symbols.length?'No stocks match color filter':'Add stocks to this watchlist using the input above or star them from Morning Brief'}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">${wl.symbols.length?'No stocks match color filter':'Add stocks to this watchlist using the input above or star them from Morning Brief'}</td></tr>`;
     return;
   }
   body.innerHTML = stocks.map(s => {
-    if (!s.ltp) return `<tr><td>${getColorDotHTML(s.symbol)}</td><td style="font-weight:600">${s.symbol}</td><td colspan="10" style="color:var(--muted);font-size:11px">No data — stock not in F&O EMA data</td><td><button class="sort-btn" onclick="removeStockFromFOWL('${s.symbol}')" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td></tr>`;
+    if (!s.ltp) return `<tr><td>${getColorDotHTML(s.symbol)}</td><td style="font-weight:600">${s.symbol}</td><td colspan="11" style="color:var(--muted);font-size:11px">No data — stock not in F&O EMA data</td><td><button class="sort-btn" onclick="removeStockFromFOWL('${s.symbol}')" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td></tr>`;
     const trend = s.trend || 'neutral';
     const tc = trend==='bull'?'var(--green)':trend==='bear'?'var(--red)':'var(--muted)';
     const ti = trend==='bull'?'▲ Bullish':trend==='bear'?'▼ Bearish':'— Neutral';
@@ -8439,6 +8453,7 @@ function renderFOWLTable() {
       <td style="font-weight:600">${volR}</td>
       <td>${delPct}</td>
       <td><span style="color:${convCol};font-weight:700">${conv}</span></td>
+      <td style="text-align:center" title="Last 5 sessions price action">${spark(s.symbol, s)}</td>
       <td><button class="sort-btn" onclick="removeStockFromFOWL('${s.symbol}')" style="font-size:10px;color:var(--red);padding:2px 8px">✕</button></td>
     </tr>`;
   }).join('');
@@ -8500,7 +8515,7 @@ renderMBTable = function() {
   if (mbCntEl) mbCntEl.textContent = `Showing ${filtered.length} of ${mbData.length}`;
 
   if (filtered.length === 0) {
-    document.getElementById('mb-body').innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
+    document.getElementById('mb-body').innerHTML = '<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--muted)">No stocks match filter</td></tr>';
     return;
   }
   const rows = filtered.map(s => {
@@ -8561,6 +8576,7 @@ renderMBTable = function() {
       <td title="Conviction Score 0-100"><span style="color:${convCol};font-size:13px;font-weight:700">${conv}</span><br>
           <div class="conv-bar-wrap"><div class="conv-bar-fill" style="width:${conv}%;background:${convBarCol}"></div></div>
           <span style="color:${tc};font-size:10px">${setup}</span></td>
+      <td style="text-align:center" title="Last 5 sessions price action">${spark(s.symbol, s)}</td>
     </tr>`;
   }).join('');
   document.getElementById('mb-body').innerHTML = rows;
@@ -8596,6 +8612,40 @@ function getSparkBars(last5_summary, day_chg_pct) {
     return `<div class="spark-bar ${cls}" style="height:${mag}px" title="${isUp ? 'Up' : 'Down'}${isLast && day_chg_pct !== null ? ' ' + day_chg_pct.toFixed(1) + '%' : ''}"></div>`;
   }).join('');
   return `<span class="spark-bars" title="Last 5 days: ${last5_summary}">${bars}</span>`;
+}
+
+// Universal last-5 spark renderer: prefers the row's own field, falls back to the
+// global symbol map (built from momData.scanner). Lets ANY table show the bars by symbol.
+function spark(sym, row) {
+  if (row && row.last5_summary) return getSparkBars(row.last5_summary, (row.day_chg_pct !== undefined ? row.day_chg_pct : null));
+  const r = (window.last5BySym || {})[sym];
+  if (r && r.summary) return getSparkBars(r.summary, (r.chg !== undefined ? r.chg : null));
+  return getSparkBars(null);
+}
+
+// Global Last-5 map loader — populates window.last5BySym so ANY tab (Smart Money,
+// Results, F&O, Rotation drill, etc.) can render the spark bars by symbol, even if
+// the Scanner was never opened this session. Called once on boot.
+async function loadLast5Map() {
+  try {
+    if (!window.last5BySym) window.last5BySym = {};
+    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=symbol,last5_summary,day_chg_pct,session_date&is_active=eq.true&order=session_date.desc&limit=3000';
+    const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
+    const resp = await fetch(url, { headers });
+    const data = await resp.json();
+    if (!Array.isArray(data) || !data.length) return;
+    data.forEach(s => {
+      // ordered newest-first → keep the most recent row per symbol
+      if (s.symbol && !(s.symbol in window.last5BySym)) {
+        window.last5BySym[s.symbol] = { summary: s.last5_summary, chg: (s.day_chg_pct !== undefined ? s.day_chg_pct : null) };
+      }
+    });
+    // Refresh any cross-source tables already on screen so bars appear immediately
+    try { if (typeof SM !== 'undefined' && SM.scores && SM.scores.length && typeof smRender === 'function') smRender(); } catch(e){}
+    try { if (typeof rsMergedData !== 'undefined' && rsMergedData && rsMergedData.length && typeof renderResultsTable === 'function') renderResultsTable(); } catch(e){}
+    try { if (typeof mbData !== 'undefined' && mbData && mbData.length && typeof renderMBTable === 'function') renderMBTable(); } catch(e){}
+    try { if (document.getElementById('fo-wl-body') && typeof renderFOWLTable === 'function') renderFOWLTable(); } catch(e){}
+  } catch(e) { console.warn('loadLast5Map failed', e); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -8861,6 +8911,7 @@ renderEMA = function() {
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
       <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span>${secBadge(s.sector)}<br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
+      <td>${spark(s.symbol, s)}</td>
       <td style="font-size:11px">${s.crossover_type==='daily'&&s.crossover_date?s.crossover_date:'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${dcDays!==null?dcDays+'d':'—'}</td>
       <td style="font-size:11px">${s.crossover_type==='weekly'&&s.crossover_date?s.crossover_date:'—'}</td>
@@ -9034,7 +9085,7 @@ renderSharp = function() {
   const { key, dir } = momSort.sharp;
   data.sort((a,b) => ((a[key]??0) - (b[key]??0)) * dir);
   if (!data.length) {
-    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="28"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups match filter</div></div></td></tr>';
+    document.getElementById('sharp-body').innerHTML = '<tr><td colspan="29"><div class="mom-empty"><div class="mom-empty-icon">🎯</div><div class="mom-empty-text">No breakout setups match filter</div></div></td></tr>';
     const excl = momData.sharp.filter(s => momExcluded.has(s.symbol));
     const exclSec = document.getElementById('sharp-excluded-section');
     document.getElementById('sharp-excluded-count').textContent = excl.length;
@@ -9055,6 +9106,7 @@ renderSharp = function() {
       <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
       <td style="font-size:11px;color:var(--muted)" title="Sector">${s.sector||'—'} ${secBadge(s.sector)}</td>
       <td style="font-size:11px;color:var(--muted)" title="Industry">${s.industry||'—'}</td>
+      <td>${spark(s.symbol, s)}</td>
       <td title="Last Traded Price">₹${(s.ltp||0).toLocaleString('en-IN')}</td>
       <td>${fmtChg(s.day_chg_pct)}</td>
       <td>${fmtChg(s.week_chg_pct)}</td>
@@ -9155,7 +9207,7 @@ renderPicks = function() {
       <td style="font-size:11px">${s.daily_crossover_date||'—'}</td>
       <td>${getBreakoutBadge(s.breakout_type, s.breakout_holding)}</td>
       <td>${getScoreTag(s.momentum_score||0)}</td>
-      <td class="l5-summary">${getLast5(s.last5_summary)}</td>
+      <td>${spark(s.symbol, s)}</td>
       <td>${rsGetResultBadgeHTML(s.symbol)}</td>
       <td>${rsGetSmartBadgeHTML(s.symbol)}</td>
       <td><input class="mom-note-input" value="${s.notes||''}" placeholder="Add note..." onblur="saveMomNote('${s.symbol}',this.value)"></td>
@@ -10326,9 +10378,16 @@ renderResultsTable = function() {
       <td style="font-size:11px;color:${r.de&&r.de>1?'#EF4444':'var(--text)'}">${r.de!==null?r.de.toFixed(2):'—'}</td>
       <td style="font-size:11px">${r.pe!==null?r.pe.toFixed(1):'—'}</td>
       <td>${r.momCat?getCatBadge(r.momCat):(r.inMomUniverse===false?'<span style="color:var(--red);font-size:9px" title="This stock is not in our 1400+ momentum universe">⚠️ N/A</span>':'<span style="color:var(--muted);font-size:10px">—</span>')}</td>
+      <td>${r.emaZone!==null&&r.emaZone!==undefined?getZoneTag(r.emaZone):'—'}</td>
+      <td>${rsGetSmartBadge(r.smartMoney)}</td>
+      <td style="font-size:10px">${r.promChange!==null?`<span style="color:${r.promChange>=0?'#22C55E':'#EF4444'}">${r.promChange>=0?'+':''}${r.promChange.toFixed(2)}%</span>`:'—'}</td>
+      <td style="font-size:10px">${r.fiiChange!==null?`<span style="color:${r.fiiChange>=0?'#22C55E':'#EF4444'}">${r.fiiChange>=0?'+':''}${r.fiiChange.toFixed(2)}%</span>`:'—'}</td>
+      <td style="font-size:10px">${r.mfChange!==null?`<span style="color:${r.mfChange>=0?'#22C55E':'#EF4444'}">${r.mfChange>=0?'+':''}${r.mfChange.toFixed(2)}%</span>`:'—'}</td>
+      <td style="text-align:center">${newInstBadge}</td>
       <td style="font-size:11px">${r.brokerUpside!==null?`<span style="color:${r.brokerUpside>10?'#22C55E':r.brokerUpside>0?'var(--amber)':'#EF4444'}">${r.brokerUpside.toFixed(0)}%</span>`:'—'}</td>
       <td style="font-size:10px;color:var(--muted)">${mcapBadge} ${mcapStr}</td>
       <td style="font-size:11px">₹${r.price?r.price.toLocaleString('en-IN'):'—'}</td>
+      <td style="text-align:center" title="Last 5 sessions price action">${spark(r.symbol, r._m)}</td>
     </tr>`;
   }).join('');
   renderColorFilterUI();
