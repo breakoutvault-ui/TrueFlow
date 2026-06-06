@@ -759,6 +759,64 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .vbt-sec-top{color:var(--cyan);font-weight:700}
 </style>
 
+<style>
+/* ═══ SECTOR ANALYTICS MODE ═══ */
+#sectors-container{padding:0 4px}
+.sa-info{display:flex;align-items:center;gap:14px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;flex-wrap:wrap}
+.sa-info .txt{font-size:12px;color:var(--text2);line-height:1.55;flex:1;min-width:260px}
+.sa-info b{color:var(--text)}
+.sa-pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-size:11px;font-weight:600;padding:7px 12px;border-radius:99px;cursor:pointer}
+.sa-pill:hover{border-color:var(--border3);color:var(--text)}
+.sa-ver{font-size:9px;color:var(--dim);border:1px solid var(--border);border-radius:8px;padding:2px 7px}
+.sa-hiw{display:none;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;font-size:12.5px;line-height:1.7;color:var(--text2)}
+.sa-hiw.open{display:block}
+.sa-hiw h4{color:var(--cyan);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 5px}
+.sa-hiw h4:first-child{margin-top:0}
+.sa-hiw b{color:var(--text)}
+.sa-hiw .k{display:inline-block;min-width:118px;color:var(--text);font-weight:700;vertical-align:top}
+.sa-hiw code{font-family:'JetBrains Mono',monospace;background:var(--bg3);padding:1px 6px;border-radius:5px;color:var(--cyan);font-size:11px}
+.sa-hiw ol{margin:4px 0 4px 20px}.sa-hiw li{margin:3px 0}
+.sa-controls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.sa-toggles{display:flex;gap:8px;flex-wrap:wrap}
+.sa-tg{background:var(--bg1);border:1px solid var(--border);color:var(--muted);font-weight:600;font-size:13px;padding:9px 15px;border-radius:99px;cursor:pointer;transition:.18s}
+.sa-tg.active{background:linear-gradient(135deg,var(--cyan-dim),var(--purple-dim));border-color:var(--border3);color:var(--text);box-shadow:0 0 16px var(--cyan-glow)}
+.sa-datewin{display:inline-flex;background:var(--bg2);border:1px solid var(--border2);border-radius:99px;padding:3px;gap:2px}
+.sa-dw{font-size:11.5px;font-weight:600;color:var(--muted);padding:6px 13px;border-radius:99px;cursor:pointer;border:none;background:none;font-family:inherit}
+.sa-dw.active{background:var(--cyan-dim);color:var(--cyan);box-shadow:inset 0 0 0 1px var(--border3)}
+.sa-crange{display:none;align-items:center;gap:6px}
+.sa-crange.show{display:inline-flex}
+.sa-crange input{background:var(--bg2);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);padding:6px 9px;font-size:11px;font-family:inherit}
+.sa-stamp{font-size:11px;color:var(--muted);margin:0 0 12px 2px}
+.sa-stamp .hi{color:var(--green);font-weight:700}
+.sa-legend{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);margin-left:auto}
+.sa-legend .sw{width:30px;height:10px;border-radius:3px;background:linear-gradient(90deg,var(--red),var(--amber),var(--green))}
+.sa-heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.sa-cell{border-radius:var(--radius);padding:13px 15px;cursor:pointer;border:1px solid var(--border2);position:relative;overflow:hidden;transition:.15s;min-height:104px}
+.sa-cell:hover{transform:translateY(-2px);border-color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.sa-cell .nm{font-weight:700;font-size:13px;color:#fff;margin-bottom:2px;display:flex;align-items:center;gap:6px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.sa-cell .big{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:29px;line-height:1.1;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+.sa-cell .sub{font-size:10.5px;color:rgba(255,255,255,.78);margin-top:6px;display:flex;justify-content:space-between;gap:8px;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.sa-cell .top{color:#fff;font-weight:700}
+.sa-cell.sel{outline:2px solid var(--cyan);outline-offset:1px}
+.sa-drill{display:none;margin-top:18px;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden}
+.sa-drill.open{display:block}
+.sa-drill .dh{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bg2);border-bottom:1px solid var(--border2)}
+.sa-drill .dh .t{font-weight:700;font-size:15px;color:var(--text)}
+.sa-drill .dh .t small{color:var(--muted);font-weight:600;font-size:11px;margin-left:8px}
+.sa-drill .x{cursor:pointer;color:var(--muted);font-size:18px;background:none;border:none}
+#sectors-container .sa-drill table{width:100%;border-collapse:collapse;font-size:12px}
+#sectors-container .sa-drill thead th{background:var(--bg2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:8px 9px;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap;cursor:help}
+#sectors-container .sa-drill thead th.r{text-align:right}#sectors-container .sa-drill thead th.c{text-align:center}
+#sectors-container .sa-drill tbody td{padding:8px 9px;border-bottom:1px solid var(--border);vertical-align:middle}
+#sectors-container .sa-drill tbody tr:hover{background:var(--cyan-dim)}
+.sa-sym{font-weight:700;color:var(--text)}
+.sa-sym a{color:var(--muted);font-size:10px;margin-left:4px;text-decoration:none}
+.sa-pos{color:var(--green);font-weight:700;font-family:'JetBrains Mono',monospace}
+.sa-neg{color:var(--red);font-weight:700;font-family:'JetBrains Mono',monospace}
+.sa-mono{font-family:'JetBrains Mono',monospace}
+.sa-dash{color:var(--dim)}
+</style>
+
 </head>
 <body>
 
@@ -831,6 +889,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="mode-btn" id="mode-banknifty" onclick="switchMode('banknifty')">🏦 BankNifty</button>
         <button class="mode-btn" id="mode-results" onclick="switchMode('results')">📋 Results</button>
         <button class="mode-btn" id="mode-rotation" onclick="switchMode('rotation')">🔄 Rotation</button>
+        <button class="mode-btn" id="mode-sectors" onclick="switchMode('sectors')">🧭 Sectors</button>
       </div>
       <div class="nav-tabs" id="fo-tabs">
         <button class="nav-tab active" onclick="switchTab('morning',this,'fo')">🌅 Morning Brief</button>
@@ -3733,6 +3792,84 @@ function smCopyTV(){
   </div>
 
 </div>
+<div id="sectors-container" style="display:none">
+  <div class="sa-info">
+    <span style="font-size:20px">🧭</span>
+    <span class="txt"><b>Sector Analytics</b> — which sectors are heating up, built entirely from data already in your dashboard (no StockEdge upload). Toggle <b>Price Action</b>, <b>Volume</b>, <b>Smart Money</b>, or <b>Trending</b> (all three blended). 🔥 = confluence: breakouts + volume + smart-money buying all aligning. Click any sector to drill into its stocks.</span>
+    <span class="sa-pill" onclick="document.getElementById('sa-hiw').classList.toggle('open')">📖 How This Works</span>
+    <span class="sa-ver">SA v1.0</span>
+  </div>
+
+  <div class="sa-hiw" id="sa-hiw">
+    <h4>What each dimension measures</h4>
+    <div><span class="k">📈 Price Action</span> how many of the sector's stocks had a fresh EMA crossover (daily or weekly) or an active breakout (EP / VCP / HTF / Reclaim) inside the selected date window. More crossovers + breakouts = the sector is turning up. Normalised 0–100 against the busiest sector.</div>
+    <div><span class="k">🌊 Volume</span> the share of the sector's stocks whose volume is running above their 20-day average over the window — i.e. where money is flowing in. 100 = every stock in the sector is seeing elevated volume.</div>
+    <div><span class="k">🏦 Smart Money</span> net bulk &amp; block deal value into the sector over the window (buys − sells, in ₹). <b style="color:var(--green)">Green</b> = net accumulation, <b style="color:var(--red)">red</b> = net distribution. Magnitude is scaled 0–100 against the most-active sector.</div>
+    <div><span class="k">🔥 Trending</span> the headline blend: <code>40% Price Action + 30% Volume + 30% Smart Money</code> (distribution drags the score down). Sectors strong on all three earn the 🔥 badge.</div>
+    <div style="margin-top:6px"><span class="k">Breadth %</span> on each tile = share of the sector's stocks that are Cat A / A+C — tells you if the strength is broad-based or driven by one or two names.</div>
+
+    <h4>The date window</h4>
+    <div><span class="k">Today</span> only activity dated to the latest session.</div>
+    <div><span class="k">This Week</span> last 7 days (volume over ~5 sessions).</div>
+    <div><span class="k">This Month</span> last 30 days (volume over ~20 sessions).</div>
+    <div><span class="k">Custom</span> any start → end range you pick.</div>
+
+    <h4>How to use this</h4>
+    <ol>
+      <li><b>Start on 🔥 Trending</b> to see where rotation is heading right now. The top-left, greenest tiles are leading; 🔥 tiles have full confluence.</li>
+      <li><b>Cross-check with the single dimensions.</b> A sector high on Price Action but low on Smart Money may be retail-driven; high Smart Money but low Price Action can be early accumulation before the move.</li>
+      <li><b>Watch the red Smart Money tiles</b> — distribution in a sector that's still rising on price is an early warning.</li>
+      <li><b>Check Breadth.</b> 70%+ Cat A means the whole sector is strong; 20% means it's one stock carrying it (named on the tile).</li>
+      <li><b>Click the sector</b> to drill into its stocks with every organic data point — EMA category, setup, volume buildup, RVOL, smart-money tier, results grade, distance from 9 EMA, 1-month return and momentum score — then act on the specific names.</li>
+      <li><b>Use the date window</b> to separate fresh moves (Today / This Week) from established trends (This Month).</li>
+    </ol>
+    <div style="margin-top:6px;color:var(--muted)">Every figure is derived live from your Momentum, Volume, Results and Smart Money data. Volume over longer windows deepens as more daily history accumulates.</div>
+  </div>
+
+  <div class="sa-controls">
+    <div class="sa-toggles">
+      <button class="sa-tg active" onclick="saSetDim('trending',this)">🔥 Trending</button>
+      <button class="sa-tg" onclick="saSetDim('price',this)">📈 Price Action</button>
+      <button class="sa-tg" onclick="saSetDim('volume',this)">🌊 Volume</button>
+      <button class="sa-tg" onclick="saSetDim('smart',this)">🏦 Smart Money</button>
+    </div>
+    <span style="flex:1"></span>
+    <div class="sa-datewin">
+      <button class="sa-dw" onclick="saSetWin('today',this)">Today</button>
+      <button class="sa-dw active" onclick="saSetWin('week',this)">This Week</button>
+      <button class="sa-dw" onclick="saSetWin('month',this)">This Month</button>
+      <button class="sa-dw" onclick="saSetWin('custom',this)">Custom</button>
+    </div>
+    <div class="sa-crange" id="sa-crange">
+      <input type="date" id="sa-from"><span style="color:var(--muted);font-size:11px">→</span><input type="date" id="sa-to">
+    </div>
+  </div>
+
+  <div class="sa-stamp">Showing <span class="hi" id="sa-dimlbl">Trending</span> · Window: <span class="hi" id="sa-winlbl">This Week</span> · Updated <span class="hi" id="sa-updated">—</span><span class="sa-legend">Weak <span class="sw"></span> Strong</span></div>
+
+  <div class="sa-heat" id="sa-heat"><div style="color:var(--muted);padding:24px">Loading sector analytics…</div></div>
+
+  <div class="sa-drill" id="sa-drill">
+    <div class="dh"><div class="t" id="sa-drill-title"></div><button class="x" onclick="saCloseDrill()">✕</button></div>
+    <div style="overflow:auto"><table>
+      <thead><tr>
+        <th title="Symbol — opens in TradingView">Symbol</th>
+        <th class="c" title="Last 5 sessions price action">Last 5</th>
+        <th class="c" title="EMA category (A / B / C / A+C)">EMA</th>
+        <th class="c" title="Breakout / Qullamaggie setup">Setup</th>
+        <th class="c" title="Volume buildup over last 5 sessions">Vol</th>
+        <th class="r" title="Relative volume today vs 20-day average">RVOL</th>
+        <th class="c" title="Smart-money tier from bulk/block deals">Smart $</th>
+        <th class="c" title="Latest results grade">Results</th>
+        <th class="r" title="Distance from daily 9 EMA (entry zone near 0%)">%9E</th>
+        <th class="r" title="1-month return">1M</th>
+        <th class="r" title="Momentum score 0-100">Mom</th>
+      </tr></thead>
+      <tbody id="sa-drill-body"></tbody>
+    </table></div>
+  </div>
+</div>
+
 <div id="rotation-container" style="display:none">
   <div class="momentum-panel">
 
@@ -5687,6 +5824,7 @@ function switchMode(mode) {
   document.getElementById('results-container').style.display  = 'none';
   document.getElementById('banknifty-container').style.display = 'none';
   var _rc=document.getElementById('rotation-container'); if(_rc) _rc.style.display='none';
+  var _sc=document.getElementById('sectors-container'); if(_sc) _sc.style.display='none';
   if (mode==='fo') {
     switchTab('morning', document.querySelector('#fo-tabs .nav-tab'), 'fo');
   } else if (mode==='eod') {
@@ -5703,6 +5841,9 @@ function switchMode(mode) {
   } else if (mode==='rotation') {
     document.getElementById('rotation-container').style.display = 'block';
     loadRotation();
+  } else if (mode==='sectors') {
+    document.getElementById('sectors-container').style.display = 'block';
+    loadSectorAnalytics();
   }
 }
 
@@ -11946,6 +12087,174 @@ function renderVolume(){
       </div>`).join('') : '<div style="color:var(--muted);padding:20px">No sectors building volume right now.</div>';
   }
 }
+</script>
+
+<script>
+/* ═══ SECTOR ANALYTICS — logic (reuses volGet/volBars/volLast5/volSetupChip/volRvolCell/getCatBadge/rsGetGradeBadge/SM_TIERS) ═══ */
+let SA = { dim:'trending', win:'week', loaded:false, mom:[], deals:[], hist:{}, tierMap:{}, gradeMap:{}, updated:'—', agg:[] };
+const SA_DIM_LBL = { trending:'Trending', price:'Price Action', volume:'Volume', smart:'Smart Money' };
+const SA_WIN_LBL = { today:'Today', week:'This Week', month:'This Month', custom:'Custom' };
+
+async function loadSectorAnalytics(){
+  if (SA.loaded){ saRender(); return; }
+  try{
+    const latest = await volGet('momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000');
+    if (!latest || !latest.length){
+      document.getElementById('sa-heat').innerHTML = '<div style="color:var(--muted);padding:24px">No data yet — check back after the evening scan.</div>';
+      return;
+    }
+    const ld = latest[0].session_date; SA.updated = ld;
+    SA.mom = latest.filter(s => s.session_date === ld);
+
+    const hr = await volGet('momentum_stocks?select=symbol,session_date,vol_ratio&order=session_date.desc&limit=9000');
+    const hist = {};
+    hr.forEach(r => { (hist[r.symbol] = hist[r.symbol] || []).push(r); });
+    Object.keys(hist).forEach(s => { hist[s] = hist[s].sort((a,b)=>(a.session_date<b.session_date?-1:1)).map(r=>r.vol_ratio!=null?+r.vol_ratio:null).filter(x=>x!=null); });
+    SA.hist = hist;
+
+    const since = new Date(Date.now()-90*864e5).toISOString().slice(0,10);
+    let deals=[], off=0;
+    while(true){
+      const b = await volGet(`smart_money_deals?select=deal_date,symbol,side,value&deal_date=gte.${since}&order=deal_date.desc&limit=1000&offset=${off}`);
+      deals = deals.concat(b); if (b.length<1000 || off>8000) break; off+=1000;
+    }
+    const secBy = {}; SA.mom.forEach(s => secBy[s.symbol] = s.sector);
+    deals.forEach(d => d.sector = secBy[d.symbol] || null);
+    SA.deals = deals;
+
+    const sm = await volGet('smart_money_scores?select=symbol,tier,cooking_score');
+    const tm = {}; (sm||[]).forEach(r => tm[r.symbol] = { tier:r.tier, score:r.cooking_score }); SA.tierMap = tm;
+    const gm = {}; if (typeof rsMergedData!=='undefined' && rsMergedData){ rsMergedData.forEach(r=>{ if(r.symbol) gm[r.symbol]=r.grade; }); } SA.gradeMap = gm;
+
+    // custom date defaults
+    const f = document.getElementById('sa-from'), t = document.getElementById('sa-to');
+    if (f && !f.value){ f.value = new Date(Date.now()-30*864e5).toISOString().slice(0,10); }
+    if (t && !t.value){ t.value = ld; }
+    const upd = document.getElementById('sa-updated'); if (upd) upd.textContent = ld;
+
+    SA.loaded = true;
+    saRender();
+  }catch(e){ console.error('Sector Analytics load error:', e); }
+}
+
+function saWinRange(){
+  const end = SA.updated;
+  if (SA.win === 'today')  return [end, end];
+  if (SA.win === 'custom'){ const f=(document.getElementById('sa-from')||{}).value, t=(document.getElementById('sa-to')||{}).value; return [f||end, t||end]; }
+  const days = SA.win === 'week' ? 7 : 30;
+  const start = new Date(new Date(end).getTime() - (days-1)*864e5).toISOString().slice(0,10);
+  return [start, end];
+}
+function saWinSessions(){ return SA.win==='today'?1 : SA.win==='week'?5 : SA.win==='month'?20 : 10; }
+function saIn(d, r){ return d && d >= r[0] && d <= r[1]; }
+function saStockSeries(s){
+  if (s.vol5_ratios && typeof s.vol5_ratios==='string' && s.vol5_ratios.indexOf(',')>-1){
+    const a = s.vol5_ratios.split(',').map(parseFloat).filter(x=>!isNaN(x)); if (a.length) return a.slice(-5);
+  }
+  const h = SA.hist[s.symbol] || [];
+  if (h.length) return h.slice(-5);
+  return s.vol_ratio!=null ? [+s.vol_ratio] : [];
+}
+
+function saCompute(){
+  const range = saWinRange(), nSess = saWinSessions();
+  const map = {};
+  const M = sec => { sec = sec || 'Other'; return map[sec] || (map[sec] = { sec, total:0, cross:0, brk:0, catA:0, volBuild:0, volTot:0, net:0, top:null, topMom:-1, stocks:[] }); };
+  SA.mom.forEach(s => {
+    if ((s.ltp||0) < 100) return;
+    const m = M(s.sector); m.total++; m.stocks.push(s);
+    if (s.category==='A' || s.category==='AC') m.catA++;
+    if (saIn(s.daily_crossover_date, range) || saIn(s.weekly_crossover_date, range)) m.cross++;
+    if (s.breakout_type && saIn(s.breakout_date, range)) m.brk++;
+    const h = SA.hist[s.symbol] || [];
+    let series = h.length ? h.slice(-nSess) : (s.vol_ratio!=null ? [+s.vol_ratio] : []);
+    if (series.length){ m.volTot++; if (series[series.length-1] >= 1.5) m.volBuild++; }
+    if ((s.momentum_score||0) > m.topMom){ m.topMom = s.momentum_score||0; m.top = s.symbol; }
+  });
+  SA.deals.forEach(d => { if (!saIn(d.deal_date, range)) return; const m = M(d.sector); m.net += (d.side==='BUY' ? (d.value||0) : -(d.value||0)); });
+
+  const arr = Object.values(map).filter(m => m.total > 0);
+  const maxPrice = Math.max(1, ...arr.map(m => m.cross + m.brk));
+  const maxNet   = Math.max(1, ...arr.map(m => Math.abs(m.net)));
+  arr.forEach(m => {
+    m.priceN  = Math.round((m.cross + m.brk) / maxPrice * 100);
+    m.volN    = m.volTot ? Math.round(m.volBuild / m.volTot * 100) : 0;
+    m.smMag   = Math.round(Math.abs(m.net) / maxNet * 100);
+    m.smDir   = m.net >= 0 ? 1 : -1;
+    m.netCr   = m.net / 1e7;
+    m.breadth = m.total ? Math.round(m.catA / m.total * 100) : 0;
+    m.trending= Math.round(0.4*m.priceN + 0.3*m.volN + 0.3*(m.smDir>0 ? m.smMag : 100 - m.smMag));
+  });
+  return arr;
+}
+
+function saVal(m){ return m[SA.dim==='trending'?'trending':SA.dim==='price'?'priceN':SA.dim==='volume'?'volN':'smMag']; }
+function saColor(m){
+  const v = saVal(m);
+  if (SA.dim==='smart' && m.smDir < 0){ return `rgba(255,68,102,${0.18 + (m.smMag/100)*0.5})`; }
+  const hue = v*1.2, light = 22 + (v/100)*16;
+  return `hsl(${hue},70%,${light}%)`;
+}
+function saFire(m){ return m.priceN>=70 && m.volN>=60 && m.smMag>=60 && m.smDir>0; }
+
+function saSetDim(d, btn){ SA.dim=d; document.querySelectorAll('#sectors-container .sa-tg').forEach(b=>b.classList.remove('active')); if(btn) btn.classList.add('active'); document.getElementById('sa-dimlbl').textContent = SA_DIM_LBL[d]; saRender(); }
+function saSetWin(w, btn){ SA.win=w; document.querySelectorAll('#sectors-container .sa-dw').forEach(b=>b.classList.remove('active')); if(btn) btn.classList.add('active'); document.getElementById('sa-crange').classList.toggle('show', w==='custom'); document.getElementById('sa-winlbl').textContent = SA_WIN_LBL[w]; saRender(); }
+
+function saRender(){
+  if (!SA.loaded) return;
+  // bind custom date inputs once
+  ['sa-from','sa-to'].forEach(id=>{ const el=document.getElementById(id); if(el && !el._bound){ el._bound=true; el.addEventListener('change', saRender); } });
+  SA.agg = saCompute();
+  const sorted = [...SA.agg].sort((a,b)=> saVal(b) - saVal(a));
+  const heat = document.getElementById('sa-heat');
+  if (!sorted.length){ heat.innerHTML = '<div style="color:var(--muted);padding:24px">No sector activity in this window.</div>'; return; }
+  heat.innerHTML = sorted.map(m => {
+    const v = saVal(m), fire = saFire(m);
+    const sign = (SA.dim==='smart' && m.smDir<0) ? '−' : '';
+    const safe = m.sec.replace(/'/g,"\\'");
+    return `<div class="sa-cell" style="background:${saColor(m)}" onclick="saOpenDrill('${safe}',this)">
+      <div class="nm">${m.sec} ${fire?'🔥':''}</div>
+      <div class="big">${sign}${v}</div>
+      <div class="sub"><span>${m.total} stk · ${m.breadth}% A+</span><span class="top">${m.top||''}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function saTierCell(sym){
+  const t = SA.tierMap[sym];
+  if (!t || !t.tier || t.tier==='QUIET') return '<span class="sa-dash">—</span>';
+  const x = (typeof SM_TIERS!=='undefined') ? SM_TIERS[t.tier] : null;
+  return x ? `<span style="color:${x.color};font-weight:700;font-size:10px" title="${x.tip||''}">${x.label}</span>` : '<span class="sa-dash">—</span>';
+}
+function saGradeCell(sym){ const g = SA.gradeMap[sym]; if(!g) return '<span class="sa-dash">—</span>'; return (typeof rsGetGradeBadge==='function')?rsGetGradeBadge(g):g; }
+
+function saOpenDrill(sec, el){
+  document.querySelectorAll('#sectors-container .sa-cell').forEach(c=>c.classList.remove('sel')); if(el) el.classList.add('sel');
+  const m = SA.agg.find(x => x.sec === sec); if(!m) return;
+  const rows = [...m.stocks].sort((a,b)=>(b.momentum_score||0)-(a.momentum_score||0));
+  document.getElementById('sa-drill-title').innerHTML = `${sec} <small>${rows.length} stocks · sorted by momentum</small>`;
+  document.getElementById('sa-drill-body').innerHTML = rows.map(s=>{
+    const series = saStockSeries(s);
+    const setup = s.qm_pattern || (s.qm_ema_reclaim?'Reclaim':(s.breakout_type||null));
+    const p9 = s.pct_from_ema9_daily, m1 = s.month_chg_pct;
+    const tv = 'https://www.tradingview.com/chart/?symbol=NSE:'+encodeURIComponent(s.symbol);
+    return `<tr>
+      <td><span class="sa-sym">${s.symbol}<a href="${tv}" target="_blank" rel="noopener" title="Open in TradingView">↗</a></span></td>
+      <td class="c">${volLast5(s.last5_summary||'—')}</td>
+      <td class="c">${s.category?getCatBadge(s.category):'<span class="sa-dash">—</span>'}</td>
+      <td class="c">${volSetupChip(setup)}</td>
+      <td class="c">${series.length?volBars(series):'<span class="sa-dash">—</span>'}</td>
+      <td class="r">${series.length?volRvolCell(series):'<span class="sa-dash">—</span>'}</td>
+      <td class="c">${saTierCell(s.symbol)}</td>
+      <td class="c">${saGradeCell(s.symbol)}</td>
+      <td class="r ${p9>=0?'sa-pos':'sa-neg'}">${p9!=null?(p9>0?'+':'')+(+p9).toFixed(1)+'%':'—'}</td>
+      <td class="r ${m1>=0?'sa-pos':'sa-neg'}">${m1!=null?(m1>0?'+':'')+(+m1).toFixed(1)+'%':'—'}</td>
+      <td class="r sa-mono">${s.momentum_score!=null?s.momentum_score:'—'}</td>
+    </tr>`;
+  }).join('');
+  const dr = document.getElementById('sa-drill'); dr.classList.add('open'); dr.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function saCloseDrill(){ document.getElementById('sa-drill').classList.remove('open'); document.querySelectorAll('#sectors-container .sa-cell').forEach(c=>c.classList.remove('sel')); }
 </script>
 
 </body>
