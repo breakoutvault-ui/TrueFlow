@@ -2197,101 +2197,86 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <span class="scr-ver">SCR v1.0</span>
     </div>
     <div class="scr-hiw" id="scr-hiw">
-      <h4>What this screener is</h4>
-      <div>Your single, all-in-one momentum board. Every F&amp;O stock is one <b>row</b>, every data point is a <b>column</b>, and every column header is a <b>multi-select filter</b>. It folds the old Scanner, EMA-signal and breakout views into one place — pick a preset, or stack your own filters, to surface exactly the setups you want.</div>
+      <h4>What this screener is — and how to trade from it</h4>
+      <div>One board for every F&amp;O stock. Each <b>row</b> is a stock, each <b>column</b> a data point, each column header a <b>multi-select filter</b>. Instead of hopping between Scanner, EMA Signals and Breakout Setups, you start from a clean uptrend and keep adding conditions until only the best setups are left.</div>
+      <div style="margin-top:6px">The daily routine: open <b>⭐ A+ Setups</b> → glance at <b>Price/Vol</b> and <b>RVOL</b> to see price moving on real volume → check <b>%9E</b> for a low-risk entry → confirm <b>Smart $</b> is not selling → hit <b>📋 TradingView</b> to push your shortlist to a watchlist.</div>
 
-      <h4>Core columns</h4>
+      <h4>The setups — and how you'd trade each</h4>
+      <div>The <b>QM / Setup</b> column tags the pattern a stock is in. These are the Qullamaggie-style continuation setups:</div>
       <dl class="def">
-        <dt>Symbol</dt><dd>Click it to open the stock on TradingView in a new tab.</dd>
-        <dt>Last 5</dt><dd>Last 5 daily closes as arrows — green ↑ up day, red ↓ down day, oldest → newest. A quick read of near-term direction.</dd>
-        <dt>Price / Vol</dt><dd>Mini chart: the <b>line</b> is recent closes, the <b>bars</b> are each session's volume. Line rising with tall bars on the right = price climbing on real volume.</dd>
-        <dt>Sector / Industry</dt><dd>Where the stock sits — handy for spotting a whole group moving together.</dd>
-        <dt>Category</dt><dd>F&amp;O liquidity bucket: <b>A</b> most liquid, <b>B</b> mid, <b>C</b> thinner. (Separate from the EMA category below.)</dd>
-        <dt>LTP</dt><dd>Last traded price. A global ₹100 minimum is already applied.</dd>
+        <dt>🔥 EP</dt><dd><b>Episodic Pivot</b> — gapped up 5%+ on ~2× volume on a catalyst. <i>Wait for a pullback toward the gap, then enter.</i></dd>
+        <dt>📐 VCP</dt><dd><b>Volatility Contraction</b> — a big move, then a tight base with volume drying up. <i>Buy the break above the pivot, on volume.</i></dd>
+        <dt>🚩 HTF</dt><dd><b>High Tight Flag</b> — rare: an 80%+ surge then a shallow (&lt;25%) pause. <i>Enter on the break above the pivot.</i></dd>
+        <dt>↩ Reclaim</dt><dd><b>EMA Reclaim</b> — dipped below the 9 EMA, then closed back above it (a shakeout recovery). <i>Entry near the 9 EMA.</i></dd>
+        <dt>🎯 Near Pivot</dt><dd>Coiled within 3% of the buy trigger — the highest-priority watch. <i>Set an alert at the pivot.</i></dd>
+        <dt>✅ Broken Out</dt><dd>Already triggered above the pivot. <i>Manage, or wait for a re-test of the pivot.</i></dd>
       </dl>
 
-      <h4>Price &amp; trend</h4>
+      <h4>Reading the two mini-charts</h4>
       <dl class="def">
-        <dt>Day / Wk / Mth %</dt><dd>Price change over the day, week and month.</dd>
-        <dt>EMA</dt><dd>Trend category from the 9/20 EMAs — see <b>Categories &amp; badges</b> below.</dd>
-        <dt>%9E / %Wk9E</dt><dd>How far price is from the <b>daily</b> / <b>weekly</b> 9 EMA. Near <code>0%</code> = sitting on the line = the low-risk entry zone; a big number = extended.</dd>
-        <dt>Trend Days</dt><dd>Sessions the stock has held its uptrend structure.</dd>
-        <dt>Green Days</dt><dd>Consecutive up closes.</dd>
-        <dt>52W High / Away</dt><dd>The 52-week high, and how far below it (%) price is right now.</dd>
-        <dt>52W State</dt><dd>Where it is in the breakout cycle — see badges below.</dd>
-        <dt>Consol Days</dt><dd>Sessions consolidating in the BO Zone / Breakout Base. A longer base often precedes a bigger move.</dd>
+        <dt>Last 5</dt><dd>The last 5 daily closes as arrows — green ↑ up, red ↓ down, oldest → newest. A one-glance read of direction.</dd>
+        <dt>Price / Vol</dt><dd>A 5-session picture. The <b>line</b> is price across those 5 days — <b>green if it ended higher than it started</b>, red if lower. The <b>bars</b> are each day's volume vs its average (<b>green ≥1.5×, cyan ≥1×, grey &lt;1×</b>); the rightmost bar is <b>today</b> (solid), older days are faded.</dd>
+      </dl>
+      <div style="margin-top:4px"><b>What to look for:</b> a rising green line with <b>tall green bars stacked on the right</b> = price climbing on expanding volume (the strongest picture). Rising line + short/grey bars = a move on weak volume (suspect). Falling line + tall bars = heavy selling. Falling line + small bars = a quiet, healthy pullback.</div>
+
+      <h4>The volume picture — three different questions</h4>
+      <dl class="def">
+        <dt>RVOL</dt><dd><b>Is volume showing up today?</b> Today's volume ÷ its 20-day average. <code>1.5×</code>+ = real participation.</dd>
+        <dt>Vol Signal</dt><dd><b>What does today's move say?</b> <span class="scr-vs scr-vs-acc">Accum</span> up on heavy volume · <span class="scr-vs scr-vs-weak">Weak</span> up on light volume · <span class="scr-vs scr-vs-dist">Distrib</span> down on heavy volume · <span class="scr-vs scr-vs-pull">Pullback</span> down on light volume.</dd>
+        <dt>BO Vol</dt><dd><b>Did the breakout have real volume?</b> The best relative volume on the breakout day or within ±3 sessions — the badge says which (<code>BO-day</code> vs <code>±3d</code>). High = trustworthy.</dd>
+      </dl>
+      <div style="margin-top:4px"><b>Timeframe — important:</b> <b>RVOL</b> and <b>Vol Signal</b> describe <b>today's session</b> measured against the stock's 20-day average volume (not a multi-day accumulation line). <b>BO Vol</b> describes the <b>breakout window</b>. Everything else — EMA category, 52W state, Setup — is the stock's <b>state as of the latest close</b>. <b>Smart $</b> is the exception: it reads recent deals over a trailing window. Hover any filter option and it now tells you its exact timeframe.</div>
+
+      <h4>Where the stock is — trend &amp; breakout cycle</h4>
+      <dl class="def">
+        <dt>EMA category</dt><dd>Where it is in its <b>trend</b>: <span class="scr-cat scr-cat-A">A</span> above daily 9+20 &amp; weekly 9+20 (full uptrend) · <span class="scr-cat scr-cat-B">B</span> below daily 9, above weekly (pullback) · <span class="scr-cat scr-cat-C">C</span> fresh weekly cross (early turn) · <span class="scr-cat scr-cat-AC">A+C</span> both (strongest).</dd>
+        <dt>52W State</dt><dd>Where it is in its <b>breakout cycle</b>: <span class="scr-z52 scr-z-zone">🎯 BO Zone</span> coiling within 15% below the 52W high · <span class="scr-z52 scr-z-base">🟦 Breakout Base</span> broke out, holding within 15% · <span class="scr-z52 scr-z-bo">🚀 52W Base BO</span> running &gt;15% past it.</dd>
+        <dt>%9E / %Wk9E</dt><dd>Your <b>entry gauge</b> — distance from the daily / weekly 9 EMA. Near <code>0%</code> = sitting on the line = low-risk add; a big number = extended, wait for a pullback.</dd>
+        <dt>Consol Days</dt><dd>How long it has been basing. A longer base often precedes a bigger move.</dd>
       </dl>
 
-      <h4>Volume</h4>
+      <h4>Smart money &amp; results</h4>
       <dl class="def">
-        <dt>RVOL</dt><dd>Relative volume — today's volume ÷ its 20-day average. <code>1×</code> normal, <code>2×</code> twice normal. ≥ <code>1.5×</code> means real participation.</dd>
-        <dt>BO Vol</dt><dd>Relative volume <b>on the breakout</b> — taken on the breakout day, or the best within ±3 sessions of it. High BO Vol = the breakout had real buying behind it = more trustworthy.</dd>
-        <dt>Vol on Move</dt><dd>When that breakout volume showed up — on the day, within 3 days, or thin.</dd>
-        <dt>Vol Signal</dt><dd>Price combined with volume — see badges below.</dd>
-        <dt>Vol Class</dt><dd>Plain volume bucket: high / normal / low vs average.</dd>
+        <dt>Smart $</dt><dd>What large investors did in <b>recent</b> bulk/block deals (a trailing window): <b>Loading Up</b> › <b>Accumulating</b> › <b>Nibbling</b> = buying; <b>Offloading</b> = selling — a red flag for longs.</dd>
+        <dt>Results</dt><dd>The latest reported quarter, graded <b>STRONG</b> / <b>MIXED</b> / <b>WEAK</b>.</dd>
       </dl>
 
-      <h4>Crossovers, breakout &amp; quant patterns</h4>
-      <dl class="def">
-        <dt>Crossover?</dt><dd>Fresh 9/20 EMA crossover — <b>daily</b> or <b>weekly</b> — with date and days-since.</dd>
-        <dt>Breakout?</dt><dd>Whether it broke out, the breakout price/date, and whether it's still holding above it.</dd>
-        <dt>QM / Setup</dt><dd>Qullamaggie-style pattern: <b>EP</b> episodic pivot · <b>VCP</b> volatility contraction · <b>HTF</b> high tight flag · <b>Reclaim</b> reclaim of a key level · <b>Near Pivot</b> coiled at the buy point · <b>Broken Out</b> already triggered.</dd>
-        <dt>Pivot</dt><dd>The pivot / buy-trigger price for the pattern.</dd>
-        <dt>Base %</dt><dd>Depth of the base — shallower is tighter, generally healthier.</dd>
-        <dt>Contract</dt><dd>How much the swings have tightened (volatility contraction).</dd>
-        <dt>Vol Dry</dt><dd>Whether volume dried up in the base — the classic pre-breakout tell.</dd>
-        <dt>Base Days</dt><dd>Length of the base in sessions.</dd>
-        <dt>Reclaim</dt><dd>Whether price reclaimed the EMA / level after a dip.</dd>
-        <dt>Post-BO</dt><dd>How the stock has behaved since breaking out.</dd>
-        <dt>Score</dt><dd>Momentum score 0–100 — trend strength + setup quality in one number.</dd>
-      </dl>
-
-      <h4>Results &amp; Smart $</h4>
-      <dl class="def">
-        <dt>Results</dt><dd>Latest earnings read, graded <b>STRONG</b> / <b>MIXED</b> / <b>WEAK</b>.</dd>
-        <dt>Smart $</dt><dd>What large investors are doing via bulk / block deals — see the tiers below.</dd>
-      </dl>
-
-      <h4>Categories &amp; badges</h4>
-      <dl class="def">
-        <dt>EMA category</dt><dd><span class="scr-cat scr-cat-A">A</span> above daily 9+20 &amp; weekly 9+20 (full uptrend) · <span class="scr-cat scr-cat-B">B</span> below daily 9 but above weekly (pullback) · <span class="scr-cat scr-cat-C">C</span> fresh weekly crossover (early turn) · <span class="scr-cat scr-cat-AC">A+C</span> both at once (strongest).</dd>
-        <dt>52W State</dt><dd><span class="scr-z52 scr-z-zone">🎯 BO Zone</span> within 15% below the 52W high, coiling · <span class="scr-z52 scr-z-base">🟦 Breakout Base</span> broke out, holding within 15% · <span class="scr-z52 scr-z-bo">🚀 52W Base BO</span> running &gt;15% past it.</dd>
-        <dt>Vol Signal</dt><dd><span class="scr-vs scr-vs-acc">Accum</span> up on rising volume · <span class="scr-vs scr-vs-weak">Weak</span> up on light volume (suspect) · <span class="scr-vs scr-vs-dist">Distrib</span> down on heavy volume (selling) · <span class="scr-vs scr-vs-pull">Pullback</span> down on light volume (healthy rest).</dd>
-        <dt>Smart $ tiers</dt><dd>Big money buying, strongest first: <b>Loading Up</b> › <b>Accumulating</b> › <b>Nibbling</b>. <b>Offloading</b> = big money selling (a red flag for longs).</dd>
-        <dt>Results grade</dt><dd><b>STRONG</b> beat &amp; guiding up · <b>MIXED</b> in line · <b>WEAK</b> miss / soft guidance.</dd>
-      </dl>
-
-      <h4>The volume story: RVOL · BO Vol · Consol Days</h4>
-      <div>Read these three together. <b>Consol Days</b> says how long the base is, <b>BO Vol</b> says whether the breakout out of that base had real buying behind it, and <b>RVOL</b> says whether volume is showing up <i>today</i>. A long base that breaks out on strong BO Vol and is still seeing high RVOL is the cleanest momentum picture you can get.</div>
-
-      <h4>⭐ The A+ Setup recipe</h4>
+      <h4>⭐ The A+ Setup — the ideal checklist</h4>
       <div>The <b>⭐ A+ Setups</b> preset flags the highest-confluence names — every box ticked at once:</div>
       <div style="line-height:1.85;margin-top:4px">
-        <div><b style="color:var(--cyan)">1.</b> EMA category <span class="scr-cat scr-cat-A">A</span> or <span class="scr-cat scr-cat-AC">A+C</span> (full uptrend)</div>
+        <div><b style="color:var(--cyan)">1.</b> EMA category <span class="scr-cat scr-cat-A">A</span> or <span class="scr-cat scr-cat-AC">A+C</span> — a real uptrend</div>
         <div><b style="color:var(--cyan)">2.</b> Within <b>5%</b> of the 9 EMA — in the entry zone, not extended</div>
-        <div><b style="color:var(--cyan)">3.</b> <b>RVOL ≥ 1.5×</b> — real participation</div>
+        <div><b style="color:var(--cyan)">3.</b> <b>RVOL ≥ 1.5×</b> — volume confirming today</div>
         <div><b style="color:var(--cyan)">4.</b> 52W State is <span class="scr-z52 scr-z-zone">🎯 BO Zone</span> or <span class="scr-z52 scr-z-base">🟦 Breakout Base</span></div>
         <div><b style="color:var(--cyan)">5.</b> Smart money <b>not offloading</b></div>
       </div>
 
-      <h4>Filters, presets &amp; columns</h4>
+      <h4>Working the board</h4>
       <dl class="def">
-        <dt>Multi-select</dt><dd>Every header is a filter — tick several values in one column and stack filters across columns. Active filters are highlighted; <b>✕ Clear all filters</b> resets them.</dd>
-        <dt>Daily 9E Zone</dt><dd>Filter to stocks sitting near the <b>daily</b> 9 EMA — intraday / swing entries.</dd>
-        <dt>Wk 9E Away</dt><dd>Filter by distance from the <b>weekly</b> 9 EMA — positional context.</dd>
-        <dt>Presets</dt><dd>Pick a quick view, or build your own filter set and 💾 <b>save it as a named preset</b> to reuse.</dd>
-        <dt>Hide columns</dt><dd>Use the <b>−</b> box on a header to hide it, or the ⊞ <b>Columns</b> menu for groups. <b>⟲ Unhide all columns</b> brings them back.</dd>
-        <dt>📋 TradingView</dt><dd>Copies only your <b>currently filtered</b> symbols, ready to paste into a TradingView watchlist.</dd>
+        <dt>Quick views</dt><dd>One-tap presets — <b>⭐ A+ Setups</b>, <b>Fresh Crossovers</b>, <b>Breakout Setups</b>, <b>Volume Buildup</b>, <b>BO Zone</b>.</dd>
+        <dt>Filters</dt><dd>Every header is a filter — tick several values in one and stack across columns. Active ones are highlighted; <b>✕ Clear all filters</b> resets. <b>Hover any option</b> to see its exact timeframe.</dd>
+        <dt>Presets</dt><dd>Build a filter set and 💾 <b>save it as a named preset</b> to reuse.</dd>
+        <dt>Columns</dt><dd>Hide a column with its <b>−</b> box, toggle groups in the ⊞ <b>Columns</b> menu, and bring them all back with <b>⟲ Unhide all columns</b>.</dd>
+        <dt>📋 TradingView</dt><dd>Copies only your <b>currently filtered</b> symbols, ready to paste into a watchlist.</dd>
       </dl>
 
-      <h4>A suggested workflow</h4>
-      <div style="line-height:1.85;margin-top:4px">
-        <div><b style="color:var(--cyan)">1.</b> Start on <b>⭐ A+ Setups</b> for the cleanest names.</div>
-        <div><b style="color:var(--cyan)">2.</b> Want more? Stack filters — e.g. Category <b>A</b> + <span class="scr-z52 scr-z-base">🟦 Breakout Base</span> + RVOL ≥ 1.5×.</div>
-        <div><b style="color:var(--cyan)">3.</b> For each candidate read <b>Price/Vol + RVOL + BO Vol</b> together — rising price on real volume out of a real base.</div>
-        <div><b style="color:var(--cyan)">4.</b> Check <b>%9E</b> for the entry zone and <b>Smart $</b> for who's on the other side.</div>
-        <div><b style="color:var(--cyan)">5.</b> Hit <b>📋 TradingView</b> to push your shortlist to a watchlist.</div>
-      </div>
+      <h4>Quick column glossary</h4>
+      <dl class="def">
+        <dt>Day / Wk / Mth %</dt><dd>Price change over the day / week / month.</dd>
+        <dt>Daily / Weekly EMA</dt><dd>9-vs-20 EMA alignment on each timeframe.</dd>
+        <dt>52W High / Away</dt><dd>The 52-week high and % below it now.</dd>
+        <dt>Vol on Move / Vol Class</dt><dd>Today's volume bucket vs average.</dd>
+        <dt>Crossover? / Breakout?</dt><dd>Has a fresh 9/20 cross / an active breakout.</dd>
+        <dt>Pivot</dt><dd>The breakout / buy-trigger price.</dd>
+        <dt>Base %</dt><dd>Base depth — shallower is tighter, healthier.</dd>
+        <dt>Contract</dt><dd>How much the swings have tightened.</dd>
+        <dt>Vol Dry</dt><dd>Volume dried up in the base — the pre-breakout tell.</dd>
+        <dt>Base Days</dt><dd>Length of the base in sessions.</dd>
+        <dt>Reclaim</dt><dd>Reclaimed the 9 EMA after a dip.</dd>
+        <dt>Post-BO</dt><dd>% move since the breakout.</dd>
+        <dt>Score</dt><dd>Momentum score 0–100 — trend strength + setup quality.</dd>
+        <dt>⭐ A+</dt><dd>All five A+ conditions above are met.</dd>
+      </dl>
     </div>
 
     <div class="scr-presets" id="scr-presets"><span class="scr-plabel">Quick views</span></div>
@@ -12550,17 +12535,17 @@ const SCR_COLS=[
 SCR_COLS.forEach(c=>SCR.vis[c.k]=!!c.def);
 
 const SCR_FILTERS=[
- {key:'pattern',label:'Setup',opts:['EP','VCP','HTF','Reclaim','NearPivot','BrokenOut'],disp:{EP:'🔥 EP',VCP:'📐 VCP',HTF:'🚩 HTF',Reclaim:'↩ Reclaim',NearPivot:'🎯 Near Pivot',BrokenOut:'✅ Broken Out'}},
- {key:'cat',label:'Category',opts:['A','AC','B','C'],disp:{A:'🟢 A',AC:'💎 A+C',B:'🟡 B',C:'🔵 C'}},
- {key:'signal',label:'Signal',opts:['fresh','setup'],disp:{fresh:'Fresh Crossover',setup:'Has Breakout/QM'}},
- {key:'zone',label:'Daily 9E Zone',opts:['near9e','w10','above9d'],disp:{near9e:'Near 9E (±5%)',w10:'Within 10%',above9d:'Above Daily 9'}},
- {key:'wzone',label:'Wk 9E Away',opts:['w2','w5','w10','w15'],disp:{w2:'≤2%',w5:'≤5%',w10:'≤10%',w15:'≤15%'}},
- {key:'z52',label:'52W',opts:['zone','base','bo'],disp:{zone:'🎯 BO Zone',base:'🟦 Breakout Base',bo:'🚀 52W Base BO'}},
- {key:'vsig',label:'Volume',opts:['acc','weak','dist','pull','High','Building'],disp:{acc:'🟢 Accumulation',weak:'🟡 Weak rally',dist:'🔴 Distribution',pull:'⚪ Healthy pullback',High:'Vol: High',Building:'Vol: Building'}},
- {key:'rvolmin',label:'RVOL',opts:['1.5','2','3'],disp:{'1.5':'≥1.5×','2':'≥2×','3':'≥3×'}},
- {key:'smt',label:'Smart $',opts:['LOADING_UP','ACCUMULATING','NIBBLING','OFFLOADING'],disp:{LOADING_UP:'🔥 Loading Up',ACCUMULATING:'📈 Accumulating',NIBBLING:'👀 Nibbling',OFFLOADING:'📉 Offloading'}},
+ {key:'pattern',label:'Setup',opts:['EP','VCP','HTF','Reclaim','NearPivot','BrokenOut'],disp:{EP:'🔥 EP',VCP:'📐 VCP',HTF:'🚩 HTF',Reclaim:'↩ Reclaim',NearPivot:'🎯 Near Pivot',BrokenOut:'✅ Broken Out'},tips:{EP:'Episodic Pivot — gapped up 5%+ on ~2x volume. Current pattern as of the latest close.',VCP:'Volatility Contraction — big move then a tightening base. Current pattern as of the latest close.',HTF:'High Tight Flag — 80%+ surge then a shallow pause. Current pattern as of the latest close.',Reclaim:'EMA Reclaim — dipped below the 9 EMA then closed back above. Based on the last two daily closes.',NearPivot:'Within 3% of the breakout pivot right now — coiled to trigger.',BrokenOut:'Already broken out above the pivot as of the latest close.'}},
+ {key:'cat',label:'Category',opts:['A','AC','B','C'],disp:{A:'🟢 A',AC:'💎 A+C',B:'🟡 B',C:'🔵 C'},tips:{A:'Above daily 9+20 and weekly 9+20 — full uptrend as of the latest close.',AC:'Category A plus a fresh weekly crossover — as of the latest close.',B:'Below the daily 9 but above the weekly — pullback state as of the latest close.',C:'Fresh weekly 9>20 crossover — early turn, as of the latest weekly close.'}},
+ {key:'signal',label:'Signal',opts:['fresh','setup'],disp:{fresh:'Fresh Crossover',setup:'Has Breakout/QM'},tips:{fresh:'A 9>20 crossover flagged fresh in the latest scan.',setup:'Has an active breakout or QM pattern as of the latest close.'}},
+ {key:'zone',label:'Daily 9E Zone',opts:['near9e','w10','above9d'],disp:{near9e:'Near 9E (±5%)',w10:'Within 10%',above9d:'Above Daily 9'},tips:{near9e:'Within 5% of the daily 9 EMA as of todays close.',w10:'Within 10% of the daily 9 EMA as of todays close.',above9d:'Trading above the daily 9 EMA as of todays close.'}},
+ {key:'wzone',label:'Wk 9E Away',opts:['w2','w5','w10','w15'],disp:{w2:'≤2%',w5:'≤5%',w10:'≤10%',w15:'≤15%'},tips:{w2:'Within 2% of the weekly 9 EMA as of the latest weekly close.',w5:'Within 5% of the weekly 9 EMA as of the latest weekly close.',w10:'Within 10% of the weekly 9 EMA as of the latest weekly close.',w15:'Within 15% of the weekly 9 EMA as of the latest weekly close.'}},
+ {key:'z52',label:'52W',opts:['zone','base','bo'],disp:{zone:'🎯 BO Zone',base:'🟦 Breakout Base',bo:'🚀 52W Base BO'},tips:{zone:'Within 15% below the 52-week high right now — coiling near highs.',base:'Broke out and holding within 15% of the breakout — current state.',bo:'Extended more than 15% past the breakout — current state.'}},
+ {key:'vsig',label:'Volume',opts:['acc','weak','dist','pull','High','Building'],disp:{acc:'🟢 Accumulation',weak:'🟡 Weak rally',dist:'🔴 Distribution',pull:'⚪ Healthy pullback',High:'Vol: High',Building:'Vol: Building'},tips:{acc:'Accumulation — closed UP today on 1.5x or more of the 20-day average volume. Todays session only.',weak:'Weak rally — closed up today but on under 1.5x the 20-day average volume. Todays session only.',dist:'Distribution — closed DOWN today on 1.5x or more of the 20-day average volume. Todays session only.',pull:'Healthy pullback — closed down today on under 1.5x the 20-day average volume. Todays session only.',High:'Todays volume bucket is High vs its 20-day average. Todays session.',Building:'Volume building — todays bucket is High or Very High vs average. Todays session.'}},
+ {key:'rvolmin',label:'RVOL',opts:['1.5','2','3'],disp:{'1.5':'≥1.5×','2':'≥2×','3':'≥3×'},tips:{'1.5':'Todays volume is at least 1.5x the 20-day average. Today vs 20-day baseline.','2':'Todays volume is at least 2x the 20-day average. Today vs 20-day baseline.','3':'Todays volume is at least 3x the 20-day average. Today vs 20-day baseline.'}},
+ {key:'smt',label:'Smart $',opts:['LOADING_UP','ACCUMULATING','NIBBLING','OFFLOADING'],disp:{LOADING_UP:'🔥 Loading Up',ACCUMULATING:'📈 Accumulating',NIBBLING:'👀 Nibbling',OFFLOADING:'📉 Offloading'},tips:{LOADING_UP:'Heavy institutional buying across recent bulk/block deals — a trailing window, not just today.',ACCUMULATING:'Steady institutional buying across recent deals — a trailing window.',NIBBLING:'Light institutional buying across recent deals — a trailing window.',OFFLOADING:'Net institutional selling across recent deals — a trailing window.'}},
  {key:'sector',label:'Sector',opts:[]},
- {key:'grade',label:'Results',opts:['Blockbuster','Turnaround','Steady','Mixed','Weak']},
+ {key:'grade',label:'Results',opts:['Blockbuster','Turnaround','Steady','Mixed','Weak'],tips:{Blockbuster:'Based on the latest reported quarterly result.',Turnaround:'Based on the latest reported quarterly result.',Steady:'Based on the latest reported quarterly result.',Mixed:'Based on the latest reported quarterly result.',Weak:'Based on the latest reported quarterly result.'}},
  {key:'price',label:'Price',opts:['100','500','1000'],disp:{'100':'≥₹100','500':'≥₹500','1000':'≥₹1000'}},
 ];
 SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());
@@ -12620,7 +12605,7 @@ async function scrLoad(){
 function scrBuildUI(){
  const pr=document.getElementById('scr-presets');pr.querySelectorAll('.scr-pre').forEach(b=>b.remove());
  pr.insertAdjacentHTML('beforeend',SCR_PRESETS.map(p=>`<button class="scr-pre ${p.gold?'gold':''} ${p.id==='all'?'active':''}" data-p="${p.id}" onclick="scrApplyPreset('${p.id}')">${p.label}</button>`).join(''));
- document.getElementById('scr-filters').innerHTML=SCR_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="scr-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div>${f.opts.map(o=>`<label><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="scrToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
+ document.getElementById('scr-filters').innerHTML=SCR_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="scr-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div>${f.opts.map(o=>`<label${(f.tips&&f.tips[o])?` title="${f.tips[o]}"`:''}><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="scrToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
  const groups=[...new Set(SCR_COLS.map(c=>c.g))];
  document.getElementById('scr-col-panel').innerHTML='<div class="ph">Show / hide columns</div>'+groups.map(g=>`<div class="grp">${g}</div>`+SCR_COLS.filter(c=>c.g===g).map(c=>`<label><input type="checkbox" data-col="${c.k}" ${SCR.vis[c.k]?'checked':''} onchange="SCR.vis['${c.k}']=this.checked;scrRender()"> ${c.lbl}</label>`).join('')).join('');
  document.getElementById('scr-tot').textContent=SCR.data.length;
