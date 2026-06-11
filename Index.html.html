@@ -2192,7 +2192,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div id="tab-screener" class="panel">
     <div class="scr-info">
       <span style="font-size:20px">🔎</span>
-      <span class="txt"><b>Screener</b> — every stock-level data point from Scanner + EMA Signals + Breakout Setups in one place. Multi-select filters, save presets, hover anything, hide any column with its <b>−</b> box, restore with <b>⟲ Unhide all</b>.</span>
+      <span class="txt"><b>Screener</b> — every stock-level data point from Scanner + EMA Signals + Breakout Setups in one place. Multi-select filters, save presets, hover anything, hide any column with its <b>−</b> box, restore with <b>⟲ Unhide all</b>. Now shows the <b>full F&amp;O universe</b> — tap <b>📈 In Uptrend</b> to focus on names above (or just under) the daily 9 EMA.</span>
       <span class="scr-pill" onclick="document.getElementById('scr-hiw').classList.toggle('open')">📖 How This Works</span>
       <span class="scr-ver">SCR v1.0</span>
     </div>
@@ -3170,7 +3170,7 @@ function smCell(c,r,i,nk){
   const td=(al,html,extra='')=>`<td style="padding:5px 8px;text-align:${al}" ${extra}>${html}</td>`;
   switch(c.key){
     case 'rank': return td('left',`<span style="color:var(--muted)">${i+1}</span>`);
-    case 'symbol': return `<td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="smShowStock('${r.symbol}')">${r.symbol}</td>`;
+    case 'symbol': return `<td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="smShowStock('${r.symbol}')">${r.symbol}<br>${tfPvCell(r)}</td>`;
     case 'tier': return `<td style="padding:5px 8px"><span title="${m.tip}" style="color:${m.color};font-weight:600;cursor:help">${m.label}</span></td>`;
     case 'cooking_score': return `<td style="padding:5px 8px;text-align:right;font-weight:700;color:${m.color};cursor:help" title="${smScoreTip(r)}">${(r.cooking_score||0).toFixed(0)}</td>`;
     case 'net': return td('right',`<span style="font-weight:600;color:${nc}">${net>0?'+':''}${smCr(net)}</span>`);
@@ -3277,7 +3277,7 @@ function smRender(){
     else tbody.innerHTML=rows.slice(0,1500).map(r=>{const sc=r.side==='BUY'?'var(--green)':'var(--red)';
       return `<tr style="border-top:1px solid var(--border)">
         <td style="padding:5px 8px;color:var(--muted);font-size:10px">${r.deal_date}</td>
-        <td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="smShowStock('${r.symbol}')">${r.symbol}</td>
+        <td style="padding:5px 8px;font-weight:700;color:var(--text);cursor:pointer" title="${(_h('getStockTitle',r.symbol)||r.symbol)}" onclick="smShowStock('${r.symbol}')">${r.symbol}<br>${tfPvCell(r)}</td>
         <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.deal_type}</td>
         <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.sector||'—'}</td>
         <td style="padding:5px 8px;color:var(--text2);font-size:10px">${r.client_name||'—'}</td>
@@ -6335,7 +6335,7 @@ function renderMBTable() {
     const freshXBadge = freshX ? `<span class="fresh-x-badge" title="Daily 9 EMA crossover on ${freshX}">🔄</span>` : '';
     return `<tr>
       <td style="text-align:center"><button class="star-btn${isStarred?' starred':''}" onclick="toggleStar('${s.symbol}',this)" title="${isStarred?'Remove from watchlist':'Add to watchlist'}">${isStarred?'⭐':'☆'}</button></td>
-      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span>${freshXBadge}${zoneTag}</td>
+      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span>${freshXBadge}${zoneTag}<br>${tfPvCell(s)}</td>
       <td><span style="font-size:11px;color:var(--muted)">${sector}</span></td>
       <td><span style="font-weight:600">${ltp}</span> ${chgStr}</td>
       <td>${gapStr}</td>
@@ -7538,7 +7538,7 @@ async function loadMomScanner() {
     window.momCrossoverMap = {};
     if (!window.last5BySym) window.last5BySym = {};
     momData.scanner.forEach(s => {
-      window.last5BySym[s.symbol] = { summary: s.last5_summary, chg: (s.day_chg_pct !== undefined ? s.day_chg_pct : null) };
+      window.last5BySym[s.symbol] = { summary: s.last5_summary, chg: (s.day_chg_pct !== undefined ? s.day_chg_pct : null), closes: (window.tfPvParse?window.tfPvParse(s.last5_closes):null), vols: (window.tfPvParse?window.tfPvParse(s.vol5_ratios):null) };
       if (s.daily_crossover_date) {
         const ageDays = (now - new Date(s.daily_crossover_date)) / 86400000;
         if (ageDays <= 5) window.momCrossoverMap[s.symbol] = s.daily_crossover_date;
@@ -7972,7 +7972,7 @@ function renderPicks() {
     const pct52pstr = pct52p!==null ? pct52p.toFixed(1)+'%' : '—';
     const pct52pcol = pct52p!==null ? (pct52p<5?'var(--green)':pct52p<10?'var(--amber)':pct52p<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
-      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}<br>${tfPvCell(s)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.starred_at?new Date(s.starred_at).toLocaleDateString('en-IN'):'—'}</td>
@@ -8017,7 +8017,7 @@ function renderExited() {
     const catB = s.category === 'B';
     return `<tr style="${catB?'background:rgba(245,158,11,.04)':''}">
       <td style="text-align:center"><input type="checkbox" class="exited-check" data-symbol="${s.symbol}" style="cursor:pointer"></td>
-      <td><span style="font-weight:600">${s.symbol}</span>${catB?'<br><span style="font-size:9px;color:var(--amber)">⚠️ Still above Weekly EMA</span>':''}<br>${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600">${s.symbol}</span>${catB?'<br><span style="font-size:9px;color:var(--amber)">⚠️ Still above Weekly EMA</span>':''}<br>${getCatBadge(s.category)}<br>${tfPvCell(s)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.exit_date||'—'}</td>
@@ -8931,7 +8931,7 @@ function renderFOWLTable() {
     const convCol = conv>=70?'var(--green)':conv>=40?'var(--amber)':'var(--muted)';
     return `<tr>
       <td>${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span></td>
+      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${tfPvCell(s)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td><span style="font-weight:600">${ltp}</span> <span style="color:${chgCol};font-size:10px">${chgPct?(parseFloat(chgPct)>=0?'+':'')+chgPct+'%':''}</span></td>
       <td style="color:${tc};font-weight:600;font-size:11px">${ti}</td>
@@ -9105,6 +9105,22 @@ function getSparkBars(last5_summary, day_chg_pct) {
 
 // Universal last-5 spark renderer: prefers the row's own field, falls back to the
 // global symbol map (built from momData.scanner). Lets ANY table show the bars by symbol.
+window.tfPvParse=function(str){return (str&&typeof str==='string'&&str.indexOf(',')>-1)?str.split(',').map(parseFloat).filter(function(x){return !isNaN(x);}):[];};
+window.tfPvMini=function(cl,vl){cl=cl||[];vl=vl||[];
+ if(vl.length<2 && cl.length<2)return '<span style="color:var(--muted)">\u2014</span>';
+ var w=82,h=32,vh=11,pad=2,bars='';
+ if(vl.length){var n=vl.length,vmax=Math.max.apply(null,vl.concat([2])),step=(w-pad*2)/Math.max(1,n-1),bw=step*0.6;
+  bars=vl.map(function(v,i){var bh=Math.max(1,(v||0)/vmax*vh),x=pad+i*step-bw/2,y=h-bh,col=v>=1.5?'var(--green)':v>=1?'var(--cyan)':'var(--muted)';return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+col+'" opacity="'+(i===n-1?1:0.6)+'"/>';}).join('');}
+ var line='',up=true;
+ if(cl.length>=2){var mn=Math.min.apply(null,cl),mx=Math.max.apply(null,cl),rng=(mx-mn)||1,step2=(w-pad*2)/(cl.length-1);
+  var pts=cl.map(function(c,i){return (pad+i*step2).toFixed(1)+','+(pad+(1-(c-mn)/rng)*(h-vh-pad*2)).toFixed(1);}).join(' ');
+  up=cl[cl.length-1]>=cl[0];line='<polyline points="'+pts+'" fill="none" stroke="'+(up?'var(--green)':'var(--red)')+'" stroke-width="1.5"/>';}
+ var tip=cl.length>=2?('Price over volume ('+cl.length+' sessions). '+(up?'Rising':'Falling')+'; tall green bars = volume confirming the move.'):('Volume bars ('+vl.length+' sessions).');
+ return '<svg width="'+w+'" height="'+h+'" style="vertical-align:middle"><title>'+tip+'</title>'+bars+line+'</svg>';};
+window.tfPvCell=function(row){if(!row)return '<span style="color:var(--muted)">\u2014</span>';
+ var c=window.tfPvParse(row.last5_closes),v=window.tfPvParse(row.vol5_ratios);
+ if((c.length<2||v.length<2)&&row.symbol&&window.last5BySym&&window.last5BySym[row.symbol]){var m=window.last5BySym[row.symbol];if(c.length<2&&m.closes)c=m.closes;if(v.length<2&&m.vols)v=m.vols;}
+ return window.tfPvMini(c,v);};
 function spark(sym, row) {
   if (row && row.last5_summary) return getSparkBars(row.last5_summary, (row.day_chg_pct !== undefined ? row.day_chg_pct : null));
   const r = (window.last5BySym || {})[sym];
@@ -9118,7 +9134,7 @@ function spark(sym, row) {
 async function loadLast5Map() {
   try {
     if (!window.last5BySym) window.last5BySym = {};
-    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=symbol,last5_summary,day_chg_pct,session_date&is_active=eq.true&order=session_date.desc&limit=3000';
+    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=symbol,last5_summary,day_chg_pct,last5_closes,vol5_ratios,session_date&is_active=eq.true&order=session_date.desc&limit=3000';
     const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
     const resp = await fetch(url, { headers });
     const data = await resp.json();
@@ -9126,7 +9142,7 @@ async function loadLast5Map() {
     data.forEach(s => {
       // ordered newest-first → keep the most recent row per symbol
       if (s.symbol && !(s.symbol in window.last5BySym)) {
-        window.last5BySym[s.symbol] = { summary: s.last5_summary, chg: (s.day_chg_pct !== undefined ? s.day_chg_pct : null) };
+        window.last5BySym[s.symbol] = { summary: s.last5_summary, chg: (s.day_chg_pct !== undefined ? s.day_chg_pct : null), closes: (window.tfPvParse?window.tfPvParse(s.last5_closes):null), vols: (window.tfPvParse?window.tfPvParse(s.vol5_ratios):null) };
       }
     });
     // Refresh any cross-source tables already on screen so bars appear immediately
@@ -10156,7 +10172,7 @@ function renderResultsTable() {
     const mcapBadge = r.mcapCat === 'large' ? '<span style="color:var(--cyan);font-size:9px">L</span>' : r.mcapCat === 'mid' ? '<span style="color:var(--amber);font-size:9px">M</span>' : '<span style="color:var(--muted);font-size:9px">S</span>';
     return `<tr>
       <td style="text-align:center">${getColorDotHTML(r.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')" title="${getStockTitle(r.symbol)}">${r.symbol||r.name.slice(0,15)}</span>${tfBreakoutBadge(r.symbol)}</td>
+      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=NSE:${r.symbol}','_blank')" title="${getStockTitle(r.symbol)}">${r.symbol||r.name.slice(0,15)}</span>${tfBreakoutBadge(r.symbol)}<br>${tfPvCell(r)}</td>
       <td>${rsGetGradeBadge(r.grade)}</td>
       <td>${rsGetVerdictBadge(r.verdict)}</td>
       <td style="font-size:10px;color:var(--muted)">${r.sector||'—'}</td>
@@ -12248,7 +12264,7 @@ function renderVolume(){
       return `<tr>
         <td class="vbt-rank">${i+1}</td>
         <td class="c"><span class="vbt-star">☆</span></td>
-        <td><span class="vbt-sym">${d.symbol}<a href="${tvUrl}" target="_blank" rel="noopener" title="Open ${d.symbol} in TradingView">↗</a></span></td>
+        <td><span class="vbt-sym">${d.symbol}<a href="${tvUrl}" target="_blank" rel="noopener" title="Open ${d.symbol} in TradingView">↗</a></span><br>${tfPvCell(d)}</td>
         <td class="c">${volLast5(d.last5)}</td>
         <td class="vbt-sector">${d.sector}</td>
         <td class="c">${volBars(d.v)}</td>
@@ -12537,7 +12553,7 @@ SCR_COLS.forEach(c=>SCR.vis[c.k]=!!c.def);
 const SCR_FILTERS=[
  {key:'pattern',label:'Setup',opts:['EP','VCP','HTF','Reclaim','NearPivot','BrokenOut'],disp:{EP:'🔥 EP',VCP:'📐 VCP',HTF:'🚩 HTF',Reclaim:'↩ Reclaim',NearPivot:'🎯 Near Pivot',BrokenOut:'✅ Broken Out'},tips:{EP:'Episodic Pivot — gapped up 5%+ on ~2x volume. Current pattern as of the latest close.',VCP:'Volatility Contraction — big move then a tightening base. Current pattern as of the latest close.',HTF:'High Tight Flag — 80%+ surge then a shallow pause. Current pattern as of the latest close.',Reclaim:'EMA Reclaim — dipped below the 9 EMA then closed back above. Based on the last two daily closes.',NearPivot:'Within 3% of the breakout pivot right now — coiled to trigger.',BrokenOut:'Already broken out above the pivot as of the latest close.'}},
  {key:'cat',label:'Category',opts:['A','AC','B','C'],disp:{A:'🟢 A',AC:'💎 A+C',B:'🟡 B',C:'🔵 C'},tips:{A:'Above daily 9+20 and weekly 9+20 — full uptrend as of the latest close.',AC:'Category A plus a fresh weekly crossover — as of the latest close.',B:'Below the daily 9 but above the weekly — pullback state as of the latest close.',C:'Fresh weekly 9>20 crossover — early turn, as of the latest weekly close.'}},
- {key:'signal',label:'Signal',opts:['fresh','setup'],disp:{fresh:'Fresh Crossover',setup:'Has Breakout/QM'},tips:{fresh:'A 9>20 crossover flagged fresh in the latest scan.',setup:'Has an active breakout or QM pattern as of the latest close.'}},
+ {key:'signal',label:'Signal',opts:['active','fresh','setup'],disp:{active:'📈 In Uptrend',fresh:'Fresh Crossover',setup:'Has Breakout/QM'},tips:{active:'Closed above the daily 9 EMA, or only 1 day below it — still in uptrend. As of the latest close.',fresh:'A 9>20 crossover flagged fresh in the latest scan.',setup:'Has an active breakout or QM pattern as of the latest close.'}},
  {key:'zone',label:'Daily 9E Zone',opts:['near9e','w10','above9d'],disp:{near9e:'Near 9E (±5%)',w10:'Within 10%',above9d:'Above Daily 9'},tips:{near9e:'Within 5% of the daily 9 EMA as of todays close.',w10:'Within 10% of the daily 9 EMA as of todays close.',above9d:'Trading above the daily 9 EMA as of todays close.'}},
  {key:'wzone',label:'Wk 9E Away',opts:['w2','w5','w10','w15'],disp:{w2:'≤2%',w5:'≤5%',w10:'≤10%',w15:'≤15%'},tips:{w2:'Within 2% of the weekly 9 EMA as of the latest weekly close.',w5:'Within 5% of the weekly 9 EMA as of the latest weekly close.',w10:'Within 10% of the weekly 9 EMA as of the latest weekly close.',w15:'Within 15% of the weekly 9 EMA as of the latest weekly close.'}},
  {key:'z52',label:'52W',opts:['zone','base','bo'],disp:{zone:'🎯 BO Zone',base:'🟦 Breakout Base',bo:'🚀 52W Base BO'},tips:{zone:'Within 15% below the 52-week high right now — coiling near highs.',base:'Broke out and holding within 15% of the breakout — current state.',bo:'Extended more than 15% past the breakout — current state.'}},
@@ -12549,7 +12565,7 @@ const SCR_FILTERS=[
  {key:'price',label:'Price',opts:['100','500','1000'],disp:{'100':'≥₹100','500':'≥₹500','1000':'≥₹1000'}},
 ];
 SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());
-const SCR_PRESETS=[{id:'all',label:'All'},{id:'aplus',label:'⭐ A+ Setups',gold:true},{id:'cross',label:'Fresh Crossovers',set:{signal:['fresh']}},{id:'bo',label:'Breakout Setups',set:{signal:['setup']}},{id:'vol',label:'Volume Buildup',set:{vsig:['acc']}},{id:'zone',label:'BO Zone',set:{z52:['zone','base']}}];
+const SCR_PRESETS=[{id:'all',label:'All'},{id:'uptrend',label:'📈 In Uptrend',set:{signal:['active']}},{id:'aplus',label:'⭐ A+ Setups',gold:true},{id:'cross',label:'Fresh Crossovers',set:{signal:['fresh']}},{id:'bo',label:'Breakout Setups',set:{signal:['setup']}},{id:'vol',label:'Volume Buildup',set:{vsig:['acc']}},{id:'zone',label:'BO Zone',set:{z52:['zone','base']}}];
 
 function scrZ52state(s,pct52){
  if(s.breakout_type&&s.breakout_price){const r=(+s.ltp)/(+s.breakout_price);return r>1.15?'bo':'base';}
@@ -12561,7 +12577,7 @@ function scrDaysBetween(a,b){if(!a||!b||a==='—'||b==='—')return null;const d
 async function scrLoad(){
  if(SCR.loaded){scrRender();return;}
  try{
-  const latest=await volGet('momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000');
+  const latest=await volGet('momentum_stocks?select=*&order=session_date.desc&limit=3000');
   if(!latest||!latest.length){document.getElementById('scr-body').innerHTML='<tr><td style="padding:24px;text-align:center;color:var(--muted)">No data yet — check back after the evening scan.</td></tr>';return;}
   const ld=latest[0].session_date;SCR.updated=ld;
   const snap=latest.filter(s=>s.session_date===ld);
@@ -12592,7 +12608,7 @@ async function scrLoad(){
     dcross:s.daily_crossover_date||'—',dsince:scrDaysBetween(s.daily_crossover_date,ld),wcross:s.weekly_crossover_date||'—',wkdays:scrDaysBetween(s.weekly_crossover_date,ld),
     score:s.momentum_score!=null?s.momentum_score:null,grade:gm[s.symbol]||null,smt:tm[s.symbol]?tm[s.symbol].tier:null,
     rvol,closes,vols,bovol:s.bo_vol!=null?+s.bo_vol:null,bovolWhen:s.bo_vol_when||null,consolDays:s.consol_days!=null?s.consol_days:null,
-    fresh:!!(s.is_fresh_daily_cross||s.is_fresh_weekly_cross),build:(s.vol_class==='High'||s.vol_class==='Very High'),vsig,aplus,
+    fresh:!!(s.is_fresh_daily_cross||s.is_fresh_weekly_cross),build:(s.vol_class==='High'||s.vol_class==='Very High'),vsig,aplus,active:(s.is_active!==false),
     breakout_type:s.breakout_type,breakout_price:s.breakout_price,pivotLvl:s.qm_pivot_level};
   });
   const secs=[...new Set(SCR.data.map(d=>d.sector).filter(x=>x&&x!=='—'))].sort();
@@ -12641,7 +12657,7 @@ function scrPasses(d){
  if(S.z52.size&&!S.z52.has(d.z52))return false;
  if(S.rvolmin.size){const m=Math.min(...[...S.rvolmin].map(Number));if(d.rvol==null||d.rvol<m)return false;}
  if(S.vsig.size){let ok=false;S.vsig.forEach(v=>{if(['acc','weak','dist','pull'].includes(v)&&d.vsig===v)ok=true;if(v==='High'&&d.volClass==='Very High')ok=true;if(v==='Building'&&d.build)ok=true;});if(!ok)return false;}
- if(S.signal.size){if(S.signal.has('fresh')&&!d.fresh)return false;if(S.signal.has('setup')&&!d.qm)return false;}
+ if(S.signal.size){if(S.signal.has('active')&&!d.active)return false;if(S.signal.has('fresh')&&!d.fresh)return false;if(S.signal.has('setup')&&!d.qm)return false;}
  if(S.zone.size){let ok=false;if(S.zone.has('near9e')&&d.pct9e!=null&&Math.abs(d.pct9e)<=5)ok=true;if(S.zone.has('w10')&&d.pct9e!=null&&Math.abs(d.pct9e)<=10)ok=true;if(S.zone.has('above9d')&&d.e9d)ok=true;if(!ok)return false;}
  if(S.wzone.size){if(d.pct9w==null)return false;const a=Math.abs(d.pct9w);let ok=false;S.wzone.forEach(v=>{const lim={w2:2,w5:5,w10:10,w15:15}[v];if(a<=lim)ok=true;});if(!ok)return false;}
  if(S.price.size){const m=Math.min(...[...S.price].map(Number));if(d.ltp==null||d.ltp<m)return false;}
