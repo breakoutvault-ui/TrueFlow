@@ -9110,7 +9110,7 @@ window.tfPvMini=function(cl,vl){cl=cl||[];vl=vl||[];
  if(vl.length<2 && cl.length<2)return '<span style="color:var(--muted)">\u2014</span>';
  var w=82,h=32,vh=11,pad=2,bars='';
  if(vl.length){var n=vl.length,vmax=Math.max.apply(null,vl.concat([2])),step=(w-pad*2)/Math.max(1,n-1),bw=step*0.6;
-  bars=vl.map(function(v,i){var bh=Math.max(1,(v||0)/vmax*vh),x=pad+i*step-bw/2,y=h-bh,col=v>=1.5?'var(--green)':v>=1?'var(--cyan)':'var(--muted)';return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+col+'" opacity="'+(i===n-1?1:0.6)+'"/>';}).join('');}
+  bars=vl.map(function(v,i){var bh=Math.max(1,(v||0)/vmax*vh),x=pad+i*step-bw/2,y=h-bh,upday=(cl.length===vl.length&&cl.length>=2)?(i>0?(cl[i]>=cl[i-1]):(cl[1]>=cl[0])):null,col=(upday===null)?(v>=1?'var(--cyan)':'var(--muted)'):(upday?'var(--green)':'var(--red)');return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+col+'" opacity="'+(i===n-1?1:0.6)+'"/>';}).join('');}
  var line='',up=true;
  if(cl.length>=2){var mn=Math.min.apply(null,cl),mx=Math.max.apply(null,cl),rng=(mx-mn)||1,step2=(w-pad*2)/(cl.length-1);
   var pts=cl.map(function(c,i){return (pad+i*step2).toFixed(1)+','+(pad+(1-(c-mn)/rng)*(h-vh-pad*2)).toFixed(1);}).join(' ');
@@ -9134,11 +9134,17 @@ function spark(sym, row) {
 async function loadLast5Map() {
   try {
     if (!window.last5BySym) window.last5BySym = {};
-    const url = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=symbol,last5_summary,day_chg_pct,last5_closes,vol5_ratios,session_date&is_active=eq.true&order=session_date.desc&limit=3000';
+    const base = CONFIG.supabaseUrl + '/rest/v1/momentum_stocks?select=symbol,last5_summary,day_chg_pct,last5_closes,vol5_ratios,session_date&order=session_date.desc&limit=1000';
     const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey };
-    const resp = await fetch(url, { headers });
-    const data = await resp.json();
-    if (!Array.isArray(data) || !data.length) return;
+    let data = [];
+    for (let _o = 0; _o < 4000; _o += 1000) {
+      const _r = await fetch(base + '&offset=' + _o, { headers });
+      const _p = await _r.json();
+      if (!Array.isArray(_p) || !_p.length) break;
+      data = data.concat(_p);
+      if (_p.length < 1000) break;
+    }
+    if (!data.length) return;
     data.forEach(s => {
       // ordered newest-first → keep the most recent row per symbol
       if (s.symbol && !(s.symbol in window.last5BySym)) {
@@ -12495,7 +12501,7 @@ function scrPvMini(d){const cl=d.closes||[],vl=d.vols||[];
  if(vl.length<2 && cl.length<2)return '<span class="scr-dash">—</span>';
  const w=82,h=32,vh=11,pad=2;let bars='';
  if(vl.length){const n=vl.length,vmax=Math.max(...vl,2),step=(w-pad*2)/Math.max(1,n-1),bw=step*.6;
-  bars=vl.map((v,i)=>{const bh=Math.max(1,(v||0)/vmax*vh),x=pad+i*step-bw/2,y=h-bh,col=v>=1.5?'var(--green)':v>=1?'var(--cyan)':'var(--muted)';return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" opacity="${i===n-1?1:.6}"/>`;}).join('');}
+  bars=vl.map((v,i)=>{const bh=Math.max(1,(v||0)/vmax*vh),x=pad+i*step-bw/2,y=h-bh,upday=(cl.length===vl.length&&cl.length>=2)?(i>0?(cl[i]>=cl[i-1]):(cl[1]>=cl[0])):null,col=(upday===null)?(v>=1?'var(--cyan)':'var(--muted)'):(upday?'var(--green)':'var(--red)');return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" opacity="${i===n-1?1:.6}"/>`;}).join('');}
  let line='',up=true;
  if(cl.length>=2){const mn=Math.min(...cl),mx=Math.max(...cl),rng=(mx-mn)||1,step=(w-pad*2)/(cl.length-1);
   const pts=cl.map((c,i)=>`${(pad+i*step).toFixed(1)},${(pad+(1-(c-mn)/rng)*(h-vh-pad*2)).toFixed(1)}`).join(' ');
@@ -12505,10 +12511,10 @@ function scrPvMini(d){const cl=d.closes||[],vl=d.vols||[];
 function scrEmaStat(a9,a20){if(a9&&a20)return '🟢 9>20';if(!a9&&!a20)return '🔴 <both';return '🟡 mixed';}
 
 const SCR_COLS=[
- {k:'last5',g:'Core',lbl:'Last 5',a:'c',tip:'Last 5 sessions price action',def:1,cell:d=>scrL5(d.last5)},
- {k:'pv',g:'Core',lbl:'Price / Vol',a:'c',tip:'Price line over volume bars (last 5 sessions)',def:1,cell:d=>scrPvMini(d)},
  {k:'sector',g:'Core',lbl:'Sector',tip:'Sector',def:1,cell:d=>`<span class="scr-sub">${d.sector}</span>`},
  {k:'industry',g:'Core',lbl:'Industry',tip:'Industry',def:0,cell:d=>`<span class="scr-sub">${d.industry}</span>`},
+ {k:'last5',g:'Core',lbl:'Last 5',a:'c',tip:'Last 5 sessions price action',def:1,cell:d=>scrL5(d.last5)},
+ {k:'pv',g:'Core',lbl:'Price / Vol',a:'c',tip:'Price line over volume bars (last 5 sessions)',def:1,cell:d=>scrPvMini(d)},
  {k:'ltp',g:'Core',lbl:'LTP',a:'r',tip:'Last traded price',def:1,cell:d=>`<span class="scr-mono">${d.ltp!=null?d.ltp:'—'}</span>`},
  {k:'day',g:'Price',lbl:'Day %',a:'r',tip:"Today's price change",def:1,cell:d=>scrPct(d.day)},
  {k:'week',g:'Price',lbl:'Week %',a:'r',tip:'7-day change',def:0,cell:d=>scrPct(d.week)},
@@ -12577,7 +12583,7 @@ function scrDaysBetween(a,b){if(!a||!b||a==='—'||b==='—')return null;const d
 async function scrLoad(){
  if(SCR.loaded){scrRender();return;}
  try{
-  const latest=await volGet('momentum_stocks?select=*&order=session_date.desc&limit=3000');
+  let latest=[];for(let _o=0;_o<4000;_o+=1000){const _pg=await volGet('momentum_stocks?select=*&order=session_date.desc&limit=1000&offset='+_o);if(!_pg||!_pg.length)break;latest=latest.concat(_pg);if(_pg.length<1000)break;}
   if(!latest||!latest.length){document.getElementById('scr-body').innerHTML='<tr><td style="padding:24px;text-align:center;color:var(--muted)">No data yet — check back after the evening scan.</td></tr>';return;}
   const ld=latest[0].session_date;SCR.updated=ld;
   const snap=latest.filter(s=>s.session_date===ld);
