@@ -12510,11 +12510,23 @@ function scrPvMini(d){const cl=d.closes||[],vl=d.vols||[];
  return `<svg class="scr-pv" width="${w}" height="${h}"><title>${tip}</title>${bars}${line}</svg>`;}
 function scrEmaStat(a9,a20){if(a9&&a20)return '🟢 9>20';if(!a9&&!a20)return '🔴 <both';return '🟡 mixed';}
 
+function scrTherm(d){
+  if(d.low52==null||d.hi52==null||d.ltp==null||d.hi52<=d.low52)return '<span class="scr-dash">\u2014</span>';
+  var w=70,h=12,pad=2;var frac=Math.max(0,Math.min(1,(d.ltp-d.low52)/(d.hi52-d.low52)));
+  var x=pad+frac*(w-pad*2);var col=frac>=0.8?'var(--green)':frac>=0.4?'var(--cyan)':'var(--amber)';
+  var pctHi=((d.ltp/d.hi52-1)*100).toFixed(0);
+  return '<svg width="'+w+'" height="'+h+'" style="vertical-align:middle"><title>'+Math.round(frac*100)+'% of 52W range \u00b7 '+pctHi+'% vs 52W high</title>'
+    +'<rect x="'+pad+'" y="'+(h/2-1.5)+'" width="'+(w-pad*2)+'" height="3" rx="1.5" fill="var(--border2)"/>'
+    +'<rect x="'+pad+'" y="'+(h/2-1.5)+'" width="'+(x-pad).toFixed(1)+'" height="3" rx="1.5" fill="'+col+'" opacity="0.45"/>'
+    +'<circle cx="'+x.toFixed(1)+'" cy="'+(h/2)+'" r="3" fill="'+col+'"/></svg>';
+}
 const SCR_COLS=[
  {k:'sector',g:'Core',lbl:'Sector',tip:'Sector',def:1,cell:d=>`<span class="scr-sub">${d.sector}</span>`},
  {k:'industry',g:'Core',lbl:'Industry',tip:'Industry',def:0,cell:d=>`<span class="scr-sub">${d.industry}</span>`},
  {k:'last5',g:'Core',lbl:'Last 5',a:'c',tip:'Last 5 sessions price action',def:1,cell:d=>scrL5(d.last5)},
  {k:'pv',g:'Core',lbl:'Price / Vol',a:'c',tip:'Price line over volume bars (last 5 sessions)',def:1,cell:d=>scrPvMini(d)},
+ {k:'wkpv',g:'Core',lbl:'Wk P/V',a:'c',tip:'Weekly price line over volume bars (~10 weeks). Green/red bar = week closed up/down.',def:1,cell:d=>window.tfPvMini(d.wkcloses||[],d.wkvols||[])},
+ {k:'therm',g:'Core',lbl:'52W Range',a:'c',tip:'Where price sits in its 52-week range (low \u2192 high). Dot = current price.',def:1,cell:d=>scrTherm(d)},
  {k:'ltp',g:'Core',lbl:'LTP',a:'r',tip:'Last traded price',def:1,cell:d=>`<span class="scr-mono">${d.ltp!=null?d.ltp:'—'}</span>`},
  {k:'day',g:'Price',lbl:'Day %',a:'r',tip:"Today's price change",def:1,cell:d=>scrPct(d.day)},
  {k:'week',g:'Price',lbl:'Week %',a:'r',tip:'7-day change',def:0,cell:d=>scrPct(d.week)},
@@ -12523,6 +12535,7 @@ const SCR_COLS=[
  {k:'demastat',g:'Price',lbl:'Daily EMA',a:'c',tip:'Daily EMA alignment',def:0,cell:d=>scrTxt(d.demastat,'Daily 9 vs 20 EMA')},
  {k:'wemastat',g:'Price',lbl:'Weekly EMA',a:'c',tip:'Weekly EMA alignment',def:0,cell:d=>scrTxt(d.wemastat,'Weekly 9 vs 20 EMA')},
  {k:'pct9e',g:'Price',lbl:'%9E',a:'r',tip:'Distance from daily 9 EMA — near 0% = entry zone',def:1,cell:d=>scrPct(d.pct9e)},
+ {k:'pct5e',g:'Price',lbl:'%5E',a:'r',tip:'Distance from daily 5 EMA — the fastest trend line; near 0% = riding it',def:1,cell:d=>scrPct(d.pct5e)},
  {k:'pct9w',g:'Price',lbl:'%Wk9E',a:'r',tip:'Distance from weekly 9 EMA',def:0,cell:d=>scrPct(d.pct9w)},
  {k:'trendDays',g:'Price',lbl:'Trend Days',a:'r',tip:'Days in uptrend',def:0,cell:d=>scrTxt(d.trendDays)},
  {k:'greenDays',g:'Price',lbl:'🟢 Days',a:'r',tip:'Consecutive green days',def:0,cell:d=>scrTxt(d.greenDays)},
@@ -12561,6 +12574,7 @@ const SCR_FILTERS=[
  {key:'cat',label:'Category',opts:['A','AC','B','C'],disp:{A:'🟢 A',AC:'💎 A+C',B:'🟡 B',C:'🔵 C'},tips:{A:'Above daily 9+20 and weekly 9+20 — full uptrend as of the latest close.',AC:'Category A plus a fresh weekly crossover — as of the latest close.',B:'Below the daily 9 but above the weekly — pullback state as of the latest close.',C:'Fresh weekly 9>20 crossover — early turn, as of the latest weekly close.'}},
  {key:'signal',label:'Signal',opts:['active','fresh','setup'],disp:{active:'📈 In Uptrend',fresh:'Fresh Crossover',setup:'Has Breakout/QM'},tips:{active:'Closed above the daily 9 EMA, or only 1 day below it — still in uptrend. As of the latest close.',fresh:'A 9>20 crossover flagged fresh in the latest scan.',setup:'Has an active breakout or QM pattern as of the latest close.'}},
  {key:'zone',label:'Daily 9E Zone',opts:['near9e','w10','above9d'],disp:{near9e:'Near 9E (±5%)',w10:'Within 10%',above9d:'Above Daily 9'},tips:{near9e:'Within 5% of the daily 9 EMA as of todays close.',w10:'Within 10% of the daily 9 EMA as of todays close.',above9d:'Trading above the daily 9 EMA as of todays close.'}},
+ {key:'zone5',label:'Daily 5E Zone',opts:['near5e2','near5e5','above5d'],disp:{near5e2:'≤2%',near5e5:'≤5%',above5d:'Above Daily 5'},tips:{near5e2:'Within 2% of the daily 5 EMA as of todays close.',near5e5:'Within 5% of the daily 5 EMA as of todays close.',above5d:'Trading above the daily 5 EMA as of todays close.'}},
  {key:'wzone',label:'Wk 9E Away',opts:['w2','w5','w10','w15'],disp:{w2:'≤2%',w5:'≤5%',w10:'≤10%',w15:'≤15%'},tips:{w2:'Within 2% of the weekly 9 EMA as of the latest weekly close.',w5:'Within 5% of the weekly 9 EMA as of the latest weekly close.',w10:'Within 10% of the weekly 9 EMA as of the latest weekly close.',w15:'Within 15% of the weekly 9 EMA as of the latest weekly close.'}},
  {key:'z52',label:'52W',opts:['zone','base','bo'],disp:{zone:'🎯 BO Zone',base:'🟦 Breakout Base',bo:'🚀 52W Base BO'},tips:{zone:'Within 15% below the 52-week high right now — coiling near highs.',base:'Broke out and holding within 15% of the breakout — current state.',bo:'Extended more than 15% past the breakout — current state.'}},
  {key:'vsig',label:'Volume',opts:['acc','weak','dist','pull','High','Building'],disp:{acc:'🟢 Accumulation',weak:'🟡 Weak rally',dist:'🔴 Distribution',pull:'⚪ Healthy pullback',High:'Vol: High',Building:'Vol: Building'},tips:{acc:'Accumulation — closed UP today on 1.5x or more of the 20-day average volume. Todays session only.',weak:'Weak rally — closed up today but on under 1.5x the 20-day average volume. Todays session only.',dist:'Distribution — closed DOWN today on 1.5x or more of the 20-day average volume. Todays session only.',pull:'Healthy pullback — closed down today on under 1.5x the 20-day average volume. Todays session only.',High:'Todays volume bucket is High vs its 20-day average. Todays session.',Building:'Volume building — todays bucket is High or Very High vs average. Todays session.'}},
@@ -12593,6 +12607,8 @@ async function scrLoad(){
   SCR.data=snap.map(s=>{
    const closes=(s.last5_closes&&typeof s.last5_closes==='string'&&s.last5_closes.indexOf(',')>-1)?s.last5_closes.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
    const vols=(s.vol5_ratios&&typeof s.vol5_ratios==='string'&&s.vol5_ratios.indexOf(',')>-1)?s.vol5_ratios.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
+   const wkcloses=(s.wk_closes&&typeof s.wk_closes==='string'&&s.wk_closes.indexOf(',')>-1)?s.wk_closes.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
+   const wkvols=(s.wk_vol_ratios&&typeof s.wk_vol_ratios==='string'&&s.wk_vol_ratios.indexOf(',')>-1)?s.wk_vol_ratios.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
    const hi=s.high_52w!=null?+s.high_52w:null;const pct52=(hi&&s.ltp!=null)?((+s.ltp)/hi-1)*100:null;
    const z52=scrZ52state(s,pct52);
    const rvol=s.vol_ratio!=null?+s.vol_ratio:(vols.length?vols[vols.length-1]:null);
@@ -12605,6 +12621,7 @@ async function scrLoad(){
     day,week:s.week_chg_pct!=null?+s.week_chg_pct:null,month:s.month_chg_pct!=null?+s.month_chg_pct:null,
     e9d:!!s.above_ema9_daily,e9w:!!s.above_ema9_weekly,
     pct9e:s.pct_from_ema9_daily!=null?+s.pct_from_ema9_daily:null,pct9w:s.pct_from_ema9_weekly!=null?+s.pct_from_ema9_weekly:null,
+    pct5e:s.pct_from_ema5_daily!=null?+s.pct_from_ema5_daily:null,e5d:!!s.above_ema5_daily,low52:s.low_52w!=null?+s.low_52w:null,wkcloses,wkvols,
     last5:s.last5_summary||'—',qm:(qm==='BrokenOut'?null:qm),
     demastat:scrEmaStat(s.above_ema9_daily,s.above_ema20_daily),wemastat:scrEmaStat(s.above_ema9_weekly,s.above_ema20_weekly),
     trendDays:s.days_in_uptrend,greenDays:s.consecutive_green,hi52:hi,pct52,away52:(pct52!=null&&pct52<0)?Math.abs(pct52):(pct52!=null?0:null),z52,
@@ -12665,6 +12682,7 @@ function scrPasses(d){
  if(S.vsig.size){let ok=false;S.vsig.forEach(v=>{if(['acc','weak','dist','pull'].includes(v)&&d.vsig===v)ok=true;if(v==='High'&&d.volClass==='Very High')ok=true;if(v==='Building'&&d.build)ok=true;});if(!ok)return false;}
  if(S.signal.size){if(S.signal.has('active')&&!d.active)return false;if(S.signal.has('fresh')&&!d.fresh)return false;if(S.signal.has('setup')&&!d.qm)return false;}
  if(S.zone.size){let ok=false;if(S.zone.has('near9e')&&d.pct9e!=null&&Math.abs(d.pct9e)<=5)ok=true;if(S.zone.has('w10')&&d.pct9e!=null&&Math.abs(d.pct9e)<=10)ok=true;if(S.zone.has('above9d')&&d.e9d)ok=true;if(!ok)return false;}
+ if(S.zone5.size){let ok=false;if(S.zone5.has('near5e2')&&d.pct5e!=null&&Math.abs(d.pct5e)<=2)ok=true;if(S.zone5.has('near5e5')&&d.pct5e!=null&&Math.abs(d.pct5e)<=5)ok=true;if(S.zone5.has('above5d')&&d.e5d)ok=true;if(!ok)return false;}
  if(S.wzone.size){if(d.pct9w==null)return false;const a=Math.abs(d.pct9w);let ok=false;S.wzone.forEach(v=>{const lim={w2:2,w5:5,w10:10,w15:15}[v];if(a<=lim)ok=true;});if(!ok)return false;}
  if(S.price.size){const m=Math.min(...[...S.price].map(Number));if(d.ltp==null||d.ltp<m)return false;}
  return true;
