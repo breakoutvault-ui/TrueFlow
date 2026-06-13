@@ -2284,7 +2284,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="scr-fbar"><span class="lbl">Filters — click any to multi-select</span><div class="scr-filters" id="scr-filters"></div></div>
 
     <div class="scr-bar2">
-      <input class="scr-search" id="scr-q" placeholder="🔍 Search symbol…" oninput="scrRender()">
+      <input class="scr-search" id="scr-q" placeholder="🔍 Search symbol or name…" oninput="scrRender()">
       <details class="scr-f"><summary class="scr-tool">⊞ Columns</summary><div class="scr-panel" id="scr-col-panel" style="min-width:230px"></div></details>
       <button class="scr-tool unhide" onclick="scrUnhideAll()">⟲ Unhide all columns</button>
       <details class="scr-f"><summary class="scr-tool">💾 Presets</summary><div class="scr-panel" style="min-width:230px"><div class="ph">Save current filters</div><div class="scr-psave"><input id="scr-pname" placeholder="Name this preset…"><button class="scr-tool" onclick="scrSavePreset()">Save</button></div><div class="ph" style="margin-top:6px">Saved</div><div id="scr-saved-list"></div></div></details>
@@ -7465,11 +7465,15 @@ function daysSince(dateStr) {
 // ── GLOBAL SEARCH ────────────────────────────────────
 function globalSearch(query) {
   const q = (query||'').trim().toUpperCase();
-  // Search across all visible tables by filtering rows
+  let nameSyms = null;
+  if (q && window.tfSymName) { nameSyms = []; for (const s in window.tfSymName) { if (window.tfSymName[s].includes(q)) nameSyms.push(s); } if (!nameSyms.length) nameSyms = null; }
+  // Search across all visible tables by symbol/text OR company name
   document.querySelectorAll('.mom-tbl tbody tr, .fo-tbl tbody tr, .tbl tbody tr').forEach(row => {
     if (!q) { row.style.display = ''; return; }
     const text = row.textContent.toUpperCase();
-    row.style.display = text.includes(q) ? '' : 'none';
+    let show = text.includes(q);
+    if (!show && nameSyms) { for (const s of nameSyms) { if (text.includes(s)) { show = true; break; } } }
+    row.style.display = show ? '' : 'none';
   });
 }
 
@@ -12617,7 +12621,7 @@ async function scrLoad(){
    const qm=s.qm_pattern||(s.qm_ema_reclaim?'Reclaim':(s.breakout_type?'BrokenOut':null));
    const cat=s.category||null;
    const aplus=(cat==='A'||cat==='AC')&&s.pct_from_ema9_daily!=null&&Math.abs(+s.pct_from_ema9_daily)<=5&&rvol!=null&&rvol>=1.5&&(z52==='zone'||z52==='base')&&tm[s.symbol]&&tm[s.symbol].tier!=='OFFLOADING';
-   return {sym:s.symbol,sector:s.sector||'—',industry:s.industry||'—',cat,ltp:s.ltp!=null?+s.ltp:null,
+   return {sym:s.symbol,name:(s.company_name||''),sector:s.sector||'—',industry:s.industry||'—',cat,ltp:s.ltp!=null?+s.ltp:null,
     day,week:s.week_chg_pct!=null?+s.week_chg_pct:null,month:s.month_chg_pct!=null?+s.month_chg_pct:null,
     e9d:!!s.above_ema9_daily,e9w:!!s.above_ema9_weekly,
     pct9e:s.pct_from_ema9_daily!=null?+s.pct_from_ema9_daily:null,pct9w:s.pct_from_ema9_weekly!=null?+s.pct_from_ema9_weekly:null,
@@ -12634,6 +12638,7 @@ async function scrLoad(){
     fresh:!!(s.is_fresh_daily_cross||s.is_fresh_weekly_cross),build:(s.vol_class==='High'||s.vol_class==='Very High'),vsig,aplus,active:(s.is_active!==false),
     breakout_type:s.breakout_type,breakout_price:s.breakout_price,pivotLvl:s.qm_pivot_level};
   });
+  window.tfSymName={};SCR.data.forEach(d=>{if(d.name)window.tfSymName[d.sym]=d.name.toUpperCase();});
   const secs=[...new Set(SCR.data.map(d=>d.sector).filter(x=>x&&x!=='—'))].sort();
   SCR_FILTERS.find(f=>f.key==='sector').opts=secs;
   const u=document.getElementById('scr-updated');if(u)u.textContent=ld;
@@ -12669,7 +12674,7 @@ function scrCopyTV(){const syms=SCR.last.map(d=>'NSE:'+d.sym).join(',');if(navig
 function scrToast(m){let t=document.getElementById('scr-toast');if(!t){t=document.createElement('div');t.id='scr-toast';t.className='scr-toast';document.body.appendChild(t);}t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
 
 function scrPasses(d){
- const q=(document.getElementById('scr-q').value||'').toUpperCase();if(q&&!d.sym.includes(q))return false;
+ const q=(document.getElementById('scr-q').value||'').toUpperCase();if(q&&!(d.sym.includes(q)||(d.name||'').toUpperCase().includes(q)))return false;
  const S=SCR.state;
  if(SCR.activePreset==='aplus'&&!d.aplus)return false;
  if(S.pattern.size){let ok=false;S.pattern.forEach(p=>{if(['EP','VCP','HTF','Reclaim'].includes(p)&&d.qm===p)ok=true;if(p==='BrokenOut'&&d.z52==='bo')ok=true;if(p==='NearPivot'&&(d.z52==='zone'||d.z52==='base'))ok=true;});if(!ok)return false;}
