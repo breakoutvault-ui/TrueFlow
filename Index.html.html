@@ -894,6 +894,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tab-screener .scr-panel .grp{font-size:10px;color:var(--cyan);font-weight:700;text-transform:uppercase;padding:8px 7px 3px}
 #tab-screener .scr-panel label{display:flex;align-items:center;gap:8px;padding:6px 7px;border-radius:6px;font-size:12px;color:var(--text2);cursor:pointer}
 #tab-screener .scr-panel label:hover{background:var(--cyan-dim);color:var(--text)}
+#tab-screener .scr-ptools,#tab-volume .scr-ptools{display:flex;gap:5px;align-items:center;padding:5px 6px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2)}
+#tab-screener .scr-fsearch,#tab-volume .scr-fsearch{flex:1;min-width:70px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:5px 8px;font-size:11px;font-family:inherit}
+#tab-screener .scr-fbtn,#tab-volume .scr-fbtn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:10px;font-weight:700;padding:5px 8px;border-radius:6px;cursor:pointer;white-space:nowrap}
+#tab-screener .scr-fbtn:hover,#tab-volume .scr-fbtn:hover{border-color:var(--cyan);color:var(--text)}
 #tab-screener .scr-search{background:var(--bg2);border:1px solid var(--border2);color:var(--text);border-radius:99px;padding:7px 14px;font-size:12px;font-family:inherit;min-width:150px}
 #tab-screener .scr-tool{background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-size:12px;font-weight:600;padding:7px 12px;border-radius:99px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 #tab-screener .scr-tool:hover{border-color:var(--border3);color:var(--text)}
@@ -12303,7 +12307,7 @@ function volFiltered(){
 }
 
 /* ===== Volume Buildup — Screener-style interface (VB engine) — v24 ===== */
-const VB={vis:{},state:{},activePreset:'all',last:[]};
+const VB={vis:{},state:{},activePreset:'all',last:[],sortKey:null,sortDir:-1};
 const VB_COLS=[
  {k:'sector',g:'Core',lbl:'Sector',a:'',def:1,tip:'Sector (from your Momentum universe)',cell:d=>`<span class="vbt-sector">${d.sector}</span>`},
  {k:'industry',g:'Core',lbl:'Industry',a:'',def:0,tip:'Industry',cell:d=>`<span class="vbt-sector">${d.industry||'—'}</span>`},
@@ -12366,12 +12370,17 @@ function vbPasses(d){
  if(S.price.size){const m=Math.min(...[...S.price].map(Number));if(d.ltp==null||d.ltp<m)return false;}
  return true;
 }
+const VB_NOSORT=new Set(['last5','vbuild','pv','wkpv','therm']);
+function vbSortVal(d,k){if(k==='sym'||k==='symbol')return d.symbol;if(k==='rvol')return d.v&&d.v.length?d.v[d.v.length-1]:null;if(k==='trend')return volTrend(d.v);if(k==='ema')return d.cat;if(k==='setup')return d.setup;if(k==='grade')return VOLstate.gradeMap[d.symbol]||null;if(k==='tier')return (VOLstate.tierMap[d.symbol]||{}).tier||null;return d[k];}
+function vbCmp(a,b){const k=VB.sortKey,dir=VB.sortDir||1;let va=vbSortVal(a,k),vb=vbSortVal(b,k);const na=va==null||va==='',nb=vb==null||vb==='';if(na&&nb)return 0;if(na)return 1;if(nb)return -1;if(typeof va==='number'&&typeof vb==='number')return (va-vb)*dir;return String(va).localeCompare(String(vb))*dir;}
+function vbSort(k){if(VB.sortKey===k)VB.sortDir=(VB.sortDir||1)*-1;else{VB.sortKey=k;VB.sortDir=-1;}vbBoardRender();}
+function vbSelAll(key,on){const f=VB_FILTERS.find(x=>x.key===key);if(!f)return;VB.state[key]=on?new Set(f.opts):new Set();VB.activePreset=null;vbSyncChecks();vbSyncChips();vbBoardRender();}
 function vbBoardRender(){
- const rows=volRows().filter(vbPasses).sort((a,b)=>b.score-a.score);VB.last=rows;
+ let rows=volRows().filter(vbPasses);if(VB.sortKey)rows.sort(vbCmp);else rows.sort((a,b)=>b.score-a.score);VB.last=rows;
  const cnt=document.getElementById('vol-cnt');if(cnt)cnt.textContent=rows.length;
  const show=VB_COLS.filter(c=>VB.vis[c.k]);
- let hd='<th title="Rank by Buildup Score (highest first)">#</th><th class="c" title="Star to add to My Picks">★</th><th title="NSE symbol — opens TradingView">Symbol</th>';
- hd+=show.map(c=>`<th class="${c.a||''}" title="${(c.tip||'').replace(/"/g,'&quot;')}">${c.lbl}<span class="hide-x" title="Hide this column" onclick="vbHideCol('${c.k}')">−</span></th>`).join('');
+ let hd=`<th title="Rank by Buildup Score (highest first)">#</th><th class="c" title="Star to add to My Picks">★</th><th title="Sort by symbol" onclick="vbSort('symbol')" style="cursor:pointer">Symbol${VB.sortKey==='symbol'?(VB.sortDir<0?' ▼':' ▲'):''}</th>`;
+ hd+=show.map(c=>{const sb=!VB_NOSORT.has(c.k);const ar=(VB.sortKey===c.k)?(VB.sortDir<0?' ▼':' ▲'):'';return `<th class="${c.a||''}"><span title="${(c.tip||'').replace(/"/g,'&quot;')}"${sb?` onclick="vbSort('${c.k}')" style="cursor:pointer"`:''}>${c.lbl}${ar}</span><span class="hide-x" title="Hide this column" onclick="vbHideCol('${c.k}')">−</span></th>`;}).join('');
  const th=document.getElementById('vol-thead');if(th)th.innerHTML=hd;
  const body=document.getElementById('vol-body');if(!body)return;
  if(!rows.length){body.innerHTML=`<tr><td colspan="${show.length+3}" style="padding:24px;text-align:center;color:var(--muted)">No stocks match — clear a filter, lower RVOL, or change the window.</td></tr>`;return;}
@@ -12386,7 +12395,7 @@ function vbBuildUI(){
  const pr=document.getElementById('vol-presets');
  if(pr){pr.querySelectorAll('.scr-pre').forEach(b=>b.remove());pr.insertAdjacentHTML('beforeend',VB_PRESETS.map(p=>`<button class="scr-pre ${p.gold?'gold':''} ${p.id===VB.activePreset?'active':''}" data-p="${p.id}" title="${(p.desc||'').replace(/"/g,'&quot;')}" onclick="vbApplyPreset('${p.id}')">${p.label}</button>`).join(''));vbAppendUserPills();}
  const ff=document.getElementById('vol-filters');
- if(ff)ff.innerHTML=VB_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="vbf-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div>${f.opts.map(o=>`<label${(f.tips&&f.tips[o])?` title="${f.tips[o]}"`:''}><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="vbToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
+ if(ff)ff.innerHTML=VB_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="vbf-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div><div class="scr-ptools"><input class="scr-fsearch" placeholder="Search…" oninput="scrFilterOpts(this)"><button type="button" class="scr-fbtn" onclick="vbSelAll('${f.key}',true)">All</button><button type="button" class="scr-fbtn" onclick="vbSelAll('${f.key}',false)">Clear</button></div>${f.opts.map(o=>`<label${(f.tips&&f.tips[o])?` title="${f.tips[o]}"`:''}><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="vbToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
  const cp=document.getElementById('vol-col-panel');
  if(cp){const groups=[...new Set(VB_COLS.map(c=>c.g))];cp.innerHTML='<div class="ph">Show / hide columns</div>'+groups.map(g=>`<div class="grp">${g}</div>`+VB_COLS.filter(c=>c.g===g).map(c=>`<label><input type="checkbox" data-col="${c.k}" ${VB.vis[c.k]?'checked':''} onchange="VB.vis['${c.k}']=this.checked;vbBoardRender()"> ${c.lbl}</label>`).join('')).join('');}
  document.querySelectorAll('#tab-volume details.scr-f').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('#tab-volume details.scr-f').forEach(o=>{if(o!==d)o.open=false;});}));
@@ -12634,7 +12643,7 @@ function saCloseDrill(){ document.getElementById('sa-drill').classList.remove('o
 
 <script>
 /* ═══ SCREENER SUB-TAB — logic (all scr*-namespaced; reuses volGet) ═══ */
-let SCR = { loaded:false, data:[], hist:{}, tierMap:{}, gradeMap:{}, state:{}, vis:{}, activePreset:'all', last:[], updated:'—' };
+let SCR = { loaded:false, data:[], hist:{}, tierMap:{}, gradeMap:{}, state:{}, vis:{}, activePreset:'all', last:[], updated:'—', sortKey:null, sortDir:-1 };
 
 const SCR_T = (t)=>` title="${(t||'').replace(/"/g,'&quot;')}"`;
 const scrNum=(v,d=1)=>v==null?'<span class="scr-dash">—</span>':(+v).toFixed(d);
@@ -12703,6 +12712,7 @@ const SCR_COLS=[
  {k:'z52',g:'Price',lbl:'52W State',a:'c',tip:'BO Zone / Breakout Base / 52W Base BO',def:1,cell:d=>scrZ52B(d)},
  {k:'consolDays',g:'Price',lbl:'Consol Days',a:'r',tip:'Sessions consolidating in BO Zone / Breakout Base before the next move',def:1,cell:d=>d.consolDays!=null?`<span class="scr-mono"${SCR_T('Consolidating '+d.consolDays+' sessions in the breakout zone/base — longer base often precedes a bigger move')}>${d.consolDays}d</span>`:'<span class="scr-dash">—</span>'},
  {k:'rvol',g:'Volume',lbl:'RVOL',a:'r',tip:'Relative volume today vs 20-day average',def:1,cell:d=>scrRvolB(d.rvol)},
+ {k:'wkvol',g:'Volume',lbl:'Wk Vol',a:'r',tip:'Average RVOL over the last 5 sessions (this week)',def:0,cell:d=>{const v=d.vols||[];if(!v.length)return '<span class="scr-dash">—</span>';const a=v.reduce((x,y)=>x+y,0)/v.length;return scrRvolB(+a.toFixed(2));}},
  {k:'bovol',g:'Volume',lbl:'BO Vol',a:'c',tip:'Best relative volume on the breakout day or within ±3 sessions — high = trustworthy',def:1,cell:d=>scrBoVolB(d)},
  {k:'vsig',g:'Volume',lbl:'Vol Signal',a:'c',tip:'Price move × volume',def:1,cell:d=>scrVsB(d)},
  {k:'volMove',g:'Volume',lbl:'Vol on Move',a:'c',tip:'Volume classification on the move',def:0,cell:d=>scrTxt(d.volMove,'Volume on the move')},
@@ -12740,6 +12750,7 @@ const SCR_FILTERS=[
  {key:'rvolmin',label:'RVOL',opts:['1.5','2','3'],disp:{'1.5':'≥1.5×','2':'≥2×','3':'≥3×'},tips:{'1.5':'Todays volume is at least 1.5x the 20-day average. Today vs 20-day baseline.','2':'Todays volume is at least 2x the 20-day average. Today vs 20-day baseline.','3':'Todays volume is at least 3x the 20-day average. Today vs 20-day baseline.'}},
  {key:'smt',label:'Smart $',opts:['LOADING_UP','ACCUMULATING','NIBBLING','OFFLOADING'],disp:{LOADING_UP:'🔥 Loading Up',ACCUMULATING:'📈 Accumulating',NIBBLING:'👀 Nibbling',OFFLOADING:'📉 Offloading'},tips:{LOADING_UP:'Heavy institutional buying across recent bulk/block deals — a trailing window, not just today.',ACCUMULATING:'Steady institutional buying across recent deals — a trailing window.',NIBBLING:'Light institutional buying across recent deals — a trailing window.',OFFLOADING:'Net institutional selling across recent deals — a trailing window.'}},
  {key:'sector',label:'Sector',opts:[]},
+ {key:'industry',label:'Industry',opts:[]},
  {key:'grade',label:'Results',opts:['Blockbuster','Turnaround','Steady','Mixed','Weak'],tips:{Blockbuster:'Based on the latest reported quarterly result.',Turnaround:'Based on the latest reported quarterly result.',Steady:'Based on the latest reported quarterly result.',Mixed:'Based on the latest reported quarterly result.',Weak:'Based on the latest reported quarterly result.'}},
  {key:'price',label:'Price',opts:['100','500','1000'],disp:{'100':'≥₹100','500':'≥₹500','1000':'≥₹1000'}},
 ];
@@ -12796,6 +12807,7 @@ async function scrLoad(){
   window.tfSymName={};SCR.data.forEach(d=>{if(d.name)window.tfSymName[d.sym]=d.name.toUpperCase();});
   const secs=[...new Set(SCR.data.map(d=>d.sector).filter(x=>x&&x!=='—'))].sort();
   SCR_FILTERS.find(f=>f.key==='sector').opts=secs;
+  SCR_FILTERS.find(f=>f.key==='industry').opts=[...new Set(SCR.data.map(d=>d.industry).filter(x=>x&&x!=='—'))].sort();
   const u=document.getElementById('scr-updated');if(u)u.textContent=ld;
   SCR.loaded=true;scrBuildUI();scrRender();
  }catch(e){console.error('Screener load error:',e);document.getElementById('scr-body').innerHTML='<tr><td style="padding:24px;text-align:center;color:var(--red)">Error loading screener — see console.</td></tr>';}
@@ -12804,7 +12816,7 @@ async function scrLoad(){
 function scrBuildUI(){
  const pr=document.getElementById('scr-presets');pr.querySelectorAll('.scr-pre').forEach(b=>b.remove());
  pr.insertAdjacentHTML('beforeend',SCR_PRESETS.map(p=>`<button class="scr-pre ${p.gold?'gold':''} ${p.id==='all'?'active':''}" data-p="${p.id}" title="${p.desc||''}" onclick="scrApplyPreset('${p.id}')">${p.label}</button>`).join(''));
- scrAppendUserPills();document.getElementById('scr-filters').innerHTML=SCR_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="scr-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div>${f.opts.map(o=>`<label${(f.tips&&f.tips[o])?` title="${f.tips[o]}"`:''}><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="scrToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
+ scrAppendUserPills();document.getElementById('scr-filters').innerHTML=SCR_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="scr-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div><div class="scr-ptools"><input class="scr-fsearch" placeholder="Search…" oninput="scrFilterOpts(this)"><button type="button" class="scr-fbtn" onclick="scrSelAll('${f.key}',true)">All</button><button type="button" class="scr-fbtn" onclick="scrSelAll('${f.key}',false)">Clear</button></div>${f.opts.map(o=>`<label${(f.tips&&f.tips[o])?` title="${f.tips[o]}"`:''}><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="scrToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
  const groups=[...new Set(SCR_COLS.map(c=>c.g))];
  document.getElementById('scr-col-panel').innerHTML='<div class="ph">Show / hide columns</div>'+groups.map(g=>`<div class="grp">${g}</div>`+SCR_COLS.filter(c=>c.g===g).map(c=>`<label><input type="checkbox" data-col="${c.k}" ${SCR.vis[c.k]?'checked':''} onchange="SCR.vis['${c.k}']=this.checked;scrRender()"> ${c.lbl}</label>`).join('')).join('');
  document.getElementById('scr-tot').textContent=SCR.data.length;
@@ -12840,6 +12852,7 @@ function scrPasses(d){
  if(S.grade.size&&!S.grade.has(d.grade))return false;
  if(S.smt.size&&!S.smt.has(d.smt))return false;
  if(S.sector.size&&!S.sector.has(d.sector))return false;
+ if(S.industry&&S.industry.size&&!S.industry.has(d.industry))return false;
  if(S.z52.size&&!S.z52.has(d.z52))return false;
  if(S.rvolmin.size){const m=Math.min(...[...S.rvolmin].map(Number));if(d.rvol==null||d.rvol<m)return false;}
  if(S.vsig.size){let ok=false;S.vsig.forEach(v=>{if(['acc','weak','dist','pull'].includes(v)&&d.vsig===v)ok=true;if(v==='High'&&d.volClass==='Very High')ok=true;if(v==='Building'&&d.build)ok=true;});if(!ok)return false;}
@@ -12850,13 +12863,19 @@ function scrPasses(d){
  if(S.price.size){const m=Math.min(...[...S.price].map(Number));if(d.ltp==null||d.ltp<m)return false;}
  return true;
 }
+const SCR_NOSORT=new Set(['pv','wkpv','therm','last5']);
+function scrSortVal(d,k){if(k==='sym')return d.sym;if(k==='wkvol'){const v=d.vols||[];return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;}if(k==='isCross')return d.fresh?1:0;if(k==='isBO')return d.qm?1:0;if(k==='aplus')return d.aplus?1:0;if(k==='reclaim')return d.reclaim?1:0;return d[k];}
+function scrCmp(a,b){const k=SCR.sortKey,dir=SCR.sortDir||1;let va=scrSortVal(a,k),vb=scrSortVal(b,k);const na=va==null||va==='',nb=vb==null||vb==='';if(na&&nb)return 0;if(na)return 1;if(nb)return -1;if(typeof va==='number'&&typeof vb==='number')return (va-vb)*dir;return String(va).localeCompare(String(vb))*dir;}
+function scrSort(k){if(SCR.sortKey===k)SCR.sortDir=(SCR.sortDir||1)*-1;else{SCR.sortKey=k;SCR.sortDir=-1;}scrRender();}
+function scrFilterOpts(inp){const q=(inp.value||'').toLowerCase();const p=inp.closest('.scr-panel');if(!p)return;p.querySelectorAll('label').forEach(l=>{l.style.display=(l.textContent||'').toLowerCase().includes(q)?'flex':'none';});}
+function scrSelAll(key,on){const f=SCR_FILTERS.find(x=>x.key===key);if(!f)return;SCR.state[key]=on?new Set(f.opts):new Set();SCR.activePreset=null;scrSyncChecks();scrSyncChips();scrRender();}
 function scrRender(){
  if(!SCR.loaded)return;
- const rows=SCR.data.filter(scrPasses).sort((a,b)=>(b.score||0)-(a.score||0));SCR.last=rows;
+ const rows=SCR.data.filter(scrPasses);if(SCR.sortKey)rows.sort(scrCmp);else rows.sort((a,b)=>(b.score||0)-(a.score||0));SCR.last=rows;
  document.getElementById('scr-cnt').textContent=rows.length;
  const show=SCR_COLS.filter(c=>SCR.vis[c.k]);
- let hd=`<th class="c"><span class="lab" title="Star to My Picks">⭐</span></th><th><span class="lab" title="Symbol — click to open TradingView">SYMBOL</span></th>`;
- hd+=show.map(c=>`<th class="${c.a||''}"><span class="lab"${SCR_T(c.tip)}>${c.lbl}</span><span class="hide-x" title="Hide this column" onclick="scrHideCol('${c.k}')">−</span></th>`).join('');
+ let hd=`<th class="c"><span class="lab" title="Star to My Picks">⭐</span></th><th><span class="lab" title="Sort by symbol" onclick="scrSort('sym')" style="cursor:pointer">SYMBOL${SCR.sortKey==='sym'?(SCR.sortDir<0?' ▼':' ▲'):''}</span></th>`;
+ hd+=show.map(c=>{const sb=!SCR_NOSORT.has(c.k);const ar=(SCR.sortKey===c.k)?(SCR.sortDir<0?' ▼':' ▲'):'';return `<th class="${c.a||''}"><span class="lab"${SCR_T(c.tip)}${sb?` onclick="scrSort('${c.k}')" style="cursor:pointer"`:''}>${c.lbl}${ar}</span><span class="hide-x" title="Hide this column" onclick="scrHideCol('${c.k}')">−</span></th>`;}).join('');
  document.getElementById('scr-thead').innerHTML=hd;
  document.getElementById('scr-body').innerHTML=rows.length?rows.map(d=>{
   const tv='https://www.tradingview.com/chart/?symbol=NSE:'+d.sym;
