@@ -9114,7 +9114,7 @@ window.tfPvMini=function(cl,vl){cl=cl||[];vl=vl||[];
  if(vl.length<2 && cl.length<2)return '<span style="color:var(--muted)">\u2014</span>';
  var w=82,h=32,vh=11,pad=2,bars='';
  if(vl.length){var n=vl.length,vmax=Math.max.apply(null,vl.concat([2])),step=(w-pad*2)/Math.max(1,n-1),bw=step*0.6;
-  bars=vl.map(function(v,i){var bh=Math.max(1,(v||0)/vmax*vh),x=pad+i*step-bw/2,y=h-bh,upday=(cl.length===vl.length&&cl.length>=2)?(i>0?(cl[i]>=cl[i-1]):(cl[1]>=cl[0])):null,col=(upday===null)?(v>=1?'var(--cyan)':'var(--muted)'):(upday?'var(--green)':'var(--red)');return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+col+'" opacity="'+(i===n-1?1:0.6)+'"/>';}).join('');}
+  bars=vl.map(function(v,i){var bh=Math.max(1,(v||0)/vmax*vh),x=pad+i*step-bw/2,y=h-bh,_ci=i+(cl.length-vl.length),upday=(cl.length>=2&&cl.length>=vl.length)?(_ci>=1?(cl[_ci]>=cl[_ci-1]):(cl[1]>=cl[0])):null,col=(upday===null)?(v>=1?'var(--cyan)':'var(--muted)'):(upday?'var(--green)':'var(--red)');return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+col+'" opacity="'+(i===n-1?1:0.6)+'"/>';}).join('');}
  var line='',up=true;
  if(cl.length>=2){var mn=Math.min.apply(null,cl),mx=Math.max.apply(null,cl),rng=(mx-mn)||1,step2=(w-pad*2)/(cl.length-1);
   var pts=cl.map(function(c,i){return (pad+i*step2).toFixed(1)+','+(pad+(1-(c-mn)/rng)*(h-vh-pad*2)).toFixed(1);}).join(' ');
@@ -12516,13 +12516,13 @@ function scrEmaStat(a9,a20){if(a9&&a20)return '🟢 9>20';if(!a9&&!a20)return '�
 
 function scrTherm(d){
   if(d.low52==null||d.hi52==null||d.ltp==null||d.hi52<=d.low52)return '<span class="scr-dash">\u2014</span>';
-  var w=70,h=12,pad=2;var frac=Math.max(0,Math.min(1,(d.ltp-d.low52)/(d.hi52-d.low52)));
+  var w=70,h=14,pad=2;var frac=Math.max(0,Math.min(1,(d.ltp-d.low52)/(d.hi52-d.low52)));
   var x=pad+frac*(w-pad*2);var col=frac>=0.8?'var(--green)':frac>=0.4?'var(--cyan)':'var(--amber)';
   var pctHi=((d.ltp/d.hi52-1)*100).toFixed(0);
   return '<svg width="'+w+'" height="'+h+'" style="vertical-align:middle"><title>'+Math.round(frac*100)+'% of 52W range \u00b7 '+pctHi+'% vs 52W high</title>'
-    +'<rect x="'+pad+'" y="'+(h/2-1.5)+'" width="'+(w-pad*2)+'" height="3" rx="1.5" fill="var(--border2)"/>'
-    +'<rect x="'+pad+'" y="'+(h/2-1.5)+'" width="'+(x-pad).toFixed(1)+'" height="3" rx="1.5" fill="'+col+'" opacity="0.45"/>'
-    +'<circle cx="'+x.toFixed(1)+'" cy="'+(h/2)+'" r="3" fill="'+col+'"/></svg>';
+    +'<rect x="'+pad+'" y="'+(h/2-3)+'" width="'+(w-pad*2)+'" height="6" rx="3" fill="var(--border2)"/>'
+    +'<rect x="'+pad+'" y="'+(h/2-3)+'" width="'+(x-pad).toFixed(1)+'" height="6" rx="3" fill="'+col+'" opacity="0.55"/>'
+    +'<circle cx="'+x.toFixed(1)+'" cy="'+(h/2)+'" r="4" fill="'+col+'"/></svg>';
 }
 const SCR_COLS=[
  {k:'sector',g:'Core',lbl:'Sector',tip:'Sector',def:1,cell:d=>`<span class="scr-sub">${d.sector}</span>`},
@@ -12589,7 +12589,7 @@ const SCR_FILTERS=[
  {key:'price',label:'Price',opts:['100','500','1000'],disp:{'100':'≥₹100','500':'≥₹500','1000':'≥₹1000'}},
 ];
 SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());
-const SCR_PRESETS=[{id:'all',label:'All'},{id:'uptrend',label:'📈 In Uptrend',set:{signal:['active']}},{id:'aplus',label:'⭐ A+ Setups',gold:true},{id:'cross',label:'Fresh Crossovers',set:{signal:['fresh']}},{id:'bo',label:'Breakout Setups',set:{signal:['setup']}},{id:'vol',label:'Volume Buildup',set:{vsig:['acc']}},{id:'zone',label:'BO Zone',set:{z52:['zone','base']}}];
+const SCR_PRESETS=[{id:'all',label:'All',desc:'Show every stock; no preset filter applied.'},{id:'uptrend',label:'📈 In Uptrend',set:{signal:['active']},desc:'Closed above the daily 9 EMA (or only 1 day below); still in an uptrend.'},{id:'aplus',label:'⭐ A+ Setups',gold:true,desc:'Highest-confluence names: EMA category A or A+C, near the 9 EMA, real volume, and smart money not selling.'},{id:'cross',label:'Fresh Crossovers',set:{signal:['fresh']},desc:'A fresh daily 9 over 20 EMA crossover flagged in the latest scan.'},{id:'bo',label:'Breakout Setups',set:{signal:['setup']},desc:'Has an active breakout or QM pattern (EP, VCP, HTF, Reclaim) as of the latest close.'},{id:'vol',label:'Volume Buildup',set:{vsig:['acc']},desc:'Volume accumulation: today closed up on at least 1.5x the 20-day average volume.'},{id:'zone',label:'BO Zone',set:{z52:['zone','base']},desc:'Price sitting at or near its 52-week high / breakout base.'}];
 
 function scrZ52state(s,pct52){
  if(s.breakout_type&&s.breakout_price){const r=(+s.ltp)/(+s.breakout_price);return r>1.15?'bo':'base';}
@@ -12648,7 +12648,7 @@ async function scrLoad(){
 
 function scrBuildUI(){
  const pr=document.getElementById('scr-presets');pr.querySelectorAll('.scr-pre').forEach(b=>b.remove());
- pr.insertAdjacentHTML('beforeend',SCR_PRESETS.map(p=>`<button class="scr-pre ${p.gold?'gold':''} ${p.id==='all'?'active':''}" data-p="${p.id}" onclick="scrApplyPreset('${p.id}')">${p.label}</button>`).join(''));
+ pr.insertAdjacentHTML('beforeend',SCR_PRESETS.map(p=>`<button class="scr-pre ${p.gold?'gold':''} ${p.id==='all'?'active':''}" data-p="${p.id}" title="${p.desc||''}" onclick="scrApplyPreset('${p.id}')">${p.label}</button>`).join(''));
  document.getElementById('scr-filters').innerHTML=SCR_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="scr-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div>${f.opts.map(o=>`<label${(f.tips&&f.tips[o])?` title="${f.tips[o]}"`:''}><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="scrToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
  const groups=[...new Set(SCR_COLS.map(c=>c.g))];
  document.getElementById('scr-col-panel').innerHTML='<div class="ph">Show / hide columns</div>'+groups.map(g=>`<div class="grp">${g}</div>`+SCR_COLS.filter(c=>c.g===g).map(c=>`<label><input type="checkbox" data-col="${c.k}" ${SCR.vis[c.k]?'checked':''} onchange="SCR.vis['${c.k}']=this.checked;scrRender()"> ${c.lbl}</label>`).join('')).join('');
