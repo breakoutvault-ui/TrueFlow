@@ -12303,7 +12303,7 @@ function volFiltered(){
 }
 
 /* ===== Volume Buildup — Screener-style interface (VB engine) — v24 ===== */
-const VB={vis:{},state:{},activePreset:'building',last:[]};
+const VB={vis:{},state:{},activePreset:'all',last:[]};
 const VB_COLS=[
  {k:'sector',g:'Core',lbl:'Sector',a:'',def:1,tip:'Sector (from your Momentum universe)',cell:d=>`<span class="vbt-sector">${d.sector}</span>`},
  {k:'industry',g:'Core',lbl:'Industry',a:'',def:0,tip:'Industry',cell:d=>`<span class="vbt-sector">${d.industry||'—'}</span>`},
@@ -12408,6 +12408,7 @@ function vbAppendUserPills(){var pr=document.getElementById('vol-presets');if(!p
 function vbSavePreset(){const i=document.getElementById('vol-pname');if(!i)return;const n=(i.value||'').trim();if(!n)return;const all=vbGetSaved();all.push({n,state:Object.fromEntries(Object.entries(VB.state).map(([k,v])=>[k,[...v]]))});localStorage.setItem('tf_vol_presets',JSON.stringify(all));i.value='';vbAppendUserPills();}
 function vbLoadPreset(i){const all=vbGetSaved();const s=all[i];if(!s)return;VB_FILTERS.forEach(f=>VB.state[f.key]=new Set((s.state&&s.state[f.key])||[]));VB.activePreset=null;vbSyncChecks();vbSyncChips();vbBoardRender();}
 function vbDelPreset(i){const all=vbGetSaved();all.splice(i,1);localStorage.setItem('tf_vol_presets',JSON.stringify(all));vbAppendUserPills();}
+function vbSectorDrill(sec){VB.state.sector=new Set([sec]);VB.activePreset=null;vbSyncChecks();vbSyncChips();VOLstate.view='board';var f=document.getElementById('vbt-filters');if(f)f.style.display='flex';var bw=document.getElementById('vol-board-wrap');if(bw)bw.style.display='block';var sw=document.getElementById('vol-sector-wrap');if(sw)sw.style.display='none';document.querySelectorAll('#tab-volume .vbt-view').forEach(function(b){b.classList.toggle('active',/board/i.test(b.getAttribute('onclick')||''));});vbBoardRender();}
 /* ===== end VB engine ===== */
 
 function renderVolume(){
@@ -12454,7 +12455,7 @@ function renderVolume(){
     const maxAvg = Math.max(...cards.map(c=>c.avg), 1);
     const grid = document.getElementById('vol-sec-grid');
     grid.innerHTML = cards.length ? cards.map(c => `
-      <div class="vbt-sec-card">
+      <div class="vbt-sec-card" style="cursor:pointer" title="Show ${c.s} stocks in the leaderboard" onclick="vbSectorDrill('${c.s}')">
         <div class="vbt-sec-head"><span class="vbt-sec-name">${c.s}</span><span class="vbt-sec-cnt">${c.n} stock${c.n>1?'s':''} building</span></div>
         <div class="vbt-sec-track"><div class="vbt-sec-fill" style="width:${Math.round(c.avg/maxAvg*100)}%"></div></div>
         <div class="vbt-sec-foot"><span>avg score <b style="color:var(--text)">${c.avg}</b></span></div>
