@@ -53,6 +53,13 @@ body.theme-navy{
   --amber:#F59E0B;--amber-dim:rgba(245,158,11,0.08);
   --glass:rgba(15,23,42,0.88);
 }
+body.theme-light .nav-tab{color:var(--text2)}
+body.theme-light .nav-tab:hover{color:var(--text);background:var(--bg3)}
+body.theme-light .mode-btn{color:var(--text2)}
+body.theme-light .mode-btn:hover{color:var(--text);background:var(--bg3)}
+body.theme-light .mode-toggle{background:var(--bg2);border-color:var(--border2)}
+body.theme-light .sa-cell .sub{color:var(--text2);text-shadow:none}
+body.theme-light .color-tag-dot:hover{border-color:var(--text2)}
 
 /* ══════════════════════════════════════
    RESET & BASE
@@ -837,6 +844,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tab-screener .scr-pre{background:var(--bg1);border:1px solid var(--border);color:var(--muted);font-weight:600;font-size:12px;padding:7px 13px;border-radius:99px;cursor:pointer}
 #tab-screener .scr-pre.active{background:linear-gradient(135deg,var(--cyan-dim),var(--purple-dim));border-color:var(--border3);color:var(--text);box-shadow:0 0 14px var(--cyan-glow)}
 #tab-screener .scr-pre.gold.active{background:linear-gradient(135deg,var(--gold-dim),var(--amber-dim));border-color:var(--gold);color:var(--gold)}
+#tab-screener .scr-pre-user{border-style:dashed}
+#tab-screener .scr-pre-x{margin-left:6px;opacity:.5;font-weight:700}
+#tab-screener .scr-pre-x:hover{opacity:1;color:var(--red)}
 #tab-screener .scr-fbar{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px}
 #tab-screener .scr-fbar .lbl{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:block}
 #tab-screener .scr-filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
@@ -12649,7 +12659,7 @@ async function scrLoad(){
 function scrBuildUI(){
  const pr=document.getElementById('scr-presets');pr.querySelectorAll('.scr-pre').forEach(b=>b.remove());
  pr.insertAdjacentHTML('beforeend',SCR_PRESETS.map(p=>`<button class="scr-pre ${p.gold?'gold':''} ${p.id==='all'?'active':''}" data-p="${p.id}" title="${p.desc||''}" onclick="scrApplyPreset('${p.id}')">${p.label}</button>`).join(''));
- document.getElementById('scr-filters').innerHTML=SCR_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="scr-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div>${f.opts.map(o=>`<label${(f.tips&&f.tips[o])?` title="${f.tips[o]}"`:''}><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="scrToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
+ scrAppendUserPills();document.getElementById('scr-filters').innerHTML=SCR_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="scr-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div>${f.opts.map(o=>`<label${(f.tips&&f.tips[o])?` title="${f.tips[o]}"`:''}><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="scrToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
  const groups=[...new Set(SCR_COLS.map(c=>c.g))];
  document.getElementById('scr-col-panel').innerHTML='<div class="ph">Show / hide columns</div>'+groups.map(g=>`<div class="grp">${g}</div>`+SCR_COLS.filter(c=>c.g===g).map(c=>`<label><input type="checkbox" data-col="${c.k}" ${SCR.vis[c.k]?'checked':''} onchange="SCR.vis['${c.k}']=this.checked;scrRender()"> ${c.lbl}</label>`).join('')).join('');
  document.getElementById('scr-tot').textContent=SCR.data.length;
@@ -12665,11 +12675,14 @@ function scrApplyPreset(id){if(id===SCR.activePreset&&id!=='all'){scrClearAll();
 function scrClearAll(){SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());SCR.activePreset='all';const q=document.getElementById('scr-q');if(q)q.value='';scrSyncChecks();scrSyncChips();scrRender();}
 function scrHideCol(k){SCR.vis[k]=false;scrSyncColMenu();scrRender();}
 function scrUnhideAll(){SCR_COLS.forEach(c=>SCR.vis[c.k]=true);scrSyncColMenu();scrRender();}
-function scrSavePreset(){const i=document.getElementById('scr-pname');const n=(i.value||'').trim();if(!n)return;const all=scrGetSaved();all.push({n,state:Object.fromEntries(Object.entries(SCR.state).map(([k,v])=>[k,[...v]]))});localStorage.setItem('tf_scr_presets',JSON.stringify(all));i.value='';scrRenderSaved();}
+function scrEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function scrPresetTip(state){if(!state)return 'Custom preset';var parts=[];SCR_FILTERS.forEach(function(f){var sel=(state[f.key]||[]);if(sel.length){var labs=sel.map(function(o){return (f.disp&&f.disp[o])||o;});parts.push(f.label+': '+labs.join(', '));}});return parts.length?('Filters — '+parts.join('   ·   ')):'Shows all (no filters)';}
+function scrAppendUserPills(){var pr=document.getElementById('scr-presets');if(!pr)return;pr.querySelectorAll('.scr-pre-user').forEach(function(b){b.remove();});var saved=scrGetSaved();if(!saved.length)return;pr.insertAdjacentHTML('beforeend',saved.map(function(s,i){return '<button class="scr-pre scr-pre-user" title="'+scrEsc(scrPresetTip(s.state))+'" onclick="scrLoadPreset('+i+')">'+scrEsc(s.n)+'<span class="scr-pre-x" onclick="event.stopPropagation();scrDelPreset('+i+')">×</span></button>';}).join(''));}
+function scrSavePreset(){const i=document.getElementById('scr-pname');const n=(i.value||'').trim();if(!n)return;const all=scrGetSaved();all.push({n,state:Object.fromEntries(Object.entries(SCR.state).map(([k,v])=>[k,[...v]]))});localStorage.setItem('tf_scr_presets',JSON.stringify(all));i.value='';scrRenderSaved();scrAppendUserPills();}
 function scrGetSaved(){try{return JSON.parse(localStorage.getItem('tf_scr_presets')||'[]');}catch(e){return [];}}
 function scrRenderSaved(){const all=scrGetSaved();const el=document.getElementById('scr-saved-list');if(!el)return;el.innerHTML=all.length?all.map((s,i)=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 7px"><span style="cursor:pointer;color:var(--cyan);font-weight:600" onclick="scrLoadPreset(${i})">${s.n}</span><span style="cursor:pointer;color:var(--red)" onclick="scrDelPreset(${i})">✕</span></div>`).join(''):'<div style="color:var(--muted);font-size:11px;padding:5px 7px">No saved presets yet</div>';}
 function scrLoadPreset(i){const all=scrGetSaved();const s=all[i];if(!s)return;SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set((s.state&&s.state[f.key])||[]));SCR.activePreset=null;scrSyncChecks();scrSyncChips();scrRender();}
-function scrDelPreset(i){const all=scrGetSaved();all.splice(i,1);localStorage.setItem('tf_scr_presets',JSON.stringify(all));scrRenderSaved();}
+function scrDelPreset(i){const all=scrGetSaved();all.splice(i,1);localStorage.setItem('tf_scr_presets',JSON.stringify(all));scrRenderSaved();scrAppendUserPills();}
 function scrCopyTV(){const syms=SCR.last.map(d=>'NSE:'+d.sym).join(',');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(syms).then(()=>scrToast('Copied '+SCR.last.length+' filtered symbols for TradingView'),()=>scrToast('Copy failed — copy manually'));}else scrToast('Clipboard not available');}
 function scrToast(m){let t=document.getElementById('scr-toast');if(!t){t=document.createElement('div');t.id='scr-toast';t.className='scr-toast';document.body.appendChild(t);}t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
 
