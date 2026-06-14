@@ -12713,6 +12713,7 @@ const SCR_COLS=[
  {k:'consolDays',g:'Price',lbl:'Consol Days',a:'r',tip:'Sessions consolidating in BO Zone / Breakout Base before the next move',def:1,cell:d=>d.consolDays!=null?`<span class="scr-mono"${SCR_T('Consolidating '+d.consolDays+' sessions in the breakout zone/base — longer base often precedes a bigger move')}>${d.consolDays}d</span>`:'<span class="scr-dash">—</span>'},
  {k:'rvol',g:'Volume',lbl:'RVOL',a:'r',tip:'Relative volume today vs 20-day average',def:1,cell:d=>scrRvolB(d.rvol)},
  {k:'wkvol',g:'Volume',lbl:'Wk Vol',a:'r',tip:'Average RVOL over the last 5 sessions (this week)',def:0,cell:d=>{const v=d.vols||[];if(!v.length)return '<span class="scr-dash">—</span>';const a=v.reduce((x,y)=>x+y,0)/v.length;return scrRvolB(+a.toFixed(2));}},
+ {k:'mvol',g:'Volume',lbl:'Mo Vol',a:'r',tip:'Average RVOL over the last 20 sessions (this month)',def:0,cell:d=>{const v=d.vols20||[];if(!v.length)return '<span class="scr-dash">—</span>';const a=v.reduce((x,y)=>x+y,0)/v.length;return scrRvolB(+a.toFixed(2));}},
  {k:'bovol',g:'Volume',lbl:'BO Vol',a:'c',tip:'Best relative volume on the breakout day or within ±3 sessions — high = trustworthy',def:1,cell:d=>scrBoVolB(d)},
  {k:'vsig',g:'Volume',lbl:'Vol Signal',a:'c',tip:'Price move × volume',def:1,cell:d=>scrVsB(d)},
  {k:'volMove',g:'Volume',lbl:'Vol on Move',a:'c',tip:'Volume classification on the move',def:0,cell:d=>scrTxt(d.volMove,'Volume on the move')},
@@ -12777,6 +12778,7 @@ async function scrLoad(){
   SCR.data=snap.map(s=>{
    const closes=(s.last5_closes&&typeof s.last5_closes==='string'&&s.last5_closes.indexOf(',')>-1)?s.last5_closes.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
    const vols=(s.vol5_ratios&&typeof s.vol5_ratios==='string'&&s.vol5_ratios.indexOf(',')>-1)?s.vol5_ratios.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
+   const vols20=(s.vol20_ratios&&typeof s.vol20_ratios==='string'&&s.vol20_ratios.indexOf(',')>-1)?s.vol20_ratios.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
    const wkcloses=(s.wk_closes&&typeof s.wk_closes==='string'&&s.wk_closes.indexOf(',')>-1)?s.wk_closes.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
    const wkvols=(s.wk_vol_ratios&&typeof s.wk_vol_ratios==='string'&&s.wk_vol_ratios.indexOf(',')>-1)?s.wk_vol_ratios.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
    const hi=s.high_52w!=null?+s.high_52w:null;const pct52=(hi&&s.ltp!=null)?((+s.ltp)/hi-1)*100:null;
@@ -12791,7 +12793,7 @@ async function scrLoad(){
     day,week:s.week_chg_pct!=null?+s.week_chg_pct:null,month:s.month_chg_pct!=null?+s.month_chg_pct:null,
     e9d:!!s.above_ema9_daily,e9w:!!s.above_ema9_weekly,
     pct9e:s.pct_from_ema9_daily!=null?+s.pct_from_ema9_daily:null,pct9w:s.pct_from_ema9_weekly!=null?+s.pct_from_ema9_weekly:null,
-    pct5e:s.pct_from_ema5_daily!=null?+s.pct_from_ema5_daily:null,e5d:!!s.above_ema5_daily,low52:s.low_52w!=null?+s.low_52w:null,wkcloses,wkvols,
+    pct5e:s.pct_from_ema5_daily!=null?+s.pct_from_ema5_daily:null,e5d:!!s.above_ema5_daily,low52:s.low_52w!=null?+s.low_52w:null,wkcloses,wkvols,vols20,
     last5:s.last5_summary||'—',qm:(qm==='BrokenOut'?null:qm),
     demastat:scrEmaStat(s.above_ema9_daily,s.above_ema20_daily),wemastat:scrEmaStat(s.above_ema9_weekly,s.above_ema20_weekly),
     trendDays:s.days_in_uptrend,greenDays:s.consecutive_green,hi52:hi,pct52,away52:(pct52!=null&&pct52<0)?Math.abs(pct52):(pct52!=null?0:null),z52,
@@ -12864,7 +12866,7 @@ function scrPasses(d){
  return true;
 }
 const SCR_NOSORT=new Set(['pv','wkpv','therm','last5']);
-function scrSortVal(d,k){if(k==='sym')return d.sym;if(k==='wkvol'){const v=d.vols||[];return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;}if(k==='isCross')return d.fresh?1:0;if(k==='isBO')return d.qm?1:0;if(k==='aplus')return d.aplus?1:0;if(k==='reclaim')return d.reclaim?1:0;return d[k];}
+function scrSortVal(d,k){if(k==='sym')return d.sym;if(k==='wkvol'){const v=d.vols||[];return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;}if(k==='mvol'){const v=d.vols20||[];return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;}if(k==='isCross')return d.fresh?1:0;if(k==='isBO')return d.qm?1:0;if(k==='aplus')return d.aplus?1:0;if(k==='reclaim')return d.reclaim?1:0;return d[k];}
 function scrCmp(a,b){const k=SCR.sortKey,dir=SCR.sortDir||1;let va=scrSortVal(a,k),vb=scrSortVal(b,k);const na=va==null||va==='',nb=vb==null||vb==='';if(na&&nb)return 0;if(na)return 1;if(nb)return -1;if(typeof va==='number'&&typeof vb==='number')return (va-vb)*dir;return String(va).localeCompare(String(vb))*dir;}
 function scrSort(k){if(SCR.sortKey===k)SCR.sortDir=(SCR.sortDir||1)*-1;else{SCR.sortKey=k;SCR.sortDir=-1;}scrRender();}
 function scrFilterOpts(inp){const q=(inp.value||'').toLowerCase();const p=inp.closest('.scr-panel');if(!p)return;p.querySelectorAll('label').forEach(l=>{l.style.display=(l.textContent||'').toLowerCase().includes(q)?'flex':'none';});}
