@@ -2413,7 +2413,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <th class="c" title="Smart-money tier from bulk/block deals.">Smart $</th>
           <th class="r" title="Buildup Score 0-100 = RVOL x16 + slope x14 + (+12 if volume sustained above 1.4x average).">Score</th>
         </tr></thead>
-        <tbody id="vol-body"><tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">Loading volume data…</td></tr></tbody>
+        <tbody id="vbleader-body"><tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">Loading volume data…</td></tr></tbody>
       </table>
     </div>
     <div id="vol-sector-wrap" style="display:none">
@@ -12149,7 +12149,7 @@ async function loadVolume(){
   try{
     const latest = await volGet('momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000');
     if (!latest || !latest.length){
-      document.getElementById('vol-body').innerHTML = '<tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">No volume data yet — check back after the evening scan.</td></tr>';
+      document.getElementById('vbleader-body').innerHTML = '<tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">No volume data yet — check back after the evening scan.</td></tr>';
       return;
     }
     const latestDate = latest[0].session_date;
@@ -12382,7 +12382,7 @@ function vbBoardRender(){
  let hd=`<th title="Rank by Buildup Score (highest first)">#</th><th class="c" title="Star to add to My Picks">★</th><th title="Sort by symbol" onclick="vbSort('symbol')" style="cursor:pointer">Symbol${VB.sortKey==='symbol'?(VB.sortDir<0?' ▼':' ▲'):''}</th>`;
  hd+=show.map(c=>{const sb=!VB_NOSORT.has(c.k);const ar=(VB.sortKey===c.k)?(VB.sortDir<0?' ▼':' ▲'):'';return `<th class="${c.a||''}"><span title="${(c.tip||'').replace(/"/g,'&quot;')}"${sb?` onclick="vbSort('${c.k}')" style="cursor:pointer"`:''}>${c.lbl}${ar}</span><span class="hide-x" title="Hide this column" onclick="vbHideCol('${c.k}')">−</span></th>`;}).join('');
  const th=document.getElementById('vol-thead');if(th)th.innerHTML=hd;
- const body=document.getElementById('vol-body');if(!body)return;
+ const body=document.getElementById('vbleader-body');if(!body)return;
  if(!rows.length){body.innerHTML=`<tr><td colspan="${show.length+3}" style="padding:24px;text-align:center;color:var(--muted)">No stocks match — clear a filter, lower RVOL, or change the window.</td></tr>`;return;}
  body.innerHTML=rows.map((d,i)=>{
   const tv='https://www.tradingview.com/chart/?symbol=NSE:'+encodeURIComponent(d.symbol);
@@ -12428,10 +12428,10 @@ function renderVolume(){
     const rows = volFiltered();
     const cnt = document.getElementById('vol-cnt'); if (cnt) cnt.textContent = rows.length;
     if (!rows.length){
-      document.getElementById('vol-body').innerHTML = '<tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">No stocks match — loosen the filters (lower RVOL or turn off Rising only).</td></tr>';
+      document.getElementById('vbleader-body').innerHTML = '<tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">No stocks match — loosen the filters (lower RVOL or turn off Rising only).</td></tr>';
       return;
     }
-    document.getElementById('vol-body').innerHTML = rows.map((d,i) => {
+    document.getElementById('vbleader-body').innerHTML = rows.map((d,i) => {
       const tr = volTrend(d.v);
       const tcls = tr==='rising'?'vbt-rising':tr==='flat'?'vbt-flat':'vbt-fading';
       const tlbl = tr==='rising'?'▲ Rising':tr==='flat'?'■ Flat':'▼ Fading';
