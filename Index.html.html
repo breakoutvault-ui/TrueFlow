@@ -12386,8 +12386,9 @@ function vbBoardRender(){
  if(!rows.length){body.innerHTML=`<tr><td colspan="${show.length+3}" style="padding:24px;text-align:center;color:var(--muted)">No stocks match — clear a filter, lower RVOL, or change the window.</td></tr>`;return;}
  body.innerHTML=rows.map((d,i)=>{
   const tv='https://www.tradingview.com/chart/?symbol=NSE:'+encodeURIComponent(d.symbol);
-  let t=`<td class="vbt-rank">${i+1}</td><td class="c"><span class="vbt-star">☆</span></td><td><span class="vbt-sym">${d.symbol}<a href="${tv}" target="_blank" rel="noopener" title="Open ${d.symbol} in TradingView">↗</a></span>${typeof tfPvCell==='function'?'<br>'+tfPvCell(d):''}</td>`;
-  t+=show.map(c=>`<td class="${c.a||''}">${c.cell(d)}</td>`).join('');
+  let _pv='';try{if(typeof tfPvCell==='function')_pv='<br>'+tfPvCell(d);}catch(_e){console.warn('VB cell error pv',d.symbol,_e);}
+  let t=`<td class="vbt-rank">${i+1}</td><td class="c"><span class="vbt-star">☆</span></td><td><span class="vbt-sym">${d.symbol}<a href="${tv}" target="_blank" rel="noopener" title="Open ${d.symbol} in TradingView">↗</a></span>${_pv}</td>`;
+  t+=show.map(c=>{let _inner;try{_inner=c.cell(d);}catch(_e){console.warn('VB cell error',c.k,d.symbol,_e);_inner='<span class="vbt-dash">—</span>';}return `<td class="${c.a||''}">${_inner}</td>`;}).join('');
   return `<tr>${t}</tr>`;
  }).join('');
 }
