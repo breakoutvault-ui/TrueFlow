@@ -12838,7 +12838,7 @@ function scrBuildUI(){
  scrRenderSaved();
 }
 function scrSyncChips(){SCR_FILTERS.forEach(f=>{const c=document.getElementById('scr-cnt-'+f.key);if(!c)return;const n=SCR.state[f.key].size;c.style.display=n?'inline-block':'none';c.textContent=n;const sm=c.closest('summary');if(sm)sm.classList.toggle('has',n>0);});document.querySelectorAll('#tab-screener .scr-pre').forEach(b=>b.classList.toggle('active',b.dataset.p===SCR.activePreset));}
-function scrSyncChecks(){document.querySelectorAll('#scr-filters input').forEach(cb=>cb.checked=SCR.state[cb.dataset.k].has(cb.dataset.o));}
+function scrSyncChecks(){document.querySelectorAll('#scr-filters input').forEach(cb=>{var k=cb.dataset.k;if(k&&SCR.state[k])cb.checked=SCR.state[k].has(cb.dataset.o);});}
 function scrSyncColMenu(){document.querySelectorAll('#scr-col-panel input').forEach(cb=>cb.checked=SCR.vis[cb.dataset.col]);}
 function scrToggleFilter(k,o,on){on?SCR.state[k].add(o):SCR.state[k].delete(o);SCR.activePreset=null;scrSyncChips();scrRender();}
 function scrStrongSectorsPx(){var out=new Set();try{if(typeof SP_SECS==='object'&&SP_SECS){for(var sec in SP_SECS){if(Object.prototype.hasOwnProperty.call(SP_SECS,sec)&&SP_SECS[sec]&&SP_SECS[sec].length&&typeof spSentiment==='function'&&spSentiment(SP_SECS[sec])==='bull')out.add(sec);}}}catch(e){console.warn('strongSectorsPx',e);}return out;}
