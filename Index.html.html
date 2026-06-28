@@ -2248,7 +2248,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <span style="font-size:20px">🔎</span>
       <span class="txt"><b>Screener</b> — every stock-level data point from Scanner + EMA Signals + Breakout Setups in one place. Multi-select filters, save presets, hover anything, hide any column with its <b>−</b> box, restore with <b>⟲ Unhide all</b>. Now shows the <b>full F&amp;O universe</b> — tap <b>📈 In Uptrend</b> to focus on names above (or just under) the daily 9 EMA.</span>
       <span class="scr-pill" onclick="document.getElementById('scr-hiw').classList.toggle('open')">📖 How This Works</span>
-      <span class="scr-ver">SCR v1.0</span>
+      <span class="scr-ver">SCR v1.1</span>
     </div>
     <div class="scr-hiw" id="scr-hiw">
       <h4>What this screener is — and how to trade from it</h4>
@@ -2287,6 +2287,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <dt>52W State</dt><dd>Where it is in its <b>breakout cycle</b>: <span class="scr-z52 scr-z-zone">🎯 BO Zone</span> coiling within 15% below the 52W high · <span class="scr-z52 scr-z-base">🟦 Breakout Base</span> broke out, holding within 15% · <span class="scr-z52 scr-z-bo">🚀 52W Base BO</span> running &gt;15% past it.</dd>
         <dt>%9E / %Wk9E</dt><dd>Your <b>entry gauge</b> — distance from the daily / weekly 9 EMA. Near <code>0%</code> = sitting on the line = low-risk add; a big number = extended, wait for a pullback.</dd>
         <dt>Consol Days</dt><dd>How long it has been basing. A longer base often precedes a bigger move.</dd>
+        <dt>ADR%</dt><dd><b>Average Daily Range %</b> - the typical daily high-to-low move over ~20 sessions, shown as a percent so a ₹120 and a ₹3,000 stock compare fairly. <b>Higher = the stock travels more each day = more tradeable.</b> Under ~3% tends to be too slow for momentum; 5%+ is a strong mover. Use the <b>ADR%</b> filter to drop names that don't move enough.</dd>
       </dl>
 
       <h4>Smart money &amp; results</h4>
@@ -12721,6 +12722,7 @@ const SCR_COLS=[
  {k:'hi52',g:'Price',lbl:'52W High',a:'r',tip:'52-week high',def:0,cell:d=>d.hi52!=null?`<span class="scr-mono">${d.hi52}</span>`:'<span class="scr-dash">—</span>'},
  {k:'away52',g:'Price',lbl:'52W Away',a:'r',tip:'% below the 52-week high',def:0,cell:d=>d.away52!=null?`<span class="scr-mono">${d.away52.toFixed(1)}%</span>`:'<span class="scr-dash">—</span>'},
  {k:'z52',g:'Price',lbl:'52W State',a:'c',tip:'BO Zone / Breakout Base / 52W Base BO',def:1,cell:d=>scrZ52B(d)},
+ {k:'adr',g:'Price',lbl:'ADR%',a:'r',tip:'Average Daily Range % - typical daily high-to-low move over ~20 sessions. Higher = moves more = more tradeable. Under ~3% is slow; 5%+ is a strong mover.',def:1,cell:d=>d.adr!=null?`<span class="scr-mono"${SCR_T('ADR% '+d.adr.toFixed(2)+' - average daily high-to-low range over ~20 sessions. Higher = the stock moves more each day.')} style="color:${d.adr>=5?'#22C55E':d.adr>=3?'var(--amber)':'var(--muted)'}">${d.adr.toFixed(2)}%</span>`:'<span class="scr-dash">—</span>'},
  {k:'consolDays',g:'Price',lbl:'Consol Days',a:'r',tip:'Sessions consolidating in BO Zone / Breakout Base before the next move',def:1,cell:d=>d.consolDays!=null?`<span class="scr-mono"${SCR_T('Consolidating '+d.consolDays+' sessions in the breakout zone/base — longer base often precedes a bigger move')}>${d.consolDays}d</span>`:'<span class="scr-dash">—</span>'},
  {k:'rvol',g:'Volume',lbl:'RVOL',a:'r',tip:'Relative volume today vs 20-day average',def:1,cell:d=>scrRvolB(d.rvol)},
  {k:'wkvol',g:'Volume',lbl:'Wk Vol',a:'r',tip:'Average RVOL over the last 5 sessions (this week)',def:0,cell:d=>{const v=d.vols||[];if(!v.length)return '<span class="scr-dash">—</span>';const a=v.reduce((x,y)=>x+y,0)/v.length;return scrRvolB(+a.toFixed(2));}},
@@ -12760,9 +12762,11 @@ const SCR_FILTERS=[
  {key:'z52',label:'52W',opts:['zone','base','bo'],disp:{zone:'🎯 BO Zone',base:'🟦 Breakout Base',bo:'🚀 52W Base BO'},tips:{zone:'Within 15% below the 52-week high right now — coiling near highs.',base:'Broke out and holding within 15% of the breakout — current state.',bo:'Extended more than 15% past the breakout — current state.'}},
  {key:'vsig',label:'Volume',opts:['acc','weak','dist','pull','High','Building'],disp:{acc:'🟢 Accumulation',weak:'🟡 Weak rally',dist:'🔴 Distribution',pull:'⚪ Healthy pullback',High:'Vol: High',Building:'Vol: Building'},tips:{acc:'Accumulation — closed UP today on 1.5x or more of the 20-day average volume. Todays session only.',weak:'Weak rally — closed up today but on under 1.5x the 20-day average volume. Todays session only.',dist:'Distribution — closed DOWN today on 1.5x or more of the 20-day average volume. Todays session only.',pull:'Healthy pullback — closed down today on under 1.5x the 20-day average volume. Todays session only.',High:'Todays volume bucket is High vs its 20-day average. Todays session.',Building:'Volume building — todays bucket is High or Very High vs average. Todays session.'}},
  {key:'rvolmin',label:'RVOL',opts:['1.5','2','3'],disp:{'1.5':'≥1.5×','2':'≥2×','3':'≥3×'},tips:{'1.5':'Todays volume is at least 1.5x the 20-day average. Today vs 20-day baseline.','2':'Todays volume is at least 2x the 20-day average. Today vs 20-day baseline.','3':'Todays volume is at least 3x the 20-day average. Today vs 20-day baseline.'}},
+ {key:'adrmin',label:'ADR%',opts:['3','5','7'],disp:{'3':'≥3%','5':'≥5%','7':'≥7%'},tips:{'3':'Average daily range at least 3% - moves enough to trade.','5':'At least 5% - a strong mover.','7':'At least 7% - very volatile.'}},
  {key:'smt',label:'Smart $',opts:['LOADING_UP','ACCUMULATING','NIBBLING','OFFLOADING'],disp:{LOADING_UP:'🔥 Loading Up',ACCUMULATING:'📈 Accumulating',NIBBLING:'👀 Nibbling',OFFLOADING:'📉 Offloading'},tips:{LOADING_UP:'Heavy institutional buying across recent bulk/block deals — a trailing window, not just today.',ACCUMULATING:'Steady institutional buying across recent deals — a trailing window.',NIBBLING:'Light institutional buying across recent deals — a trailing window.',OFFLOADING:'Net institutional selling across recent deals — a trailing window.'}},
  {key:'sector',label:'Sector',opts:[]},
  {key:'industry',label:'Industry',opts:[]},
+ {key:'symbol',label:'Symbol',opts:[]},
  {key:'grade',label:'Results',opts:['Blockbuster','Turnaround','Steady','Mixed','Weak'],tips:{Blockbuster:'Based on the latest reported quarterly result.',Turnaround:'Based on the latest reported quarterly result.',Steady:'Based on the latest reported quarterly result.',Mixed:'Based on the latest reported quarterly result.',Weak:'Based on the latest reported quarterly result.'}},
  {key:'price',label:'Price',opts:['100','500','1000'],disp:{'100':'≥₹100','500':'≥₹500','1000':'≥₹1000'}},
 ];
@@ -12813,7 +12817,7 @@ async function scrLoad(){
     volMove:s.vol_class,volClass:s.vol_class,
     dcross:s.daily_crossover_date||'—',dsince:scrDaysBetween(s.daily_crossover_date,ld),wcross:s.weekly_crossover_date||'—',wkdays:scrDaysBetween(s.weekly_crossover_date,ld),
     score:s.momentum_score!=null?s.momentum_score:null,grade:gm[s.symbol]||null,smt:tm[s.symbol]?tm[s.symbol].tier:null,
-    rvol,closes,vols,bovol:s.bo_vol!=null?+s.bo_vol:null,bovolWhen:s.bo_vol_when||null,consolDays:s.consol_days!=null?s.consol_days:null,
+    rvol,closes,vols,bovol:s.bo_vol!=null?+s.bo_vol:null,bovolWhen:s.bo_vol_when||null,consolDays:s.consol_days!=null?s.consol_days:null,adr:s.adr_pct!=null?+s.adr_pct:null,
     fresh:!!(s.is_fresh_daily_cross||s.is_fresh_weekly_cross),build:(s.vol_class==='High'||s.vol_class==='Very High'),vsig,aplus,active:(s.is_active!==false),
     breakout_type:s.breakout_type,breakout_price:s.breakout_price,pivotLvl:s.qm_pivot_level};
   });
@@ -12821,6 +12825,7 @@ async function scrLoad(){
   const secs=[...new Set(SCR.data.map(d=>d.sector).filter(x=>x&&x!=='—'))].sort();
   SCR_FILTERS.find(f=>f.key==='sector').opts=secs;
   SCR_FILTERS.find(f=>f.key==='industry').opts=[...new Set(SCR.data.map(d=>d.industry).filter(x=>x&&x!=='—'))].sort();
+  SCR_FILTERS.find(f=>f.key==='symbol').opts=[...new Set(SCR.data.map(d=>d.sym).filter(Boolean))].sort();
   const u=document.getElementById('scr-updated');if(u)u.textContent=ld;
   SCR.loaded=true;scrBuildUI();scrRender();
  }catch(e){console.error('Screener load error:',e);document.getElementById('scr-body').innerHTML='<tr><td style="padding:24px;text-align:center;color:var(--red)">Error loading screener — see console.</td></tr>';}
@@ -12869,6 +12874,8 @@ function scrPasses(d){
  if(S.smt.size&&!S.smt.has(d.smt))return false;
  if(S.sector.size&&!S.sector.has(d.sector))return false;
  if(S.industry&&S.industry.size&&!S.industry.has(d.industry))return false;
+ if(S.symbol&&S.symbol.size&&!S.symbol.has(d.sym))return false;
+ if(S.adrmin&&S.adrmin.size){const m=Math.min(...[...S.adrmin].map(Number));if(d.adr==null||d.adr<m)return false;}
  if(S.z52.size&&!S.z52.has(d.z52))return false;
  if(S.rvolmin.size){const m=Math.min(...[...S.rvolmin].map(Number));if(d.rvol==null||d.rvol<m)return false;}
  if(S.vsig.size){let ok=false;S.vsig.forEach(v=>{if(['acc','weak','dist','pull'].includes(v)&&d.vsig===v)ok=true;if(v==='High'&&d.volClass==='Very High')ok=true;if(v==='Building'&&d.build)ok=true;});if(!ok)return false;}
