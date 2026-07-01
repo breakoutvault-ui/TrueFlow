@@ -1063,7 +1063,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
       <div class="nav-tabs" id="results-tabs" style="display:none">
         <button class="nav-tab active" onclick="switchTab('resultseason',this,'results')">📋 Results Season</button>
-        <button class="nav-tab" onclick="switchTab('analytics',this,'results')">🏆 Analytics</button>
       </div>
       <div class="nav-tabs" id="rotation-tabs" style="display:none">
         <button class="nav-tab active" id="rot-tab-score" onclick="rotSetView('scorecard',this)">🔥 Sector Scorecard</button>
@@ -3765,281 +3764,48 @@ function smCopyTV(){
 
   <!-- TAB: Results Season -->
   <div id="tab-resultseason" class="panel active">
-    <div class="fo-panel">
-      <!-- README Panel -->
-      <div id="resultseason-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-weight:700;color:var(--text);font-size:14px">📋 Results Season — How This Works</span>
-          <button onclick="document.getElementById('resultseason-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
-          Merges quarterly earnings data with quality/smart money metrics to create a <b style='color:var(--text)'>comprehensive results dashboard</b>. Upload two CSVs from Trendlyne → get auto-graded results with actionable filters.
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-          <b style="color:var(--cyan);font-size:12px">📊 Grading System</b><br>
-          <b style='color:var(--green)'>🟢 Blockbuster</b> — Rev >20%, NP >30%, OPM expanding. The best results.<br><b style='color:var(--amber)'>⚡ Turnaround</b> — NP growth >100%. Company turning profitable.<br><b style='color:var(--text)'>⚪ Steady</b> — Positive growth but moderate.<br><b style='color:var(--muted)'>🟡 Mixed</b> — Revenue up but profit down (or vice versa).<br><b style='color:var(--red)'>🔴 Weak</b> — Both revenue and profit declining.
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-          <b style="color:var(--cyan);font-size:12px">📊 Verdict System</b><br>
-          <b style='color:var(--green)'>✅ Confirmed</b> — Stock moved up after good results. Market agrees.<br><b style='color:var(--amber)'>🔥 Underreacted</b> — Good results but stock hasn't moved yet. OPPORTUNITY.<br><b style='color:var(--muted)'>⚠️ Priced In</b> — Good results but stock already ran up before. Be cautious.<br><b style='color:var(--red)'>🪤 Trap</b> — Stock up despite weak results. Avoid.
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
-          ☑️ Upload File 1 (Results) + File 2 (Quality) from Trendlyne → Click Merge & Grade<br>☑️ Filter <b>Blockbuster + Underreacted</b> → best trading opportunities<br>☑️ Check <b>Smart $ = Accumulation</b> for institutional backing<br>☑️ Use <b>Strong Sectors</b> filter on Momentum tabs to find stocks from winning sectors
-        </div>
+  <style>
+  .er-seg-btn{background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:5px 9px;border-radius:6px;font-size:11px;cursor:pointer}
+  .er-seg-btn.active{background:var(--cyan);color:#03121a;border-color:var(--cyan);font-weight:700}
+  .er-sel{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px}
+  .er-tbl{width:100%;border-collapse:collapse;font-size:12px}
+  .er-tbl th{position:sticky;top:0;background:var(--bg2);color:var(--muted);text-align:left;padding:7px 9px;font-weight:600;white-space:nowrap;cursor:pointer;border-bottom:1px solid var(--border)}
+  .er-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);white-space:nowrap}
+  .er-tbl tr:hover td{background:var(--bg2)}
+  </style>
+  <div class="fo-panel">
+    <div id="er-readme" style="display:none;margin:0 0 10px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:700;color:var(--text);font-size:14px">📋 Earnings Results — How This Works</span>
+        <button onclick="document.getElementById('er-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
       </div>
-      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('resultseason-readme').style.display=document.getElementById('resultseason-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
-
-
-      <!-- Upload Zone -->
-      <div id="rs-upload-section" style="margin-bottom:12px">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:stretch">
-          <div style="flex:1;min-width:200px;background:var(--bg2);border:2px dashed var(--border2);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color .2s" id="rs-drop-1" ondragover="event.preventDefault();this.style.borderColor='var(--cyan)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="rsHandleDrop(event,1)">
-            <input type="file" accept=".csv" onchange="rsHandleFile(this.files[0],1)" style="display:none" id="rs-file-1">
-            <div onclick="document.getElementById('rs-file-1').click()" style="cursor:pointer">
-              <div style="font-size:22px">📊</div>
-              <div style="font-size:11px;font-weight:600;color:var(--text);margin:4px 0">File 1: Results Data</div>
-              <div style="font-size:10px;color:var(--muted)">Revenue, Profit, OPM, Growth %</div>
-            </div>
-            <div id="rs-file-1-name" style="font-size:10px;color:var(--cyan);margin-top:4px"></div>
-          </div>
-          <div style="flex:1;min-width:200px;background:var(--bg2);border:2px dashed var(--border2);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color .2s" id="rs-drop-2" ondragover="event.preventDefault();this.style.borderColor='var(--cyan)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="rsHandleDrop(event,2)">
-            <input type="file" accept=".csv" onchange="rsHandleFile(this.files[0],2)" style="display:none" id="rs-file-2">
-            <div onclick="document.getElementById('rs-file-2').click()" style="cursor:pointer">
-              <div style="font-size:22px">💰</div>
-              <div style="font-size:11px;font-weight:600;color:var(--text);margin:4px 0">File 2: Quality + Smart Money</div>
-              <div style="font-size:10px;color:var(--muted)">NSE Code, ROE, ROCE, FII/MF/Promoter</div>
-            </div>
-            <div id="rs-file-2-name" style="font-size:10px;color:var(--cyan);margin-top:4px"></div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:4px;justify-content:center">
-            <button class="sort-btn" onclick="rsMergeAndGrade()" id="rs-merge-btn" style="padding:8px 16px;font-weight:600;background:var(--cyan);color:#000;border-radius:8px" disabled>🔄 Merge & Grade</button>
-            <button class="sort-btn" onclick="rsClearData()" style="padding:4px 12px;font-size:10px;color:var(--red)">Clear Data</button>
-            <span style="font-size:9px;color:var(--muted)" id="rs-last-upload"></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Summary Strip -->
-      <div class="fo-grid4" id="rs-summary" style="display:none">
-        <div class="fo-card"><div class="fo-card-label">Total Results</div><div class="fo-card-val" id="rs-total">0</div><div class="fo-card-sub fo-neu" id="rs-period">—</div></div>
-        <div class="fo-card"><div class="fo-card-label">🟢 Blockbusters</div><div class="fo-card-val fo-bull" id="rs-blockbusters">0</div><div class="fo-card-sub fo-neu">Rev>20 + NP>30 + OPM↑</div></div>
-        <div class="fo-card"><div class="fo-card-label">⚡ Turnarounds</div><div class="fo-card-val" style="color:var(--amber)" id="rs-turnarounds">0</div><div class="fo-card-sub fo-neu">NP growth >100%</div></div>
-        <div class="fo-card"><div class="fo-card-label">Avg Revenue Growth</div><div class="fo-card-val" id="rs-avg-rev">—</div><div class="fo-card-sub fo-neu">YoY quarterly</div></div>
-      </div>
-
-      <!-- Filters -->
-      <div id="rs-filters-section" style="display:none;margin-top:8px">
-        <!-- Trending Sectors & Industries strip -->
-        <div id="rs-trending-strip" style="margin-bottom:8px;display:none">
-          <div style="display:flex;gap:20px;flex-wrap:wrap">
-            <div>
-              <span style="font-size:10px;color:var(--amber);font-weight:600">🔥 TOP RESULT SECTORS</span>
-              <div id="rs-trending-sectors" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px"></div>
-            </div>
-            <div>
-              <span style="font-size:10px;color:var(--amber);font-weight:600">🔥 TOP RESULT INDUSTRIES</span>
-              <div id="rs-trending-industries" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px"></div>
-            </div>
-          </div>
-        </div>
-        <div class="mom-filters" style="flex-wrap:wrap;gap:6px">
-          <!-- Date period filter -->
-          <div class="mom-filter-group" title="Filter by result announcement date">
-            <button class="sort-btn multi-active" data-filter-group="rs-period" data-filter-val="all" onclick="toggleMultiFilter('rs','period','all',this)">All Dates</button>
-            <button class="sort-btn" data-filter-group="rs-period" data-filter-val="today" onclick="toggleMultiFilter('rs','period','today',this)">Today</button>
-            <button class="sort-btn" data-filter-group="rs-period" data-filter-val="week" onclick="toggleMultiFilter('rs','period','week',this)">This Week</button>
-            <button class="sort-btn" data-filter-group="rs-period" data-filter-val="custom" onclick="toggleMultiFilter('rs','period','custom',this)">Custom</button>
-          </div>
-          <div id="rs-custom-dates" style="display:none;gap:4px;align-items:center">
-            <input type="date" id="rs-date-from" onchange="renderResultsTable()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:3px 6px;color:var(--text);font-size:10px">
-            <span style="font-size:10px;color:var(--muted)">to</span>
-            <input type="date" id="rs-date-to" onchange="renderResultsTable()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:3px 6px;color:var(--text);font-size:10px">
-          </div>
-          <div class="mom-filter-group">
-            <button class="sort-btn multi-active" data-filter-group="rs-grade" data-filter-val="all" onclick="toggleMultiFilter('rs','grade','all',this)" title="Show all grades">All</button>
-            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="blockbuster" onclick="toggleMultiFilter('rs','grade','blockbuster',this)" style="color:#22C55E" title="Blockbuster: Revenue Growth >20% AND Net Profit Growth >30% AND OPM expanding AND Net Profit positive">🟢 Blockbuster</button>
-            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="turnaround" onclick="toggleMultiFilter('rs','grade','turnaround',this)" style="color:var(--amber)" title="Turnaround: Net Profit Growth >100% AND Net Profit positive — company turning profitable">⚡ Turnaround</button>
-            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="steady" onclick="toggleMultiFilter('rs','grade','steady',this)" style="color:var(--cyan)" title="Steady: Revenue 10-20% AND NP 10-30% AND OPM >15% — consistent performer">🔵 Steady</button>
-            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="mixed" onclick="toggleMultiFilter('rs','grade','mixed',this)" style="color:var(--amber)" title="Mixed: Some metrics good, some weak">🟡 Mixed</button>
-            <button class="sort-btn" data-filter-group="rs-grade" data-filter-val="weak" onclick="toggleMultiFilter('rs','grade','weak',this)" style="color:#EF4444" title="Weak: Revenue <0% OR Net Profit negative OR OPM contracting >5%">🔴 Weak</button>
-          </div>
-          <div class="mom-filter-group">
-            <button class="sort-btn multi-active" data-filter-group="rs-mcap" data-filter-val="all" onclick="toggleMultiFilter('rs','mcap','all',this)" title="All market cap ranges">All Cap</button>
-            <button class="sort-btn" data-filter-group="rs-mcap" data-filter-val="large" onclick="toggleMultiFilter('rs','mcap','large',this)" title="Large Cap: Market Cap > ₹20,000 Cr">Large</button>
-            <button class="sort-btn" data-filter-group="rs-mcap" data-filter-val="mid" onclick="toggleMultiFilter('rs','mcap','mid',this)" title="Mid Cap: ₹5,000 - ₹20,000 Cr">Mid</button>
-            <button class="sort-btn" data-filter-group="rs-mcap" data-filter-val="small" onclick="toggleMultiFilter('rs','mcap','small',this)" title="Small Cap: < ₹5,000 Cr">Small</button>
-          </div>
-          <div class="mom-filter-group">
-            <button class="sort-btn multi-active" data-filter-group="rs-smart" data-filter-val="all" onclick="toggleMultiFilter('rs','smart','all',this)" title="All smart money categories">Smart $: All</button>
-            <button class="sort-btn" data-filter-group="rs-smart" data-filter-val="accum" onclick="toggleMultiFilter('rs','smart','accum',this)" style="color:#22C55E" title="Accumulation: 2+ of Promoter/FII/MF increasing holdings">🟢 Accumulation</button>
-            <button class="sort-btn" data-filter-group="rs-smart" data-filter-val="distrib" onclick="toggleMultiFilter('rs','smart','distrib',this)" style="color:#EF4444" title="Distribution: 2+ of Promoter/FII/MF decreasing holdings">🔴 Distribution</button>
-          </div>
-          <div class="mom-filter-group">
-            <button class="sort-btn multi-active" data-filter-group="rs-momcat" data-filter-val="all" onclick="toggleMultiFilter('rs','momcat','all',this)" title="Filter by momentum category from Scanner">Momentum: All</button>
-            <button class="sort-btn" data-filter-group="rs-momcat" data-filter-val="A" onclick="toggleMultiFilter('rs','momcat','A',this)" title="Cat A: Above daily 9+20 EMA AND weekly 9+20 EMA — strongest">🟢 A</button>
-            <button class="sort-btn" data-filter-group="rs-momcat" data-filter-val="B" onclick="toggleMultiFilter('rs','momcat','B',this)" title="Cat B: Below daily 9 EMA but above weekly — temporary weakness">🟡 B</button>
-            <button class="sort-btn" data-filter-group="rs-momcat" data-filter-val="C" onclick="toggleMultiFilter('rs','momcat','C',this)" title="Cat C: Weekly 9 EMA crossed above 20 EMA — early stage">🔵 C</button>
-            <button class="sort-btn" data-filter-group="rs-momcat" data-filter-val="AC" onclick="toggleMultiFilter('rs','momcat','AC',this)" title="Cat A+C: Both daily bullish and weekly crossover — strongest setup">💎 AC</button>
-          </div>
-          <select class="sort-sel" id="rs-sector-filter" onchange="renderResultsTable()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;color:var(--text);font-size:11px;outline:none" title="Filter by sector">
-            <option value="all">All Sectors</option>
-          </select>
-          <div class="mom-filter-group">
-            <button class="sort-btn multi-active" data-filter-group="rs-verdict" data-filter-val="all" onclick="toggleMultiFilter('rs','verdict','all',this)" title="All move verdicts">Verdict: All</button>
-            <button class="sort-btn" data-filter-group="rs-verdict" data-filter-val="confirmed" onclick="toggleMultiFilter('rs','verdict','confirmed',this)" style="color:#22C55E" title="Confirmed: Strong results AND strong price action — both align">🚀 Confirmed</button>
-            <button class="sort-btn" data-filter-group="rs-verdict" data-filter-val="underreacted" onclick="toggleMultiFilter('rs','verdict','underreacted',this)" style="color:var(--cyan)" title="Underreacted: Strong results but stock price hasn't moved much — potential opportunity">🎯 Underreacted</button>
-            <button class="sort-btn" data-filter-group="rs-verdict" data-filter-val="pricedin" onclick="toggleMultiFilter('rs','verdict','pricedin',this)" style="color:var(--amber)" title="Priced In: Stock already moved up before results — be cautious">⚠️ Priced In</button>
-            <button class="sort-btn" data-filter-group="rs-verdict" data-filter-val="trap" onclick="toggleMultiFilter('rs','verdict','trap',this)" style="color:#EF4444" title="Trap: Stock ran up but results were weak — fake move, avoid">💀 Trap</button>
-          </div>
-          <div class="mom-filter-group">
-            <button class="sort-btn" onclick="rsToggleNewInst(this)" id="rs-newinst-btn" title="Show only stocks where FII/MF had no holding last quarter but entered this quarter — fresh institutional interest">🆕 New Inst</button>
-            <button class="sort-btn" onclick="rsToggleStar(this)" id="rs-star-btn" title="Show only starred stocks">⭐ Starred</button>
-            <button class="sort-btn" onclick="toggleStrongSectorFilter('rs',this)" id="rs-strong-sec" title="Show only stocks in sectors with strong quarterly results (from Sector Scorecard)">🏆 Strong Sectors</button>
-          </div>
-          <span style="font-size:10px;color:var(--muted);margin-left:6px">Color</span>
-          <div id="rs-color-filter" style="display:flex;gap:3px"></div>
-        </div>
-        <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
-          <span style="font-size:11px;color:var(--muted)" id="rs-count">—</span>
-          <button class="sort-btn" onclick="rsExportTV()" style="font-size:10px;padding:2px 8px" title="Copy all visible stock symbols for TradingView watchlist">📊 TradingView</button>
-          <button class="sort-btn" onclick="toggleColPanel('rs',this)" style="font-size:10px;padding:2px 8px" title="Show/hide table columns">⚙️ Columns</button>
-          <button class="sort-btn" onclick="document.getElementById('rs-glossary').style.display=document.getElementById('rs-glossary').style.display==='none'?'block':'none'" style="font-size:10px;padding:2px 8px" title="Show glossary of terms used">ℹ️ Glossary</button>
-        </div>
-        <!-- Glossary -->
-        <div id="rs-glossary" style="display:none;margin-top:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:10px;color:var(--muted);line-height:1.6">
-          <span style="font-weight:600;color:var(--text)">📖 Glossary</span><br>
-          <b>Grade:</b> Auto-classification based on revenue growth, net profit growth, and operating margin trends.<br>
-          <b>Verdict:</b> Compares result quality with recent price action — identifies if a stock's move is genuine or misleading.<br>
-          <b>Post-Res Move:</b> Price change % since the result announcement date — shows how market reacted to the results.<br>
-          <b>OPM Δ:</b> Operating Profit Margin change vs same quarter last year. Positive = margins improving.<br>
-          <b>Smart $:</b> Accumulation = 2+ of Promoter/FII/MF increased holdings. Distribution = 2+ decreased.<br>
-          <b>New Inst:</b> Stocks where FII/MF had zero or negligible holding previously but entered this quarter — fresh institutional interest signal.<br>
-          <b>Mom Cat:</b> A = above all EMAs (strongest), B = below daily but above weekly (watch), C = fresh weekly crossover (early stage), AC = both A+C (best setup).<br>
-          <b>EMA Zone:</b> IN = within 3% of 9 EMA (ideal entry), NEAR = 3-5%, FAR = >5% (extended, avoid fresh entry).
-        </div>
-      </div>
-
-      <!-- Results Table -->
-      <div class="fo-section" id="rs-table-section" style="display:none;margin-top:8px">
-        <div class="tbl-scroll">
-          <table class="mom-tbl" id="rs-tbl" style="min-width:1600px">
-            <thead><tr>
-              <th title="Star stocks for quick filtering">★</th>
-              <th onclick="sortRS('symbol')" class="sortable-th" title="NSE stock symbol — hover for company name, click to open TradingView chart">Stock ↕</th>
-              <th title="Auto-graded: 🟢 Beat (Rev>20%+NP>30%+OPM↑), ⚡ Turn (NP>100%), 🔵 Steady (Rev 10-20%+NP 10-30%), 🟡 Mixed, 🔴 Weak">Grade</th>
-              <th title="🚀 Confirmed = strong results + strong price move, 🎯 Underreacted = strong results but flat price, ⚠️ Priced In = already moved, 💀 Trap = weak results but stock ran up">Verdict</th>
-              <th onclick="sortRS('resultDate')" class="sortable-th" title="Date when quarterly results were announced">Res Date ↕</th>
-              <th onclick="sortRS('postResultMove')" class="sortable-th" title="Price change % since result announcement date — shows market reaction">Post-Res Move ↕</th>
-              <th title="Stock sector from momentum data">Sector</th>
-              <th onclick="sortRS('rev_growth')" class="sortable-th" title="Revenue Growth Quarter-on-Quarter Year-over-Year %">Rev Gr% ↕</th>
-              <th onclick="sortRS('np_growth')" class="sortable-th" title="Net Profit Growth Quarter YoY %">NP Gr% ↕</th>
-              <th onclick="sortRS('opm')" class="sortable-th" title="Operating Profit Margin for the quarter">OPM% ↕</th>
-              <th title="OPM change vs same quarter last year — positive = margin expanding">OPM Δ</th>
-              <th onclick="sortRS('ebitda_growth')" class="sortable-th" title="EBITDA Growth Quarter YoY %">EBITDA% ↕</th>
-              <th title="Net Profit Margin for the quarter">NPM%</th>
-              <th onclick="sortRS('roe')" class="sortable-th" title="Return on Equity — >15% is good, >20% is excellent">ROE% ↕</th>
-              <th title="Return on Capital Employed — measures efficiency of capital usage">ROCE%</th>
-              <th title="Long-term Debt to Equity ratio — <1 is healthy, >1 is leveraged">D/E</th>
-              <th title="Price to Earnings TTM — lower = cheaper relative to earnings">PE</th>
-              <th title="Momentum Category from scanner: A=Daily+Weekly bullish, B=Watch zone, C=Weekly crossover, AC=Strongest">Mom Cat</th>
-              <th title="Distance from daily 9 EMA: IN=within 3%, NEAR=3-5%, FAR=>5%">EMA Zone</th>
-              <th title="Smart Money: 🟢=2+ of Prom/FII/MF buying, 🔴=2+ selling, 🟡=mixed">Smart $</th>
-              <th title="Promoter holding change QoQ % — positive = promoters buying their own stock">Prom Δ</th>
-              <th title="FII (Foreign Institutional Investor) holding change QoQ %">FII Δ</th>
-              <th title="MF (Mutual Fund) holding change QoQ %">MF Δ</th>
-              <th title="🆕 Stocks where institutional money (FII/MF) was absent last quarter but is present now — fresh institutional interest">New Inst?</th>
-              <th onclick="sortRS('broker_upside')" class="sortable-th" title="Broker consensus target upside % — positive = analysts see more upside">Target ↕</th>
-              <th title="Market Capitalization: L=Large (>20K Cr), M=Mid (5-20K), S=Small (<5K)">MCap</th>
-              <th title="Current market price">Price</th>
-              <th title="Last 5 sessions price action">Last 5</th>
-            </tr></thead>
-            <tbody id="rs-body">
-              <tr><td colspan="28" style="text-align:center;padding:40px;color:var(--muted)">Upload Trendlyne CSV files above to see results data.</td></tr>
-            </tbody>
-          </table>
-        </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">
+        Result dates come automatically from BSE for your whole momentum universe — <b>no uploads</b>. Around each result we measure, from your own price and volume:
+        <b>Pre-5d</b> (run-up into the result), <b>Post-1d / Post-5d</b> (the reaction and drift after), <b>Result RVOL</b> (peak volume vs the 20-day average around the result day), and <b>React (ADR)</b> (the post move in the stock's own daily-range units).
+        The <b>Verdict</b> reads the move in plain English: <b style="color:#22C55E">Positive surprise</b> (up on heavy volume), <b style="color:var(--cyan)">Anticipation</b> (running up before results), <b style="color:#EF4444">Sell the news</b> (ran up then fell), <b style="color:#22C55E">Drifting up</b> (kept rising after), <b>Quiet</b> (little move). Numbers fill in automatically as companies report from mid-July.
       </div>
     </div>
-  </div>
-
-  <!-- TAB: Analytics -->
-  <div id="tab-analytics" class="panel">
-    <div class="fo-panel">
-      <!-- README Panel -->
-      <div id="analytics-readme" style="display:none;margin:0 0 8px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:11px;color:var(--muted);line-height:1.9">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-weight:700;color:var(--text);font-size:14px">🏆 Analytics — How This Works</span>
-          <button onclick="document.getElementById('analytics-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="font-weight:700;font-size:15px;color:var(--text)">📋 Earnings Results <span style="font-size:11px;color:var(--muted);font-weight:500">— auto from BSE + your price/volume, no uploads</span></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <div id="er-win" style="display:flex;gap:4px">
+          <button class="er-seg-btn" data-w="today" onclick="erSetWin('today')">Today</button>
+          <button class="er-seg-btn" data-w="thisweek" onclick="erSetWin('thisweek')">This wk</button>
+          <button class="er-seg-btn" data-w="nextweek" onclick="erSetWin('nextweek')">Next wk</button>
+          <button class="er-seg-btn" data-w="lastweek" onclick="erSetWin('lastweek')">Last wk</button>
         </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-          <b style="color:var(--cyan);font-size:12px">🎯 What is this tab?</b><br>
-          Deep analytics on the Results data. Six sub-tabs that slice and dice earnings data to find <b style='color:var(--text)'>alpha opportunities</b> that others miss.
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-          <b style="color:var(--cyan);font-size:12px">📊 The 6 Sub-Tabs</b><br>
-          <b>Alpha Picks</b> — Blockbusters with strong category + momentum. Cream of the crop.<br><b>Multi-Bagger Radar</b> — Small/mid caps with explosive growth. High risk, high reward.<br><b>Underreacted</b> — Great results, stock hasn't moved. Your edge.<br><b>Sector Scorecard</b> — Which sectors had the best earnings season. Drives the Strong Sectors filter.<br><b>Smart Money</b> — Stocks with FII/DII accumulation + strong results.<br><b>New Inst Entry</b> — Fresh institutional positions. Big money entering new names.
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-          <b style="color:var(--cyan);font-size:12px">✅ How to Use</b><br>
-          ☑️ Start with <b>Sector Scorecard</b> → identify winning sectors<br>☑️ Go to <b>Underreacted</b> → find overlooked opportunities IN those sectors<br>☑️ Cross-check with <b>Smart Money</b> → is big money agreeing?<br>☑️ Use these picks in Momentum Scanner with Strong Sectors filter
-        </div>
-      </div>
-      <div style="margin:0 0 6px 0"><button class="sort-btn" onclick="document.getElementById('analytics-readme').style.display=document.getElementById('analytics-readme').style.display==='none'?'block':'none'" style="font-size:10px;padding:3px 10px;background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3B82F6;font-weight:600" title="Learn how this tab works">📖 How This Works</button></div>
-
-
-      <div id="analytics-empty" style="text-align:center;padding:40px;color:var(--muted)">
-        <div style="font-size:40px;margin-bottom:12px">🏆</div>
-        <div style="font-size:14px;font-weight:600">Upload results data first</div>
-        <div style="font-size:12px;margin-top:4px">Go to Results Season tab → upload both CSV files → Analytics will auto-generate</div>
-      </div>
-      <div id="analytics-content" style="display:none">
-        <!-- Analytics Sub-tabs -->
-        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px">
-          <button class="sort-btn multi-active" onclick="switchAnalyticsSub('alpha',this)" id="an-sub-alpha" title="Blockbuster/Turnaround results + Cat A/AC momentum + Smart Money accumulating — the absolute best setups">🏆 Alpha Picks</button>
-          <button class="sort-btn" onclick="switchAnalyticsSub('multi',this)" id="an-sub-multi" title="Turnaround results + Fresh weekly crossover + Small/Mid cap + Low debt — early multi-bagger signals">💎 Multi-Bagger</button>
-          <button class="sort-btn" onclick="switchAnalyticsSub('under',this)" id="an-sub-under" title="Strong results but price hasn't moved yet — market hasn't noticed, potential opportunity">🎯 Underreacted</button>
-          <button class="sort-btn" onclick="switchAnalyticsSub('sector',this)" id="an-sub-sector" title="Aggregate sector-level results — which sectors are posting strongest numbers this quarter">📊 Sector Scorecard</button>
-          <button class="sort-btn" onclick="switchAnalyticsSub('smart',this)" id="an-sub-smart" title="Triple accumulation (Promoter + FII + MF all buying) + strong results">💰 Smart Money</button>
-          <button class="sort-btn" onclick="switchAnalyticsSub('newinst',this)" id="an-sub-newinst" title="Stocks where institutions entered for first time this quarter + results are positive — fresh institutional discovery">🆕 New Inst Entry</button>
-        </div>
-        <!-- Alpha Picks -->
-        <div id="an-panel-alpha">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Stocks where fundamentals (strong results) + technicals (Category A/AC, EMA zone) + smart money (accumulation) ALL align. Strictest filter — these are the highest conviction bets.</div>
-          <div id="alpha-picks-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px"></div>
-        </div>
-        <!-- Multi-Bagger Radar -->
-        <div id="an-panel-multi" style="display:none">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Turnaround results + Category C (fresh weekly crossover just started) + Small/Mid cap + Low debt. These are early-stage compounders — buy and hold candidates.</div>
-          <div id="multibagger-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px"></div>
-        </div>
-        <!-- Underreacted -->
-        <div id="an-panel-under" style="display:none">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Companies that posted blockbuster or turnaround results but the stock price hasn't reacted yet (month change < 5%). Market hasn't noticed — potential opportunity before the crowd catches on.</div>
-          <div id="underreacted-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px"></div>
-        </div>
-        <!-- Sector Scorecard -->
-        <div id="an-panel-sector" style="display:none">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Which sectors posted the strongest results this quarter? Size = number of results. Color = strength. Click any sector to filter Results tab.</div>
-          <!-- Summary strip -->
-          <div id="sector-sc-summary" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap"></div>
-          <!-- Heatmap -->
-          <div id="sector-scorecard" style="display:flex;flex-wrap:wrap;gap:4px;align-items:flex-start"></div>
-        </div>
-        <!-- Smart Money Tracker -->
-        <div id="an-panel-smart" style="display:none">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Stocks where all three — Promoters, FII, and Mutual Funds — increased holdings AND results were strong. Triple confirmation of conviction.</div>
-          <div id="smartmoney-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px"></div>
-        </div>
-        <!-- New Institutional Entry -->
-        <div id="an-panel-newinst" style="display:none">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Stocks where FII or MF had negligible/zero holding but entered this quarter, AND results are positive or turning around. Fresh institutional discovery — often precedes bigger moves.</div>
-          <div id="newinst-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px"></div>
-        </div>
+        <select id="er-status" onchange="renderEarningsResults()" class="er-sel"><option value="">All status</option><option value="upcoming">Upcoming</option><option value="done">Reported</option></select>
+        <select id="er-verdict" onchange="renderEarningsResults()" class="er-sel"><option value="">All verdicts</option><option>Positive surprise</option><option>Anticipation</option><option>Drifting up</option><option>Sell the news</option><option>Quiet</option><option>Watch</option><option>Mixed</option></select>
+        <select id="er-rvol" onchange="renderEarningsResults()" class="er-sel"><option value="">Any RVOL</option><option value="1.5">RVOL ≥1.5×</option><option value="2">RVOL ≥2×</option></select>
+        <input id="er-search" oninput="renderEarningsResults()" placeholder="Symbol…" class="er-sel" style="width:110px">
+        <button onclick="var e=document.getElementById('er-readme');e.style.display=e.style.display==='none'?'block':'none'" class="er-sel" style="cursor:pointer">ℹ️ How</button>
       </div>
     </div>
+    <div id="er-summary" style="font-size:11px;color:var(--muted);margin-bottom:6px">Loading…</div>
+    <div id="er-root" style="overflow:auto"></div>
   </div>
+</div>
+
 
 </div>
 <div id="sectors-container" style="display:none">
@@ -6134,7 +5900,7 @@ function switchTab(tab, btn, mode) {
     const el = document.getElementById('tab-'+tab);
     if (el) el.classList.add('active');
     if (btn) btn.classList.add('active');
-    if (tab==='resultseason') renderResultsTable();
+    if (tab==='resultseason') renderEarningsResults();
     if (tab==='analytics')    renderAnalyticsTab();
     return;
   }
@@ -10196,7 +9962,85 @@ function rsGetSmartBadge(s) {
   return '<span style="color:var(--muted);font-size:10px">🟡 Neutral</span>';
 }
 
+/* ===== Earnings Results tab (auto from earnings_moves; no uploads) ===== */
+var ER={data:null,win:'',sortK:'result_date',sortDir:-1};
+async function loadEarningsData(force){
+  if(ER.data&&!force) return ER.data;
+  try{
+    var url=CONFIG.supabaseUrl+'/rest/v1/earnings_moves?select=*&order=result_date.desc&limit=5000';
+    var r=await fetch(url,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}});
+    ER.data=await r.json();
+  }catch(e){console.error('earnings load error',e);ER.data=[];}
+  return ER.data;
+}
+function erSetWin(w){
+  ER.win=(ER.win===w?'':w);
+  var b=document.querySelectorAll('#er-win .er-seg-btn');
+  b.forEach(function(x){x.classList.toggle('active',x.getAttribute('data-w')===ER.win);});
+  renderEarningsResults();
+}
+function erSort(k){ if(ER.sortK===k)ER.sortDir=-ER.sortDir; else{ER.sortK=k;ER.sortDir=1;} renderEarningsResults(); }
+function erFmtPct(v,suf){
+  if(v==null)return '<span style="color:var(--muted)">—</span>';
+  var c=v>0?'#22C55E':(v<0?'#EF4444':'var(--muted)');
+  return '<span style="color:'+c+'">'+(v>0?'+':'')+v.toFixed(1)+(suf||'%')+'</span>';
+}
+async function renderEarningsResults(){
+  var root=document.getElementById('er-root'); if(!root) return;
+  var data=await loadEarningsData();
+  var status=(document.getElementById('er-status')||{}).value||'';
+  var verdict=(document.getElementById('er-verdict')||{}).value||'';
+  var rvol=(document.getElementById('er-rvol')||{}).value||'';
+  var q=(((document.getElementById('er-search')||{}).value)||'').toUpperCase().trim();
+  var rows=(data||[]).filter(function(e){
+    if(ER.win){var tg=scrErWindows(e.result_date); if(tg.indexOf(ER.win)<0)return false;}
+    if(status&&e.status!==status)return false;
+    if(verdict&&e.verdict!==verdict)return false;
+    if(rvol){ if(e.result_rvol==null||e.result_rvol<parseFloat(rvol))return false; }
+    if(q&&(e.symbol||'').toUpperCase().indexOf(q)<0)return false;
+    return true;
+  });
+  var k=ER.sortK,dir=ER.sortDir;
+  rows.sort(function(a,b){var x=a[k],y=b[k];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;if(x<y)return -1*dir;if(x>y)return 1*dir;return 0;});
+  var cols=[['result_date','Result Date'],['status','Status'],['pre_5d','Pre-5d'],['post_1d','Post-1d'],['post_5d','Post-5d'],['result_rvol','Result RVOL'],['post_5d_adr','React (ADR)'],['verdict','Verdict']];
+  var vm={'Positive surprise':'#22C55E','Drifting up':'#22C55E','Anticipation':'var(--cyan)','Watch':'var(--muted)','Sell the news':'#EF4444','Quiet':'var(--muted)','Mixed':'var(--amber)'};
+  var now=new Date();now.setHours(0,0,0,0);
+  var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var h='<table class="er-tbl"><thead><tr><th onclick="erSort(\'symbol\')">Symbol</th>';
+  cols.forEach(function(c){h+='<th onclick="erSort(\''+c[0]+'\')">'+c[1]+'</th>';});
+  h+='</tr></thead><tbody>';
+  var summ=document.getElementById('er-summary');
+  if(!rows.length){ root.innerHTML=h+'</tbody></table>'; if(summ)summ.textContent='No matching result events.'; return; }
+  rows.forEach(function(e){
+    var rd=new Date(e.result_date+'T00:00:00');
+    var diff=Math.round((rd-now)/86400000);
+    var rel=diff===0?'today':(diff>0?'in '+diff+'d':(-diff)+'d ago');
+    var dlbl=rd.getDate()+' '+mo[rd.getMonth()]+" '"+String(rd.getFullYear()).slice(2);
+    var dcol=diff>=0?'var(--cyan)':'var(--muted)';
+    var stat=e.status==='done'?'<span style="color:#22C55E">Reported</span>':'<span style="color:var(--muted)">Upcoming</span>';
+    var vcol=vm[e.verdict]||'var(--muted)';
+    var vch=e.verdict?'<span style="color:'+vcol+';font-weight:600">'+e.verdict+'</span>':'<span style="color:var(--muted)">—</span>';
+    var rv=(e.result_rvol==null)?'<span style="color:var(--muted)">—</span>':('<span style="color:'+(e.result_rvol>=2?'#22C55E':(e.result_rvol>=1.5?'var(--amber)':'var(--muted)'))+'">'+e.result_rvol.toFixed(1)+'×</span>');
+    h+='<tr>'+
+      '<td><b style="color:var(--text)">'+e.symbol+'</b>'+(e.long_name?' <span style="color:var(--muted);font-size:10px">'+e.long_name+'</span>':'')+'</td>'+
+      '<td style="color:'+dcol+'"><b>'+dlbl+'</b> <span style="color:var(--muted);font-size:10px">'+rel+'</span></td>'+
+      '<td>'+stat+'</td>'+
+      '<td>'+erFmtPct(e.pre_5d)+'</td>'+
+      '<td>'+erFmtPct(e.post_1d)+'</td>'+
+      '<td>'+erFmtPct(e.post_5d)+'</td>'+
+      '<td>'+rv+'</td>'+
+      '<td>'+erFmtPct(e.post_5d_adr,'×')+'</td>'+
+      '<td>'+vch+'</td>'+
+    '</tr>';
+  });
+  h+='</tbody></table>';
+  root.innerHTML=h;
+  var rep=rows.filter(function(x){return x.status==='done';}).length;
+  if(summ)summ.textContent='Showing '+rows.length+' of '+(data||[]).length+' result events ('+rep+' reported, '+(rows.length-rep)+' upcoming)';
+}
+
 function renderResultsTable() {
+  if (!document.getElementById('rs-sector-filter')) return;
   if (!rsMergedData.length) return;
   let data = [...rsMergedData];
 
@@ -10321,6 +10165,7 @@ function rsAnalyticsCard(r) {
 }
 
 function renderAnalyticsTab() {
+  if (!document.getElementById('analytics-empty')) return;
   if (!rsMergedData.length) {
     document.getElementById('analytics-empty').style.display = '';
     document.getElementById('analytics-content').style.display = 'none';
