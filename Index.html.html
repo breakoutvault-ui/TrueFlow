@@ -5871,14 +5871,9 @@ function switchTab(tab, btn, mode) {
     const el = document.getElementById('tab-'+tab);
     if (el) el.classList.add('active');
     if (btn) btn.classList.add('active');
-    if (tab==='scanner')    loadMomScanner();
-    if (tab==='emasignals') loadMomEMA();
-    if (tab==='sharpmovers') loadMomSharp();
-    if (tab==='mypicks')    loadMomPicks();
-    if (tab==='exited')     loadMomExited();
-    if (tab==='smartmoney') loadSmartMoney();
-    if (tab==='volume')     loadVolume();
-    if (tab==='screener')   scrLoad();
+    if(!window.momLoaded)window.momLoaded=new Set();
+    var _momLd={scanner:loadMomScanner,emasignals:loadMomEMA,sharpmovers:loadMomSharp,mypicks:loadMomPicks,exited:loadMomExited,smartmoney:loadSmartMoney,volume:loadVolume,screener:scrLoad};
+    if(_momLd[tab]&&!window.momLoaded.has(tab)){window.momLoaded.add(tab);_momLd[tab]();}
     return;
   }
   if (mode === 'banknifty') {
