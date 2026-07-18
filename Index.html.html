@@ -1028,7 +1028,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="mode-btn" id="mode-banknifty" onclick="switchMode('banknifty')">🏦 BankNifty</button>
         <button class="mode-btn" id="mode-results" onclick="switchMode('results')">📋 Results</button>
         <button class="mode-btn" id="mode-rotation" onclick="switchMode('rotation')">🔄 Rotation</button>
-        <button class="mode-btn" id="mode-sectors" onclick="switchMode('sectors')">🧭 Sectors</button>
       </div>
       <div class="nav-tabs" id="fo-tabs">
         <button class="nav-tab active" onclick="switchTab('morning',this,'fo')">🌅 Morning Brief</button>
@@ -1068,6 +1067,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="nav-tab active" id="rot-tab-score" onclick="rotSetView('scorecard',this)">🔥 Sector Scorecard</button>
         <button class="nav-tab" id="rot-tab-radar" onclick="rotSetView('radar',this)">🔄 Rotation Radar</button>
         <button class="nav-tab" id="rot-tab-drill" onclick="rotSetView('drill',this)">🔍 Sector Detail</button>
+        <button class="nav-tab" id="rot-tab-explorer" onclick="rotSetView('explorer',this)">🧭 Explorer</button>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -3824,6 +3824,7 @@ function smCopyTV(){
     <div><span class="k">🌊 Volume</span> the share of the sector's stocks whose volume is running above their 20-day average over the window — i.e. where money is flowing in. 100 = every stock in the sector is seeing elevated volume.</div>
     <div><span class="k">🏦 Smart Money</span> net bulk &amp; block deal value into the sector over the window (buys − sells, in ₹). <b style="color:var(--green)">Green</b> = net accumulation, <b style="color:var(--red)">red</b> = net distribution. Magnitude is scaled 0–100 against the most-active sector.</div>
     <div><span class="k">🔥 Trending</span> the headline blend: <code>40% Price Action + 30% Volume + 30% Smart Money</code> (distribution drags the score down). Sectors strong on all three earn the 🔥 badge.</div>
+    <div><span class="k">📈 Volume Trend</span> is the sector's Volume score today vs. its Volume score at the start of the selected window — i.e. is elevated-volume breadth <i>rising or falling</i>, not just how high it is right now. <b style="color:var(--green)">Green</b> = more stocks picking up volume than before, <b style="color:var(--red)">red</b> = fewer. This is the one dimension that tells you direction, not just level.</div>
     <div style="margin-top:6px"><span class="k">Breadth %</span> on each tile = share of the sector's stocks that are Cat A / A+C — tells you if the strength is broad-based or driven by one or two names.</div>
 
     <h4>The date window</h4>
@@ -3850,6 +3851,7 @@ function smCopyTV(){
       <button class="sa-tg" onclick="saSetDim('price',this)">📈 Price Action</button>
       <button class="sa-tg" onclick="saSetDim('volume',this)">🌊 Volume</button>
       <button class="sa-tg" onclick="saSetDim('smart',this)">🏦 Smart Money</button>
+      <button class="sa-tg" onclick="saSetDim('voltrend',this)">📈 Volume Trend</button>
     </div>
     <span style="flex:1"></span>
     <div class="sa-datewin">
@@ -3925,7 +3927,7 @@ function smCopyTV(){
       </div>
     </div>
 
-    <div class="mom-topbar">
+    <div class="mom-topbar" id="rot-topbar">
       <div class="mom-filters" id="rot-filters"></div>
       <div class="mom-export-btns">
         <button class="col-toggle-btn" id="rot-colbtn" onclick="rotToggleColPanel(this)" title="Show / hide columns">⚙️ Columns</button>
@@ -4184,6 +4186,20 @@ function rotStockRow(s){
 }
 
 function rotRender(){
+  const sc=document.getElementById('sectors-container'), rtb=document.getElementById('rot-topbar');
+  if(ROT.view==='explorer'){
+    if(sc) sc.style.display='block';
+    if(rtb) rtb.style.display='none';
+    document.getElementById('rot-readme').style.display='none';
+    document.getElementById('rot-colpanel').style.display='none';
+    document.getElementById('rot-tablewrap').style.display='none';
+    document.getElementById('rot-detail').style.display='none';
+    const hmEl=document.getElementById('rot-heatmap'); if(hmEl) hmEl.style.display='none';
+    if(typeof loadSectorAnalytics==='function') loadSectorAnalytics();
+    return;
+  }
+  if(sc) sc.style.display='none';
+  if(rtb) rtb.style.display='';
   document.getElementById('rot-filters').innerHTML=rotFiltersBar();
   document.getElementById('rot-colbtn').style.display = ROT.view==='scorecard'?'inline-block':'none';
   const table=document.getElementById('rot-tablewrap'), detail=document.getElementById('rot-detail');
@@ -12333,7 +12349,7 @@ function renderVolume(){
 <script>
 /* ═══ SECTOR ANALYTICS — logic (reuses volGet/volBars/volLast5/volSetupChip/volRvolCell/getCatBadge/rsGetGradeBadge/SM_TIERS) ═══ */
 let SA = { dim:'trending', win:'week', loaded:false, mom:[], deals:[], hist:{}, tierMap:{}, gradeMap:{}, updated:'—', agg:[] };
-const SA_DIM_LBL = { trending:'Trending', price:'Price Action', volume:'Volume', smart:'Smart Money' };
+const SA_DIM_LBL = { trending:'Trending', price:'Price Action', volume:'Volume', smart:'Smart Money', voltrend:'Volume Trend' };
 const SA_WIN_LBL = { today:'Today', week:'This Week', month:'This Month', custom:'Custom' };
 
 async function loadSectorAnalytics(){
@@ -12410,6 +12426,11 @@ function saCompute(){
     const h = SA.hist[s.symbol] || [];
     let series = h.length ? h.slice(-nSess) : (s.vol_ratio!=null ? [+s.vol_ratio] : []);
     if (series.length){ m.volTot++; if (series[series.length-1] >= 1.5) m.volBuild++; }
+    // Prior-period snapshot (nSess sessions before today) for Volume Trend
+    if (h.length > nSess){
+      m.volTrendTot = (m.volTrendTot||0) + 1;
+      if (h[h.length-1-nSess] >= 1.5) m.volTrendPrevBuild = (m.volTrendPrevBuild||0) + 1;
+    }
     if ((s.momentum_score||0) > m.topMom){ m.topMom = s.momentum_score||0; m.top = s.symbol; }
   });
   SA.deals.forEach(d => { if (!saIn(d.deal_date, range)) return; const m = M(d.sector); m.net += (d.side==='BUY' ? (d.value||0) : -(d.value||0)); });
@@ -12425,14 +12446,23 @@ function saCompute(){
     m.netCr   = m.net / 1e7;
     m.breadth = m.total ? Math.round(m.catA / m.total * 100) : 0;
     m.trending= Math.round(0.4*m.priceN + 0.3*m.volN + 0.3*(m.smDir>0 ? m.smMag : 100 - m.smMag));
+    const prevVolN = m.volTrendTot ? Math.round((m.volTrendPrevBuild||0) / m.volTrendTot * 100) : m.volN;
+    m.volTrendDelta = m.volN - prevVolN;
+    m.volTrendDir   = m.volTrendDelta >= 0 ? 1 : -1;
+    m.volTrendMag   = Math.abs(m.volTrendDelta);
   });
   return arr;
 }
 
-function saVal(m){ return m[SA.dim==='trending'?'trending':SA.dim==='price'?'priceN':SA.dim==='volume'?'volN':'smMag']; }
+function saVal(m){ return m[SA.dim==='trending'?'trending':SA.dim==='price'?'priceN':SA.dim==='volume'?'volN':SA.dim==='voltrend'?'volTrendMag':'smMag']; }
 function saColor(m){
   const v = saVal(m);
   if (SA.dim==='smart' && m.smDir < 0){ return `rgba(255,68,102,${0.18 + (m.smMag/100)*0.5})`; }
+  if (SA.dim==='voltrend'){
+    return m.volTrendDir < 0
+      ? `rgba(255,68,102,${0.18 + (m.volTrendMag/100)*0.5})`
+      : `rgba(34,197,94,${0.18 + (m.volTrendMag/100)*0.5})`;
+  }
   const hue = v*1.2, light = 22 + (v/100)*16;
   return `hsl(${hue},70%,${light}%)`;
 }
@@ -12451,7 +12481,7 @@ function saRender(){
   if (!sorted.length){ heat.innerHTML = '<div style="color:var(--muted);padding:24px">No sector activity in this window.</div>'; return; }
   heat.innerHTML = sorted.map(m => {
     const v = saVal(m), fire = saFire(m);
-    const sign = (SA.dim==='smart' && m.smDir<0) ? '−' : '';
+    const sign = (SA.dim==='smart' && m.smDir<0) ? '−' : (SA.dim==='voltrend' ? (m.volTrendDir<0?'−':'+') : '');
     const safe = m.sec.replace(/'/g,"\\'");
     return `<div class="sa-cell" style="background:${saColor(m)}" onclick="saOpenDrill('${safe}',this)">
       <div class="nm">${m.sec} ${fire?'🔥':''}</div>
