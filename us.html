@@ -2243,13 +2243,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div id="tab-screener" class="panel">
     <div class="scr-info">
       <span style="font-size:20px">🔎</span>
-      <span class="txt"><b>Screener</b> — every stock-level data point from Scanner + EMA Signals + Breakout Setups in one place. Multi-select filters, save presets, hover anything, hide any column with its <b>−</b> box, restore with <b>⟲ Unhide all</b>. Now shows the <b>full F&amp;O universe</b> — tap <b>📈 In Uptrend</b> to focus on names above (or just under) the daily 9 EMA.</span>
+      <span class="txt"><b>Screener</b> — every stock-level data point from Scanner + EMA Signals + Breakout Setups in one place. Multi-select filters, save presets, hover anything, hide any column with its <b>−</b> box, restore with <b>⟲ Unhide all</b>. Now shows the <b>full US universe</b> — tap <b>📈 In Uptrend</b> to focus on names above (or just under) the daily 9 EMA.</span>
       <span class="scr-pill" onclick="document.getElementById('scr-hiw').classList.toggle('open')">📖 How This Works</span>
       <span class="scr-ver">SCR v1.6</span>
     </div>
     <div class="scr-hiw" id="scr-hiw">
       <h4>What this screener is — and how to trade from it</h4>
-      <div>One board for every F&amp;O stock. Each <b>row</b> is a stock, each <b>column</b> a data point, each column header a <b>multi-select filter</b>. Instead of hopping between Scanner, EMA Signals and Breakout Setups, you start from a clean uptrend and keep adding conditions until only the best setups are left.</div>
+      <div>One board for every US stock in the universe. Each <b>row</b> is a stock, each <b>column</b> a data point, each column header a <b>multi-select filter</b>. Instead of hopping between Scanner, EMA Signals and Breakout Setups, you start from a clean uptrend and keep adding conditions until only the best setups are left.</div>
       <div style="margin-top:6px">The daily routine: open <b>⭐ A+ Setups</b> → glance at <b>Price/Vol</b> and <b>RVOL</b> to see price moving on real volume → check <b>%9E</b> for a low-risk entry → confirm <b>Smart $</b> is not selling → hit <b>📋 TradingView</b> to push your shortlist to a watchlist.</div>
 
       <h4>The setups — and how you'd trade each</h4>
@@ -12018,7 +12018,7 @@ async function volGet(q){
 async function loadVolume(){
   if (VOLstate.loaded){ renderVolume(); return; }
   try{
-    const latest = await volGet('momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000');
+    const latest = await volGet('us_momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000');
     if (!latest || !latest.length){
       document.getElementById('vbleader-body').innerHTML = '<tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted)">No volume data yet — check back after the evening scan.</td></tr>';
       return;
@@ -12028,7 +12028,7 @@ async function loadVolume(){
     VOLstate.updated = latestDate;
 
     // recent history (slim) for window reconstruction — ~6 sessions
-    const histRows = await volGet('momentum_stocks?select=symbol,session_date,vol_ratio&order=session_date.desc&limit=9000');
+    const histRows = await volGet('us_momentum_stocks?select=symbol,session_date,vol_ratio&order=session_date.desc&limit=9000');
     const hist = {};
     histRows.forEach(r => { (hist[r.symbol] = hist[r.symbol] || []).push(r); });
     Object.keys(hist).forEach(sym => {
@@ -12354,7 +12354,7 @@ const SA_WIN_LBL = { today:'Today', week:'This Week', month:'This Month', custom
 async function loadSectorAnalytics(){
   if (SA.loaded){ saRender(); return; }
   try{
-    const latest = await volGet('momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000');
+    const latest = await volGet('us_momentum_stocks?select=*&is_active=eq.true&order=session_date.desc&limit=2000');
     if (!latest || !latest.length){
       document.getElementById('sa-heat').innerHTML = '<div style="color:var(--muted);padding:24px">No data yet — check back after the evening scan.</div>';
       return;
@@ -12362,7 +12362,7 @@ async function loadSectorAnalytics(){
     const ld = latest[0].session_date; SA.updated = ld;
     SA.mom = latest.filter(s => s.session_date === ld);
 
-    const hr = await volGet('momentum_stocks?select=symbol,session_date,vol_ratio&order=session_date.desc&limit=9000');
+    const hr = await volGet('us_momentum_stocks?select=symbol,session_date,vol_ratio&order=session_date.desc&limit=9000');
     const hist = {};
     hr.forEach(r => { (hist[r.symbol] = hist[r.symbol] || []).push(r); });
     Object.keys(hist).forEach(s => { hist[s] = hist[s].sort((a,b)=>(a.session_date<b.session_date?-1:1)).map(r=>r.vol_ratio!=null?+r.vol_ratio:null).filter(x=>x!=null); });
@@ -12673,13 +12673,13 @@ function scrNrBadge(d){
 async function scrLoad(){
  if(SCR.loaded){scrRender();return;}
  try{
-  let latest=[];for(let _o=0;_o<4000;_o+=1000){const _pg=await volGet('momentum_stocks?select=*&order=session_date.desc&limit=1000&offset='+_o);if(!_pg||!_pg.length)break;latest=latest.concat(_pg);if(_pg.length<1000)break;}
+  let latest=[];for(let _o=0;_o<4000;_o+=1000){const _pg=await volGet('us_momentum_stocks?select=*&order=session_date.desc&limit=1000&offset='+_o);if(!_pg||!_pg.length)break;latest=latest.concat(_pg);if(_pg.length<1000)break;}
   if(!latest||!latest.length){document.getElementById('scr-body').innerHTML='<tr><td style="padding:24px;text-align:center;color:var(--muted)">No data yet — check back after the evening scan.</td></tr>';return;}
   const ld=latest[0].session_date;SCR.updated=ld;
   const snap=latest.filter(s=>s.session_date===ld);
   const sm=await volGet('us_smart_money_scores?select=symbol,tier,cooking_score');const tm={};(sm||[]).forEach(r=>tm[r.symbol]={tier:r.tier});SCR.tierMap=tm;
   const gm={};if(typeof rsMergedData!=='undefined'&&rsMergedData){rsMergedData.forEach(r=>{if(r.symbol)gm[r.symbol]=r.grade;});}SCR.gradeMap=gm;
-  const em={};const _ed=await volGet('earnings_moves?select=*&order=result_date.desc&limit=4000');(_ed||[]).forEach(r=>{if(r.symbol&&!em[r.symbol])em[r.symbol]=r;});SCR.earnMap=em;
+  const em={};const _ed=await volGet('us_earnings_moves?select=*&order=result_date.desc&limit=4000');(_ed||[]).forEach(r=>{if(r.symbol&&!em[r.symbol])em[r.symbol]=r;});SCR.earnMap=em;
 
   SCR.data=snap.map(s=>{
    const closes=(s.last5_closes&&typeof s.last5_closes==='string'&&s.last5_closes.indexOf(',')>-1)?s.last5_closes.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
