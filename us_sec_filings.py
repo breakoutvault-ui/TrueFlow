@@ -186,53 +186,77 @@ def _tag(el):
 
 
 def parse_primary_xml(body):
-    """Return a dict from primary_doc.xml, or None if it is not parseable."""
+    """Parse primary_doc.xml for BOTH schedule schemas.
+
+    13D and 13G use different tag names for the same concepts, including a
+    different capitalisation of the issuer CIK tag (issuerCIK vs issuerCik),
+    so every lookup here is case-insensitive and accepts multiple candidates:
+
+                        13D                     13G
+      issuer cik        issuerCIK               issuerCik
+      person block      reportingPersonInfo     coverPageHeaderReportingPersonDetails
+      percent           percentOfClass          classPercent
+      shares            aggregateAmountOwned    reportingPersonBeneficiallyOwned...
+      event date        dateOfEvent             eventDateRequiresFilingThisStatement
+    """
     try:
         root = ET.fromstring(body.encode("utf-8") if isinstance(body, str) else body)
     except Exception:
         return None
 
-    def all_vals(name):
-        return [_txt(e) for e in root.iter() if _tag(e) == name and _txt(e)]
+    def norm(el):
+        return _tag(el).lower()
 
-    issuer_cik = None
-    for v in all_vals("issuerCIK"):
+    def first_val(*names):
+        want = {n.lower() for n in names}
+        for e in root.iter():
+            if norm(e) in want and _txt(e):
+                return _txt(e)
+        return None
+
+    def to_float(v):
+        if v is None:
+            return None
         try:
-            issuer_cik = int(v)
-            break
+            return float(str(v).replace(",", "").strip())
         except ValueError:
-            continue
+            return None
 
-    # reporting persons, in filing order — the first is the lead filer
+    # ── issuer (the company the filing is ABOUT) ──────────────────────
+    issuer_cik = None
+    raw_cik = first_val("issuerCIK", "issuerCik", "issuercik")
+    if raw_cik:
+        try:
+            issuer_cik = int(str(raw_cik).strip())
+        except ValueError:
+            issuer_cik = None
+    issuer_name = first_val("issuerName")
+
+    # ── reporting persons (the investors) ─────────────────────────────
+    PERSON_BLOCKS = {"reportingpersoninfo", "coverpageheaderreportingpersondetails"}
+    PCT_TAGS   = {"percentofclass", "classpercent"}
+    SHARE_TAGS = {"aggregateamountowned",
+                  "reportingpersonbeneficiallyownedaggregatenumberofshares",
+                  "amountbeneficiallyowned"}
     persons = []
-    for rp in root.iter():
-        if _tag(rp) != "reportingPersonInfo":
+    for blk in root.iter():
+        if norm(blk) not in PERSON_BLOCKS:
             continue
         nm = pct = shares = ptype = None
-        for ch in rp.iter():
-            tg = _tag(ch)
-            if tg == "reportingPersonName" and nm is None:
+        for ch in blk.iter():
+            tg = norm(ch)
+            if tg == "reportingpersonname" and nm is None:
                 nm = _txt(ch)
-            elif tg == "percentOfClass" and pct is None:
-                try:
-                    pct = float(_txt(ch))
-                except ValueError:
-                    pct = None
-            elif tg == "aggregateAmountOwned" and shares is None:
-                try:
-                    shares = float(_txt(ch))
-                except ValueError:
-                    shares = None
-            elif tg == "typeOfReportingPerson" and ptype is None:
+            elif tg in PCT_TAGS and pct is None:
+                pct = to_float(_txt(ch))
+            elif tg in SHARE_TAGS and shares is None:
+                shares = to_float(_txt(ch))
+            elif tg == "typeofreportingperson" and ptype is None:
                 ptype = _txt(ch)
         if nm:
             persons.append({"name": nm, "pct": pct, "shares": shares, "type": ptype})
 
-    issuer_names = all_vals("issuerName")
-    dates = all_vals("dateOfEvent")
-    amend = all_vals("amendmentNo")
-
-    # headline stake = the largest percentOfClass among the reporting persons
+    # headline stake = the largest disclosed percentage among the filers
     lead = None
     for p in persons:
         if p["pct"] is not None and (lead is None or p["pct"] > (lead["pct"] or 0)):
@@ -240,16 +264,24 @@ def parse_primary_xml(body):
     if lead is None and persons:
         lead = persons[0]
 
+    # some 13Gs only carry the percentage in the items section
+    pct_final = (lead or {}).get("pct")
+    if pct_final is None:
+        pct_final = to_float(first_val("classPercent", "percentOfClass"))
+    shares_final = (lead or {}).get("shares")
+    if shares_final is None:
+        shares_final = to_float(first_val("amountBeneficiallyOwned"))
+
     return {
         "issuer_cik": issuer_cik,
-        "issuer_name": issuer_names[0] if issuer_names else None,
-        "filer_name": (lead or {}).get("name"),
-        "pct_of_class": (lead or {}).get("pct"),
-        "shares_owned": (lead or {}).get("shares"),
-        "filer_type": (lead or {}).get("type"),
+        "issuer_name": issuer_name,
+        "filer_name": (lead or {}).get("name") or first_val("reportingPersonName"),
+        "pct_of_class": pct_final,
+        "shares_owned": shares_final,
+        "filer_type": (lead or {}).get("type") or first_val("typeOfReportingPerson"),
         "all_filers": ", ".join([p["name"] for p in persons[:6]]) if persons else None,
-        "event_date": dates[0] if dates else None,
-        "amendment_no": amend[0] if amend else None,
+        "event_date": first_val("dateOfEvent", "eventDateRequiresFilingThisStatement"),
+        "amendment_no": first_val("amendmentNo"),
         "n_filers": len(persons),
     }
 
@@ -350,9 +382,6 @@ def run():
             if not acc or acc in have:
                 continue
             have.add(acc)
-            found += 1
-            if found <= 15 or TEST_SYMBOLS > 0:
-                log.info("  %s  %s  %s", sym, form, fdate)
 
             is_activist = is_activist_form(form)
             accn = acc.replace("-", "")
