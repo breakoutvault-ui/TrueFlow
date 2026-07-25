@@ -80,7 +80,12 @@ def sb_upsert(table, rows, on_conflict):
         r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={on_conflict}",
                           headers=h, json=chunk, timeout=120)
         if r.status_code >= 300:
-            log.error("upsert %s failed: %s %s", table, r.status_code, r.text[:300])
+            log.warning("batch upsert %s failed (%s) — retrying row by row", table, r.status_code)
+            for one in chunk:
+                rr = requests.post(f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={on_conflict}",
+                                   headers=h, json=[one], timeout=60)
+                if rr.status_code >= 300:
+                    log.error("row upsert %s failed: %s %s", one.get("symbol"), rr.status_code, rr.text[:200])
 
 
 def telegram(msg):
@@ -332,14 +337,20 @@ def run():
 
             mv = compute_moves(series, vols, rdate, adr) if series else None
 
+            # Complete row template — EVERY row carries the SAME keys so Supabase
+            # batch upserts never hit "All object keys must match".
             base = {"symbol": sym, "result_date": str(rdate),
                     "company_name": cname, "sector": sector, "adr_pct": adr,
                     "eps_est": ev["eps_est"], "eps_act": ev["eps_act"],
-                    "surprise_pct": ev["surprise_pct"]}
+                    "surprise_pct": ev["surprise_pct"],
+                    "status": None, "state": None, "result_close": None,
+                    "pre_5d": None, "pre_10d": None,
+                    "post_1d": None, "post_3d": None, "post_5d": None,
+                    "pre_5d_adr": None, "post_5d_adr": None, "result_rvol": None,
+                    "is_neglected": False, "is_delayed_ep": False, "verdict": None}
 
             if rdate > today:
-                base.update({"status": "upcoming",
-                             "state": "UPCOMING",
+                base.update({"status": "upcoming", "state": "UPCOMING",
                              "pre_5d": (mv["pre_5d"] if mv else None),
                              "pre_10d": (mv["pre_10d"] if mv else None),
                              "verdict": "Anticipation" if (mv and (mv.get("pre_5d") or 0) >= 4) else "Watch"})
