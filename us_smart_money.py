@@ -38,6 +38,9 @@ BACKFILL_DAYS   = 90     # calendar days for first run
 DAILY_LOOKBACK  = 5      # calendar days re-checked every daily run
 MIN_TX_VALUE    = 10_000 # ignore micro transactions below $10k
 REQ_SLEEP       = 0.15   # ~6-7 req/sec (SEC fair-access limit is 10/sec)
+CLUSTER_WINDOW      = 30   # days — window in which a "cluster" must form
+CLUSTER_MIN_BUYERS  = 3    # distinct insiders buying to count as a cluster
+CLUSTER_MIN_RATIO   = 2.0  # buy value must be >= 2x sell value in that window
 STAR_TITLE_RE   = re.compile(r"c\.?e\.?o|chief exec|c\.?f\.?o|chief fin|president|chair", re.I)
 
 logging.basicConfig(level=logging.INFO,
@@ -325,6 +328,33 @@ def compute_scores():
         # selling that dwarfs buying always wins, regardless of who nibbled
         heavy_selling = sell30 > 2 * max(buy30, 1)
 
+        # ── CLUSTER DETECTION ────────────────────────────────────────────
+        # Research (Lakonishok & Lee; Cohen/Malloy/Pomorski): several insiders
+        # buying in the same short window is roughly twice as predictive as a
+        # lone buyer. We use a tighter 30-day window than the scoring window,
+        # and require buying to genuinely dominate selling (ratio >= 2).
+        cl_since = (dt.date.today() - dt.timedelta(days=CLUSTER_WINDOW)).isoformat()
+        cl_buys  = [d for d in buys  if d["deal_date"] >= cl_since]
+        cl_sells = [d for d in sells if d["deal_date"] >= cl_since]
+        cl_buy_val  = sum(d["value"] for d in cl_buys)
+        cl_sell_val = sum(d["value"] for d in cl_sells)
+        cl_buyers_map = {}
+        for d in cl_buys:
+            cl_buyers_map.setdefault(d["client_name"], []).append(d["deal_date"])
+        cluster_buyers = len(cl_buyers_map)
+        cluster_stars  = len({d["client_name"] for d in cl_buys if d["is_star"]})
+        buy_sell_ratio = (cl_buy_val / cl_sell_val) if cl_sell_val > 0 else (999.0 if cl_buy_val > 0 else 0.0)
+        is_cluster = (cluster_buyers >= CLUSTER_MIN_BUYERS
+                      and buy_sell_ratio >= CLUSTER_MIN_RATIO
+                      and cl_buy_val >= MIN_NET_BUY)
+        cluster_first = min((min(v) for v in cl_buyers_map.values()), default=None)
+        cluster_last  = max((max(v) for v in cl_buyers_map.values()), default=None)
+        # span in days over which the cluster formed — tighter is stronger
+        if cluster_first and cluster_last:
+            cluster_span = (dt.date.fromisoformat(cluster_last) - dt.date.fromisoformat(cluster_first)).days
+        else:
+            cluster_span = None
+
         if heavy_selling or net30 < -25_000:
             tier = "OFFLOADING"
         elif net30 >= MIN_NET_BUY and (stars >= 1 or (n_buyers >= 2 and repeat)):
@@ -343,6 +373,14 @@ def compute_scores():
             score += 20.0 if stars else 0.0
             days_ago = (dt.date.today() - dt.date.fromisoformat(last_deal)).days
             score += 15 if days_ago <= 7 else (10 if days_ago <= 14 else 5)
+            # cluster bonus: multiple insiders acting together is the strongest tell
+            if is_cluster:
+                score += 12.0
+                if cluster_stars >= 1:
+                    score += 6.0
+                if cluster_span is not None and cluster_span <= 7:
+                    score += 4.0     # tight, coordinated cluster
+            score = min(score, 100.0)
         out.append({"symbol": sym, "tier": tier,
                     "cooking_score": round(score, 1),
                     "net_value_7d": round(net7, 2),
@@ -353,6 +391,14 @@ def compute_scores():
                     "inst_buyers_30d": n_buyers,
                     "deals_30d": len(ds),
                     "last_deal": last_deal,
+                    "is_cluster": bool(is_cluster),
+                    "cluster_buyers": cluster_buyers,
+                    "cluster_stars": cluster_stars,
+                    "cluster_span_days": cluster_span,
+                    "cluster_buy_value": round(cl_buy_val, 2),
+                    "buy_sell_ratio": round(min(buy_sell_ratio, 999.0), 2),
+                    "cluster_first_date": cluster_first,
+                    "cluster_last_date": cluster_last,
                     "updated_at": now})
 
     # symbols with no 30d activity -> remove stale score rows
@@ -396,9 +442,11 @@ def main():
     tiers = {}
     for s in scores:
         tiers[s["tier"]] = tiers.get(s["tier"], 0) + 1
+    clusters = sum(1 for s in scores if s.get("is_cluster"))
     msg = (f"🇺🇸 <b>US Smart Money — {'Backfill' if backfill else 'Daily'} complete</b>\n"
            f"Filings processed: {filings} | with open-market trades: {hits}\n"
            f"Symbols scored (30d): {len(scores)}\n"
+           f"🎯 <b>Insider clusters: {clusters}</b>\n"
            f"🔥 Loading up: {tiers.get('LOADING_UP',0)} | "
            f"📈 Accumulating: {tiers.get('ACCUMULATING',0)}\n"
            f"👀 Nibbling: {tiers.get('NIBBLING',0)} | "
