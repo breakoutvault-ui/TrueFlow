@@ -33,6 +33,7 @@ Modes (auto-detected):
 Run: /root/trueflow/bin/python /root/trueflow/us_sec_filings.py
 """
 import os, re, time, logging, datetime as dt
+from xml.etree import ElementTree as ET
 import requests
 
 SUPABASE_URL = "https://tsgltaqbxtisebqmbffg.supabase.co"
@@ -168,45 +169,110 @@ def load_cik_map(universe):
     return out
 
 
-# ---------------------------------------------------------------- % extraction
-PCT_PATTERNS = [
-    re.compile(r"PERCENT\s+OF\s+CLASS\s+REPRESENTED\s+BY\s+AMOUNT\s+IN\s+ROW.{0,120}?([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%", re.I | re.S),
-    re.compile(r"Percent\s+of\s+class[^0-9%]{0,80}([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%", re.I | re.S),
-    re.compile(r"aggregate\s+(?:amount|percentage)[^0-9%]{0,120}([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%", re.I | re.S),
-]
+# ---------------------------------------------------------------- XML parsing
+# Modern 13D/13G filings (SEC structured-filing rules, ~late 2024) ship a clean
+# primary_doc.xml. We parse that instead of scraping prose, which gives us:
+#   issuerCIK           -> WHO THE FILING IS ABOUT (critical: lets us verify the
+#                          filing targets OUR stock and is not our stock filing
+#                          about someone else)
+#   reportingPersonName -> the investor(s) doing the buying
+#   percentOfClass      -> the stake size, as a real field
+def _txt(el):
+    return (el.text or "").strip() if el is not None else ""
 
 
-def extract_pct(text):
-    """Best-effort ownership % from the filing body. Returns None if unsure."""
+def _tag(el):
+    return re.sub(r"\{.*?\}", "", el.tag)
+
+
+def parse_primary_xml(body):
+    """Return a dict from primary_doc.xml, or None if it is not parseable."""
+    try:
+        root = ET.fromstring(body.encode("utf-8") if isinstance(body, str) else body)
+    except Exception:
+        return None
+
+    def all_vals(name):
+        return [_txt(e) for e in root.iter() if _tag(e) == name and _txt(e)]
+
+    issuer_cik = None
+    for v in all_vals("issuerCIK"):
+        try:
+            issuer_cik = int(v)
+            break
+        except ValueError:
+            continue
+
+    # reporting persons, in filing order — the first is the lead filer
+    persons = []
+    for rp in root.iter():
+        if _tag(rp) != "reportingPersonInfo":
+            continue
+        nm = pct = shares = ptype = None
+        for ch in rp.iter():
+            tg = _tag(ch)
+            if tg == "reportingPersonName" and nm is None:
+                nm = _txt(ch)
+            elif tg == "percentOfClass" and pct is None:
+                try:
+                    pct = float(_txt(ch))
+                except ValueError:
+                    pct = None
+            elif tg == "aggregateAmountOwned" and shares is None:
+                try:
+                    shares = float(_txt(ch))
+                except ValueError:
+                    shares = None
+            elif tg == "typeOfReportingPerson" and ptype is None:
+                ptype = _txt(ch)
+        if nm:
+            persons.append({"name": nm, "pct": pct, "shares": shares, "type": ptype})
+
+    issuer_names = all_vals("issuerName")
+    dates = all_vals("dateOfEvent")
+    amend = all_vals("amendmentNo")
+
+    # headline stake = the largest percentOfClass among the reporting persons
+    lead = None
+    for p in persons:
+        if p["pct"] is not None and (lead is None or p["pct"] > (lead["pct"] or 0)):
+            lead = p
+    if lead is None and persons:
+        lead = persons[0]
+
+    return {
+        "issuer_cik": issuer_cik,
+        "issuer_name": issuer_names[0] if issuer_names else None,
+        "filer_name": (lead or {}).get("name"),
+        "pct_of_class": (lead or {}).get("pct"),
+        "shares_owned": (lead or {}).get("shares"),
+        "filer_type": (lead or {}).get("type"),
+        "all_filers": ", ".join([p["name"] for p in persons[:6]]) if persons else None,
+        "event_date": dates[0] if dates else None,
+        "amendment_no": amend[0] if amend else None,
+        "n_filers": len(persons),
+    }
+
+
+PCT_FALLBACK = re.compile(
+    r"PERCENT\s+OF\s+CLASS[^0-9%]{0,140}?([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%", re.I | re.S)
+
+
+def extract_pct_fallback(text):
+    """Only used for pre-2024 style filings that have no primary_doc.xml."""
     if not text:
         return None
     body = re.sub(r"<[^>]+>", " ", text)
     body = re.sub(r"&nbsp;?", " ", body)
     body = re.sub(r"\s+", " ", body)[:60000]
-    for pat in PCT_PATTERNS:
-        m = pat.search(body)
-        if m:
-            try:
-                v = float(m.group(1))
-                if 0 < v <= 100:
-                    return round(v, 2)
-            except ValueError:
-                pass
-    return None
-
-
-def filer_name(text):
-    """Best-effort filer (the investor) name from the cover page."""
-    if not text:
-        return None
-    body = re.sub(r"<[^>]+>", " ", text)
-    body = re.sub(r"\s+", " ", body)
-    m = re.search(r"NAME[S]?\s+OF\s+REPORTING\s+PERSON[S]?\s*:?\s*(?:I\.?R\.?S\.?[^A-Za-z]{0,40})?([A-Z][A-Za-z0-9 .,&'\-/]{3,70})", body)
+    m = PCT_FALLBACK.search(body)
     if m:
-        nm = m.group(1).strip(" .,")
-        nm = re.sub(r"\s+(I\.?R\.?S|S\.?S\.? or).*$", "", nm, flags=re.I)
-        if 3 < len(nm) < 72:
-            return nm.title()
+        try:
+            v = float(m.group(1))
+            if 0 < v <= 100:
+                return round(v, 2)
+        except ValueError:
+            pass
     return None
 
 
@@ -247,6 +313,7 @@ def run():
     log.info("Already stored: %d filings since %s", len(have), cutoff)
 
     rows, docs_opened, found, scanned, activist = [], 0, 0, 0, 0
+    reversed_out = xml_ok = legacy = 0
     syms = sorted(cikmap.keys())
     if TEST_SYMBOLS > 0:
         # put known 13D/13G-heavy names first so a small test is meaningful
@@ -288,33 +355,86 @@ def run():
                 log.info("  %s  %s  %s", sym, form, fdate)
 
             is_activist = is_activist_form(form)
-            pct, who = None, None
-            # 13D = activist, rare and high-signal -> ALWAYS read the document.
-            # 13G = passive index/pension holders, very high volume -> cap it.
-            if is_activist or docs_opened < FETCH_DOC_LIMIT:
-                accn = acc.replace("-", "")
+            accn = acc.replace("-", "")
+            folder = f"https://www.sec.gov/Archives/edgar/data/{cik}/{accn}"
+
+            # ── Read primary_doc.xml. This is REQUIRED, not optional: it carries
+            # issuerCIK, which tells us who the filing is actually ABOUT. A
+            # company's SEC record contains filings where it is the SUBJECT and
+            # filings where it is the FILER (i.e. it invested in someone else).
+            # Without this check we would store "BEN took a stake in itself"
+            # when the truth is "BEN took a stake in Clarion".
+            info = None
+            xr = sec_get(f"{folder}/primary_doc.xml")
+            docs_opened += 1
+            if xr is not None:
+                info = parse_primary_xml(xr.text)
+
+            pct = who = issuer_nm = shares = ftype = allf = evdate = amno = None
+            nfilers = None
+            if info:
+                # VALIDATION: does this filing target our stock?
+                if info.get("issuer_cik") is not None and info["issuer_cik"] != cik:
+                    reversed_out += 1
+                    if reversed_out <= 12:
+                        log.info("  SKIP %s %s %s — filing is about %s (CIK %s), not %s",
+                                 sym, form, fdate, info.get("issuer_name"),
+                                 info.get("issuer_cik"), sym)
+                    continue
+                pct      = info.get("pct_of_class")
+                who      = info.get("filer_name")
+                issuer_nm = info.get("issuer_name")
+                shares   = info.get("shares_owned")
+                ftype    = info.get("filer_type")
+                allf     = info.get("all_filers")
+                evdate   = info.get("event_date")
+                amno     = info.get("amendment_no")
+                nfilers  = info.get("n_filers")
+                xml_ok += 1
+            else:
+                # Pre-2024 filings have no primary_doc.xml. We cannot verify the
+                # subject, so keep the row but flag it as unverified.
                 doc = docs[i] if i < len(docs) else None
                 if doc:
-                    url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{accn}/{doc}"
-                    dr = sec_get(url)
+                    dr = sec_get(f"{folder}/{doc}")
                     docs_opened += 1
                     if dr is not None:
-                        pct = extract_pct(dr.text)
-                        who = filer_name(dr.text)
+                        pct = extract_pct_fallback(dr.text)
+                legacy += 1
 
+            found += 1
+            if found <= 15 or TEST_SYMBOLS > 0:
+                log.info("  %s  %s  %s  %s%s", sym, form, fdate,
+                         (who or "?"), (f"  {pct}%" if pct is not None else ""))
             if is_activist:
                 activist += 1
+
+            # event_date arrives as MM/DD/YYYY in the XML -> normalise to ISO
+            ev_iso = None
+            if evdate:
+                m_ev = re.match(r"(\d{2})/(\d{2})/(\d{4})", evdate.strip())
+                if m_ev:
+                    ev_iso = f"{m_ev.group(3)}-{m_ev.group(1)}-{m_ev.group(2)}"
+
             rows.append({
                 "accession_no": acc,
                 "symbol": sym,
                 "company_name": universe.get(sym, ""),
                 "form_type": str(form).strip().upper().replace("SCHEDULE ", "SC "),
                 "is_activist": bool(is_activist),
-                "is_amendment": form.endswith("/A"),
+                "is_amendment": str(form).strip().endswith("/A"),
                 "filer_name": who,
+                "all_filers": allf,
+                "filer_type": ftype,
+                "n_filers": nfilers,
                 "pct_of_class": pct,
+                "shares_owned": shares,
+                "issuer_name": issuer_nm,
+                "event_date": ev_iso,
+                "amendment_no": amno,
+                "xml_verified": bool(info),
                 "filing_date": fdate,
-                "filing_url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-','')}/",
+                "filing_url": folder + "/",
                 "updated_at": dt.datetime.utcnow().isoformat() + "Z",
             })
 
@@ -323,8 +443,11 @@ def run():
 
     sb_upsert("us_sec_stakes", rows, "accession_no")
 
-    log.info("Done: %d companies scanned, %d stake filings (%d activist 13D), %d docs opened",
+    log.info("Done: %d companies scanned, %d stake filings KEPT (%d activist 13D), %d docs opened",
              scanned, found, activist, docs_opened)
+    log.info("VALIDATION — xml-verified: %d | legacy (no xml): %d | "
+             "REJECTED as filings about OTHER companies: %d",
+             xml_ok, legacy, reversed_out)
     log.info("FETCH FAILURES — 403/429/503: %d | 404: %d | other: %d | exceptions: %d",
              FAILS["403"], FAILS["404"], FAILS["other"], FAILS["exception"])
     if FAILS["403"] > scanned * 0.1:
@@ -332,9 +455,9 @@ def run():
                   "Raise REQ_SLEEP and re-run.")
     telegram(f"🇺🇸 <b>US SEC Stakes — {'Backfill' if backfill else 'Daily'} complete</b>\n"
              f"Companies scanned: {scanned}\n"
-             f"📋 Stake filings found: <b>{found}</b>\n"
+             f"📋 Stake filings on your stocks: <b>{found}</b>\n"
              f"⚔️ Activist 13D: <b>{activist}</b> | 🏛️ Passive 13G: {found - activist}\n"
-             f"Documents parsed for ownership %: {docs_opened}")
+             f"🚫 Rejected (about other companies): {reversed_out}")
 
 
 if __name__ == "__main__":
