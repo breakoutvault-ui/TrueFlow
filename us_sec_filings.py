@@ -50,7 +50,21 @@ REQ_SLEEP       = 0.22   # SEC fair-access is 10 req/sec; stay comfortably under
 FETCH_DOC_LIMIT = 400    # max filing documents to open per run for % extraction
 TEST_SYMBOLS    = int(os.environ.get("TF_TEST_N", "0"))  # >0 = only scan this many symbols
 
-FORMS = ("SC 13D", "SC 13D/A", "SC 13G", "SC 13G/A")
+# SEC renamed these forms (structured 13D/G rules, ~late 2024):
+#   modern : SCHEDULE 13D / SCHEDULE 13D/A / SCHEDULE 13G / SCHEDULE 13G/A
+#   legacy : SC 13D / SC 13D/A / SC 13G / SC 13G/A
+# We accept both so historical filings still match.
+FORMS = ("SCHEDULE 13D", "SCHEDULE 13D/A", "SCHEDULE 13G", "SCHEDULE 13G/A",
+         "SC 13D", "SC 13D/A", "SC 13G", "SC 13G/A")
+
+def is_stake_form(f):
+    s = str(f or "").strip().upper()
+    return s in FORMS
+
+def is_activist_form(f):
+    """13D = active intent. 13G = passive holder."""
+    s = str(f or "").strip().upper()
+    return s.startswith("SCHEDULE 13D") or s.startswith("SC 13D")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("us_sec")
@@ -260,7 +274,7 @@ def run():
         docs  = recent.get("primaryDocument", []) or []
 
         for i, form in enumerate(forms):
-            if form not in FORMS:
+            if not is_stake_form(form):
                 continue
             fdate = dates[i] if i < len(dates) else None
             if not fdate or fdate < cutoff:
@@ -285,14 +299,14 @@ def run():
                         pct = extract_pct(dr.text)
                         who = filer_name(dr.text)
 
-            is_activist = form.startswith("SC 13D")
+            is_activist = is_activist_form(form)
             if is_activist:
                 activist += 1
             rows.append({
                 "accession_no": acc,
                 "symbol": sym,
                 "company_name": universe.get(sym, ""),
-                "form_type": form,
+                "form_type": str(form).strip().upper().replace("SCHEDULE ", "SC "),
                 "is_activist": bool(is_activist),
                 "is_amendment": form.endswith("/A"),
                 "filer_name": who,
