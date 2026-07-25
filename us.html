@@ -10026,12 +10026,21 @@ var ER_VERDICT_COL={'Delayed EP':'#8B5CF6','Positive surprise':'#22C55E','Drifti
 
 async function loadEarningsData(force){
   if(ER.data&&!force) return ER.data;
+  // Supabase caps every response at 1000 rows, so page through until we have them all.
+  var all=[],page=0,PAGE=1000;
   try{
-    var url=CONFIG.supabaseUrl+'/rest/v1/us_earnings_moves?select=*&order=result_date.desc&limit=8000';
-    var r=await fetch(url,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}});
-    var _er=await r.json();
-    ER.data=Array.isArray(_er)?_er:[];
-  }catch(e){console.error('earnings load error',e);ER.data=[];}
+    while(page<12){
+      var url=CONFIG.supabaseUrl+'/rest/v1/us_earnings_moves?select=*&order=result_date.desc'
+             +'&limit='+PAGE+'&offset='+(page*PAGE);
+      var r=await fetch(url,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}});
+      var chunk=await r.json();
+      if(!Array.isArray(chunk)||!chunk.length) break;
+      all=all.concat(chunk);
+      if(chunk.length<PAGE) break;
+      page++;
+    }
+    ER.data=all;
+  }catch(e){console.error('earnings load error',e);ER.data=all.length?all:[];}
   return ER.data;
 }
 function erSetWin(w){
@@ -12749,7 +12758,28 @@ async function scrLoad(){
   const snap=latest.filter(s=>s.session_date===ld);
   const sm=await volGet('us_smart_money_scores?select=symbol,tier,cooking_score');const tm={};(sm||[]).forEach(r=>tm[r.symbol]={tier:r.tier});SCR.tierMap=tm;
   const gm={};if(typeof rsMergedData!=='undefined'&&rsMergedData){rsMergedData.forEach(r=>{if(r.symbol)gm[r.symbol]=r.grade;});}SCR.gradeMap=gm;
-  const em={};const _ed=await volGet('us_earnings_moves?select=*&order=result_date.desc&limit=4000');(_ed||[]).forEach(r=>{if(r.symbol&&!em[r.symbol])em[r.symbol]=r;});SCR.earnMap=em;
+  // Supabase caps responses at 1000 rows -> page through all earnings events.
+  const em={};let _all=[],_pg=0;
+  while(_pg<12){
+    const _c=await volGet('us_earnings_moves?select=*&order=result_date.desc&limit=1000&offset='+(_pg*1000));
+    if(!Array.isArray(_c)||!_c.length)break;
+    _all=_all.concat(_c);
+    if(_c.length<1000)break;
+    _pg++;
+  }
+  // For each stock keep the most decision-relevant event: the latest REPORTED one
+  // (that's where the gap/drift/EP signal lives); fall back to the next upcoming date.
+  const _today=new Date();_today.setHours(0,0,0,0);
+  _all.forEach(r=>{
+    if(!r.symbol)return;
+    const cur=em[r.symbol];
+    const isDone=r.status==='done';
+    if(!cur){em[r.symbol]=r;return;}
+    const curDone=cur.status==='done';
+    if(isDone&&!curDone){em[r.symbol]=r;return;}          // prefer reported over upcoming
+    if(isDone===curDone&&r.result_date>cur.result_date)em[r.symbol]=r;  // else the more recent
+  });
+  SCR.earnMap=em;
 
   SCR.data=snap.map(s=>{
    const closes=(s.last5_closes&&typeof s.last5_closes==='string'&&s.last5_closes.indexOf(',')>-1)?s.last5_closes.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
