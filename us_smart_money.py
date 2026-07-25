@@ -294,10 +294,13 @@ def ingest_days(days, cik2sym, universe, skip_accessions):
 # ----------------------------------------------------------------------------
 
 def compute_scores():
-    since30 = (dt.date.today() - dt.timedelta(days=30)).isoformat()
+    # 45-day accumulation window: long enough to catch selling a 30d window misses,
+    # short enough to stay "recent". 7d used only for the fast-flow column.
+    since45 = (dt.date.today() - dt.timedelta(days=45)).isoformat()
     since7  = (dt.date.today() - dt.timedelta(days=7)).isoformat()
+    MIN_NET_BUY = 250_000   # net buying must clear this to qualify as a buying tier
     deals = sb_get(f"us_smart_money_deals?select=symbol,client_name,is_star,side,value,deal_date"
-                   f"&deal_date=gte.{since30}&limit=100000")
+                   f"&deal_date=gte.{since45}&limit=100000")
     by = {}
     for d in deals:
         by.setdefault(d["symbol"], []).append(d)
@@ -306,7 +309,7 @@ def compute_scores():
     for sym, ds in by.items():
         buys  = [d for d in ds if d["side"] == "BUY"]
         sells = [d for d in ds if d["side"] == "SELL"]
-        buy30  = sum(d["value"] for d in buys)
+        buy30  = sum(d["value"] for d in buys)      # (name kept for column compatibility; 45d window)
         sell30 = sum(d["value"] for d in sells)
         net30  = buy30 - sell30
         net7   = sum(d["value"] for d in buys  if d["deal_date"] >= since7) - \
@@ -319,19 +322,22 @@ def compute_scores():
         stars    = len({d["client_name"] for d in buys if d["is_star"]})
         last_deal = max(d["deal_date"] for d in ds)
 
-        if net30 > 0 and (stars >= 1 or (n_buyers >= 2 and repeat)):
+        # selling that dwarfs buying always wins, regardless of who nibbled
+        heavy_selling = sell30 > 2 * max(buy30, 1)
+
+        if heavy_selling or net30 < -25_000:
+            tier = "OFFLOADING"
+        elif net30 >= MIN_NET_BUY and (stars >= 1 or (n_buyers >= 2 and repeat)):
             tier = "LOADING_UP"
-        elif net30 > 0 and (n_buyers >= 2 or repeat):
+        elif net30 >= MIN_NET_BUY and (n_buyers >= 2 or repeat):
             tier = "ACCUMULATING"
         elif net30 > 0:
             tier = "NIBBLING"
-        elif net30 < -25_000:
-            tier = "OFFLOADING"
         else:
             tier = "QUIET"
 
         score = 0.0
-        if net30 > 0:
+        if tier in ("LOADING_UP", "ACCUMULATING", "NIBBLING"):
             score += min(40.0, net30 / 2_000_000 * 40)
             score += min(25.0, n_buyers * 8)
             score += 20.0 if stars else 0.0
