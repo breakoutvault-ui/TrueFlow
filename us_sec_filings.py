@@ -203,8 +203,15 @@ def run():
 
     # accessions we already stored, so we never re-open the same document
     try:
-        have = {r["accession_no"] for r in
-                sb_get(f"us_sec_stakes?select=accession_no&filing_date=gte.{cutoff}&limit=100000")}
+        have = set()
+        for _p in range(200):   # Supabase caps every response at 1000 rows -> page
+            _c = sb_get(f"us_sec_stakes?select=id,accession_no&filing_date=gte.{cutoff}"
+                        f"&order=id.asc&limit=1000&offset={_p*1000}")
+            if not _c:
+                break
+            have |= {r["accession_no"] for r in _c}
+            if len(_c) < 1000:
+                break
     except Exception:
         have = set()
     log.info("Already stored: %d filings since %s", len(have), cutoff)
