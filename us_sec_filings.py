@@ -287,8 +287,11 @@ def run():
             if found <= 15 or TEST_SYMBOLS > 0:
                 log.info("  %s  %s  %s", sym, form, fdate)
 
+            is_activist = is_activist_form(form)
             pct, who = None, None
-            if docs_opened < FETCH_DOC_LIMIT:
+            # 13D = activist, rare and high-signal -> ALWAYS read the document.
+            # 13G = passive index/pension holders, very high volume -> cap it.
+            if is_activist or docs_opened < FETCH_DOC_LIMIT:
                 accn = acc.replace("-", "")
                 doc = docs[i] if i < len(docs) else None
                 if doc:
@@ -299,7 +302,6 @@ def run():
                         pct = extract_pct(dr.text)
                         who = filer_name(dr.text)
 
-            is_activist = is_activist_form(form)
             if is_activist:
                 activist += 1
             rows.append({
