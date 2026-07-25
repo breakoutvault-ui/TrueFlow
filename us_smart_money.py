@@ -86,6 +86,26 @@ def sb_get(path):
     return r.json()
 
 
+def sb_get_all(table, query, page=1000, max_pages=200):
+    """Supabase caps EVERY response at 1000 rows regardless of the limit asked
+    for, so any query that can exceed 1000 rows MUST be paged. Ordering by id
+    keeps the paging deterministic."""
+    out = []
+    for p in range(max_pages):
+        sep = "&" if "?" in f"{table}?{query}" else "?"
+        url = (f"{SUPABASE_URL}/rest/v1/{table}?{query}"
+               f"&order=id.asc&limit={page}&offset={p*page}")
+        r = requests.get(url, headers=SB_HEADERS, timeout=90)
+        r.raise_for_status()
+        chunk = r.json()
+        if not isinstance(chunk, list) or not chunk:
+            break
+        out += chunk
+        if len(chunk) < page:
+            break
+    return out
+
+
 def sb_upsert(table, rows, on_conflict):
     if not rows:
         return
@@ -244,7 +264,8 @@ def parse_form4(txt_content):
 
 def existing_accessions(since):
     try:
-        rows = sb_get(f"us_smart_money_deals?select=accession_no&deal_date=gte.{since}&limit=100000")
+        rows = sb_get_all("us_smart_money_deals",
+                          f"select=id,accession_no&deal_date=gte.{since}")
         return {r["accession_no"] for r in rows}
     except Exception:
         return set()
@@ -302,8 +323,9 @@ def compute_scores():
     since45 = (dt.date.today() - dt.timedelta(days=45)).isoformat()
     since7  = (dt.date.today() - dt.timedelta(days=7)).isoformat()
     MIN_NET_BUY = 250_000   # net buying must clear this to qualify as a buying tier
-    deals = sb_get(f"us_smart_money_deals?select=symbol,client_name,is_star,side,value,deal_date"
-                   f"&deal_date=gte.{since45}&limit=100000")
+    deals = sb_get_all("us_smart_money_deals",
+                       f"select=id,symbol,client_name,is_star,side,value,deal_date"
+                       f"&deal_date=gte.{since45}")
     by = {}
     for d in deals:
         by.setdefault(d["symbol"], []).append(d)
