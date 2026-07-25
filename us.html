@@ -3772,23 +3772,49 @@ function smCopyTV(){
   .er-sel{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px}
   .er-tbl{width:100%;border-collapse:collapse;font-size:12px}
   .er-tbl th{position:sticky;top:0;background:var(--bg2);color:var(--muted);text-align:left;padding:7px 9px;font-weight:600;white-space:nowrap;cursor:pointer;border-bottom:1px solid var(--border)}
-  .er-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);white-space:nowrap}
+  .er-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:top}
   .er-tbl tr:hover td{background:var(--bg2)}
+  .er-qv{background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:5px 11px;border-radius:20px;font-size:11px;cursor:pointer;font-weight:600}
+  .er-qv.active{background:var(--cyan);color:#03121a;border-color:var(--cyan)}
+  .er-life-step{flex:1;min-width:120px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 11px}
   </style>
   <div class="fo-panel">
-    <div id="er-readme" style="display:none;margin:0 0 10px 0;background:linear-gradient(135deg,var(--bg2),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:10px;padding:14px 16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-weight:700;color:var(--text);font-size:14px">📋 Earnings Results — How This Works</span>
+    <div id="er-readme" style="display:none;margin:0 0 12px 0;background:linear-gradient(135deg,var(--bg2),rgba(139,92,246,0.05));border:1px solid var(--border);border-radius:10px;padding:16px 18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-weight:700;color:var(--text);font-size:15px">📋 Earnings & Episodic Pivots — How This Works</span>
         <button onclick="document.getElementById('er-readme').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
       </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.6">
-        Result dates come automatically from SEC filings for your whole momentum universe — <b>no uploads</b>. Around each result we measure, from your own price and volume:
-        <b>Pre-5d</b> (run-up into the result), <b>Post-1d / Post-5d</b> (the reaction and drift after), <b>Result RVOL</b> (peak volume vs the 20-day average around the result day), and <b>React (ADR)</b> (the post move in the stock's own daily-range units).
-        The <b>Verdict</b> reads the move in plain English: <b style="color:#22C55E">Positive surprise</b> (up on heavy volume), <b style="color:var(--cyan)">Anticipation</b> (running up before results), <b style="color:#EF4444">Sell the news</b> (ran up then fell), <b style="color:#22C55E">Drifting up</b> (kept rising after), <b>Quiet</b> (little move). Numbers fill in automatically as companies report from mid-July.
+      <div style="font-size:12.5px;color:var(--text2);line-height:1.65">
+        <p style="margin:0 0 10px 0"><b style="color:var(--text)">What this tab is for.</b> When a US company reports its quarterly earnings, that result is a <b>catalyst</b> — a reason for the stock to move. This tab watches every earnings result across your US universe and tells you, in plain English, whether the stock is setting up for a tradable move. Everything here is automatic, pulled from official SEC-filed earnings dates and each stock's own price action. Nothing to upload.</p>
+
+        <p style="margin:0 0 6px 0"><b style="color:var(--text)">The idea: a big move usually comes in two legs.</b> A stock sitting quietly gets a strong earnings result, jumps, and rallies — that's <b>Leg 1</b>. If the catalyst is real and big money is accumulating, it then pauses near its highs, tightens up, and pushes higher again — that's <b>Leg 2</b>. This tab tracks each stock through that whole life so you can catch <i>either</i> entry.</p>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">
+          <div class="er-life-step"><b style="color:#F59E0B">⚡ Gapped</b><div style="font-size:11px;color:var(--muted);margin-top:2px">Just popped on the result. The move is fresh.</div></div>
+          <div class="er-life-step"><b style="color:#22C55E">📈 Drifting</b><div style="font-size:11px;color:var(--muted);margin-top:2px">Still stepping up — <b>Leg 1 alive</b>. Buy small pullbacks.</div></div>
+          <div class="er-life-step"><b style="color:var(--cyan)">🛏️ Basing</b><div style="font-size:11px;color:var(--muted);margin-top:2px">Resting near its highs after the pop.</div></div>
+          <div class="er-life-step"><b style="color:#8B5CF6">🌀 Coiling</b><div style="font-size:11px;color:var(--muted);margin-top:2px">Tightening at the highs — <b>Leg 2 forming</b>. Watch closely.</div></div>
+          <div class="er-life-step"><b style="color:#22C55E">🚀 Resumed</b><div style="font-size:11px;color:var(--muted);margin-top:2px">Broke out again — <b>Leg 2 fired</b>.</div></div>
+          <div class="er-life-step"><b style="color:#EF4444">💧 Faded</b><div style="font-size:11px;color:var(--muted);margin-top:2px">Gave the gap back. Catalyst failed — avoid.</div></div>
+        </div>
+
+        <p style="margin:0 0 10px 0"><b style="color:#8B5CF6">◆EP — the Delayed Episodic Pivot (the premium setup).</b> This is the one worth hunting. A stock that was <b>flat and neglected</b> before earnings — nobody saw it coming — then <b>pops hard on the result with heavy volume</b>. Because the crowd wasn't already in, these have the cleanest room to run. When you see the <span style="color:#8B5CF6">◆EP</span> mark, the stock was quiet, then ignited. Pair it with insider buying on the Smart Money tab and you have real conviction.</p>
+
+        <p style="margin:0 0 4px 0"><b style="color:var(--text)">The columns, simply:</b></p>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px">
+          <b>EPS Surprise</b> — did the company beat or miss what analysts expected? <span style="color:#22C55E">▲ green</span> = beat, <span style="color:#EF4444">▼ red</span> = miss. A big beat is a stronger catalyst.<br>
+          <b>Pre-run</b> — how much the stock moved in the 5 days <i>before</i> the result. Near zero = neglected (good for Delayed EP). Already up a lot = the crowd front-ran it (more tired).<br>
+          <b>Gap (1d)</b> — the immediate reaction the day after results.<br>
+          <b>Drift (5d)</b> — how it continued over the next week (the drift that Leg 1 rides).<br>
+          <b>RVOL</b> — result-day volume vs its normal. Above 1.5× means real conviction, not noise.<br>
+          <b>Read</b> — the plain-English summary of what happened.
+        </div>
+
+        <p style="margin:0;font-size:11.5px;color:var(--muted)"><b>How to use it:</b> Tap <b>Delayed EP</b> above to find fresh quiet-then-ignite names (Leg 1). Tap <b>Leg 2 setups</b> to find stocks coiling at their highs, ready to resume. Cross-check any name against the Smart Money tab — if insiders are buying while it bases, that's your highest-conviction picture.</p>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div style="font-weight:700;font-size:15px;color:var(--text)">📋 Earnings Results <span style="font-size:11px;color:var(--muted);font-weight:500">— auto from SEC filings + your price/volume, no uploads</span></div>
+      <div style="font-weight:700;font-size:15px;color:var(--text)">📋 Earnings & Episodic Pivots <span style="font-size:11px;color:var(--muted);font-weight:500">— auto from SEC earnings dates + your price action</span></div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <div id="er-win" style="display:flex;gap:4px">
           <button class="er-seg-btn" data-w="today" onclick="erSetWin('today')">Today</button>
@@ -3797,16 +3823,24 @@ function smCopyTV(){
           <button class="er-seg-btn" data-w="lastweek" onclick="erSetWin('lastweek')">Last wk</button>
         </div>
         <select id="er-status" onchange="renderEarningsResults()" class="er-sel"><option value="">All status</option><option value="upcoming">Upcoming</option><option value="done">Reported</option></select>
-        <select id="er-verdict" onchange="renderEarningsResults()" class="er-sel"><option value="">All verdicts</option><option>Positive surprise</option><option>Anticipation</option><option>Drifting up</option><option>Sell the news</option><option>Quiet</option><option>Watch</option><option>Mixed</option></select>
         <select id="er-rvol" onchange="renderEarningsResults()" class="er-sel"><option value="">Any RVOL</option><option value="1.5">RVOL ≥1.5×</option><option value="2">RVOL ≥2×</option></select>
         <input id="er-search" oninput="renderEarningsResults()" placeholder="Symbol…" class="er-sel" style="width:110px">
-        <button onclick="var e=document.getElementById('er-readme');e.style.display=e.style.display==='none'?'block':'none'" class="er-sel" style="cursor:pointer">ℹ️ How</button>
+        <button onclick="var e=document.getElementById('er-readme');e.style.display=e.style.display==='none'?'block':'none'" class="er-sel" style="cursor:pointer">ℹ️ How This Works</button>
       </div>
+    </div>
+    <div id="er-quickviews" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="er-qv active" data-v="all" onclick="erSetView('all')">All</button>
+      <button class="er-qv" data-v="delayedep" onclick="erSetView('delayedep')" style="border-color:#8B5CF655">◆ Delayed EP</button>
+      <button class="er-qv" data-v="leg1" onclick="erSetView('leg1')">📈 Leg 1 (Gapped / Drifting)</button>
+      <button class="er-qv" data-v="leg2" onclick="erSetView('leg2')">🌀 Leg 2 setups (Basing / Coiling / Resumed)</button>
+      <button class="er-qv" data-v="beats" onclick="erSetView('beats')">▲ EPS beats</button>
+      <button class="er-qv" data-v="upcoming" onclick="erSetView('upcoming')">🗓️ Upcoming</button>
     </div>
     <div id="er-summary" style="font-size:11px;color:var(--muted);margin-bottom:6px">Loading…</div>
     <div id="er-root" style="overflow:auto"></div>
   </div>
 </div>
+
 
 
 </div>
@@ -9974,12 +10008,26 @@ function rsGetSmartBadge(s) {
   return '<span style="color:var(--muted);font-size:10px">🟡 Neutral</span>';
 }
 
-/* ===== Earnings Results tab (auto from earnings_moves; no uploads) ===== */
-var ER={data:null,win:'',sortK:'result_date',sortDir:-1};
+/* ===== US Earnings & Episodic-Pivot tab (auto from us_earnings_moves) ===== */
+var ER={data:null,win:'',state:'',verdict:'',sortK:'result_date',sortDir:-1,view:'all'};
+
+/* lifecycle state -> label, colour, and what it means for YOU */
+var ER_STATES={
+  UPCOMING:{lbl:'Upcoming', c:'var(--muted)', ic:'🗓️'},
+  GAPPED:  {lbl:'Gapped',   c:'#F59E0B',      ic:'⚡'},
+  DRIFTING:{lbl:'Drifting', c:'#22C55E',      ic:'📈'},
+  BASING:  {lbl:'Basing',   c:'var(--cyan)',  ic:'🛏️'},
+  COILING: {lbl:'Coiling',  c:'#8B5CF6',      ic:'🌀'},
+  RESUMED: {lbl:'Resumed',  c:'#22C55E',      ic:'🚀'},
+  FADED:   {lbl:'Faded',    c:'#EF4444',      ic:'💧'},
+  QUIET:   {lbl:'Quiet',    c:'var(--muted)', ic:'😴'}
+};
+var ER_VERDICT_COL={'Delayed EP':'#8B5CF6','Positive surprise':'#22C55E','Drifting up':'#22C55E','Anticipation':'var(--cyan)','Watch':'var(--muted)','Sell the news':'#EF4444','Failed pop':'#EF4444','Quiet':'var(--muted)','Mixed':'var(--amber)'};
+
 async function loadEarningsData(force){
   if(ER.data&&!force) return ER.data;
   try{
-    var url=CONFIG.supabaseUrl+'/rest/v1/us_earnings_moves?select=*&order=result_date.desc&limit=5000';
+    var url=CONFIG.supabaseUrl+'/rest/v1/us_earnings_moves?select=*&order=result_date.desc&limit=8000';
     var r=await fetch(url,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}});
     var _er=await r.json();
     ER.data=Array.isArray(_er)?_er:[];
@@ -9988,8 +10036,12 @@ async function loadEarningsData(force){
 }
 function erSetWin(w){
   ER.win=(ER.win===w?'':w);
-  var b=document.querySelectorAll('#er-win .er-seg-btn');
-  b.forEach(function(x){x.classList.toggle('active',x.getAttribute('data-w')===ER.win);});
+  document.querySelectorAll('#er-win .er-seg-btn').forEach(function(x){x.classList.toggle('active',x.getAttribute('data-w')===ER.win);});
+  renderEarningsResults();
+}
+function erSetView(v){
+  ER.view=v;
+  document.querySelectorAll('#er-quickviews .er-qv').forEach(function(x){x.classList.toggle('active',x.getAttribute('data-v')===v);});
   renderEarningsResults();
 }
 function erSort(k){ if(ER.sortK===k)ER.sortDir=-ER.sortDir; else{ER.sortK=k;ER.sortDir=1;} renderEarningsResults(); }
@@ -9998,58 +10050,75 @@ function erFmtPct(v,suf){
   var c=v>0?'#22C55E':(v<0?'#EF4444':'var(--muted)');
   return '<span style="color:'+c+'">'+(v>0?'+':'')+v.toFixed(1)+(suf||'%')+'</span>';
 }
+function erStateChip(s){
+  var st=ER_STATES[s]||{lbl:s||'—',c:'var(--muted)',ic:''};
+  return '<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.04);border:1px solid '+st.c+'55;color:'+st.c+';padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">'+st.ic+' '+st.lbl+'</span>';
+}
+function erSurpriseChip(v){
+  if(v==null)return '<span style="color:var(--muted)">—</span>';
+  var c=v>0?'#22C55E':(v<0?'#EF4444':'var(--muted)');
+  var arrow=v>0?'▲':(v<0?'▼':'');
+  return '<span style="color:'+c+';font-weight:600">'+arrow+' '+(v>0?'+':'')+v.toFixed(1)+'%</span>';
+}
 async function renderEarningsResults(){
   var root=document.getElementById('er-root'); if(!root) return;
   var data=await loadEarningsData();
   var status=(document.getElementById('er-status')||{}).value||'';
-  var verdict=(document.getElementById('er-verdict')||{}).value||'';
   var rvol=(document.getElementById('er-rvol')||{}).value||'';
   var q=(((document.getElementById('er-search')||{}).value)||'').toUpperCase().trim();
+
   var rows=(data||[]).filter(function(e){
     if(ER.win){var tg=scrErWindows(e.result_date); if(tg.indexOf(ER.win)<0)return false;}
     if(status&&e.status!==status)return false;
-    if(verdict&&e.verdict!==verdict)return false;
     if(rvol){ if(e.result_rvol==null||e.result_rvol<parseFloat(rvol))return false; }
     if(q&&(e.symbol||'').toUpperCase().indexOf(q)<0)return false;
+    // quick views
+    if(ER.view==='delayedep' && !e.is_delayed_ep)return false;
+    if(ER.view==='leg1' && ['GAPPED','DRIFTING'].indexOf(e.state)<0)return false;
+    if(ER.view==='leg2' && ['BASING','COILING','RESUMED'].indexOf(e.state)<0)return false;
+    if(ER.view==='beats' && !(e.surprise_pct!=null&&e.surprise_pct>0))return false;
+    if(ER.view==='upcoming' && e.status!=='upcoming')return false;
     return true;
   });
   var k=ER.sortK,dir=ER.sortDir;
   rows.sort(function(a,b){var x=a[k],y=b[k];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;if(x<y)return -1*dir;if(x>y)return 1*dir;return 0;});
-  var cols=[['result_date','Result Date'],['status','Status'],['pre_5d','Pre-5d'],['post_1d','Post-1d'],['post_5d','Post-5d'],['result_rvol','Result RVOL'],['post_5d_adr','React (ADR)'],['verdict','Verdict']];
-  var vm={'Positive surprise':'#22C55E','Drifting up':'#22C55E','Anticipation':'var(--cyan)','Watch':'var(--muted)','Sell the news':'#EF4444','Quiet':'var(--muted)','Mixed':'var(--amber)'};
+
+  var cols=[['result_date','Result Date'],['surprise_pct','EPS Surprise'],['state','Stage'],['pre_5d','Pre-run'],['post_1d','Gap (1d)'],['post_5d','Drift (5d)'],['result_rvol','RVOL'],['verdict','Read']];
   var now=new Date();now.setHours(0,0,0,0);
   var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var h='<table class="er-tbl"><thead><tr><th onclick="erSort(\'symbol\')">Symbol</th>';
   cols.forEach(function(c){h+='<th onclick="erSort(\''+c[0]+'\')">'+c[1]+'</th>';});
   h+='</tr></thead><tbody>';
   var summ=document.getElementById('er-summary');
-  if(!rows.length){ root.innerHTML=h+'</tbody></table>'; if(summ)summ.textContent='No matching result events.'; return; }
+  if(!rows.length){ root.innerHTML=h+'</tbody></table>'; if(summ)summ.textContent='No matching earnings events.'; return; }
   rows.forEach(function(e){
     var rd=new Date(e.result_date+'T00:00:00');
     var diff=Math.round((rd-now)/86400000);
     var rel=diff===0?'today':(diff>0?'in '+diff+'d':(-diff)+'d ago');
     var dlbl=rd.getDate()+' '+mo[rd.getMonth()]+" '"+String(rd.getFullYear()).slice(2);
     var dcol=diff>=0?'var(--cyan)':'var(--muted)';
-    var stat=e.status==='done'?'<span style="color:#22C55E">Reported</span>':'<span style="color:var(--muted)">Upcoming</span>';
-    var vcol=vm[e.verdict]||'var(--muted)';
+    var vcol=ER_VERDICT_COL[e.verdict]||'var(--muted)';
     var vch=e.verdict?'<span style="color:'+vcol+';font-weight:600">'+e.verdict+'</span>':'<span style="color:var(--muted)">—</span>';
+    var epsBadge=e.is_delayed_ep?' <span title="Delayed Episodic Pivot — flat before the print, then popped. Premium Leg-1 setup." style="color:#8B5CF6">◆EP</span>':'';
     var rv=(e.result_rvol==null)?'<span style="color:var(--muted)">—</span>':('<span style="color:'+(e.result_rvol>=2?'#22C55E':(e.result_rvol>=1.5?'var(--amber)':'var(--muted)'))+'">'+e.result_rvol.toFixed(1)+'×</span>');
+    var epsDetail=(e.eps_act!=null&&e.eps_est!=null)?('<div style="font-size:9px;color:var(--muted)">est '+e.eps_est+' → '+e.eps_act+'</div>'):'';
     h+='<tr>'+
-      '<td><b style="color:var(--text)">'+e.symbol+'</b>'+(e.long_name?' <span style="color:var(--muted);font-size:10px">'+e.long_name+'</span>':'')+'</td>'+
+      '<td><b style="color:var(--text);cursor:pointer" onclick="window.open(\'https://www.tradingview.com/chart/?symbol='+e.symbol+'\',\'_blank\')" title="'+(e.company_name||e.symbol)+'">'+e.symbol+'</b>'+epsBadge+(e.company_name?'<div style="color:var(--muted);font-size:10px">'+e.company_name.slice(0,26)+'</div>':'')+'</td>'+
       '<td style="color:'+dcol+'"><b>'+dlbl+'</b> <span style="color:var(--muted);font-size:10px">'+rel+'</span></td>'+
-      '<td>'+stat+'</td>'+
+      '<td>'+erSurpriseChip(e.surprise_pct)+epsDetail+'</td>'+
+      '<td>'+erStateChip(e.state)+'</td>'+
       '<td>'+erFmtPct(e.pre_5d)+'</td>'+
       '<td>'+erFmtPct(e.post_1d)+'</td>'+
       '<td>'+erFmtPct(e.post_5d)+'</td>'+
       '<td>'+rv+'</td>'+
-      '<td>'+erFmtPct(e.post_5d_adr,'×')+'</td>'+
       '<td>'+vch+'</td>'+
     '</tr>';
   });
   h+='</tbody></table>';
   root.innerHTML=h;
   var rep=rows.filter(function(x){return x.status==='done';}).length;
-  if(summ)summ.textContent='Showing '+rows.length+' of '+(data||[]).length+' result events ('+rep+' reported, '+(rows.length-rep)+' upcoming)';
+  var dep=rows.filter(function(x){return x.is_delayed_ep;}).length;
+  if(summ)summ.innerHTML='Showing <b>'+rows.length+'</b> of '+(data||[]).length+' earnings events · '+rep+' reported · '+(rows.length-rep)+' upcoming · <span style="color:#8B5CF6">'+dep+' Delayed-EP</span>';
 }
 
 function renderResultsTable() {
