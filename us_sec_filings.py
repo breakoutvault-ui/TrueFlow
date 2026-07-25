@@ -46,8 +46,9 @@ SEC_UA = {"User-Agent": "TrueFlow personal research breakoutvault@gmail.com",
 
 LOOKBACK_DAYS   = 180    # first run: how far back to keep filings
 DAILY_LOOKBACK  = 10     # daily run: catch late/amended filings
-REQ_SLEEP       = 0.13   # SEC fair-access is 10 req/sec; stay well under
+REQ_SLEEP       = 0.22   # SEC fair-access is 10 req/sec; stay comfortably under
 FETCH_DOC_LIMIT = 400    # max filing documents to open per run for % extraction
+TEST_SYMBOLS    = int(os.environ.get("TF_TEST_N", "0"))  # >0 = only scan this many symbols
 
 FORMS = ("SC 13D", "SC 13D/A", "SC 13G", "SC 13G/A")
 
@@ -60,20 +61,35 @@ SB = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}",
 
 
 # ---------------------------------------------------------------- helpers
-def sec_get(url, retries=3):
+FAILS = {"403": 0, "404": 0, "other": 0, "exception": 0}
+
+def sec_get(url, retries=4):
+    """Returns a response or None. NEVER fails silently - every give-up is counted
+    and logged, because a swallowed 403 looks identical to 'no data found'."""
+    last = None
     for i in range(retries):
         try:
             r = S.get(url, timeout=30)
             if r.status_code == 200:
                 time.sleep(REQ_SLEEP); return r
             if r.status_code == 404:
+                FAILS["404"] += 1
                 time.sleep(REQ_SLEEP); return None
+            last = r.status_code
             if r.status_code in (403, 429, 503):
-                time.sleep(4 * (i + 1)); continue
+                time.sleep(5 * (i + 1)); continue
             time.sleep(REQ_SLEEP)
         except Exception as e:
+            last = "exception"
             log.debug("fetch err %s: %s", url[-50:], str(e)[:70])
-            time.sleep(2 * (i + 1))
+            time.sleep(3 * (i + 1))
+    if last == 403 or last == 429 or last == 503:
+        FAILS["403"] += 1
+    elif last == "exception":
+        FAILS["exception"] += 1
+    elif last is not None:
+        FAILS["other"] += 1
+    log.warning("GAVE UP on %s (last status %s)", url[-60:], last)
     return None
 
 
@@ -218,6 +234,12 @@ def run():
 
     rows, docs_opened, found, scanned, activist = [], 0, 0, 0, 0
     syms = sorted(cikmap.keys())
+    if TEST_SYMBOLS > 0:
+        # put known 13D/13G-heavy names first so a small test is meaningful
+        seed = [s for s in ("AAPL", "SMCI", "PARA", "GTLB", "INTC", "WBD") if s in cikmap]
+        rest = [s for s in syms if s not in seed]
+        syms = (seed + rest)[:TEST_SYMBOLS]
+        log.info("TEST MODE: scanning only %d symbols: %s", len(syms), syms[:10])
 
     for n, sym in enumerate(syms, 1):
         if n % 200 == 0:
@@ -226,6 +248,7 @@ def run():
         r = sec_get(f"https://data.sec.gov/submissions/CIK{cik:010d}.json")
         scanned += 1
         if r is None:
+            log.warning("%s: submissions fetch failed — skipped", sym)
             continue
         try:
             recent = r.json().get("filings", {}).get("recent", {})
@@ -247,6 +270,8 @@ def run():
                 continue
             have.add(acc)
             found += 1
+            if found <= 15 or TEST_SYMBOLS > 0:
+                log.info("  %s  %s  %s", sym, form, fdate)
 
             pct, who = None, None
             if docs_opened < FETCH_DOC_LIMIT:
@@ -284,6 +309,11 @@ def run():
 
     log.info("Done: %d companies scanned, %d stake filings (%d activist 13D), %d docs opened",
              scanned, found, activist, docs_opened)
+    log.info("FETCH FAILURES — 403/429/503: %d | 404: %d | other: %d | exceptions: %d",
+             FAILS["403"], FAILS["404"], FAILS["other"], FAILS["exception"])
+    if FAILS["403"] > scanned * 0.1:
+        log.error("More than 10%% of requests were rate-limited — results are INCOMPLETE. "
+                  "Raise REQ_SLEEP and re-run.")
     telegram(f"🇺🇸 <b>US SEC Stakes — {'Backfill' if backfill else 'Daily'} complete</b>\n"
              f"Companies scanned: {scanned}\n"
              f"📋 Stake filings found: <b>{found}</b>\n"
