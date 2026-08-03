@@ -2351,7 +2351,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="scr-bar2">
       <input class="scr-search" id="scr-q" placeholder="🔍 Search symbol or name…" oninput="scrRender()">
       <details class="scr-f"><summary class="scr-tool">⊞ Columns</summary><div class="scr-panel" id="scr-col-panel" style="min-width:230px"></div></details>
-      <button class="scr-tool" id="scr-ctx-btn" onclick="scrToggleCtx()" title="Smart columns: show only what is relevant to the active playbook and the filters you have applied. Frozen columns and anything you add by hand always stay visible. Click again to go back to normal.">○ Smart columns</button><button class="scr-tool unhide" onclick="scrUnhideAll()">⟲ Unhide all columns</button>
+      <button class="scr-tool" id="scr-ctx-btn" style="color:var(--cyan)" onclick="scrToggleCtx()" title="Smart columns: show only what is relevant to the active playbook and the filters you have applied. Frozen columns and anything you add by hand always stay visible. Click again to show every column instead.">◉ Smart columns ON</button><button class="scr-tool unhide" onclick="scrUnhideAll()">⟲ Unhide all columns</button>
       <details class="scr-f scr-pb"><summary class="scr-tool">📓 Playbooks</summary><div class="scr-panel" style="min-width:300px"><div class="ph">Predefined strategy screens — click one to apply &amp; read how to trade it</div><div id="scr-pb-list"></div></div></details>
       <details class="scr-f"><summary class="scr-tool">💾 Presets</summary><div class="scr-panel" style="min-width:230px"><div class="ph">Save current filters</div><div class="scr-psave"><input id="scr-pname" placeholder="Name this preset…"><button class="scr-tool" onclick="scrSavePreset()">Save</button></div><div class="ph" style="margin-top:6px">Saved</div><div id="scr-saved-list"></div></div></details>
       <button class="scr-tool" onclick="scrCopyTV()">📋 TradingView</button>
@@ -12642,7 +12642,7 @@ const SCR_COLS=[
  {k:'aplus',g:'Actions',lbl:'A+',a:'c',tip:'A+ confluence flag',def:1,cell:d=>d.aplus?`<span class="scr-aplus"${SCR_T('A+ Setup — VCP/HTF + Cat A/A+C + base >5d & <10% deep + volume dry-up (base + last-5 avg RVOL <0.8x) + 2x+ volume day in last 20 + BO zone + ADR 3+')}>⭐</span>`:''},
 ];
 SCR_COLS.forEach(c=>SCR.vis[c.k]=!!c.def);
-SCR.manualCols=new Set();SCR.ctxMode=false;
+SCR.manualCols=new Set();SCR.ctxMode=true;
 
 const SCR_FILTERS=[
  {key:'pattern',label:'Setup',opts:['EP','VCP','HTF','Reclaim','NearPivot','BrokenOut'],disp:{EP:'🔥 EP',VCP:'📐 VCP',HTF:'🚩 HTF',Reclaim:'↩ Reclaim',NearPivot:'🎯 Near Pivot',BrokenOut:'✅ Broken Out'},tips:{EP:'Episodic Pivot — gapped up 5%+ on ~2x volume. Current pattern as of the latest close.',VCP:'Volatility Contraction — big move then a tightening base. Current pattern as of the latest close.',HTF:'High Tight Flag — 80%+ surge then a shallow pause. Current pattern as of the latest close.',Reclaim:'EMA Reclaim — dipped below the 9 EMA then closed back above. Based on the last two daily closes.',NearPivot:'Within 3% of the breakout pivot right now — coiled to trigger.',BrokenOut:'Already broken out above the pivot as of the latest close.'}},
@@ -12799,7 +12799,7 @@ function scrRegimeBanner(){
   const lbl={strong:'RISK-ON',neutral:'MIXED',weak:'RISK-OFF'}[st];
   const leads=(ALIGN.leadSectors||[]).slice(0,3);
   el.innerHTML=`<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 14px;margin:8px 0;border:1px solid var(--border);border-radius:10px;background:rgba(148,163,184,.05)">
-    <span style="font-weight:800;color:${col};letter-spacing:.5px"${SCR_T('Market regime read from the breadth of your own '+SCR.data.length+'-stock universe, not from an index. Strong above 55%, weak below 45%.')}>‚óè ${lbl}</span>
+    <span style="font-weight:800;color:${col};letter-spacing:.5px"${SCR_T('Market regime read from the breadth of your own '+SCR.data.length+'-stock universe, not from an index. Strong above 55%, weak below 45%.')}>&#9679; ${lbl}</span>
     <span${SCR_T('Share of your tracked universe currently trading above its own 20 EMA.')}><b>${ALIGN.breadth}%</b> <span style="color:var(--muted)">above 20 EMA</span></span>
     <span${SCR_T('Share above the faster 9 EMA - moves before the 20 EMA reading does.')}><b>${ALIGN.breadth9}%</b> <span style="color:var(--muted)">above 9 EMA</span></span>
     ${leads.length?`<span style="color:var(--muted)">Leading:</span> ${leads.map(s=>'<span class="scr-chip" style="background:rgba(34,197,94,.12);color:#22C55E">'+s+'</span>').join(' ')}`:''}
@@ -12892,13 +12892,67 @@ function scrSyncColMenu(){document.querySelectorAll('#scr-col-panel input').forE
 function scrToggleFilter(k,o,on){on?SCR.state[k].add(o):SCR.state[k].delete(o);SCR.activePreset=null;scrSyncChips();scrRender();}
 function scrStrongSectorsPx(){var out=new Set();try{if(typeof SP_SECS==='object'&&SP_SECS){for(var sec in SP_SECS){if(Object.prototype.hasOwnProperty.call(SP_SECS,sec)&&SP_SECS[sec]&&SP_SECS[sec].length&&typeof spSentiment==='function'&&spSentiment(SP_SECS[sec])==='bull')out.add(sec);}}}catch(e){console.warn('strongSectorsPx',e);}return out;}
 function scrFillPlaybooks(){var pl=document.getElementById('scr-pb-list');if(!pl)return;var pbs=SCR_PRESETS.filter(function(p){return p.grp;});var grps=[];pbs.forEach(function(p){if(grps.indexOf(p.grp)<0)grps.push(p.grp);});pl.innerHTML=grps.map(function(g){return '<div class="scr-pb-grp">'+g+'</div>'+pbs.filter(function(p){return p.grp===g;}).map(function(p){return '<button class="scr-pb-item" data-p="'+p.id+'" title="'+(p.how||'').replace(/"/g,'&quot;')+'" onclick="scrApplyPreset(\''+p.id+'\')">'+p.label+'</button>';}).join('');}).join('');document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',b.dataset.p===SCR.activePreset);});}
-function scrPlayInfo(p){var el=document.getElementById('scr-play-info');if(el){if(p&&p.how){el.innerHTML='<div class="pi-h">\uD83D\uDCD3 '+(p.label||'')+'</div><div class="pi-b">'+p.how+'</div>';el.style.display='block';}else{el.style.display='none';el.innerHTML='';}}document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',!!(p&&b.dataset.p===p.id));});}
+
+/* ===== Plain-English explainer: describes whatever is currently applied ===== */
+const SCR_FILTER_WHY={
+ pattern:'The chart pattern the stock is forming right now.',
+ entry:'How to enter this trade \u2014 whether to buy a dip or wait for a breakout.',
+ align:'Whether the market, the sector and the stock are all pointing the same way.',
+ mkt:'What the overall market is doing, measured by how many stocks are above their 20-day average line.',
+ sec:'How this stock\u2019s sector is performing compared with every other sector today.',
+ catalyst:'Whether there is a visible reason in the data for the stock moving \u2014 results, big-money buying, or unusual volume.',
+ nr:'Narrow Range \u2014 days where the stock barely moved, which often come just before a big move.',
+ contractmin:'How tight the sideways base is compared with the run-up before it. Tighter is better.',
+ cat:'The stock\u2019s trend quality, based on where price sits against its moving averages.',
+ rvol:'Relative Volume \u2014 how much more the stock traded today versus its normal day.',
+ adr:'Average Daily Range \u2014 how much this stock typically moves in a day. Higher means faster moves.',
+ smt:'What large institutional investors have been doing in this stock recently.',
+ sector:'Limits the list to the sectors you pick.',
+ industry:'Limits the list to the industries you pick.',
+ symbol:'Limits the list to specific stocks you name.',
+ price:'Limits the list by share price.',
+ signal:'The current buy/sell signal state from the moving averages.',
+ vol:'How heavy today\u2019s trading volume was compared with normal.',
+ consol:'How many days the stock has been moving sideways.',
+ base:'How many days the current base has been forming.',
+ z52:'Where the stock is trading relative to its 52-week high.',
+ verdict:'The overall read on the stock after results.',
+ reaction:'How the stock reacted to its most recent results.'
+};
+function scrExplain(){
+  const el=document.getElementById('scr-play-info'); if(!el)return;
+  const parts=[];
+  const p=SCR_PRESETS.find(x=>x.id===SCR.activePreset);
+  if(p&&p.how){
+    parts.push('<div class="pi-h">\uD83D\uDCD3 '+(p.label||'')+'</div><div class="pi-b">'+p.how+'</div>');
+  }
+  const act=[];
+  SCR_FILTERS.forEach(f=>{
+    const st=SCR.state[f.key];
+    if(st&&st.size){
+      const vals=[...st].map(v=>(f.disp&&f.disp[v])?f.disp[v]:v);
+      const why=SCR_FILTER_WHY[f.key]||'';
+      let detail='';
+      if(f.tips){ const t=[...st].map(v=>f.tips[v]).filter(Boolean); if(t.length===1)detail=' <span style="opacity:.85">'+t[0]+'</span>'; }
+      act.push('<div style="margin:3px 0"><b>'+f.label+':</b> '+vals.join(', ')
+        +(why?' <span style="opacity:.7">\u2014 '+why+'</span>':'')+detail+'</div>');
+    }
+  });
+  if(act.length){
+    parts.push('<div class="pi-h" style="margin-top:'+(p&&p.how?'10px':'0')+'">\uD83D\uDD0E What you are filtering on</div><div class="pi-b">'+act.join('')+'</div>');
+  }
+  if(!parts.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.innerHTML=parts.join('');
+  el.style.display='block';
+}
+function scrPlayInfo(p){try{scrExplain();}catch(e){}var el=document.getElementById('scr-play-info');if(el){if(false){el.innerHTML='<div class="pi-h">\uD83D\uDCD3 '+(p.label||'')+'</div><div class="pi-b">'+p.how+'</div>';el.style.display='block';}else{el.style.display='none';el.innerHTML='';}}document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',!!(p&&b.dataset.p===p.id));});}
 
 const SCR_FILTER_COL={entry:'entry',align:'align',mkt:'dots',sec:'secrank',catalyst:'catalyst',nr:'nr',contractmin:'contract',rvol:'rvol',adr:'adr',pattern:'qm',cat:'cat',smt:'smt',consol:'consolDays'};
 function scrApplyCtxCols(preset){
   if(!SCR.ctxMode)return;
   const keep=new Set(['sector','industry','last5','pv','z52']);
-  if(preset&&preset.cols)preset.cols.forEach(k=>keep.add(k));
+  if(preset&&preset.cols&&preset.cols.length){preset.cols.forEach(k=>keep.add(k));}
+  else{SCR_COLS.forEach(c2=>{if(c2.def)keep.add(c2.k);});}
   for(const fk in SCR.state){ if(SCR.state[fk]&&SCR.state[fk].size){ const col=SCR_FILTER_COL[fk]; if(col)keep.add(col); } }
   (SCR.manualCols||new Set()).forEach(k=>keep.add(k));
   SCR_COLS.forEach(c=>SCR.vis[c.k]=keep.has(c.k));
@@ -12976,6 +13030,8 @@ function scrFilterOpts(inp){const q=(inp.value||'').toLowerCase();const p=inp.cl
 function scrSelAll(key,on){const f=SCR_FILTERS.find(x=>x.key===key);if(!f)return;SCR.state[key]=on?new Set(f.opts):new Set();SCR.activePreset=null;scrSyncChecks();scrSyncChips();scrRender();}
 function scrRender(){
  try{scrRegimeBanner();}catch(e){}
+ try{scrExplain();}catch(e){}
+ if(SCR.ctxMode&&!SCR._ctxInit){SCR._ctxInit=true;try{scrApplyCtxCols(SCR_PRESETS.find(x=>x.id===SCR.activePreset));}catch(e){}}
 
  if(!SCR.loaded)return;
  if(!SCR.secPerf)scrComputeSecPerf();
