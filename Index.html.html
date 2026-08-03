@@ -697,10 +697,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .spark-bar.flat{background:var(--muted)}
 
 /* frozen screener columns */
-#scr-thead th.scr-frz, .scr-tcard tbody td.scr-frz{position:sticky;background:var(--card,#0f1622);z-index:3}
-#scr-thead th.scr-frz{z-index:5}
-.scr-tcard tbody tr:hover td.scr-frz{background:var(--cardHover,#16202e)}
-.scr-tcard td.scr-frz:last-of-type, .scr-tcard th.scr-frz:last-of-type{box-shadow:2px 0 4px rgba(0,0,0,.35)}
+#scr-thead th.scr-frz{position:sticky;background:var(--bg1);z-index:5}
+.scr-tcard tbody td.scr-frz{position:sticky;background:var(--bg1);z-index:3}
+.scr-tcard th.scr-frz-edge, .scr-tcard td.scr-frz-edge{box-shadow:1px 0 0 var(--border)}
 </style>
 <style>
 /* ═══ VOLUME BUILDUP TAB ═══ */
@@ -1081,6 +1080,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div style="position:relative;margin-left:auto">
         <input type="text" id="global-search" placeholder="🔍 Search stock..." oninput="globalSearch(this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:5px 12px 5px 12px;color:var(--text);font-size:12px;outline:none;width:160px;font-family:'Barlow',sans-serif" title="Search by stock symbol across all visible tabs">
       </div>
+      <a href="us.html" class="kite-btn" style="text-decoration:none;display:inline-flex;align-items:center;border-color:rgba(14,165,233,.5);color:#0EA5E9" title="Switch to the TrueFlow US dashboard">🇺🇸 US</a>
       <button class="kite-btn disconnected" id="kite-btn" onclick="openKiteModal()">⚡ Kite</button>
       <div class="theme-picker">
         <div class="theme-dot td-dark active" title="Dark" onclick="setTheme('dark',this)"></div>
@@ -12624,13 +12624,13 @@ const SCR_COLS=[
  {k:'basePct',g:'Breakout',lbl:'Base %',a:'r',tip:'Base depth %',def:0,cell:d=>d.basePct!=null?scrNum(d.basePct)+'%':'<span class="scr-dash">—</span>'},
  {k:'contract',g:'Breakout',lbl:'Contract',a:'r',tip:'Contraction %',def:0,cell:d=>d.contract!=null?d.contract+'%':'<span class="scr-dash">—</span>'},
  {k:'entry',g:'Setup',lbl:'Entry Mode',a:'c',tip:'How to enter based on how long the base has run: short+tight base = buy the pullback, longer base = buy the box breakout',def:1,cell:d=>entryBadge(d)},
- {k:'trigger',g:'Setup',lbl:'Trigger',a:'r',tip:'The actual price to act on — the 9 EMA for pullback mode, box high +0.2% for breakout mode',def:1,cell:d=>d.entryTrig!=null?('<b>₹'+d.entryTrig+'</b>'):'<span class="scr-dash">—</span>'},
- {k:'pole',g:'Setup',lbl:'Pole',a:'r',tip:'Size of the advance that preceded the base. Duration needs a backend change — not shown yet.',def:0,cell:d=>d.poleMovePct!=null?('+'+(+d.poleMovePct).toFixed(0)+'%'):'<span class="scr-dash">—</span>'},
+ {k:'trigger',g:'Setup',lbl:'Trigger',a:'r',tip:'The actual price to act on \u2014 the 9 EMA for pullback mode, box high +0.2% for breakout mode',def:1,cell:d=>d.entryTrig!=null?('<b>\u20b9'+d.entryTrig+'</b>'):'<span class="scr-dash">\u2014</span>'},
+ {k:'pole',g:'Setup',lbl:'Pole',a:'r',tip:'Size of the advance that preceded the base. Duration needs a backend change \u2014 not shown yet.',def:0,cell:d=>d.poleMovePct!=null?('+'+(+d.poleMovePct).toFixed(0)+'%'):'<span class="scr-dash">\u2014</span>'},
  {k:'align',g:'Alignment',lbl:'Alignment',a:'c',tip:'How market, sector and stock line up',def:1,cell:d=>{const m=ALIGN_META[d.alignState]||ALIGN_META.neutral;return `<span class="scr-chip"${SCR_T(m.tip)}>${m.lbl}</span>`;}},
- {k:'dots',g:'Alignment',lbl:'M·S·K',a:'c',tip:'Three dots = Market · Sector · Stock. Green strong, amber neutral, red weak.',def:1,cell:d=>alignDots(d)},
- {k:'catalyst',g:'Alignment',lbl:'Catalyst',a:'l',tip:'Visible reason in the data for an idiosyncratic move — matters most for Lone Leaders',def:1,cell:d=>(d.catalyst&&d.catalyst.length)?d.catalyst.map(x=>'<span class="scr-chip" style="background:rgba(139,92,246,.14);color:#8B5CF6">'+x+'</span>').join(' '):'<span class="scr-dash">—</span>'},
- {k:'rankinsec',g:'Alignment',lbl:'Rank in Sector',a:'c',tip:'Where this stock ranks on momentum within its own sector',def:0,cell:d=>d.rankInSec!=null?('#'+d.rankInSec+'<span style="color:var(--muted);font-size:10px">/'+d.secPeers+'</span>'):'<span class="scr-dash">—</span>'},
- {k:'secrank',g:'Alignment',lbl:'Sector Rank',a:'c',tip:'Where this stock\u2019s sector ranks among all sectors today',def:0,cell:d=>d.secRank!=null?('#'+d.secRank+'<span style="color:var(--muted);font-size:10px">/'+(ALIGN.sectorTotal||'?')+'</span>'):'<span class="scr-dash">—</span>'},
+ {k:'dots',g:'Alignment',lbl:'M\u00b7S\u00b7K',a:'c',tip:'Three dots = Market \u00b7 Sector \u00b7 Stock. Green strong, amber neutral, red weak.',def:1,cell:d=>alignDots(d)},
+ {k:'catalyst',g:'Alignment',lbl:'Catalyst',a:'l',tip:'Visible reason in the data for an idiosyncratic move \u2014 matters most for Lone Leaders',def:1,cell:d=>(d.catalyst&&d.catalyst.length)?d.catalyst.map(x=>'<span class="scr-chip" style="background:rgba(139,92,246,.14);color:#8B5CF6">'+x+'</span>').join(' '):'<span class="scr-dash">\u2014</span>'},
+ {k:'rankinsec',g:'Alignment',lbl:'Rank in Sector',a:'c',tip:'Where this stock ranks on momentum within its own sector',def:0,cell:d=>d.rankInSec!=null?('#'+d.rankInSec+'<span style="color:var(--muted);font-size:10px">/'+d.secPeers+'</span>'):'<span class="scr-dash">\u2014</span>'},
+ {k:'secrank',g:'Alignment',lbl:'Sector Rank',a:'c',tip:'Where this stock\u2019s sector ranks among all sectors today',def:0,cell:d=>d.secRank!=null?('#'+d.secRank+'<span style="color:var(--muted);font-size:10px">/'+(ALIGN.sectorTotal||'?')+'</span>'):'<span class="scr-dash">\u2014</span>'},
  {k:'nr',g:'Breakout',lbl:'Range',a:'c',tip:'Narrow-Range (NR4/NR7) status — is it coiling, or did it just break out either way',def:1,cell:d=>scrNrBadge(d)},
  {k:'volDry',g:'Breakout',lbl:'Vol Dry',a:'c',tip:'Volume dry-up in base',def:0,cell:d=>scrTxt(d.volDry,'Volume dry-up')},
  {k:'baseDays',g:'Breakout',lbl:'Base Days',a:'r',tip:'Days in base',def:0,cell:d=>d.baseDays!=null?d.baseDays+'d':'<span class="scr-dash">—</span>'},
@@ -12646,11 +12646,11 @@ SCR.manualCols=new Set();SCR.ctxMode=false;
 
 const SCR_FILTERS=[
  {key:'pattern',label:'Setup',opts:['EP','VCP','HTF','Reclaim','NearPivot','BrokenOut'],disp:{EP:'🔥 EP',VCP:'📐 VCP',HTF:'🚩 HTF',Reclaim:'↩ Reclaim',NearPivot:'🎯 Near Pivot',BrokenOut:'✅ Broken Out'},tips:{EP:'Episodic Pivot — gapped up 5%+ on ~2x volume. Current pattern as of the latest close.',VCP:'Volatility Contraction — big move then a tightening base. Current pattern as of the latest close.',HTF:'High Tight Flag — 80%+ surge then a shallow pause. Current pattern as of the latest close.',Reclaim:'EMA Reclaim — dipped below the 9 EMA then closed back above. Based on the last two daily closes.',NearPivot:'Within 3% of the breakout pivot right now — coiled to trigger.',BrokenOut:'Already broken out above the pivot as of the latest close.'}},
- {key:'entry',label:'Entry Mode',opts:['pullback','breakout','wait'],disp:{pullback:'🔵 Buy pullback',breakout:'🟢 Buy breakout',wait:'⚪ Wait'},tips:{pullback:'Short, tight base — the stock is still hot, so buy the shallow dip to the 9 EMA rather than waiting for a breakout.',breakout:'Base has run 10 days or more — supply has built up, so wait for the break of the box high.',wait:'Either no base measured, or the base is short but too loose to trust.'}},
- {key:'align',label:'Alignment',opts:['full','sectorled','lone','carried','against','neutral'],disp:{full:'🟢 Full',sectorled:'🔵 Sector-led',lone:'🟣 Lone leader',carried:'🟡 Carried',against:'🔴 Against tape',neutral:'⚪ Neutral'},tips:{full:'Market, sector and stock all strong — best base rate.',sectorled:'Sector and stock strong, market weak — rotation into new leadership.',lone:'Stock strong, market and sector weak — check the catalyst.',carried:'Market and sector strong but stock lagging — usually avoid.',against:'Everything weak — skip.',neutral:'Mixed combination with no clear read.'}},
- {key:'mkt',label:'Market Leg',opts:['strong','neutral','weak'],disp:{strong:'Market strong',neutral:'Market neutral',weak:'Market weak'},tips:{strong:'Breadth of your universe above 55% — most stocks are above their 20 EMA.',neutral:'Breadth between 45% and 55% — no clear market direction.',weak:'Breadth below 45% — most stocks are below their 20 EMA.'}},
+ {key:'entry',label:'Entry Mode',opts:['pullback','breakout','wait'],disp:{pullback:'\ud83d\udd35 Buy pullback',breakout:'\ud83d\udfe2 Buy breakout',wait:'\u26aa Wait'},tips:{pullback:'Short, tight base \u2014 the stock is still hot, so buy the shallow dip to the 9 EMA rather than waiting for a breakout.',breakout:'Base has run 10 days or more \u2014 supply has built up, so wait for the break of the box high.',wait:'Either no base measured, or the base is short but too loose to trust.'}},
+ {key:'align',label:'Alignment',opts:['full','sectorled','lone','carried','against','neutral'],disp:{full:'\ud83d\udfe2 Full',sectorled:'\ud83d\udd35 Sector-led',lone:'\ud83d\udfe3 Lone leader',carried:'\ud83d\udfe1 Carried',against:'\ud83d\udd34 Against tape',neutral:'\u26aa Neutral'},tips:{full:'Market, sector and stock all strong \u2014 best base rate.',sectorled:'Sector and stock strong, market weak \u2014 rotation into new leadership.',lone:'Stock strong, market and sector weak \u2014 check the catalyst.',carried:'Market and sector strong but stock lagging \u2014 usually avoid.',against:'Everything weak \u2014 skip.',neutral:'Mixed combination with no clear read.'}},
+ {key:'mkt',label:'Market Leg',opts:['strong','neutral','weak'],disp:{strong:'Market strong',neutral:'Market neutral',weak:'Market weak'},tips:{strong:'Breadth of your universe above 55% \u2014 most stocks are above their 20 EMA.',neutral:'Breadth between 45% and 55% \u2014 no clear market direction.',weak:'Breadth below 45% \u2014 most stocks are below their 20 EMA.'}},
  {key:'sec',label:'Sector Leg',opts:['strong','neutral','weak'],disp:{strong:'Sector strong',neutral:'Sector neutral',weak:'Sector weak'},tips:{strong:'This sector ranks in the top third of all sectors today.',neutral:'This sector ranks in the middle third.',weak:'This sector ranks in the bottom third.'}},
- {key:'catalyst',label:'Catalyst',opts:['yes','no'],disp:{yes:'Has catalyst',no:'No catalyst'},tips:{yes:'There is a visible reason in the data — an EP, near-term earnings, smart-money accumulation, or a volume surge.',no:'No visible reason in the data for the move — treat divergent strength with more caution.'}},
+ {key:'catalyst',label:'Catalyst',opts:['yes','no'],disp:{yes:'Has catalyst',no:'No catalyst'},tips:{yes:'There is a visible reason in the data \u2014 an EP, near-term earnings, smart-money accumulation, or a volume surge.',no:'No visible reason in the data for the move \u2014 treat divergent strength with more caution.'}},
  {key:'nr',label:'Range',opts:['nr7','nr4','brokenUp','brokenDown','coiling'],disp:{nr7:'🎯 NR7',nr4:'🎯 NR4',brokenUp:'🚀 Broken ↑',brokenDown:'🔻 Broken ↓',coiling:'⏳ Coiling'},tips:{nr7:'Todays daily range is the narrowest of the last 7 sessions — freshly flagged today, maximum compression.',nr4:'Todays daily range is the narrowest of the last 4 sessions — freshly flagged today.',brokenUp:'Closed above its Narrow-Range days high — the bullish expansion trigger just fired.',brokenDown:'Closed below its Narrow-Range days low — the bearish expansion trigger just fired.',coiling:'Still sitting inside the range from a prior Narrow-Range day, waiting for the break either way.'}},
  {key:'contractmin',label:'Contraction',opts:['0.3','0.5','0.7'],disp:{'0.3':'≥0.3','0.5':'≥0.5','0.7':'≥0.7 (tight)'},tips:{'0.3':'The base is at least loosely tight relative to the move that led into it.','0.5':'A good, tight base relative to the move that led into it.','0.7':'Very tight — the base is small relative to the size of the move. 0.7+ is considered excellent.'}},
  {key:'cat',label:'Category',opts:['A','AC','B','C'],disp:{A:'🟢 A',AC:'💎 A+C',B:'🟡 B',C:'🔵 C'},tips:{A:'Above daily 9+20 and weekly 9+20 — full uptrend as of the latest close.',AC:'Category A plus a fresh weekly crossover — as of the latest close.',B:'Below the daily 9 but above the weekly — pullback state as of the latest close.',C:'Fresh weekly 9>20 crossover — early turn, as of the latest weekly close.'}},
@@ -12680,7 +12680,6 @@ function scrZ52state(s,pct52){
  return null;
 }
 function scrDaysBetween(a,b){if(!a||!b||a==='—'||b==='—')return null;const d=(new Date(b)-new Date(a))/864e5;return isNaN(d)?null:Math.round(d);}
-
 /* ===== ALIGNMENT ENGINE: market breadth / sector rank / stock, + entry mode ===== */
 const ALIGN_WINDOWS={today:{lbl:'Today',n:1},week:{lbl:'This Week',n:5},pweek:{lbl:'Prev Week',n:10},month:{lbl:'This Month',n:22},pmonth:{lbl:'Prev Month',n:44},q3:{lbl:'3 Months',n:66}};
 let ALIGN={win:'week',breadth:null,breadthPrev:null,mktState:null,sectorRank:{},sectorScore:{},sectorState:{},leadSectors:[]};
@@ -12895,13 +12894,10 @@ function scrStrongSectorsPx(){var out=new Set();try{if(typeof SP_SECS==='object'
 function scrFillPlaybooks(){var pl=document.getElementById('scr-pb-list');if(!pl)return;var pbs=SCR_PRESETS.filter(function(p){return p.grp;});var grps=[];pbs.forEach(function(p){if(grps.indexOf(p.grp)<0)grps.push(p.grp);});pl.innerHTML=grps.map(function(g){return '<div class="scr-pb-grp">'+g+'</div>'+pbs.filter(function(p){return p.grp===g;}).map(function(p){return '<button class="scr-pb-item" data-p="'+p.id+'" title="'+(p.how||'').replace(/"/g,'&quot;')+'" onclick="scrApplyPreset(\''+p.id+'\')">'+p.label+'</button>';}).join('');}).join('');document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',b.dataset.p===SCR.activePreset);});}
 function scrPlayInfo(p){var el=document.getElementById('scr-play-info');if(el){if(p&&p.how){el.innerHTML='<div class="pi-h">\uD83D\uDCD3 '+(p.label||'')+'</div><div class="pi-b">'+p.how+'</div>';el.style.display='block';}else{el.style.display='none';el.innerHTML='';}}document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',!!(p&&b.dataset.p===p.id));});}
 
-/* Context-aware column visibility: frozen + playbook cols + filtered-on cols + manual adds */
-const SCR_FROZEN_KEYS=['last5','pv','z52'];
 const SCR_FILTER_COL={entry:'entry',align:'align',mkt:'dots',sec:'secrank',catalyst:'catalyst',nr:'nr',contractmin:'contract',rvol:'rvol',adr:'adr',pattern:'qm',cat:'cat',smt:'smt',consol:'consolDays'};
 function scrApplyCtxCols(preset){
   if(!SCR.ctxMode)return;
-  const keep=new Set(SCR_FROZEN_KEYS);
-  ['sector','industry'].forEach(k=>keep.add(k));
+  const keep=new Set(['sector','industry','last5','pv','z52']);
   if(preset&&preset.cols)preset.cols.forEach(k=>keep.add(k));
   for(const fk in SCR.state){ if(SCR.state[fk]&&SCR.state[fk].size){ const col=SCR_FILTER_COL[fk]; if(col)keep.add(col); } }
   (SCR.manualCols||new Set()).forEach(k=>keep.add(k));
@@ -12986,16 +12982,13 @@ function scrRender(){
  const rows=SCR.data.filter(scrPasses);if(SCR.sortKey)rows.sort(scrCmp);else rows.sort((a,b)=>(b.score||0)-(a.score||0));SCR.last=rows;
  document.getElementById('scr-cnt').textContent=rows.length;
  const show=SCR_COLS.filter(c=>SCR.vis[c.k]);
- const FROZEN=['last5','pv','z52'];
- const frzSet=new Set(FROZEN);
- const _fcls=(k)=>frzSet.has(k)?' scr-frz':'';
- let hd=`<th class="c scr-frz" style="left:0"><span class="lab" title="Star to My Picks">⭐</span></th><th class="scr-frz" style="left:38px"><span class="lab" title="Sort by symbol" onclick="scrSort('sym')" style="cursor:pointer">SYMBOL${SCR.sortKey==='sym'?(SCR.sortDir<0?' ▼':' ▲'):''}</span></th>`;
- hd+=show.map(c=>{if(c.k==='vssec'){var ar0=(SCR.sortKey==='vssec')?(SCR.sortDir<0?' \u25BC':' \u25B2'):'';var tf=SCR.vsTF||'d';var tb=function(v,l){return '<span onclick="event.stopPropagation();scrSetVsTF(\''+v+'\')" style="cursor:pointer;padding:0 3px;border-radius:3px;'+(tf===v?'background:var(--cyan);color:#000':'color:var(--muted)')+'">'+l+'</span>';};return '<th class="'+(c.a||'')+'"><span class="lab"'+SCR_T(c.tip)+' onclick="scrSort(\'vssec\')" style="cursor:pointer">vs Sec'+ar0+'</span> <span style="font-size:9px">'+tb('d','1D')+tb('w','1W')+tb('m','1M')+'</span><span class="hide-x" title="Hide this column" onclick="scrHideCol(\'vssec\')">\u2212</span></th>';}const sb=!SCR_NOSORT.has(c.k);const ar=(SCR.sortKey===c.k)?(SCR.sortDir<0?' ▼':' ▲'):'';return `<th class="${c.a||''}${_fcls(c.k)}"><span class="lab"${SCR_T(c.tip)}${sb?` onclick="scrSort('${c.k}')" style="cursor:pointer"`:''}>${c.lbl}${ar}</span><span class="hide-x" title="Hide this column" onclick="scrHideCol('${c.k}')">−</span></th>`;}).join('');
+ let hd=`<th class="c scr-frz" style="left:0"><span class="lab" title="Star to My Picks">⭐</span></th><th class="scr-frz scr-frz-edge" style="left:38px"><span class="lab" title="Sort by symbol" onclick="scrSort('sym')" style="cursor:pointer">SYMBOL${SCR.sortKey==='sym'?(SCR.sortDir<0?' ▼':' ▲'):''}</span></th>`;
+ hd+=show.map(c=>{if(c.k==='vssec'){var ar0=(SCR.sortKey==='vssec')?(SCR.sortDir<0?' \u25BC':' \u25B2'):'';var tf=SCR.vsTF||'d';var tb=function(v,l){return '<span onclick="event.stopPropagation();scrSetVsTF(\''+v+'\')" style="cursor:pointer;padding:0 3px;border-radius:3px;'+(tf===v?'background:var(--cyan);color:#000':'color:var(--muted)')+'">'+l+'</span>';};return '<th class="'+(c.a||'')+'"><span class="lab"'+SCR_T(c.tip)+' onclick="scrSort(\'vssec\')" style="cursor:pointer">vs Sec'+ar0+'</span> <span style="font-size:9px">'+tb('d','1D')+tb('w','1W')+tb('m','1M')+'</span><span class="hide-x" title="Hide this column" onclick="scrHideCol(\'vssec\')">\u2212</span></th>';}const sb=!SCR_NOSORT.has(c.k);const ar=(SCR.sortKey===c.k)?(SCR.sortDir<0?' ▼':' ▲'):'';return `<th class="${c.a||''}"><span class="lab"${SCR_T(c.tip)}${sb?` onclick="scrSort('${c.k}')" style="cursor:pointer"`:''}>${c.lbl}${ar}</span><span class="hide-x" title="Hide this column" onclick="scrHideCol('${c.k}')">−</span></th>`;}).join('');
  document.getElementById('scr-thead').innerHTML=hd;
  document.getElementById('scr-body').innerHTML=rows.length?rows.map(d=>{
   const tv='https://www.tradingview.com/chart/?symbol=NSE:'+d.sym;
-  let t=`<td class="c scr-frz" style="left:0"><span class="scr-star" title="Add ${d.sym} to My Picks">☆</span></td><td class="scr-frz" style="left:38px"><a class="scr-sym" href="${tv}" target="_blank" rel="noopener" title="${d.name?d.name+' - ':''}Open ${d.sym} chart in TradingView">${d.sym} ↗</a></td>`;
-  t+=show.map(c=>`<td class="${c.a||''}${_fcls(c.k)}">${c.cell(d)}</td>`).join('');
+  let t=`<td class="c scr-frz" style="left:0"><span class="scr-star" title="Add ${d.sym} to My Picks">☆</span></td><td class="scr-frz scr-frz-edge" style="left:38px"><a class="scr-sym" href="${tv}" target="_blank" rel="noopener" title="${d.name?d.name+' - ':''}Open ${d.sym} chart in TradingView">${d.sym} ↗</a></td>`;
+  t+=show.map(c=>`<td class="${c.a||''}">${c.cell(d)}</td>`).join('');
   return `<tr class="${d.aplus?'aplus-row':''}">${t}</tr>`;
  }).join(''):`<tr><td colspan="${show.length+2}" style="padding:24px;text-align:center;color:var(--muted)">No stocks match — clear a filter.</td></tr>`;
 }
