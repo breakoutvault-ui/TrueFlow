@@ -445,22 +445,61 @@ def build_regime(kite, sb, d_from, d_to):
 # ══════════════════════════════════════════════════════════════════════
 
 def find_bo_candle(bars, orb_level, is_bull, fired_at):
-    """The BO candle is the first 5-minute candle at/after 9:30 that
-    CLOSES outside the opening range boundary, at or before the alert.
-    (The doc is explicit: a clear close outside the ORB is required.)"""
+    """Find the breakout candle this alert actually refers to.
+
+    A stock can break its opening range several times in a day. Taking
+    the FIRST break would pair a 2 PM alert with a 9:30 candle and
+    measure a trade that was never taken. So we consider every candle
+    that closes outside the ORB, work out when each one's high/low would
+    have triggered an entry, and keep the one whose trigger lands
+    closest to the moment the alert actually fired.
+
+    Returns (bo_index, entry_index), or "NEVER" if breakouts existed but
+    none ever triggered, or None if there was no breakout at all.
+    """
     if not bars:
         return None
     lock = hhmm(bars[0]["date"], ORB_END)
+
+    fired_i = None
     for i, b in enumerate(bars):
-        if b["date"] < lock:
-            continue
-        if b["date"] > fired_at:
+        if b["date"] <= fired_at:
+            fired_i = i
+        else:
             break
-        if is_bull and b["close"] > orb_level:
-            return i
-        if (not is_bull) and b["close"] < orb_level:
-            return i
-    return None
+    if fired_i is None:
+        return None
+
+    any_break = False
+    best = None
+    for i in range(len(bars)):
+        b = bars[i]
+        if b["date"] < lock or b["date"] > fired_at:
+            continue
+        outside = (b["close"] > orb_level) if is_bull \
+            else (b["close"] < orb_level)
+        if not outside:
+            continue
+        any_break = True
+        trig = (b["high"] + TICK) if is_bull else (b["low"] - TICK)
+        t_i = None
+        for j in range(i + 1, len(bars)):
+            hit = (bars[j]["high"] >= trig) if is_bull \
+                else (bars[j]["low"] <= trig)
+            if hit:
+                t_i = j
+                break
+        if t_i is None:
+            continue
+        gap = abs(t_i - fired_i)
+        # on a tie, prefer the LATER breakout candle - it is the one
+        # closest in time to the alert we are trying to reproduce
+        if best is None or gap <= best[0]:
+            best = (gap, i, t_i)
+
+    if best is not None:
+        return best[1], best[2]
+    return "NEVER" if any_break else None
 
 
 def walk_trade(bars, start_i, entry, stop, is_bull, e5, e9, hard_exit_dt):
@@ -560,10 +599,14 @@ def build_row(alert, bars5, e5, e9, e20, bars15, day_ctx, seq_day, seq_sym):
         row["status"] = "no_data"
         return row
 
-    bo_i = find_bo_candle(bars5, float(orb_lvl), is_bull, fired)
-    if bo_i is None:
+    found = find_bo_candle(bars5, float(orb_lvl), is_bull, fired)
+    if found is None:
         row["status"] = "no_bo_candle"
         return row
+    if found == "NEVER":
+        row["status"] = "never_triggered"
+        return row
+    bo_i, entry_i = found
 
     bo = bars5[bo_i]
     entry = (bo["high"] + TICK) if is_bull else (bo["low"] - TICK)
@@ -571,19 +614,6 @@ def build_row(alert, bars5, e5, e9, e20, bars15, day_ctx, seq_day, seq_sym):
     risk  = abs(entry - stop)
     if risk <= 0:
         row["status"] = "zero_risk"
-        return row
-
-    # entry triggers on the first later candle that trades through it
-    entry_i = None
-    for i in range(bo_i + 1, len(bars5)):
-        if is_bull and bars5[i]["high"] >= entry:
-            entry_i = i
-            break
-        if (not is_bull) and bars5[i]["low"] <= entry:
-            entry_i = i
-            break
-    if entry_i is None:
-        row["status"] = "never_triggered"
         return row
 
     entry_dt  = bars5[entry_i]["date"]
