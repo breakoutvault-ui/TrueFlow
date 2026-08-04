@@ -511,75 +511,151 @@ def find_bo_candle(bars, orb_level, is_bull, fired_at):
     return "NEVER" if any_break else None
 
 
-def walk_trade(bars, start_i, entry, stop, is_bull, e5, e9, hard_exit_dt):
-    """Walk forward candle by candle from entry and measure everything.
+def walk_trade(bars, start_i, entry, stop, is_bull, e5, e9, hard_exit, risk):
+    """Walk forward from entry and measure NINE ways of managing the trade.
 
-    Returns MFE/MAE plus three exits:
-        A = stop, else hard 15:20 close
-        B = stop, else first close through the 9 EMA
-        C = stop, else first close through the 5 EMA
+    Everything is computed in R (R = entry minus stop), so a Rs.400 stock
+    and BANKNIFTY are directly comparable.
 
-    Intrabar we always assume the stop hit first — conservative by design.
+        A  hold with the BO stop, exit 15:20
+        B  trail on the 9 EMA close from the start
+        C  trail on the 5 EMA close from the start
+        D  stop to breakeven once +1R is reached, else hold to 15:20
+        E  stop to breakeven once +1.5R is reached
+        F  9 EMA trail, but only ARMED after +1R (no early shake-out)
+        G  fixed target +2R
+        H  fixed target +3R
+        I  half off at +1R, remainder to breakeven and trailed on 9 EMA
+
+    Sign convention: sgn = +1 long, -1 short. Favourable excursion is
+    sgn*(price - entry), so both directions share one code path.
+
+    Intrabar we always assume the STOP executed before the high/target.
+    Conservative by design - a candle that both spiked to target and hit
+    the stop is booked as a loss.
     """
-    res = {
-        "mfe": 0.0, "mae": 0.0,
-        "a": None, "b": None, "c": None,
-    }
-    best = entry
-    worst = entry
-    done_a = done_b = done_c = False
+    sgn = 1.0 if is_bull else -1.0
+    out = {k: None for k in "abcdefghi"}
+
+    best = entry          # most favourable price seen
+    worst = entry         # most adverse price seen
+    peak_r = 0.0          # best R reached so far
+
+    be_d = None           # bar index at which D armed breakeven
+    be_e = None           # bar index at which E armed breakeven
+    armed_f = False       # is F's trail live yet
+    half_i = False        # has I booked its first half
+
+    last_bar = None
+    last_mins = 0
 
     for i in range(start_i, len(bars)):
         b = bars[i]
-        if b["date"] > hard_exit_dt:
+        if b["date"] > hard_exit:
             break
 
-        if is_bull:
-            best = max(best, b["high"])
-            worst = min(worst, b["low"])
-            stop_hit = b["low"] <= stop
-        else:
-            best = min(best, b["low"])
-            worst = max(worst, b["high"])
-            stop_hit = b["high"] >= stop
+        fav_px = b["high"] if is_bull else b["low"]
+        adv_px = b["low"] if is_bull else b["high"]
+        if sgn * (fav_px - best) > 0:
+            best = fav_px
+        if sgn * (adv_px - worst) < 0:
+            worst = adv_px
 
         mins = int((b["date"] - bars[start_i]["date"]).total_seconds() / 60) + 5
-
-        # --- stop first, always ---
-        if stop_hit:
-            for k, flag in (("a", done_a), ("b", done_b), ("c", done_c)):
-                if not flag:
-                    res[k] = (stop, mins, "stop")
-            done_a = done_b = done_c = True
-            break
-
-        # --- EMA trail exits (close-based, per the rule) ---
-        if not done_b and e9[i] is not None:
-            through = (b["close"] < e9[i]) if is_bull else (b["close"] > e9[i])
-            if through:
-                res["b"] = (b["close"], mins, "ema9")
-                done_b = True
-        if not done_c and e5[i] is not None:
-            through = (b["close"] < e5[i]) if is_bull else (b["close"] > e5[i])
-            if through:
-                res["c"] = (b["close"], mins, "ema5")
-                done_c = True
-
         last_bar, last_mins = b, mins
 
-    # --- anything still open exits at the hard cutoff ---
-    if not done_a or not done_b or not done_c:
-        try:
-            px, mn = last_bar["close"], last_mins
-        except UnboundLocalError:
-            return None
-        for k, flag in (("a", done_a), ("b", done_b), ("c", done_c)):
-            if not flag and res[k] is None:
-                res[k] = (px, mn, "eod")
+        stop_hit = (sgn * (adv_px - stop) <= 0)
+        bar_peak_r = sgn * (fav_px - entry) / risk
 
-    res["mfe"] = (best - entry) if is_bull else (entry - best)
-    res["mae"] = (entry - worst) if is_bull else (worst - entry)
-    return res
+        # ---- STOP FIRST, ALWAYS -------------------------------------
+        if stop_hit:
+            if out["a"] is None:
+                out["a"] = (-1.0, mins, "stop")
+            if out["b"] is None:
+                out["b"] = (-1.0, mins, "stop")
+            if out["c"] is None:
+                out["c"] = (-1.0, mins, "stop")
+            if out["d"] is None:
+                out["d"] = (0.0 if be_d is not None else -1.0, mins,
+                            "breakeven" if be_d is not None else "stop")
+            if out["e"] is None:
+                out["e"] = (0.0 if be_e is not None else -1.0, mins,
+                            "breakeven" if be_e is not None else "stop")
+            if out["f"] is None:
+                out["f"] = (-1.0, mins, "stop")
+            if out["g"] is None:
+                out["g"] = (-1.0, mins, "stop")
+            if out["h"] is None:
+                out["h"] = (-1.0, mins, "stop")
+            if out["i"] is None:
+                out["i"] = ((0.5 * 1.0 + 0.5 * 0.0) if half_i else -1.0,
+                            mins, "half_be" if half_i else "stop")
+            break
+
+        # ---- D / E: has breakeven been armed? -----------------------
+        # A breakeven stop can only be MOVED once the bar has closed, so
+        # it cannot be triggered by a dip on the same candle that armed it.
+        if be_d is None and bar_peak_r >= 1.0:
+            be_d = i
+        if be_e is None and bar_peak_r >= 1.5:
+            be_e = i
+
+        # ---- D / E exits: price back through entry after arming -----
+        if be_d is not None and i > be_d and out["d"] is None \
+                and sgn * (adv_px - entry) <= 0:
+            out["d"] = (0.0, mins, "breakeven")
+        if be_e is not None and i > be_e and out["e"] is None \
+                and sgn * (adv_px - entry) <= 0:
+            out["e"] = (0.0, mins, "breakeven")
+
+        # ---- G / H: fixed targets -----------------------------------
+        if out["g"] is None and bar_peak_r >= 2.0:
+            out["g"] = (2.0, mins, "target_2r")
+        if out["h"] is None and bar_peak_r >= 3.0:
+            out["h"] = (3.0, mins, "target_3r")
+
+        # ---- I: book half at +1R ------------------------------------
+        if not half_i and bar_peak_r >= 1.0:
+            half_i = True
+
+        # ---- F: arm the trail only after the move is proven ---------
+        if not armed_f and bar_peak_r >= 1.0:
+            armed_f = True
+
+        peak_r = max(peak_r, bar_peak_r)
+
+        # ---- EMA close exits ----------------------------------------
+        r_close = sgn * (b["close"] - entry) / risk
+
+        if out["b"] is None and e9[i] is not None \
+                and sgn * (b["close"] - e9[i]) < 0:
+            out["b"] = (r_close, mins, "ema9")
+        if out["c"] is None and e5[i] is not None \
+                and sgn * (b["close"] - e5[i]) < 0:
+            out["c"] = (r_close, mins, "ema5")
+        if out["f"] is None and armed_f and e9[i] is not None \
+                and sgn * (b["close"] - e9[i]) < 0:
+            out["f"] = (r_close, mins, "ema9_armed")
+        if out["i"] is None and half_i and e9[i] is not None \
+                and sgn * (b["close"] - e9[i]) < 0:
+            out["i"] = (0.5 * 1.0 + 0.5 * max(r_close, 0.0), mins, "half_ema9")
+
+    # ---- anything still open exits at the hard cutoff ---------------
+    if last_bar is None:
+        return None
+    r_eod = sgn * (last_bar["close"] - entry) / risk
+    for k in "abcdefghi":
+        if out[k] is None:
+            if k == "i" and half_i:
+                out[k] = (0.5 * 1.0 + 0.5 * r_eod, last_mins, "eod")
+            else:
+                out[k] = (r_eod, last_mins, "eod")
+
+    return {
+        "mfe": sgn * (best - entry),
+        "mae": sgn * (entry - worst),
+        "exits": out,
+    }
 
 
 def build_row(alert, bars5, e5, e9, e20, bars15, day_ctx, seq_day, seq_sym):
@@ -629,7 +705,7 @@ def build_row(alert, bars5, e5, e9, e20, bars15, day_ctx, seq_day, seq_sym):
     hard_exit = hhmm(entry_dt, HARD_EXIT)
 
     walked = walk_trade(bars5, entry_i, entry, stop, is_bull,
-                        e5, e9, hard_exit)
+                        e5, e9, hard_exit, risk)
     if walked is None:
         row["status"] = "no_forward_bars"
         return row
@@ -710,24 +786,20 @@ def build_row(alert, bars5, e5, e9, e20, bars15, day_ctx, seq_day, seq_sym):
         "mae_r":         r2(safe_div(walked["mae"], risk)),
     })
 
-    slip = entry * (SLIPPAGE_PCT / 100.0) * 2.0    # round trip
+    slip_r = safe_div(entry * (SLIPPAGE_PCT / 100.0) * 2.0, risk) or 0.0
 
-    for key, label in (("a", "a"), ("b", "b"), ("c", "c")):
-        got = walked[key]
+    for k in "abcdefghi":
+        got = walked["exits"].get(k)
         if not got:
             continue
-        px, mins, why = got
-        pts = (px - entry) if is_bull else (entry - px)
-        rr  = safe_div(pts, risk)
-        row["exit_%s_pts" % label]    = r2(pts, 2)
-        row["exit_%s_r" % label]      = r2(rr)
-        row["exit_%s_min" % label]    = mins
-        row["exit_%s_reason" % label] = why
-        row["exit_%s_rph" % label]    = r2(safe_div(rr, mins / 60.0)
-                                           if (rr is not None and mins) else None)
-        row["net_%s_r" % label]       = r2(safe_div(pts - slip, risk))
+        rr, mins, why = got
+        row["exit_%s_r" % k]      = r2(rr)
+        row["exit_%s_pts" % k]    = r2(rr * risk, 2)
+        row["exit_%s_min" % k]    = mins
+        row["exit_%s_reason" % k] = why
+        row["net_%s_r" % k]       = r2(rr - slip_r)
         if walked["mfe"] and walked["mfe"] > 0:
-            row["eff_%s" % label] = r2(safe_div(pts, walked["mfe"]))
+            row["eff_%s" % k] = r2(safe_div(rr * risk, walked["mfe"]))
 
     return row
 
