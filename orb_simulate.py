@@ -269,13 +269,22 @@ def load_alerts(sb, d_from, d_to):
                        "xxl_candle,fired_at,session_date")
                .gte("session_date", d_from.isoformat())
                .lte("session_date", d_to.isoformat())
-               .order("session_date")
+               .order("id")
                .range(page * size, page * size + size - 1))
         chunk = q.execute().data or []
         rows.extend(chunk)
         if len(chunk) < size:
             break
         page += 1
+    seen, uniq = set(), []
+    for r in rows:
+        if r["id"] in seen:
+            continue
+        seen.add(r["id"])
+        uniq.append(r)
+    if len(uniq) != len(rows):
+        print("  de-duplicated %d repeated row(s)" % (len(rows) - len(uniq)))
+    rows = uniq
     print("Loaded %d alerts (%s to %s)" % (len(rows), d_from, d_to))
     return rows
 
@@ -727,6 +736,19 @@ def build_row(alert, bars5, e5, e9, e20, bars15, day_ctx, seq_day, seq_sym):
 #  MAIN
 # ══════════════════════════════════════════════════════════════════════
 
+def flush(sb, rows):
+    """Upsert a batch, guaranteeing no duplicate alert_id inside it.
+    Postgres rejects an ON CONFLICT batch that touches the same row
+    twice, so we keep only the last version of each alert_id."""
+    if not rows:
+        return
+    uniq = {}
+    for r in rows:
+        uniq[r["alert_id"]] = r
+    sb.table("orb_backtest").upsert(
+        list(uniq.values()), on_conflict="alert_id").execute()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--backfill", action="store_true",
@@ -876,8 +898,7 @@ def main():
                     reasons[row["status"]] = reasons.get(row["status"], 0) + 1
 
             if len(pending) >= BATCH_WRITE:
-                sb.table("orb_backtest").upsert(
-                    pending, on_conflict="alert_id").execute()
+                flush(sb, pending)
                 pending = []
 
         except Exception as e:
@@ -891,8 +912,7 @@ def main():
                      el / 60.0))
 
     if pending:
-        sb.table("orb_backtest").upsert(
-            pending, on_conflict="alert_id").execute()
+        flush(sb, pending)
 
     print("\n" + "=" * 62)
     print(" DONE in %.1f minutes" % ((time.time() - t0) / 60.0))
