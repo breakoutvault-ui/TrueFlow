@@ -2358,7 +2358,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <input class="scr-search" id="scr-q" placeholder="🔍 Search symbol or name…" oninput="scrRender()">
       <details class="scr-f"><summary class="scr-tool">⊞ Columns</summary><div class="scr-panel" id="scr-col-panel" style="min-width:230px"></div></details>
       <button class="scr-tool unhide" onclick="scrUnhideAll()">⟲ Unhide all columns</button>
-      <details class="scr-f"><summary class="scr-tool">💾 Presets</summary><div class="scr-panel" style="min-width:230px"><div class="ph">Save current filters</div><div class="scr-psave"><input id="scr-pname" placeholder="Name this preset…"><button class="scr-tool" onclick="scrSavePreset()">Save</button></div><div class="ph" style="margin-top:6px">Saved</div><div id="scr-saved-list"></div></div></details>
+      <details class="scr-f"><summary class="scr-tool">💾 Presets</summary><div class="scr-panel" style="min-width:230px"><div class="ph">Save current filters</div><div class="scr-psave"><input id="scr-pname" placeholder="Name this preset…"><button class="scr-tool" onclick="scrSavePreset()">Save</button><button class="scr-tool" id="scr-ctx-btn" style="color:var(--cyan)" onclick="scrToggleCtx()" title="Smart columns: show only the columns relevant to the active playbook and the filters you have applied. Columns you tick by hand stay visible. Turn it off to see everything.">◉ Smart columns ON</button></div><div class="ph" style="margin-top:6px">Saved</div><div id="scr-saved-list"></div></div></details>
       <button class="scr-tool" onclick="scrCopyTV()">📋 TradingView</button>
       <button class="scr-tool clear" onclick="scrClearAll()">✕ Clear all filters</button>
       <span style="flex:1"></span>
@@ -12852,6 +12852,7 @@ const SCR_COLS=[
  {k:'aplus',g:'Actions',lbl:'A+',a:'c',tip:'A+ confluence flag',def:1,cell:d=>d.aplus?`<span class="scr-aplus"${SCR_T('A+ Setup — VCP/HTF + Cat A/A+C + base >5d & <10% deep + volume dry-up (base + last-5 avg RVOL <0.8x) + 2x+ volume day in last 20 + BO zone + ADR 3+')}>⭐</span>`:''},
 ];
 SCR_COLS.forEach(c=>SCR.vis[c.k]=!!c.def);
+SCR.manualCols=new Set();SCR.ctxMode=true;
 
 const SCR_FILTERS=[
  {key:'pattern',label:'Setup',tip:'Chart-detected patterns from price/volume only - no earnings context. For earnings-confirmed pivots use EP Type.',opts:['EP','VCP','HTF','Reclaim','NearPivot','BrokenOut'],disp:{EP:'🔥 EP (chart)',VCP:'📐 VCP',HTF:'🚩 HTF',Reclaim:'↩ Reclaim',NearPivot:'🎯 Near Pivot',BrokenOut:'✅ Broken Out'},tips:{EP:'Episodic Pivot — gapped up 5%+ on ~2x volume. Current pattern as of the latest close.',VCP:'Volatility Contraction — big move then a tightening base. Current pattern as of the latest close.',HTF:'High Tight Flag — 80%+ surge then a shallow pause. Current pattern as of the latest close.',Reclaim:'EMA Reclaim — dipped below the 9 EMA then closed back above. Based on the last two daily closes.',NearPivot:'Within 3% of the breakout pivot right now — coiled to trigger.',BrokenOut:'Already broken out above the pivot as of the latest close.'}},
@@ -13184,7 +13185,7 @@ function scrBuildUI(){
  pr.insertAdjacentHTML('beforeend',SCR_PRESETS.filter(p=>!p.grp).map(p=>`<button class="scr-pre ${p.gold?'gold':''} ${p.id==='all'?'active':''}" data-p="${p.id}" title="${p.desc||''}" onclick="scrApplyPreset('${p.id}')">${p.label}</button>`).join(''));
  scrAppendUserPills();scrFillPlaybooks();document.getElementById('scr-filters').innerHTML=SCR_FILTERS.map(f=>`<details class="scr-f"><summary>${f.label}<span class="cnt" id="scr-cnt-${f.key}" style="display:none"></span></summary><div class="scr-panel"><div class="ph">${f.label} — one or more</div><div class="scr-ptools"><input class="scr-fsearch" placeholder="Search…" oninput="scrFilterOpts(this)"><button type="button" class="scr-fbtn" onclick="scrSelAll('${f.key}',true)">All</button><button type="button" class="scr-fbtn" onclick="scrSelAll('${f.key}',false)">Clear</button></div>${f.opts.map(o=>`<label${(f.tips&&f.tips[o])?` title="${f.tips[o]}"`:''}><input type="checkbox" data-k="${f.key}" data-o="${o}" onchange="scrToggleFilter('${f.key}','${o}',this.checked)"> ${(f.disp&&f.disp[o])||o}</label>`).join('')}</div></details>`).join('');
  const groups=[...new Set(SCR_COLS.map(c=>c.g))];
- document.getElementById('scr-col-panel').innerHTML='<div class="ph">Show / hide columns</div>'+groups.map(g=>`<div class="grp">${g}</div>`+SCR_COLS.filter(c=>c.g===g).map(c=>`<label><input type="checkbox" data-col="${c.k}" ${SCR.vis[c.k]?'checked':''} onchange="SCR.vis['${c.k}']=this.checked;scrRender()"> ${c.lbl}</label>`).join('')).join('');
+ document.getElementById('scr-col-panel').innerHTML='<div class="ph">Show / hide columns</div>'+groups.map(g=>`<div class="grp">${g}</div>`+SCR_COLS.filter(c=>c.g===g).map(c=>`<label><input type="checkbox" data-col="${c.k}" ${SCR.vis[c.k]?'checked':''} onchange="SCR.vis['${c.k}']=this.checked;if(this.checked){SCR.manualCols.add('${c.k}')}else{SCR.manualCols.delete('${c.k}')};scrRender()"> ${c.lbl}</label>`).join('')).join('');
  document.getElementById('scr-tot').textContent=SCR.data.length;
  document.querySelectorAll('#tab-screener details.scr-f').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('#tab-screener details.scr-f').forEach(o=>{if(o!==d)o.open=false;});}));
  document.addEventListener('click',e=>{if(!e.target.closest('#tab-screener details.scr-f'))document.querySelectorAll('#tab-screener details.scr-f').forEach(d=>d.open=false);});
@@ -13216,10 +13217,30 @@ function scrTogglePB(){
   b.textContent=hidden?'\u25BE hide':'\u25B8 show';
 }
 function scrPlayInfo(p){var el=document.getElementById('scr-play-info');if(el){if(p&&p.how){el.innerHTML='<div class="pi-h">\uD83D\uDCD3 '+(p.label||'')+'</div><div class="pi-b">'+p.how+'</div>';el.style.display='block';}else{el.style.display='none';el.innerHTML='';}}document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',!!(p&&b.dataset.p===p.id));});}
-function scrApplyPreset(id){if(id===SCR.activePreset&&id!=='all'){scrClearAll();return;}SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());SCR.activePreset=id;const p=SCR_PRESETS.find(x=>x.id===id);if(p.set)for(const k in p.set)SCR.state[k]=new Set(p.set[k]);if(p.dyn==='strongsector')SCR.state.sector=scrStrongSectorsPx();scrSyncChecks();scrSyncChips();scrRender();scrPlayInfo(p);}
+const SCR_FILTER_COL={rclgrade:'rclgrade',rclvol:'rclvol',rclriskmax:'rclrisk',rcldaysmax:'rcldays',polemin:'pole',polespeedmin:'pole',pole:'pole',entry:'entry',align:'align',mkt:'dots',sec:'secrank',catalyst:'catalyst',nr:'nr',contractmin:'contract',rvolmin:'rvol',adrmin:'adr',consolmin:'consolDays',basemin:'baseDays',pattern:'qm',cat:'cat',smt:'smt',vsig:'vsig',z52:'z52',rsr:'rsrank',rshi:'rshigh',clust:'clust',stake:'stake',erstage:'erstage',erverd:'erverdict',ersurp:'ersurp',errv:'errvol',signal:'setup',trend:'trend'};
+function scrApplyCtxCols(preset){
+  if(!SCR.ctxMode)return;
+  const keep=new Set(['sector','industry','last5','pv','z52']);
+  if(preset&&preset.cols&&preset.cols.length){preset.cols.forEach(k=>keep.add(k));}
+  else{SCR_COLS.forEach(c2=>{if(c2.def)keep.add(c2.k);});}
+  for(const fk in SCR.state){ if(SCR.state[fk]&&SCR.state[fk].size){ const col=SCR_FILTER_COL[fk]; if(col)keep.add(col); } }
+  (SCR.manualCols||new Set()).forEach(k=>keep.add(k));
+  SCR_COLS.forEach(c=>SCR.vis[c.k]=keep.has(c.k));
+  try{scrSyncColMenu();}catch(e){}
+}
+function scrToggleCtx(){
+  SCR.ctxMode=!SCR.ctxMode;
+  if(!SCR.ctxMode){SCR_COLS.forEach(c=>SCR.vis[c.k]=!!c.def);}
+  else{const p=SCR_PRESETS.find(x=>x.id===SCR.activePreset);scrApplyCtxCols(p);}
+  try{scrSyncColMenu();}catch(e){}
+  scrRender();
+  const b=document.getElementById('scr-ctx-btn');
+  if(b){b.style.color=SCR.ctxMode?'var(--cyan)':'';b.textContent=SCR.ctxMode?'\u25C9 Smart columns ON':'\u25CB Smart columns';}
+}
+function scrApplyPreset(id){if(id===SCR.activePreset&&id!=='all'){scrClearAll();return;}SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());SCR.activePreset=id;const p=SCR_PRESETS.find(x=>x.id===id);if(p.set)for(const k in p.set)SCR.state[k]=new Set(p.set[k]);if(p.dyn==='strongsector')SCR.state.sector=scrStrongSectorsPx();try{scrApplyCtxCols(p);}catch(e){}scrSyncChecks();scrSyncChips();scrRender();scrPlayInfo(p);}
 function scrClearAll(){SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());SCR.activePreset='all';const q=document.getElementById('scr-q');if(q)q.value='';scrSyncChecks();scrSyncChips();scrRender();scrPlayInfo(null);}
-function scrHideCol(k){SCR.vis[k]=false;scrSyncColMenu();scrRender();}
-function scrUnhideAll(){SCR_COLS.forEach(c=>SCR.vis[c.k]=true);scrSyncColMenu();scrRender();}
+function scrHideCol(k){SCR.vis[k]=false;if(SCR.manualCols)SCR.manualCols.delete(k);scrSyncColMenu();scrRender();}
+function scrUnhideAll(){SCR.ctxMode=false;SCR_COLS.forEach(c=>SCR.vis[c.k]=true);scrSyncColMenu();scrRender();}
 function scrEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function scrPresetTip(state){if(!state)return 'Custom preset';var parts=[];SCR_FILTERS.forEach(function(f){var sel=(state[f.key]||[]);if(sel.length){var labs=sel.map(function(o){return (f.disp&&f.disp[o])||o;});parts.push(f.label+': '+labs.join(', '));}});return parts.length?('Filters — '+parts.join('   ·   ')):'Shows all (no filters)';}
 function scrAppendUserPills(){var pr=document.getElementById('scr-presets');if(!pr)return;pr.querySelectorAll('.scr-pre-user').forEach(function(b){b.remove();});var saved=scrGetSaved();if(!saved.length)return;pr.insertAdjacentHTML('beforeend',saved.map(function(s,i){return '<button class="scr-pre scr-pre-user" title="'+scrEsc(scrPresetTip(s.state))+'" onclick="scrLoadPreset('+i+')">'+scrEsc(s.n)+'<span class="scr-pre-x" onclick="event.stopPropagation();scrDelPreset('+i+')">×</span></button>';}).join(''));}
@@ -13313,6 +13334,8 @@ function scrErWindows(ds){if(!ds)return [];var d=new Date(ds+'T00:00:00');if(isN
 function scrFilterOpts(inp){const q=(inp.value||'').toLowerCase();const p=inp.closest('.scr-panel');if(!p)return;p.querySelectorAll('label').forEach(l=>{l.style.display=(l.textContent||'').toLowerCase().includes(q)?'flex':'none';});}
 function scrSelAll(key,on){const f=SCR_FILTERS.find(x=>x.key===key);if(!f)return;SCR.state[key]=on?new Set(f.opts):new Set();SCR.activePreset=null;scrSyncChecks();scrSyncChips();scrRender();}
 function scrRender(){
+ if(SCR.ctxMode&&!SCR._ctxInit){SCR._ctxInit=true;try{scrApplyCtxCols(SCR_PRESETS.find(x=>x.id===SCR.activePreset));}catch(e){}}
+
  if(!SCR.loaded)return;
  if(!SCR.secPerf)scrComputeSecPerf();
  const rows=SCR.data.filter(scrPasses);if(SCR.sortKey)rows.sort(scrCmp);else rows.sort((a,b)=>(b.score||0)-(a.score||0));SCR.last=rows;
