@@ -1,0 +1,182 @@
+# ══════════════════════════════════════════════════════════════════════
+#  EMA RECLAIM v2 - shakeout-and-reclaim detector
+#  Added 18 Aug 2026. Finds stocks that had a real advance, got shaken
+#  out below the 9 and/or 20 EMA for 1-5 days, and have now CLOSED back
+#  above. Close-based only.
+#  Grades: A shallow (lost 9, held 20) | B deep (lost both, back above
+#  both) | C partial (above 9, under 20) | D 20 EMA reclaim.
+#  Volume is recorded, never a gate.
+#  Does NOT replace detect_ema_reclaim / qm_ema_reclaim - that stays.
+# ══════════════════════════════════════════════════════════════════════
+
+RCL_MAX_DAYS_BELOW  = 5     # more than this is a trend change, not a shake
+RCL_MIN_PRIOR_MOVE  = 15.0  # % advance required behind the setup
+RCL_PRIOR_LOOKBACK  = 30    # sessions to search for the swing low
+RCL_SLOPE_DAYS      = 5     # EMAs must be rising over this many sessions
+
+
+def _ema_at(closes, period, end_idx):
+    """EMA value using only data up to end_idx (no look-ahead)."""
+    seq = closes[:end_idx + 1]
+    if len(seq) < period:
+        return None
+    k = 2.0 / (period + 1.0)
+    val = sum(seq[:period]) / period
+    for px in seq[period:]:
+        val = (px - val) * k + val
+    return val
+
+
+def detect_reclaim_v2(hist, closes, volumes):
+    """Returns a dict of rcl_* fields. All None/False when no setup."""
+    blank = {
+        "rcl_grade": None, "rcl_days_below": None, "rcl_ema_lost": None,
+        "rcl_dip_pct": None, "rcl_dip_adr": None,
+        "rcl_prior_move_pct": None, "rcl_prior_move_days": None,
+        "rcl_slope_ok": None, "rcl_dip_vol": None, "rcl_reclaim_vol": None,
+        "rcl_vol_pattern": None, "rcl_stop_level": None, "rcl_risk_pct": None,
+    }
+    n = len(closes)
+    if n < 60 or not hist:
+        return blank
+
+    last = n - 1
+    e9_now = _ema_at(closes, 9, last)
+    e20_now = _ema_at(closes, 20, last)
+    e50_now = _ema_at(closes, 50, last)
+    if e9_now is None or e20_now is None or e50_now is None:
+        return blank
+
+    px = closes[last]
+    above9_now = px > e9_now
+    above20_now = px > e20_now
+
+    # --- must be a reclaim of SOMETHING today ------------------------
+    if not above9_now and not above20_now:
+        return blank
+
+    # --- how many consecutive days was it below, before today? -------
+    # A single day back above RESETS the count, so an in-and-out stock
+    # reads as a fresh short dip rather than one long stretch.
+    days_below = 0
+    lost9 = lost20 = False
+    i = last - 1
+    while i >= 0 and days_below <= RCL_MAX_DAYS_BELOW + 1:
+        e9_i = _ema_at(closes, 9, i)
+        e20_i = _ema_at(closes, 20, i)
+        if e9_i is None or e20_i is None:
+            break
+        b9 = closes[i] < e9_i
+        b20 = closes[i] < e20_i
+        if not b9 and not b20:
+            break
+        if b9:
+            lost9 = True
+        if b20:
+            lost20 = True
+        days_below += 1
+        i -= 1
+
+    if days_below == 0 or days_below > RCL_MAX_DAYS_BELOW:
+        return blank
+
+    ref = i          # last index where it was still above - the "pre-dip" day
+    if ref < 50:
+        return blank
+
+    # --- was the trend healthy BEFORE the dip? -----------------------
+    e9_ref = _ema_at(closes, 9, ref)
+    e20_ref = _ema_at(closes, 20, ref)
+    e50_ref = _ema_at(closes, 50, ref)
+    if None in (e9_ref, e20_ref, e50_ref):
+        return blank
+
+    stacked = e9_ref > e20_ref and closes[ref] > e50_ref
+    prior = ref - RCL_SLOPE_DAYS
+    slope_ok = False
+    if prior >= 50:
+        e9_prev = _ema_at(closes, 9, prior)
+        e20_prev = _ema_at(closes, 20, prior)
+        if e9_prev is not None and e20_prev is not None:
+            slope_ok = e9_ref > e9_prev and e20_ref > e20_prev
+
+    if not (stacked and slope_ok):
+        return blank
+
+    # --- was there a real advance behind it? -------------------------
+    lo_from = max(0, ref - RCL_PRIOR_LOOKBACK)
+    window = closes[lo_from:ref + 1]
+    if not window:
+        return blank
+    swing_low = min(window)
+    if swing_low <= 0:
+        return blank
+    prior_move = (closes[ref] - swing_low) / swing_low * 100.0
+    if prior_move < RCL_MIN_PRIOR_MOVE:
+        return blank
+    move_days = len(window) - 1 - window.index(swing_low)
+
+    # --- grade -------------------------------------------------------
+    if lost20 and above9_now and above20_now:
+        grade = "B"
+    elif lost20 and above9_now and not above20_now:
+        grade = "C"
+    elif lost20 and not above9_now and above20_now:
+        grade = "D"
+    elif lost9 and not lost20 and above9_now:
+        grade = "A"
+    else:
+        return blank
+
+    # --- how deep was the flush? -------------------------------------
+    dip_slice = hist[ref + 1:last + 1]
+    dip_low = min((b["low"] for b in dip_slice if b.get("low")), default=None)
+    dip_pct = None
+    if dip_low and closes[ref]:
+        dip_pct = round((closes[ref] - dip_low) / closes[ref] * 100.0, 2)
+
+    adr_window = hist[-20:]
+    ratios = [(b["high"] / b["low"]) for b in adr_window if b.get("low")]
+    adr = ((sum(ratios) / len(ratios)) - 1) * 100.0 if ratios else None
+    dip_adr = round(dip_pct / adr, 2) if (dip_pct and adr) else None
+
+    # --- volume behaviour --------------------------------------------
+    base_vols = volumes[max(0, ref - 20):ref + 1]
+    avg_base = sum(base_vols) / len(base_vols) if base_vols else None
+    dip_vols = volumes[ref + 1:last]
+    dip_v = round((sum(dip_vols) / len(dip_vols)) / avg_base, 2) \
+        if (dip_vols and avg_base) else None
+    rec_v = round(volumes[last] / avg_base, 2) if avg_base else None
+
+    vol_pattern = None
+    if dip_v is not None and rec_v is not None:
+        if dip_v < 0.9 and rec_v > 1.2:
+            vol_pattern = "Ideal"        # dried up, then expanded
+        elif rec_v > 1.2:
+            vol_pattern = "Expansion"    # good reclaim day
+        elif dip_v < 0.9:
+            vol_pattern = "Dry Dip"      # quiet pullback, quiet reclaim
+        else:
+            vol_pattern = "Neutral"
+
+    # --- the stop, so risk is visible before entry -------------------
+    stop = min((b["low"] for b in hist[ref + 1:last + 1] if b.get("low")),
+               default=None)
+    risk_pct = round((px - stop) / px * 100.0, 2) if (stop and px) else None
+
+    return {
+        "rcl_grade": grade,
+        "rcl_days_below": days_below,
+        "rcl_ema_lost": ("both" if lost20 and lost9
+                         else ("20" if lost20 else "9")),
+        "rcl_dip_pct": dip_pct,
+        "rcl_dip_adr": dip_adr,
+        "rcl_prior_move_pct": round(prior_move, 1),
+        "rcl_prior_move_days": move_days,
+        "rcl_slope_ok": slope_ok,
+        "rcl_dip_vol": dip_v,
+        "rcl_reclaim_vol": rec_v,
+        "rcl_vol_pattern": vol_pattern,
+        "rcl_stop_level": round(stop, 2) if stop else None,
+        "rcl_risk_pct": risk_pct,
+    }
