@@ -302,24 +302,34 @@ def load_ema_filter(sb, session_date=None):
 
 
 def load_momentum(sb, session_date):
-    """SUPPLEMENTARY. Compression and level features."""
-    sd = date.fromisoformat(session_date)
+    """SUPPLEMENTARY. Compression and level features.
+
+    Queried one exact session at a time. A date RANGE across
+    momentum_stocks (1,450 rows a day, months of history) makes Postgres
+    scan and sort far too much and Supabase kills it with
+    'canceling statement due to statement timeout'. An equality match on
+    a single date reads ~1,450 rows and returns instantly.
+
+    This is supplementary data — if it is unavailable the scorer still
+    runs, and score_compression() falls back to a neutral value rather
+    than a zero."""
     cols = ("id,symbol,session_date,adr_pct,is_nr4,is_nr7,nr_range_pct,"
             "consol_days,qm_contraction,qm_pivot_level,breakout_price,"
             "low_52w,ema5_daily,pct_from_ema5_daily,company_name,industry")
-    rows = page_select(lambda a, b: (
-        sb.table("momentum_stocks").select(cols)
-          .gte("session_date", (sd - timedelta(days=7)).isoformat())
-          .lte("session_date", session_date)
-          .order("id").range(a, b).execute().data))
-    best = {}
-    for r in rows:
-        prev = best.get(r["symbol"])
-        if prev is None or r["session_date"] > prev["session_date"]:
-            best[r["symbol"]] = r
-    fresh = sum(1 for r in best.values() if r["session_date"] == session_date)
-    print("  momentum_stocks: %d symbols (%d dated %s)"
-          % (len(best), fresh, session_date))
+    try:
+        rows = page_select(lambda a, b: (
+            sb.table("momentum_stocks").select(cols)
+              .eq("session_date", session_date)
+              .order("id").range(a, b).execute().data))
+    except Exception as e:
+        print("  momentum_stocks read failed (%s)" % str(e)[:70])
+        print("  continuing WITHOUT compression/level features")
+        return {}
+    if not rows:
+        print("  momentum_stocks: nothing dated %s" % session_date)
+        return {}
+    best = {r["symbol"]: r for r in rows}
+    print("  momentum_stocks: %d symbols dated %s" % (len(best), session_date))
     return best
 
 
@@ -369,10 +379,15 @@ def load_earnings(sb, today):
 def load_orb_history(sb):
     """Each stock's own ORB record. Exit method A (hold with the BO stop
     to 3:20) is the reference — the only method that made money."""
-    rows = page_select(lambda a, b: (
-        sb.table("orb_backtest").select("alert_id,symbol,exit_a_r,status")
-          .eq("status", "ok").order("alert_id").range(a, b)
-          .execute().data))
+    try:
+        rows = page_select(lambda a, b: (
+            sb.table("orb_backtest").select("id,symbol,exit_a_r")
+              .eq("status", "ok").order("id").range(a, b)
+              .execute().data))
+    except Exception as e:
+        print("  orb_backtest read failed (%s)" % str(e)[:70])
+        print("  continuing WITHOUT per-stock ORB track record")
+        return {}
     agg = {}
     for r in rows:
         v = f(r.get("exit_a_r"))
@@ -711,10 +726,20 @@ def main():
     target = next_trading_day(sd)
     print("  session %s  ->  target %s" % (sd, target))
 
-    mom      = load_momentum(sb, session_date)
-    sectors  = load_sector_pulse(sb, session_date)
-    earnings = load_earnings(sb, sd)
-    orbhist  = load_orb_history(sb)
+    mom = load_momentum(sb, session_date)
+    try:
+        sectors = load_sector_pulse(sb, session_date)
+    except Exception as e:
+        print("  sector_pulse failed (%s) — sector scores neutral"
+              % str(e)[:60])
+        sectors = {}
+    try:
+        earnings = load_earnings(sb, sd)
+    except Exception as e:
+        print("  earnings_moves failed (%s) — no results badges"
+              % str(e)[:60])
+        earnings = {}
+    orbhist = load_orb_history(sb)
 
     # percentile scales, computed once across the universe
     oi_chgs = sorted(abs(f(e.get("oi_change_pct"), 0) or 0)
