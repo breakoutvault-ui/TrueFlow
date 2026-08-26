@@ -126,6 +126,7 @@ SLOPE_DAYS     = 5        # sessions used to measure EMA slope
 HISTORY_DAYS   = 21       # calendar days of ema_filter history to load
 EARNINGS_WARN  = 5        # badge when results are within N days
 EXTENDED_PCT   = 7.0      # badge when price is this far from the 9 EMA
+LOW_ADR_BADGE  = 2.5      # badge (not reject) below this ADR
 TURNOVER_FLOOR = 10.0     # reject the thinnest N% by traded value
 ORBHIST_MIN_N  = 20       # trades before a stock's ORB record counts
 BATCH_WRITE    = 200
@@ -222,10 +223,14 @@ def connect_sb():
     return sb
 
 
-def page_select(builder, size=1000):
-    """Supabase silently caps reads at 1000 rows. Page on a UNIQUE key
-    (id) and de-duplicate — paging on session_date duplicated rows and
-    destroyed a 20-minute run once already."""
+def page_select(builder, size=1000, key="id"):
+    """Supabase silently caps reads at 1000 rows. Page on a UNIQUE key and
+    de-duplicate — paging on session_date duplicated rows and destroyed a
+    20-minute run once already.
+
+    `key` must name a column that actually exists on the table being read.
+    Not every table has `id`: orb_backtest is keyed on alert_id, and
+    assuming otherwise made both of those loaders fail silently."""
     rows, page = [], 0
     while True:
         chunk = builder(page * size, page * size + size - 1) or []
@@ -235,7 +240,7 @@ def page_select(builder, size=1000):
         page += 1
     seen, uniq = set(), []
     for r in rows:
-        k = r.get("id")
+        k = r.get(key)
         if k is not None:
             if k in seen:
                 continue
@@ -359,10 +364,13 @@ def load_sector_pulse(sb, session_date, _retry=True):
 
 
 def load_earnings(sb, today):
-    rows = page_select(lambda a, b: (
-        sb.table("earnings_moves").select("id,symbol,result_date")
-          .gte("result_date", today.isoformat())
-          .order("id").range(a, b).execute().data))
+    # Small table (upcoming results only) and it has no `id` column, so
+    # this is a single request rather than a paged read.
+    rows = (sb.table("earnings_moves").select("symbol,result_date")
+              .gte("result_date", today.isoformat())
+              .order("result_date").limit(1000).execute().data) or []
+    if len(rows) >= 1000:
+        print("  earnings_moves hit the 1000-row cap — badges may be partial")
     out = {}
     for r in rows:
         try:
@@ -381,9 +389,9 @@ def load_orb_history(sb):
     to 3:20) is the reference — the only method that made money."""
     try:
         rows = page_select(lambda a, b: (
-            sb.table("orb_backtest").select("id,symbol,exit_a_r")
-              .eq("status", "ok").order("id").range(a, b)
-              .execute().data))
+            sb.table("orb_backtest").select("alert_id,symbol,exit_a_r")
+              .eq("status", "ok").order("alert_id").range(a, b)
+              .execute().data), key="alert_id")
     except Exception as e:
         print("  orb_backtest read failed (%s)" % str(e)[:70])
         print("  continuing WITHOUT per-stock ORB track record")
@@ -470,26 +478,40 @@ def score_volume(vol_ratio, del_pct, wmax):
 
 
 def nearest_level(e, m, ltp, direction):
-    """Closest level standing in the way of the move.
-    PDH/PDL come from ema_filter (prev_high / prev_low)."""
+    """Room to run, measured FROM THE TRIGGER — not from spot.
+
+    The first version measured spot -> PDH and treated PDH as a wall.
+    That is backwards for this strategy: PDH is where the trade STARTS,
+    not where it stops. It scored a coiled stock sitting just under its
+    previous day high as having "no room", which is precisely the setup
+    that is about to break out. That single error suppressed scores
+    across the whole universe.
+
+    So: trigger = PDH for a long, PDL for a short. Room is the distance
+    from that trigger to the next real level BEYOND it. Nothing beyond
+    means clear sky and full marks.
+
+    Returns (level, name, trigger). level None = clear."""
     m = m or {}
     if direction == "bull":
-        src = [(f(e.get("prev_high")), "PDH"),
-               (f(e.get("high_52w")), "52W high"),
+        trigger = f(e.get("prev_high")) or ltp
+        src = [(f(e.get("high_52w")), "52W high"),
                (f(m.get("qm_pivot_level")), "QM pivot"),
                (f(m.get("breakout_price")), "BO level")]
-        cands = [(v, n) for v, n in src if v and v > ltp]
+        cands = [(v, n) for v, n in src if v and v > trigger]
         if not cands:
-            return None, None
-        return min(cands, key=lambda x: x[0])
-    src = [(f(e.get("prev_low")), "PDL"),
-           (f(m.get("low_52w")), "52W low"),
+            return None, None, trigger
+        lvl, name = min(cands, key=lambda x: x[0])
+        return lvl, name, trigger
+    trigger = f(e.get("prev_low")) or ltp
+    src = [(f(m.get("low_52w")), "52W low"),
            (f(m.get("qm_pivot_level")), "QM pivot"),
            (f(m.get("breakout_price")), "BO level")]
-    cands = [(v, n) for v, n in src if v and v < ltp]
+    cands = [(v, n) for v, n in src if v and v < trigger]
     if not cands:
-        return None, None
-    return max(cands, key=lambda x: x[0])
+        return None, None, trigger
+    lvl, name = max(cands, key=lambda x: x[0])
+    return lvl, name, trigger
 
 
 def score_room(room_adr, wmax):
@@ -542,7 +564,7 @@ def slope_pct(hist, key, days):
 
 
 def evaluate(sym, ehist, m, sectors, earnings, orbhist, w,
-             oi_rank, turn_rank, explain=False):
+             oi_rank, turn_rank, explain=False, near_out=None):
     """Returns (pick_dict, reject_reason). Exactly one is ever set."""
     e   = ehist[0]
     ltp = f(e.get("ltp"))
@@ -590,8 +612,10 @@ def evaluate(sym, ehist, m, sectors, earnings, orbhist, w,
     if turn_rank is not None and turn_rank < TURNOVER_FLOOR:
         return None, "turnover in bottom %.0f pct" % TURNOVER_FLOOR
 
-    lvl, lvl_name = nearest_level(e, m, ltp, direction)
-    room_adr = (abs(lvl - ltp) / ltp * 100.0 / adr) if (lvl and adr) else None
+    lvl, lvl_name, trigger = nearest_level(e, m, ltp, direction)
+    room_adr = (abs(lvl - trigger) / ltp * 100.0 / adr) \
+               if (lvl and adr) else None
+    trig_adr = (abs(trigger - ltp) / ltp * 100.0 / adr) if adr else None
 
     sec     = e.get("sector") or (m or {}).get("industry")
     adv_pct = (sectors.get(sec) or {}).get("adv_pct")
@@ -621,14 +645,18 @@ def evaluate(sym, ehist, m, sectors, earnings, orbhist, w,
         print("      %-16s %6.2f%%" % ("9/20 gap", sep_pct))
         print("      %-16s %6.2f%% (%s)" % ("ADR", adr, adr_src))
         print("      %-16s %6.2f%% / %.2f%%" % ("slope 9/20", slope9, slope20))
-        print("      %-16s %s" % ("nearest level",
-              "none (clear)" if lvl is None
+        print("      %-16s %.2f (%.2f ADR from spot)"
+              % ("trigger", trigger, trig_adr or 0))
+        print("      %-16s %s" % ("room beyond it",
+              "clear sky" if lvl is None
               else "%s @ %.2f = %.2f ADR" % (lvl_name, lvl, room_adr or 0)))
         print("      %-16s %s / del %s / vol %s"
               % ("oi/del/vol", e.get("oi_buildup"), del_pct,
                  e.get("vol_ratio")))
 
     if total < w["min_score"]:
+        if near_out is not None:
+            near_out[0], near_out[1] = round(total, 1), direction
         return None, "score below %.0f" % w["min_score"]
 
     badges, reasons = [], []
@@ -643,12 +671,16 @@ def evaluate(sym, ehist, m, sectors, earnings, orbhist, w,
         reasons.append("NR4 compression")
     if abs(pct_from_9) > EXTENDED_PCT:
         badges.append("EXTENDED")
+    if adr < LOW_ADR_BADGE:
+        badges.append("LOW_ADR")
+    if trig_adr is not None and trig_adr > 1.5:
+        badges.append("FAR_TRIGGER")
     if lvl is None:
         badges.append("CLEAR")
         reasons.append("no level in the way")
     else:
-        reasons.append("%s at %.2f, %.1f ADR away"
-                       % (lvl_name, lvl, room_adr or 0))
+        reasons.append("%s at %.2f, %.1f ADR beyond trigger %.2f"
+                       % (lvl_name, lvl, room_adr or 0, trigger))
     reasons.append(e.get("oi_buildup") or "OI n/a")
     reasons.append("9/20 gap %.2f%%, ADR %.2f%%" % (sep_pct, adr))
     if rec and rec["n"] >= ORBHIST_MIN_N:
@@ -682,6 +714,7 @@ def evaluate(sym, ehist, m, sectors, earnings, orbhist, w,
         "high_52w": r2(f(e.get("high_52w")), 2),
         "low_52w": r2(f((m or {}).get("low_52w")), 2),
         "nearest_level": r2(lvl, 2), "nearest_level_type": lvl_name,
+        "trigger_level": r2(trigger, 2), "trigger_adr": r2(trig_adr, 3),
         "room_adr": r2(room_adr, 3),
         "daily_trend": daily_trend, "sector": sec,
         "sector_adv_pct": r2(adv_pct, 2),
@@ -747,22 +780,25 @@ def main():
     turns = sorted((f(e.get("ltp"), 0) or 0) * (f(e.get("vol_today"), 0) or 0)
                    for e in cur.values())
 
-    picks, rejects, why_hit = [], {}, None
+    picks, rejects, why_hit, near_miss = [], {}, None, []
     for sym in sorted(cur.keys()):
         e = cur[sym]
         oi_rank = pct_rank(abs(f(e.get("oi_change_pct"), 0) or 0), oi_chgs)
         turn_rank = pct_rank((f(e.get("ltp"), 0) or 0) *
                              (f(e.get("vol_today"), 0) or 0), turns)
         explain = (args.explain or "").upper() == sym
+        near_score = [None, None]
         pick, why = evaluate(sym, ehist[sym], mom.get(sym), sectors,
                              earnings, orbhist, w, oi_rank, turn_rank,
-                             explain)
+                             explain, near_score)
         if (args.why or "").upper() == sym:
             why_hit = why if why else "PASSED with score %.1f" % pick["score"]
         if pick:
             picks.append(pick)
         else:
             rejects[why] = rejects.get(why, 0) + 1
+            if why.startswith("score below"):
+                near_miss.append((sym, near_score[0], near_score[1]))
 
     if args.why:
         print("\n%s -> %s" % (args.why.upper(),
@@ -790,6 +826,12 @@ def main():
     print("REJECTED:")
     for k, v in sorted(rejects.items(), key=lambda x: -x[1]):
         print("   %-44s %d" % (k[:44], v))
+    if near_miss:
+        near_miss.sort(key=lambda x: -x[1])
+        print("NEAR MISSES (best scores that failed min_score %.0f):"
+              % w["min_score"])
+        for sym, sc, d in near_miss[:8]:
+            print("   %-14s %5.1f  %s" % (sym, sc, d))
 
     print("-" * 62)
     for name, lst in (("BULLISH", bulls), ("BEARISH", bears)):
