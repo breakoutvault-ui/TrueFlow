@@ -6,6 +6,8 @@ K = open("/root/trueflow/.sbkey").read().strip()
 H = {"apikey": K, "Authorization": "Bearer " + K}
 HW = {**H, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates"}
 
+ACTIONABLE_DAYS = 21
+
 CONFLICT = {
     "armed services": ["Industrials", "Technology"],
     "financial services": ["Financial Services", "Real Estate"],
@@ -31,7 +33,7 @@ def page(url):
     while True:
         b = requests.get(url + f"&offset={o}&limit=1000", headers=H, timeout=90).json()
         if not isinstance(b, list):
-            print("ERR", b)
+            print("  ERR", b)
             break
         out += b
         o += 1000
@@ -67,21 +69,35 @@ def match(name):
 
 live = [t for t in tr if not t.get("is_amendment")]
 print("  non-amendment:", len(live))
-matched = sum(1 for t in live if match(t.get("member_name")))
-print(f"  name match rate: {matched}/{len(live)}")
+print(f"  name match rate: {sum(1 for t in live if match(t.get('member_name')))}/{len(live)}")
 
 today = date.today()
 d30 = today - timedelta(days=30)
 
-conv = set()
+insider, activist, delayed = set(), set(), set()
 try:
-    ms = page(SB + "/rest/v1/us_momentum_stocks?select=symbol,clust,stake,setup")
-    for s in ms:
-        if s.get("clust") or s.get("stake") or "delayed" in (s.get("setup") or "").lower():
-            conv.add(s["symbol"])
-    print("  convergence candidates:", len(conv))
+    for s in page(SB + "/rest/v1/us_smart_money_scores?select=symbol,is_cluster"):
+        if s.get("is_cluster"):
+            insider.add(s["symbol"])
+    print("  insider clusters:", len(insider))
 except Exception as e:
-    print("  convergence load failed:", type(e).__name__, str(e)[:120])
+    print("  insider load failed:", type(e).__name__, str(e)[:120])
+
+try:
+    for s in page(SB + "/rest/v1/us_sec_stakes?select=symbol,is_activist"):
+        if s.get("is_activist"):
+            activist.add(s["symbol"])
+    print("  activist stakes:", len(activist))
+except Exception as e:
+    print("  activist load failed:", type(e).__name__, str(e)[:120])
+
+try:
+    for s in page(SB + "/rest/v1/us_earnings_moves?select=symbol,is_delayed_ep"):
+        if s.get("is_delayed_ep"):
+            delayed.add(s["symbol"])
+    print("  delayed EP:", len(delayed))
+except Exception as e:
+    print("  delayed EP load failed:", type(e).__name__, str(e)[:120])
 
 g = collections.defaultdict(list)
 for t in live:
@@ -109,6 +125,7 @@ for tk, ts in g.items():
                     conflict = True
     rets = [x["ret_since_disclosure"] for x in buys if x["ret_since_disclosure"] is not None]
     lastb = max((x["disclosure_date"] for x in buys if x["disclosure_date"]), default=None)
+    ci, ca, cd = tk in insider, tk in activist, tk in delayed
     rows.append({
         "ticker": tk,
         "company": (ts[0].get("company") or "")[:200],
@@ -128,8 +145,11 @@ for tk, ts in g.items():
         "best_ret_since_disclosure": max(rets) if rets else None,
         "is_cluster": len({x["member_name"] for x in b30}) >= 3,
         "has_committee_conflict": conflict,
-        "has_convergence": tk in conv,
-        "still_actionable": bool(lastb and lastb >= (today - timedelta(days=7)).isoformat()),
+        "conv_insider_cluster": ci,
+        "conv_activist_stake": ca,
+        "conv_delayed_ep": cd,
+        "has_convergence": (ci or ca or cd),
+        "still_actionable": bool(lastb and lastb >= (today - timedelta(days=ACTIONABLE_DAYS)).isoformat()),
     })
 
 print("built:", len(rows))
@@ -143,12 +163,23 @@ for i in range(0, len(rows), 200):
     ok += len(b)
 print("DONE:", ok)
 
-print("clusters:", sum(1 for r in rows if r["is_cluster"]))
-print("conflicts:", sum(1 for r in rows if r["has_committee_conflict"]))
-print("convergence:", sum(1 for r in rows if r["has_convergence"]))
-print("actionable:", sum(1 for r in rows if r["still_actionable"]))
+print("congress clusters (3+ buyers/30d):", sum(1 for r in rows if r["is_cluster"]))
+print("committee conflicts:", sum(1 for r in rows if r["has_committee_conflict"]))
+print("convergence ANY:", sum(1 for r in rows if r["has_convergence"]))
+print("  - insider cluster:", sum(1 for r in rows if r["conv_insider_cluster"]))
+print("  - activist stake:", sum(1 for r in rows if r["conv_activist_stake"]))
+print("  - delayed EP:", sum(1 for r in rows if r["conv_delayed_ep"]))
+print(f"still actionable ({ACTIONABLE_DAYS}d):", sum(1 for r in rows if r["still_actionable"]))
 print("in universe:", sum(1 for r in rows if r["in_universe"]))
 
-print("\nTOP CLUSTERS:")
-for r in sorted([x for x in rows if x["is_cluster"]], key=lambda z: -z["distinct_buyers_30d"])[:10]:
-    print(f"  {r['ticker']:6} {r['distinct_buyers_30d']} buyers/30d | R{r['buyers_republican']}/D{r['buyers_democrat']} | {r['sector'] or '-'} | conflict={r['has_committee_conflict']} conv={r['has_convergence']}")
+print("\nTOP BY DISTINCT BUYERS (30d):")
+for r in sorted(rows, key=lambda z: -z["distinct_buyers_30d"])[:10]:
+    print(f"  {r['ticker']:6} {r['distinct_buyers_30d']}/30d  {r['distinct_buyers']}/6m | R{r['buyers_republican']}/D{r['buyers_democrat']} | {(r['sector'] or '-')[:22]:22} | conf={r['has_committee_conflict']} conv={r['has_convergence']}")
+
+print("\nCONVERGENCE + ACTIONABLE (the ones that matter):")
+hits = [r for r in rows if r["has_convergence"] and r["still_actionable"] and r["buys_6m"] > 0]
+for r in sorted(hits, key=lambda z: -z["distinct_buyers"])[:15]:
+    src = ",".join(s for s, v in [("insider", r["conv_insider_cluster"]), ("activist", r["conv_activist_stake"]), ("delayedEP", r["conv_delayed_ep"])] if v)
+    print(f"  {r['ticker']:6} buyers={r['distinct_buyers']} last={r['last_buy_date']} | {src} | conf={r['has_committee_conflict']} | {(r['sector'] or '-')[:20]}")
+if not hits:
+    print("  (none)")
