@@ -13371,6 +13371,24 @@ var TF_STAGES = {
 
 function tfStage(s){ return TF_STAGES[parseInt(s)] || TF_STAGES[1]; }
 
+/* The dashboard's glossary tooltip renders at bottom:100% — ABOVE the
+   element. Filter buttons sit at the very top of their panel, so the
+   tooltip was drawn off-screen and unreadable. This flips any tooltip on
+   a filter button to appear BELOW it instead. Injected late so it wins
+   on order against the glossaryCSS block. */
+(function tfTooltipBelow(){
+  var st = document.createElement('style');
+  st.textContent =
+    '.sort-btn[data-filter-group][title]:hover::after,' +
+    '.sort-btn[id^="wl-tab-"][title]:hover::after {' +
+    '  bottom: auto !important; top: 100% !important;' +
+    '  margin-top: 6px; max-width: 320px; white-space: normal;' +
+    '  text-align: left; z-index: 10000;' +
+    '}';
+  if (document.head) document.head.appendChild(st);
+  else document.addEventListener('DOMContentLoaded', function(){ document.head.appendChild(st); });
+})();
+
 function tfStagePill(s){
   var t = tfStage(s);
   return '<span class="tag '+t.cls+'" style="color:'+t.col+'" title="'+t.tip+'">'+t.full+'</span>';
