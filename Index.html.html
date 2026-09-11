@@ -13659,7 +13659,7 @@ var TF_STATE={
  allup:{i:'🟢',l:'All Timeframes Up',t:'Daily, weekly and monthly all rising. Can be held as a position.'},
  htfpb:{i:'🔵',l:'HTF Pullback',t:'Weekly and monthly rising, daily resting or basing — the best entry zone. HTF = higher timeframes (weekly + monthly).'},
  wkturn:{i:'🟣',l:'Weekly Turn',t:'Weekly 9 EMA crossed above the 20 in the last 3 weeks — a new leg starting.'},
- stretched:{i:'🟠',l:'HTF Stretched',t:'All rising, but more than 15% above the weekly 9 EMA. Book partials; do not add.'},
+ stretched:{i:'🟠',l:'HTF Stretched',t:'All rising, but more than 15% above the weekly 9 EMA. Stay in and trail the stop tighter (daily 9 EMA close) — do not sell into strength.'},
  ctbounce:{i:'🟡',l:'Counter-Trend Bounce',t:'Daily up while weekly and monthly are falling. Quick swing only, never a position.'},
  rolling:{i:'⚠️',l:'Rolling Over',t:'Monthly still up but the weekly closed below its 9 EMA. No new entries; tighten trails on holdings.'},
  alldown:{i:'🔴',l:'All Timeframes Down',t:'Daily, weekly and monthly all falling. Skip longs.'},
@@ -14005,7 +14005,7 @@ function tfPicksWarn(){
   var r=M[p.symbol];if(!r)return;var d=byS[p.symbol],st=TF_STATE[r.mtf_state]||TF_STATE.mixed,msg=[];
   var hold=d?d.hold:((r.mtf_state==='allup'||r.mtf_state==='htfpb')?'poscand?':(r.mtf_state==='ctbounce'?'swingonly':'swing'));
   if(r.mtf_state==='rolling')msg.push('Rolling Over — weekly closed below its 9 EMA: no adds, back to swing trailing');
-  if(r.mtf_state==='stretched')msg.push('HTF Stretched — book partials, do not add');
+  if(r.mtf_state==='stretched')msg.push('HTF Stretched — trail tighter on the daily 9 EMA close, do not sell');
   if(r.mtf_state==='ctbounce')msg.push('Counter-Trend Bounce — swing only');
   if(r.mtf_state==='alldown')msg.push('All Timeframes Down');
   if(d&&d.secW==='weak')msg.push('Sector weak on the weekly — back to swing trailing');
