@@ -2498,7 +2498,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         </div>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
           <b style="color:var(--cyan);font-size:12px">📊 Reading the Columns</b><br>
-          <b>Category</b> — A (above all EMAs), B (above 20+50, not 9), C (above 50+200), AC (A + crossover).<br><b>Day/Week/Month %</b> — Price change over different timeframes. Green = up, Red = down.<br><b>% Daily 9E</b> — Distance from 9 EMA. Positive = above (bullish).<br><b>52W Away</b> — Distance from 52-week high. 0% = at high. <5% = near breakout.<br><b>Vol on Move</b> — Volume confirmation. Very High/High/Low.<br><b>Crossover</b> — ✅ = 9 EMA just crossed above 20 EMA (fresh trend start).<br><b>Score</b> — Composite momentum score (0-100). Higher = stronger setup.
+          <b>Category</b> — A (above the daily 9+20 and the weekly 9+20), B (below the daily 9 but above the weekly 9+20), C (fresh weekly 9&gt;20 crossover), AC (A plus a fresh weekly crossover).<br><b>Day/Week/Month %</b> — Price change over different timeframes. Green = up, Red = down.<br><b>% Daily 9E</b> — Distance from 9 EMA. Positive = above (bullish).<br><b>52W Away</b> — Distance from 52-week high. 0% = at high. <5% = near breakout.<br><b>Vol on Move</b> — Volume confirmation. Very High/High/Low.<br><b>Crossover</b> — ✅ = 9 EMA just crossed above 20 EMA (fresh trend start).<br><b>Score</b> — Composite momentum score (0-100). Higher = stronger setup.
         </div>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
           <b style="color:var(--cyan);font-size:12px">✅ Ideal Scanner Workflow</b><br>
@@ -4428,6 +4428,7 @@ function doLogin() {
     initFOTabs();
     initMomentumHub();
     loadLast5Map();
+    if(window.tfLoadMtf)tfLoadMtf();
   } else {
     const err = document.getElementById('login-err');
     err.textContent = '❌ Incorrect password';
@@ -6747,7 +6748,7 @@ function selectAlert(id) {
       ${xxlWarn}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fo-card"><div class="fo-card-label">Direction</div><div class="fo-card-val ${a.direction==='bull'?'fo-bull':'fo-bear'}">${a.direction==='bull'?'CALL ▲':'PUT ▼'}</div></div>
-        <div class="fo-card"><div class="fo-card-label">Stage</div><div class="fo-card-val">${a.stage===2?'🔥 Stage 2':'⚡ Stage 1'}</div><div class="fo-card-sub ${a.stage===2?'fo-bull':'fo-neu'}">${a.stage===2?'High conviction — both 5m + 15m EMA aligned':'Standard — 5m EMA only'}</div></div>
+        <div class="fo-card"><div class="fo-card-label">Stage</div><div class="fo-card-val">${({1:'⚡ Stage 1',2:'🔥 Stage 2',3:'⚡ Stage 3',4:'🔥 Stage 4'})[a.stage]||('Stage '+a.stage)}</div><div class="fo-card-sub ${(a.stage===2||a.stage===4)?'fo-bull':'fo-neu'}">${({1:'5m EMA only · against the daily trend',2:'5m + 15m EMA · against the daily trend',3:'5m EMA only · with the daily trend',4:'5m + 15m EMA · with the daily trend'})[a.stage]||'—'}</div></div>
         <div class="fo-card"><div class="fo-card-label">LTP</div><div class="fo-card-val">₹${a.ltp?.toLocaleString('en-IN')||'—'}</div></div>
         <div class="fo-card"><div class="fo-card-label">Breakout Level</div><div class="fo-card-val">₹${a.orb_level?.toLocaleString('en-IN')||'—'}</div><div class="fo-card-sub fo-neu">ORB ${a.orb_side} · ${a.orb_type==='wide'?'Wide ORB':'Narrow ORB'}</div></div>
         <div class="fo-card"><div class="fo-card-label">EMA 5-min</div><div class="fo-card-val" style="font-size:14px">${a.ema_5m||'—'}</div></div>
@@ -7630,7 +7631,7 @@ function renderScanner() {
     const pct52col = pct52!==null ? (pct52<5?'var(--green)':pct52<10?'var(--amber)':pct52<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)" title="${starred?'Remove from My Picks':'Add to My Picks'}">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span> ${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span> ${getCatBadge(s.category)}${(window.tfTrendChip?tfTrendChip(s.symbol):'')}</td>
       <td><span style="font-size:11px;color:var(--muted)">${s.sector||'—'}</span></td>
       <td><span style="font-size:11px;color:var(--muted)">${s.industry||'—'}</span></td>
       <td>${spark(s.symbol, s)}</td>
@@ -7747,7 +7748,7 @@ function renderEMA() {
     const wcDays = s.weekly_crossover_date ? daysSince(s.weekly_crossover_date) : null;
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}${(window.tfTrendChip?tfTrendChip(s.symbol):'')}</td>
       <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
       <td style="font-size:11px">${s.crossover_type==='daily'&&s.crossover_date?s.crossover_date:'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${dcDays!==null?dcDays+'d':'—'}</td>
@@ -7802,7 +7803,7 @@ function renderSharp() {
     const away52 = s.ltp && s.high_52w ? ((s.high_52w - s.ltp) / s.high_52w * 100).toFixed(1) + '%' : '—';
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}${(window.tfTrendChip?tfTrendChip(s.symbol):'')}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td><span style="color:${movePct>=0?'#22C55E':'#EF4444'};font-weight:700;font-size:13px">${movePct>=0?'+':''}${movePct?.toFixed(1)}%</span></td>
@@ -7865,7 +7866,7 @@ function renderPicks() {
     const pct52pstr = pct52p!==null ? pct52p.toFixed(1)+'%' : '—';
     const pct52pcol = pct52p!==null ? (pct52p<5?'var(--green)':pct52p<10?'var(--amber)':pct52p<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
-      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}<br>${tfPvCell(s)}</td>
+      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}${(window.tfTrendChip?tfTrendChip(s.symbol):'')}<br>${tfPvCell(s)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.starred_at?new Date(s.starred_at).toLocaleDateString('en-IN'):'—'}</td>
@@ -7910,7 +7911,7 @@ function renderExited() {
     const catB = s.category === 'B';
     return `<tr style="${catB?'background:rgba(245,158,11,.04)':''}">
       <td style="text-align:center"><input type="checkbox" class="exited-check" data-symbol="${s.symbol}" style="cursor:pointer"></td>
-      <td><span style="font-weight:600">${s.symbol}</span>${catB?'<br><span style="font-size:9px;color:var(--amber)">⚠️ Still above Weekly EMA</span>':''}<br>${getCatBadge(s.category)}<br>${tfPvCell(s)}</td>
+      <td><span style="font-weight:600">${s.symbol}</span>${catB?'<br><span style="font-size:9px;color:var(--amber)">⚠️ Still above Weekly EMA</span>':''}<br>${getCatBadge(s.category)}${(window.tfTrendChip?tfTrendChip(s.symbol):'')}<br>${tfPvCell(s)}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.exit_date||'—'}</td>
@@ -9212,7 +9213,7 @@ renderScanner = function() {
     const pct52col = pct52!==null ? (pct52<5?'var(--green)':pct52<10?'var(--amber)':pct52<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)" title="${starred?'Remove from My Picks':'Add to My Picks'}">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span> ${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;color:var(--text);cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="Open in TradingView">${s.symbol}</span> ${getCatBadge(s.category)}${(window.tfTrendChip?tfTrendChip(s.symbol):'')}</td>
       <td><span style="font-size:11px;color:var(--muted)">${s.sector||'—'}</span></td>
       <td><span style="font-size:11px;color:var(--muted)">${s.industry||'—'}</span></td>
       <td>${getSparkBars(s.last5_summary, s.day_chg_pct)}</td>
@@ -9314,7 +9315,7 @@ renderEMA = function() {
     const wcDays = s.weekly_crossover_date ? daysSince(s.weekly_crossover_date) : null;
     return `<tr>
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;cursor:pointer;color:var(--text)" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}${(window.tfTrendChip?tfTrendChip(s.symbol):'')}</td>
       <td><span style="font-size:10px;color:var(--muted)">${s.sector||'—'}</span>${secBadge(s.sector)}<br><span style="font-size:10px;color:var(--dim)">${s.industry||''}</span></td>
       <td>${spark(s.symbol, s)}</td>
       <td style="font-size:11px">${s.crossover_type==='daily'&&s.crossover_date?s.crossover_date:'—'}</td>
@@ -9508,7 +9509,7 @@ renderSharp = function() {
     const rowStyle = isBrokenOut ? 'background:rgba(34,197,94,0.08);border-left:3px solid #22C55E' : isBreakoutReady ? 'background:rgba(251,191,36,0.08);border-left:3px solid #FBbf24' : '';
     return `<tr style="${rowStyle}">
       <td style="text-align:center"><button class="mom-star-btn${starred?' starred':''}" onclick="toggleMomStar('${s.symbol}',this)">${starred?'⭐':'☆'}</button> ${getColorDotHTML(s.symbol)}</td>
-      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td><span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}${(window.tfTrendChip?tfTrendChip(s.symbol):'')}</td>
       <td style="font-size:11px;color:var(--muted)" title="Sector">${s.sector||'—'} ${secBadge(s.sector)}</td>
       <td style="font-size:11px;color:var(--muted)" title="Industry">${s.industry||'—'}</td>
       <td>${spark(s.symbol, s)}</td>
@@ -9594,7 +9595,7 @@ renderPicks = function() {
     const pct52pstr = pct52p!==null ? pct52p.toFixed(1)+'%' : '—';
     const pct52pcol = pct52p!==null ? (pct52p<5?'var(--green)':pct52p<10?'var(--amber)':pct52p<20?'var(--text)':'var(--muted)') : 'var(--muted)';
     return `<tr>
-      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}</td>
+      <td>${getColorDotHTML(s.symbol)} <span style="font-weight:600;cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=${s.exchange||'NSE'}:${s.symbol}','_blank')" title="${getStockTitle(s.symbol)}">${s.symbol}</span><br>${getCatBadge(s.category)}${(window.tfTrendChip?tfTrendChip(s.symbol):'')}</td>
       <td style="font-size:11px;color:var(--muted)">${s.sector||'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${s.industry||'—'}</td>
       <td style="font-size:11px">${s.starred_at?new Date(s.starred_at).toLocaleDateString('en-IN'):'—'}</td>
@@ -10164,7 +10165,7 @@ function renderResultsTable() {
       <td style="font-size:11px">${r.roce!==null?r.roce.toFixed(1)+'%':'—'}</td>
       <td style="font-size:11px;color:${r.de&&r.de>1?'#EF4444':'var(--text)'}">${r.de!==null?r.de.toFixed(2):'—'}</td>
       <td style="font-size:11px">${r.pe!==null?r.pe.toFixed(1):'—'}</td>
-      <td>${r.momCat?getCatBadge(r.momCat):'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${(window.tfTrendChip?tfTrendChip(r.symbol):'')}${r.momCat?getCatBadge(r.momCat):'<span style="color:var(--muted);font-size:10px">—</span>'}</td>
       <td>${r.emaZone!==null&&r.emaZone!==undefined?getZoneTag(r.emaZone):'—'}</td>
       <td>${rsGetSmartBadge(r.smartMoney)}</td>
       <td style="font-size:10px">${r.promChange!==null?`<span style="color:${r.promChange>=0?'#22C55E':'#EF4444'}">${r.promChange>=0?'+':''}${r.promChange.toFixed(2)}%</span>`:'—'}</td>
@@ -10863,7 +10864,7 @@ renderResultsTable = function() {
       <td style="font-size:11px">${r.roce!==null?r.roce.toFixed(1)+'%':'—'}</td>
       <td style="font-size:11px;color:${r.de&&r.de>1?'#EF4444':'var(--text)'}">${r.de!==null?r.de.toFixed(2):'—'}</td>
       <td style="font-size:11px">${r.pe!==null?r.pe.toFixed(1):'—'}</td>
-      <td>${r.momCat?getCatBadge(r.momCat):(r.inMomUniverse===false?'<span style="color:var(--red);font-size:9px" title="This stock is not in our 1400+ momentum universe">⚠️ N/A</span>':'<span style="color:var(--muted);font-size:10px">—</span>')}</td>
+      <td>${(window.tfTrendChip?tfTrendChip(r.symbol):'')}${r.momCat?getCatBadge(r.momCat):(r.inMomUniverse===false?'<span style="color:var(--red);font-size:9px" title="This stock is not in our 1400+ momentum universe">⚠️ N/A</span>':'<span style="color:var(--muted);font-size:10px">—</span>')}</td>
       <td>${r.emaZone!==null&&r.emaZone!==undefined?getZoneTag(r.emaZone):'—'}</td>
       <td>${rsGetSmartBadge(r.smartMoney)}</td>
       <td style="font-size:10px">${r.promChange!==null?`<span style="color:${r.promChange>=0?'#22C55E':'#EF4444'}">${r.promChange>=0?'+':''}${r.promChange.toFixed(2)}%</span>`:'—'}</td>
@@ -12242,7 +12243,7 @@ const VB_COLS=[
  {k:'vbuild',g:'Core',lbl:'Vol Buildup',a:'c',def:1,tip:'VOLUME over the window — each bar = session volume ÷ 20-day average. Rising staircase = building up.',cell:d=>volBars(d.v)},
  {k:'rvol',g:'Core',lbl:'RVOL ×',a:'r',def:1,tip:'Relative Volume — latest session vs 20-day average',cell:d=>volRvolCell(d.v)},
  {k:'trend',g:'Core',lbl:'Trend',a:'c',def:1,tip:'Direction of the volume bars: Rising / Flat / Fading',cell:d=>{const tr=volTrend(d.v),tc=tr==='rising'?'vbt-rising':tr==='flat'?'vbt-flat':'vbt-fading',tl=tr==='rising'?'▲ Rising':tr==='flat'?'■ Flat':'▼ Fading';return `<span class="vbt-trend ${tc}" title="Volume trend over the window">${tl}</span>`;}},
- {k:'ema',g:'Signals',lbl:'EMA',a:'c',def:1,tip:'Your EMA category (A / B / C / A+C)',cell:d=>volEmaCell(d.cat)},
+ {k:'ema',g:'Signals',lbl:'EMA',a:'c',def:1,tip:'Your EMA category (A / B / C / A+C)',cell:d=>volEmaCell(d.cat)+(window.tfTrendChip?tfTrendChip(d.sym||d.symbol):'')},
  {k:'setup',g:'Signals',lbl:'Setup',a:'c',def:1,tip:'Active breakout / Qullamaggie pattern',cell:d=>volSetupChip(d.setup)},
  {k:'grade',g:'Signals',lbl:'Results',a:'c',def:1,tip:'Latest earnings grade from the Results tab',cell:d=>volGradeCell(d.symbol)},
  {k:'tier',g:'Signals',lbl:'Smart $',a:'c',def:1,tip:'Smart-money tier from bulk/block deals',cell:d=>volTierCell(d.symbol)},
@@ -12372,7 +12373,7 @@ function renderVolume(){
         <td class="c">${volBars(d.v)}</td>
         <td class="r">${volRvolCell(d.v)}</td>
         <td class="c"><span class="vbt-trend ${tcls}" title="Volume trend over the window">${tlbl}</span></td>
-        <td class="c">${volEmaCell(d.cat)}</td>
+        <td class="c">${volEmaCell(d.cat)+(window.tfTrendChip?tfTrendChip(d.sym||d.symbol):'')}</td>
         <td class="c">${volSetupChip(d.setup)}</td>
         <td class="c">${volGradeCell(d.symbol)}</td>
         <td class="c">${volTierCell(d.symbol)}</td>
@@ -12939,6 +12940,7 @@ async function scrLoad(){
   SCR_FILTERS.find(f=>f.key==='symbol').opts=[...new Set(SCR.data.map(d=>d.sym).filter(Boolean))].sort();
   const u=document.getElementById('scr-updated');if(u)u.textContent=ld;
   try{alignComputeMarket(SCR.data);alignComputeSectors(SCR.data);SCR.data.forEach(d=>{entryCompute(d);d.alignState=alignState(d);d.catalyst=alignCatalyst(d);d.secRank=ALIGN.sectorRank[d.sector]||null;});SCR.data.forEach(d=>{const peers=SCR.data.filter(x=>x.sector===d.sector&&x.mom!=null);peers.sort((a,b)=>(b.mom||0)-(a.mom||0));const i=peers.findIndex(x=>x.sym===d.sym);d.rankInSec=i>=0?(i+1):null;d.secPeers=peers.length;});}catch(e){console.error('align engine',e);}
+    if(window.tfMtfMerge)await tfMtfMerge();
     SCR.loaded=true;scrBuildUI();scrRender();
  }catch(e){console.error('Screener load error:',e);document.getElementById('scr-body').innerHTML='<tr><td style="padding:24px;text-align:center;color:var(--red)">Error loading screener — see console.</td></tr>';}
 }
@@ -13632,6 +13634,393 @@ async function loadWLVersus(){
   } catch(e){ el.innerHTML = 'Versus error: ' + e; }
 }
 
+</script>
+
+
+<!-- ═══ TrueFlow MTF v1 — multi-timeframe, 50/200 EMA, EMA bases, new listings ═══ -->
+<style>
+.tf-chip{display:inline-block;margin-left:4px;font-size:10px;letter-spacing:1px;padding:0 4px;border-radius:4px;background:var(--bg3);cursor:help;white-space:nowrap}
+.tf-grid{display:inline-block;font-size:9px;line-height:9px;letter-spacing:1px;cursor:help}
+.tf-strip{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px 0;padding:6px 10px;border:1px solid var(--bg3);border-radius:8px;font-size:11px;color:var(--muted)}
+.tf-pill{padding:2px 8px;border-radius:6px;background:var(--bg3);color:var(--text);font-weight:600}
+.tf-rbtn{padding:2px 8px;border-radius:6px;border:1px solid var(--bg3);cursor:pointer;color:var(--muted);background:none;font-size:11px}
+.tf-rbtn.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+.tf-ev{margin-top:6px;border-collapse:collapse;font-size:11px}
+.tf-ev td,.tf-ev th{padding:2px 8px;text-align:right;border-bottom:1px solid var(--bg3)}
+.tf-ev td:first-child,.tf-ev th:first-child{text-align:left}
+.tf-warn{margin:0 0 8px 0;padding:8px 10px;border:1px solid var(--bg3);border-radius:8px;font-size:12px}
+.tf-warn div{padding:2px 0}
+</style>
+<script>
+(function(){
+'use strict';
+
+var TF_STATE={
+ allup:{i:'🟢',l:'All Timeframes Up',t:'Daily, weekly and monthly all rising. Can be held as a position.'},
+ htfpb:{i:'🔵',l:'HTF Pullback',t:'Weekly and monthly rising, daily resting or basing — the best entry zone. HTF = higher timeframes (weekly + monthly).'},
+ wkturn:{i:'🟣',l:'Weekly Turn',t:'Weekly 9 EMA crossed above the 20 in the last 3 weeks — a new leg starting.'},
+ stretched:{i:'🟠',l:'HTF Stretched',t:'All rising, but more than 15% above the weekly 9 EMA. Book partials; do not add.'},
+ ctbounce:{i:'🟡',l:'Counter-Trend Bounce',t:'Daily up while weekly and monthly are falling. Quick swing only, never a position.'},
+ rolling:{i:'⚠️',l:'Rolling Over',t:'Monthly still up but the weekly closed below its 9 EMA. No new entries; tighten trails on holdings.'},
+ alldown:{i:'🔴',l:'All Timeframes Down',t:'Daily, weekly and monthly all falling. Skip longs.'},
+ mixed:{i:'⚪',l:'Mixed',t:'No clear multi-timeframe read.'}
+};
+var TF_TF={Up:['▲','#22C55E','Up'],Pullback:['↘','#F59E0B','Pullback (holding the 20 EMA)'],Pullback50:['↘','#F97316','Pullback to the 50 EMA'],Flat:['■','#94A3B8','Flat'],Down:['▼','#EF4444','Down']};
+var TF_LEGCOL={strong:'#22C55E',neutral:'#F59E0B',weak:'#EF4444'};
+var TF_EVNAME={ALL:'All stocks (baseline)',allup:'All Timeframes Up',htfpb:'HTF Pullback',wkturn:'Weekly Turn',stretched:'HTF Stretched',ctbounce:'Counter-Trend Bounce',rolling:'Rolling Over',alldown:'All Timeframes Down',mixed:'Mixed',base20:'20 EMA Base',base50:'50 EMA Base'};
+window.TF_MTF=window.TF_MTF||{};
+window.TF_LEGS={mktW:null,mktM:null,secW:{},secM:{},secWp:{},secMp:{}};
+
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function num(x){return (x==null||x==='')?null:+x;}
+function fmtP(x){if(x==null)return '—';x=+x;return (x>0?'+':'')+x.toFixed(1)+'%';}
+function tfArrow(s){var a=TF_TF[s];return a?'<span style="color:'+a[1]+'">'+a[0]+'</span>':'<span style="color:var(--muted)">·</span>';}
+function tfName(s){var a=TF_TF[s];return a?a[2]:'not enough history';}
+function stockLeg(s){return s==='Up'?'strong':(s==='Down'?'weak':(s?'neutral':null));}
+
+/* ── load ─────────────────────────────────────────────────────── */
+var _tfP=null;
+window.tfLoadMtf=function(){
+ if(_tfP)return _tfP;
+ _tfP=(async function(){
+  try{
+   var h={apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey},all=[];
+   for(var o=0;o<6000;o+=1000){
+    var r=await fetch(CONFIG.supabaseUrl+'/rest/v1/momentum_mtf?select=*&order=symbol.asc&limit=1000&offset='+o,{headers:h});
+    if(!r.ok)break;var p=await r.json();if(!Array.isArray(p)||!p.length)break;all=all.concat(p);if(p.length<1000)break;
+   }
+   var mx='';all.forEach(function(x){if(x.session_date>mx)mx=x.session_date;});
+   var M={};all.forEach(function(x){if(x.session_date===mx)M[x.symbol]=x;});
+   window.TF_MTF=M;window.TF_MTF_DATE=mx;
+   var e=await fetch(CONFIG.supabaseUrl+'/rest/v1/mtf_evidence?select=*',{headers:h});
+   window.TF_MTF_EV=e.ok?await e.json():[];
+  }catch(err){console.error('MTF load error:',err);}
+ })();
+ return _tfP;
+};
+
+/* ── compact chip used in the other Momentum tables ───────────── */
+window.tfTrendChip=function(sym){
+ var r=(window.TF_MTF||{})[sym];if(!r)return '';
+ var st=TF_STATE[r.mtf_state]||TF_STATE.mixed;
+ var warn=(r.mtf_state==='rolling'||r.mtf_state==='stretched'||(r.below_box_days>0))?' ⚠':'';
+ var t=st.l+' — Daily '+tfName(r.d_state)+' · Weekly '+tfName(r.w_state)+(r.w_state_dev&&r.w_state_dev!==r.w_state?' (this week so far: '+tfName(r.w_state_dev)+')':'')+
+   ' · Monthly '+tfName(r.m_state)+(r.m_short_history?' (short history)':'')+' · 50 EMA '+fmtP(r.pct_from_ema50)+' · 200 EMA '+fmtP(r.pct_from_ema200)+
+   (r.ema_base?' · '+(r.ema_base==='20+50'?'20 + 50':r.ema_base)+' EMA Base '+r.base_days+'d':'');
+ return '<span class="tf-chip" title="'+esc(t)+'">'+tfArrow(r.d_state)+tfArrow(r.w_state)+tfArrow(r.m_state)+warn+'</span>';
+};
+
+/* ── per-row derived fields ───────────────────────────────────── */
+function tfApply(d,r){
+ d._mtf=!!r;
+ if(!r){d.mtf=null;d.dS=d.wS=d.mS=null;d.tfUp=null;return;}
+ d.mtf=r.mtf_state;d.dS=r.d_state;d.wS=r.w_state;d.mS=r.m_state;d.wDev=r.w_state_dev;d.mDev=r.m_state_dev;d.mShort=!!r.m_short_history;
+ d.tfUp=r.tf_up;d.p50=num(r.pct_from_ema50);d.p200=num(r.pct_from_ema200);d.e50up=!!r.ema50_rising;
+ d.emaBase=r.ema_base;d.eBaseDays=r.base_days;d.eBaseDepth=num(r.base_depth_pct);d.boxHigh=num(r.box_high);d.boxLow=num(r.box_low);
+ d.belowBox=r.below_box_days||0;d.baseStatus=r.base_status;d.mBo=!!r.m_breakout;d.wCrossWeeks=r.w_cross_weeks;
+ d.isIpo=!!r.is_ipo;d.listDate=r.listing_date;d.listedDays=r.days_listed;d.plh=num(r.post_listing_high);d.pctPlh=num(r.pct_from_plh);
+ d.ldh=num(r.listing_day_high);d.ldhReclaim=!!r.ldh_reclaim;d.plhBo=!!r.plh_breakout;d.ipoBaseDays=r.ipo_base_days;d.ipoBaseDepth=num(r.ipo_base_depth);
+ d.recent=!!r.recently_listed;
+ var ld=r.listing_date?new Date(r.listing_date):null;
+ d.isNew=d.isIpo||(ld&&(Date.now()-ld.getTime())<=365*864e5);
+ if(d.adr==null)d.adr=num(r.adr_pct);
+ var p9=(d.pct9e!=null)?d.pct9e:num(r.pct_from_ema9_d);
+ d.near9adr=(p9!=null&&d.adr)?Math.abs(p9)<=d.adr:false;
+}
+function tfIpoRow(r){
+ var p9=num(r.pct_from_ema9_d),p20=num(r.pct_from_ema20_d);
+ return {sym:r.symbol,name:r.company_name||'',sector:'—',industry:'—',cat:null,ltp:num(r.ltp),day:num(r.day_chg_pct),week:null,month:null,
+  e9d:p9!=null&&p9>0,e9w:false,pct9e:p9,pct9w:num(r.pct_from_ema9_w),pct5e:null,e5d:false,low52:null,wkcloses:[],wkvols:[],vols20:[],
+  last5:'—',qm:null,demastat:'—',wemastat:'—',trendDays:null,greenDays:null,hi52:num(r.post_listing_high),pct52:num(r.pct_from_plh),
+  away52:(r.pct_from_plh!=null&&+r.pct_from_plh<0)?Math.abs(+r.pct_from_plh):0,z52:null,pivot:null,basePct:null,contract:null,volDry:null,
+  baseDays:null,reclaim:false,postBo:null,volMove:null,volClass:null,dcross:'—',dsince:null,wcross:'—',wkdays:null,score:null,grade:null,
+  smt:null,ern:null,rvol:null,closes:[],vols:[],bovol:null,bovolWhen:null,consolDays:null,adr:num(r.adr_pct),fresh:false,build:false,
+  vsig:null,aplus:false,active:(r.d_state==='Up'),breakout_type:null,breakout_price:null,pivotLvl:null,
+  ab9d:p9!=null?p9>0:null,ab20d:p20!=null?p20>0:null,ema9:num(r.ema9_d),ema20:num(r.ema20_d),poleMovePct:null,
+  isNr4:false,isNr7:false,nrStatus:null,nrRangePct:null,nrHigh:null,nrLow:null,nrSource:null,nrDaysSince:null,
+  alignState:'neutral',catalyst:[],secRank:null,rankInSec:null,_ipoRow:true};
+}
+function tfTertiles(pctBySec,cnt){
+ var arr=[];for(var s in pctBySec){if(cnt[s]>=3)arr.push([s,pctBySec[s]]);}
+ arr.sort(function(a,b){return b[1]-a[1];});
+ var N=arr.length,t1=Math.ceil(N/3),t2=Math.ceil(N*2/3),o={};
+ arr.forEach(function(x,i){o[x[0]]=i<t1?'strong':(i>=t2?'weak':'neutral');});
+ return o;
+}
+function tfComputeLegs(){
+ var M=window.TF_MTF||{},aw={},am={},n={},tw=0,tm=0,T=0;
+ SCR.data.forEach(function(d){
+  if(d._ipoRow)return;var r=M[d.sym];if(!r||r.ltp==null)return;
+  var w=(r.ema20_w!=null)?(+r.ltp>+r.ema20_w):null,m=(r.ema9_m!=null)?(+r.ltp>+r.ema9_m):null;
+  if(w===null||m===null)return;
+  T++;if(w)tw++;if(m)tm++;
+  var s=d.sector;if(!s||s==='—')return;
+  n[s]=(n[s]||0)+1;aw[s]=(aw[s]||0)+(w?1:0);am[s]=(am[s]||0)+(m?1:0);
+ });
+ var L=window.TF_LEGS,pw={},pm={};
+ for(var s in n){pw[s]=aw[s]/n[s]*100;pm[s]=am[s]/n[s]*100;}
+ L.secW=tfTertiles(pw,n);L.secM=tfTertiles(pm,n);L.secWp=pw;L.secMp=pm;
+ L.mktWp=T?Math.round(tw/T*100):null;L.mktMp=T?Math.round(tm/T*100):null;
+ function st(p){return p==null?null:(p>=55?'strong':(p<45?'weak':'neutral'));}
+ L.mktW=st(L.mktWp);L.mktM=st(L.mktMp);
+}
+function tfConv(d){
+ var secD=(typeof ALIGN!=='undefined'&&ALIGN.sectorState)?(ALIGN.sectorState[d.sector]||'neutral'):'neutral';
+ var mkt=(typeof ALIGN!=='undefined')?ALIGN.mktState:null;
+ d.secW=window.TF_LEGS.secW[d.sector]||null;d.secM=window.TF_LEGS.secM[d.sector]||null;
+ if(!d._mtf){d.conv=null;d.hold=null;return;}
+ var good=(d.mtf==='allup'||d.mtf==='htfpb')||(d.emaBase&&d.baseStatus==='forming'&&d.wS==='Up');
+ if(good&&secD==='strong'&&d.secW==='strong'&&mkt!=='weak')d.conv=3;
+ else if((d.dS==='Up'||d.dS==='Pullback'||d.dS==='Pullback50')&&d.wS==='Up'&&(secD==='strong'||d.secW==='strong'))d.conv=2;
+ else if((d.mtf==='ctbounce'&&(secD==='weak'||d.secW==='weak'))||d.mtf==='alldown')d.conv=-1;
+ else if((d.wS==='Up'||d.wS==='Pullback')&&d.dS!=='Down')d.conv=1;
+ else d.conv=0;
+ d.hold=(d.conv===3&&(d.mtf==='allup'||d.mtf==='htfpb'))?'poscand':(d.mtf==='ctbounce'?'swingonly':'swing');
+}
+function tfGrid(d){
+ var L=window.TF_LEGS,A=(typeof ALIGN!=='undefined')?ALIGN:{};
+ var rows=[['Market',A.mktState||null,L.mktW,L.mktM],['Sector',(A.sectorState||{})[d.sector]||null,d.secW,d.secM],['Stock',stockLeg(d.dS),stockLeg(d.wS),stockLeg(d.mS)]];
+ var t=rows.map(function(r){return r[0]+': daily '+(r[1]||'—')+' · weekly '+(r[2]||'—')+' · monthly '+(r[3]||'—');}).join('\n');
+ var html=rows.map(function(r){return [r[1],r[2],r[3]].map(function(x){return '<span style="color:'+(TF_LEGCOL[x]||'var(--muted)')+'">●</span>';}).join('');}).join('<br>');
+ return '<span class="tf-grid" title="'+esc(t)+'">'+html+'</span>';
+}
+
+/* ── columns ──────────────────────────────────────────────────── */
+var DASH='<span class="scr-dash">—</span>';
+var TF_COLS=[
+ {k:'mtf',g:'Trend',lbl:'Trend State',a:'c',def:1,tip:'Daily + weekly + monthly read, combined. Weekly and monthly are judged on completed candles.',cell:function(d){
+  if(!d.mtf)return DASH;var s=TF_STATE[d.mtf]||TF_STATE.mixed;
+  var dev=(d.wDev&&d.wS&&d.wDev!==d.wS)?' · this week so far: '+tfName(d.wDev):'';
+  return '<span style="white-space:nowrap" title="'+esc(s.t+dev)+'">'+s.i+' '+s.l+'</span>';}},
+ {k:'dwm',g:'Trend',lbl:'D · W · M',a:'c',def:1,tip:'Daily, weekly, monthly trend. ▲ up · ↘ pullback · ■ flat · ▼ down',cell:function(d){
+  if(!d._mtf)return DASH;
+  var t='Daily: '+tfName(d.dS)+'\nWeekly: '+tfName(d.wS)+(d.wDev&&d.wDev!==d.wS?' (this week so far: '+tfName(d.wDev)+')':'')+'\nMonthly: '+tfName(d.mS)+(d.mShort?' (short history)':'');
+  return '<span style="letter-spacing:2px;cursor:help" title="'+esc(t)+'">'+tfArrow(d.dS)+tfArrow(d.wS)+tfArrow(d.mS)+'</span>';}},
+ {k:'grid',g:'Trend',lbl:'Trend Grid',a:'c',def:1,tip:'Rows: market, sector, stock. Columns: daily, weekly, monthly. Green strong · amber neutral · red weak.',cell:function(d){return d._mtf?tfGrid(d):DASH;}},
+ {k:'conv',g:'Trend',lbl:'Conviction',a:'c',def:1,tip:'★★★ All Timeframes Up / HTF Pullback / EMA Base with weekly up, AND sector strong daily and weekly, AND market not weak. ★★ daily and weekly up with sector strong on one. ★ weekly up or pulling back. ✕ avoid.',cell:function(d){
+  if(d.conv==null)return DASH;if(d.conv===-1)return '<span style="color:#EF4444;font-weight:700">✕ Avoid</span>';if(!d.conv)return DASH;
+  return '<span style="color:var(--gold,#F59E0B);letter-spacing:1px">'+'★★★'.slice(0,d.conv)+'</span>';}},
+ {k:'hold',g:'Trend',lbl:'Hold',a:'c',def:0,tip:'Position candidate = ★★★ and All Timeframes Up or HTF Pullback. Swing only = counter-trend.',cell:function(d){
+  return d.hold==='poscand'?'<span style="color:#22C55E;font-weight:700">Position candidate</span>':(d.hold==='swingonly'?'<span style="color:#F59E0B">Swing only</span>':(d.hold?'Swing':DASH));}},
+ {k:'emabase',g:'Trend',lbl:'EMA Base',a:'c',def:0,tip:'Box after a 30%+ rally, sitting on the 20 and/or 50 EMA. Fails after 5 closes in a row below the box low.',cell:function(d){
+  if(!d.emaBase)return DASH;var lab=(d.emaBase==='20+50'?'20+50':d.emaBase)+'E';
+  if(d.baseStatus==='below box')return '<span style="color:#F59E0B" title="Closed below the box low '+d.belowBox+' session(s) in a row. 5 = Base Failed.">'+lab+' · below box '+d.belowBox+'/5</span>';
+  return '<span title="Box '+d.boxLow+' – '+d.boxHigh+'">'+lab+' · '+d.eBaseDays+'d · '+(d.eBaseDepth!=null?d.eBaseDepth+'%':'—')+'</span>';}},
+ {k:'e50',g:'Trend',lbl:'% 50E',a:'r',def:0,tip:'Distance from the daily 50 EMA',cell:function(d){return d.p50!=null?scrPct(d.p50):DASH;}},
+ {k:'e200',g:'Trend',lbl:'% 200E',a:'r',def:0,tip:'Distance from the daily 200 EMA',cell:function(d){return d.p200!=null?scrPct(d.p200):DASH;}},
+ {k:'listed',g:'New Listings',lbl:'Listed',a:'c',def:0,tip:'Listing date. Recently listed = first month after a one-week wait.',cell:function(d){
+  if(!d.listDate||!d.isNew)return DASH;
+  return (d.recent?'<span style="color:var(--cyan);font-weight:700">Recently listed</span><br>':'')+'<span class="scr-sub">'+d.listDate+' · '+d.listedDays+' sessions</span>';}},
+ {k:'plh',g:'New Listings',lbl:'From Listing High',a:'r',def:0,tip:'% from the highest price since listing',cell:function(d){
+  if(!d.isNew||d.pctPlh==null)return DASH;return scrPct(d.pctPlh)+(d.plhBo?' <span style="color:#22C55E" title="Closed above the post-listing high">🚀</span>':'');}}
+];
+
+/* ── filters ──────────────────────────────────────────────────── */
+var TF_FILTERS=[
+ {key:'mtf',label:'Trend State',opts:['allup','htfpb','wkturn','stretched','ctbounce','rolling','alldown','mixed'],disp:{},tips:{}},
+ {key:'dtr',label:'Daily Trend',opts:['Up','Pullback','Pullback50','Flat','Down'],disp:{Up:'▲ Up',Pullback:'↘ Pullback (to 20)',Pullback50:'↘ Pullback to 50',Flat:'■ Flat',Down:'▼ Down'},tips:{Up:'Price above the 9 EMA, 9 above 20.',Pullback:'9 above 20, price dipped below the 9 but holding the 20.',Pullback50:'Below the 20 but holding a rising 50 EMA.',Flat:'9 and 20 within 0.5% of each other, or no clear order.',Down:'Price below the 9 EMA, 9 below 20.'}},
+ {key:'wtr',label:'Weekly Trend',opts:['Up','Pullback','Flat','Down'],disp:{Up:'▲ Up',Pullback:'↘ Pullback',Flat:'■ Flat',Down:'▼ Down'},tips:{Up:'Last completed week closed above the weekly 9 EMA, 9 above 20.',Pullback:'Weekly 9 above 20, but the last weekly close was below the 9.',Flat:'Weekly 9 and 20 tangled.',Down:'Weekly close below the 9, 9 below 20.'}},
+ {key:'mtr',label:'Monthly Trend',opts:['Up','Pullback','Flat','Down','short'],disp:{Up:'▲ Up',Pullback:'↘ Pullback',Flat:'■ Flat',Down:'▼ Down',short:'Short history'},tips:{Up:'Last completed month above the monthly 9 EMA, 9 above 20.',short:'Fewer than 20 months of prices, so the monthly read uses the 9 EMA only (or none).'}},
+ {key:'tfup',label:'Timeframes Up',opts:['3','2','1','0'],disp:{'3':'All 3','2':'2 of 3','1':'1 of 3','0':'None'},tips:{}},
+ {key:'secw',label:'Sector Weekly',opts:['strong','neutral','weak'],disp:{strong:'Sector strong (wk)',neutral:'Sector neutral (wk)',weak:'Sector weak (wk)'},tips:{strong:'Top third of sectors by % of stocks above their weekly 20 EMA.'}},
+ {key:'secm',label:'Sector Monthly',opts:['strong','neutral','weak'],disp:{strong:'Sector strong (mo)',neutral:'Sector neutral (mo)',weak:'Sector weak (mo)'},tips:{strong:'Top third of sectors by % of stocks above their monthly 9 EMA.'}},
+ {key:'conv',label:'Conviction',opts:['3','2','1','avoid'],disp:{'3':'★★★ Highest','2':'★★ High','1':'★ Standard','avoid':'✕ Avoid'},tips:{}},
+ {key:'hold',label:'Hold Mode',opts:['poscand','swing','swingonly'],disp:{poscand:'Position candidate',swing:'Swing',swingonly:'Swing only'},tips:{}},
+ {key:'ebase',label:'EMA Base',opts:['20','50','2050','below'],disp:{'20':'20 EMA Base','50':'50 EMA Base','2050':'20 + 50 EMA Base','below':'Below box (day 1–4)'},tips:{'20':'Box after a 30%+ rally, sitting on a flat-to-rising 20 EMA, 15+ sessions.','50':'Box sitting on a rising 50 EMA, 20+ sessions.','2050':'Sitting on both at once.','below':'Closed below the box low but not yet 5 sessions in a row.'}},
+ {key:'e50z',label:'Daily 50E Zone',opts:['near50','above50','above200'],disp:{near50:'Near 50E (≤1 ADR)',above50:'Above 50E',above200:'Above 200E'},tips:{}},
+ {key:'newl',label:'New Listings',opts:['recent','all','plhbo','ldh'],disp:{recent:'Recently listed',all:'Listed in last 12 months',plhbo:'🚀 Post-listing high broken',ldh:'Listing-day high reclaimed'},tips:{recent:'First month of trading, after a one-week wait.',plhbo:'Closed above the highest price since listing, today or yesterday.',ldh:'Traded below the listing-day high, now closed back above it.'}}
+];
+TF_FILTERS[0].opts.forEach(function(k){TF_FILTERS[0].disp[k]=TF_STATE[k].i+' '+TF_STATE[k].l;TF_FILTERS[0].tips[k]=TF_STATE[k].t;});
+var TF_FCOL={mtf:'mtf',dtr:'dwm',wtr:'dwm',mtr:'dwm',tfup:'dwm',secw:'grid',secm:'grid',conv:'conv',hold:'hold',ebase:'emabase',e50z:'e50',newl:'listed'};
+
+/* ── playbooks: reframed rules (originals kept behind the switch) ─ */
+function W_UPPB(d){return d.wS==='Up'||d.wS==='Pullback';}
+function W_UP(d){return d.wS==='Up';}
+function M_OK(d){return d._mtf&&d.mS!=='Down';}
+function avg5(d){var v=d.vols||[];return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:99;}
+var TF_RE={
+ pb_9epull:{set:{cat:['A','AC']},req:function(d){return d.near9adr&&(d.dS==='Up'||d.dS==='Pullback')&&M_OK(d);},n:'Within 1 ADR of the daily 9 EMA and holding the 20 — no longer needs today to be a down day. Monthly not down.'},
+ pb_9ereclaim:{req:W_UPPB,n:'Weekly Up or Pullback — a reclaim inside an uptrend, not a bounce.'},
+ pb_coil:{req:function(d){return (!!d.volDry||avg5(d)<0.8)&&M_OK(d);},n:'Now actually checks the volume dry-up (or last-5 RVOL under 0.8×). Monthly not down.'},
+ pb_vcppivot:{req:function(d){return W_UP(d)&&M_OK(d);},n:'Weekly 9 above 20, monthly not down.'},
+ pb_bovol:{req:function(d){return W_UP(d)&&M_OK(d);},n:'Weekly 9 above 20, monthly not down. Watch for HTF Stretched.'},
+ pb_leaders:{set:{z52:['zone'],cat:['A','AC']},req:function(d){return (d.mtf==='allup'||d.mtf==='htfpb')&&d.secW==='strong';},n:'RVOL ≥1.5 removed — leaders coil quietly near highs. Needs All Timeframes Up or HTF Pullback and a sector strong on the weekly.'},
+ pb_quietacc:{req:function(d){return d.mtf==='wkturn'||d.mtf==='htfpb'||d.mtf==='allup';},n:'Accumulation where the weekly is turning up or resting in an uptrend.'},
+ pb_epsmart:{req:M_OK,n:'Monthly not down.'},
+ pb_sector:{req:function(d){return d.secW==='strong'&&W_UP(d)&&M_OK(d);},n:'Sector strong on the daily AND the weekly, not just one day.'},
+ wk_coils:{req:function(d){return W_UP(d)&&d.mS==='Up';},n:'Weekly and monthly both up.'},
+ wk_freshweekly:{req:function(d){return d.mS==='Up'||d.mS==='Flat';},n:'Monthly up or flat — a weekly turn inside a monthly uptrend is a resumption; inside a downtrend it is a bounce.'},
+ wk_reclaim:{req:W_UPPB,n:'Weekly Up or Pullback.'},
+ wk_secleaders:{req:function(d){return d.secW==='strong'&&(d.mtf==='allup'||d.mtf==='htfpb');},n:'Sector strong on the weekly (the right timeframe for next week), stock All Timeframes Up or HTF Pullback.'},
+ pb_highadrbo:{req:function(d){return W_UP(d)&&M_OK(d);},n:'Weekly 9 above 20, monthly not down.'},
+ pb_epcont:{req:M_OK,n:'Monthly not down.'},
+ pb_smartcoils:{req:W_UPPB,n:'Weekly Up or Pullback.'},
+ nr_aligned:{req:W_UPPB,n:'Weekly Up or Pullback — an NR7 in a weekly downtrend is compression before a breakdown.'},
+ pullback_aligned:{req:function(d){return W_UPPB(d)&&d.secW!=='weak';},n:'Weekly Up or Pullback, sector not weak on the weekly.'},
+ breakout_aligned:{req:W_UP,n:'Weekly 9 above 20.'},
+ lone_nocat:{n:'Rules unchanged. Check Trend State: a lone mover in All Timeframes Up is a different trade from a Counter-Trend Bounce.'},
+ wk_align_review:{req:function(d){return window.TF_LEGS.mktW==='strong'&&d.secW==='strong'&&W_UP(d);},n:'Now the full grid: market, sector and stock all strong on the weekly.'},
+ wk_tight_bases:{req:function(d){return W_UP(d)&&M_OK(d);},n:'Weekly 9 above 20, monthly not down.'},
+ align_full:{req:function(d){return W_UP(d);},n:'Fixed: the A+ condition is now actually applied. Plus weekly 9 above 20.'},
+ align_sectorled:{req:function(d){return d.secW==='strong';},n:'Sector strong on the weekly too — rotation over more than one day.'},
+ align_lone:{req:function(d){return d.mtf!=='alldown';},n:'Excludes All Timeframes Down.'},
+ nr_watch:{req:function(d){return d.dS&&d.dS!=='Down'&&W_UPPB(d);},n:'Daily not down, weekly Up or Pullback.'},
+ nr_vcp:{req:W_UPPB,n:'Weekly Up or Pullback.'},
+ nr_confirmed:{set:{nr:['brokenUp'],rvolmin:['1.5']},req:W_UPPB,n:'Now needs RVOL ≥1.5 on the break, and weekly Up or Pullback.'},
+ tight_contract:{req:function(d){return W_UP(d)&&M_OK(d);},n:'Weekly 9 above 20, monthly not down.'},
+ rcl_a:{req:W_UPPB,n:'Weekly Up or Pullback — a shakeout only exists inside an uptrend.'},
+ rcl_b:{req:W_UPPB,n:'Weekly Up or Pullback — otherwise it is a bounce.'},
+ rcl_d:{req:W_UPPB,n:'Weekly Up or Pullback. Check % 50E: did the 50 hold?'},
+ rcl_ideal:{req:W_UPPB,n:'Weekly Up or Pullback.'},
+ rcl_tight:{n:'Rules unchanged. Trend State shown alongside.'},
+ rcl_pole:{req:function(d){return d.mS==='Up'||(d._mtf&&d.mS==null);},n:'Monthly up (or too new to have a monthly trend).'}
+};
+var TF_NEW=[
+ {id:'mtf_leaders',when:'eod',grp:'Multi-Timeframe',label:'All Timeframes Up Leaders',set:{mtf:['allup'],conv:['3'],z52:['zone','base']},cols:['mtf','dwm','grid','conv','hold'],desc:'All Timeframes Up, ★★★ conviction, near or just past the 52-week high.',how:'Daily, weekly and monthly all rising, the sector strong on both daily and weekly, the market not weak, and price sitting in the breakout zone. These are the names that can be held as positions: take your usual first partial, then trail the rest on the daily 20 EMA or the weekly 9 EMA instead of the daily 9.'},
+ {id:'mtf_pb9',when:'eod',grp:'Multi-Timeframe',label:'HTF Pullback to 9E',set:{mtf:['htfpb']},req:function(d){return d.near9adr;},cols:['mtf','dwm','grid','conv'],desc:'Weekly and monthly up, daily resting within 1 ADR of the 9 EMA.',how:'The big trend is intact and the daily has come back to the 9 EMA. Entry is the reclaim of the 9 or a break of the pullback high; stop under the pullback low. Exit the idea if the daily closes below the 20 and the weekly closes below its 9.'},
+ {id:'mtf_coil',when:'eod',grp:'Multi-Timeframe',label:'HTF Coil',set:{mtf:['htfpb']},req:function(d){return d.isNr7||(d.contract!=null&&+d.contract>=0.7);},cols:['mtf','dwm','nr','conv'],desc:'HTF Pullback that is also coiling: NR7 today or contraction ≥0.7.',how:'The daily is compressing while the weekly and monthly push up — the spring is loaded in the direction of the bigger trend. Mark the NR day or box high as the trigger.'},
+ {id:'mtf_turn',when:'eod',grp:'Multi-Timeframe',label:'Weekly Turn Early',set:{mtf:['wkturn']},req:function(d){var v=d.wkvols||[];return v.length&&v[v.length-1]>=1.2;},cols:['mtf','dwm','grid','conv'],desc:'Weekly 9 crossed above 20 in the last 3 weeks, monthly up or flat, last week on 1.2× average weekly volume.',how:'A new weekly leg with volume behind it. Swing it now; it becomes a position candidate after two weekly closes above the weekly 9. Exit the idea on a weekly close back below the weekly 20.'},
+ {id:'mtf_mbo',when:'weekend',grp:'Multi-Timeframe',label:'Monthly Breakout',set:{},req:function(d){return d.mBo&&W_UP(d);},cols:['mtf','dwm','e200','conv'],desc:'Last completed month closed above the prior 6 months, after a base no wider than 40%. Weekly up.',how:'A multi-month base resolving upward on the monthly chart. Plan entries on the daily for the week ahead; these are position-trade material if the sector agrees.'},
+ {id:'mtf_pos',when:'weekend',grp:'Multi-Timeframe',label:'Position Candidates',set:{hold:['poscand']},cols:['mtf','dwm','grid','conv','hold'],desc:'★★★ and All Timeframes Up or HTF Pullback.',how:'Your weekend list of names worth holding longer: book a partial as usual, trail the rest on the daily 20 EMA or weekly 9 EMA. If a holding drops to Rolling Over or its sector turns weak on the weekly, go back to swing trailing.'},
+ {id:'base_20',when:'eod',grp:'EMA Bases',label:'20 EMA Base',set:{ebase:['20','2050']},cols:['emabase','mtf','dwm','conv'],desc:'Box after a 30%+ rally, sitting on the 20 EMA for 15+ sessions, no deeper than 25%.',how:'The stock ran, then built a box that keeps coming back to the 20 EMA and holding. Closes below the 20 inside the box are normal and do not count. Trigger is the box high. The setup fails only after 5 closes in a row below the box low without reclaiming.'},
+ {id:'base_50',when:'eod',grp:'EMA Bases',label:'50 EMA Base',set:{ebase:['50','2050']},cols:['emabase','mtf','dwm','e50','conv'],desc:'Box after a 30%+ rally, sitting on a rising 50 EMA for 20+ sessions, no deeper than 25%.',how:'A longer, deeper rest on the 50 EMA — the classic second-stage base. Same failure rule: 5 closes in a row below the box low. Highest conviction when the weekly is still up and the sector is strong.'},
+ {id:'nl_base',when:'eod',grp:'New Listings',label:'IPO Base Near High',set:{newl:['all']},req:function(d){return d.ipoBaseDays>=5&&d.pctPlh!=null&&d.pctPlh>=-5&&d.ipoBaseDepth!=null&&d.ipoBaseDepth<=30;},cols:['listed','plh','mtf','dwm'],desc:'Listed in the last 12 months, 5+ sessions since the post-listing high, within 5% of it, base no deeper than 30%.',how:'A new listing that ran or based after listing and is now pressing against its post-listing high. Trigger is that high.'},
+ {id:'nl_ldh',when:'eod',grp:'New Listings',label:'Listing-Day High Reclaim',set:{newl:['ldh']},cols:['listed','plh','mtf'],desc:'Traded below its listing-day high, now closed back above it (today or yesterday).',how:'The listing-day high is the level the first buyers remember. Getting back above it after a shakeout is often the start of the real move.'},
+ {id:'nl_plh',when:'eod',grp:'New Listings',label:'Post-Listing High Breakout',set:{newl:['plhbo']},cols:['listed','plh','mtf'],desc:'Closed above the highest price since listing, today or yesterday.',how:'Your setup: after a rally or a base post-listing, the post-listing high breaks. Everyone who bought since listing is now in profit — no overhead supply.'}
+];
+
+function tfInstall(){
+ if(typeof SCR_COLS==='undefined'||typeof SCR_FILTERS==='undefined'||typeof SCR_PRESETS==='undefined'){return false;}
+ if(window._tfInstalled)return true;window._tfInstalled=true;
+ TF_COLS.forEach(function(c){SCR_COLS.push(c);SCR.vis[c.k]=!!c.def;});
+ SCR_COLS.forEach(function(c){var f=c.cell;if(f._tfSafe)return;c.cell=function(d){try{return f(d);}catch(e){return DASH;}};c.cell._tfSafe=true;});
+ var at=SCR_FILTERS.findIndex(function(f){return f.key==='sec';});at=at<0?SCR_FILTERS.length:at+1;
+ Array.prototype.splice.apply(SCR_FILTERS,[at,0].concat(TF_FILTERS));
+ TF_FILTERS.forEach(function(f){SCR.state[f.key]=new Set();});
+ try{for(var k in TF_FCOL)SCR_FILTER_COL[k]=TF_FCOL[k];}catch(e){}
+ var vs=SCR_FILTERS.find(function(f){return f.key==='vsig';});
+ if(vs&&vs.disp){vs.disp.High='Vol: Very High';if(vs.tips)vs.tips.High='Today\u2019s volume bucket is Very High vs its 20-day average. Today\u2019s session.';}
+ SCR_PRESETS.forEach(function(p){
+  var re=TF_RE[p.id];if(!re)return;
+  p._orig={set:p.set,desc:p.desc,how:p.how};
+  p._new={set:re.set||p.set,desc:(p.desc||'')+' 🧭 '+re.n,how:(p.how||'')+(p.how?' ':'')+'🧭 Trend rule: '+re.n};
+  p._req=re.req||null;
+  p.set=p._new.set;p.desc=p._new.desc;p.how=p._new.how;p.req=p._req;
+ });
+ TF_NEW.forEach(function(p){p._tfNew=true;SCR_PRESETS.push(p);});
+ SCR.rulesMode='new';
+ var orig=scrPasses;
+ scrPasses=function(d){
+  if(!orig(d))return false;
+  var S=SCR.state,p=null;
+  for(var i=0;i<SCR_PRESETS.length;i++){if(SCR_PRESETS[i].id===SCR.activePreset){p=SCR_PRESETS[i];break;}}
+  if(p&&p.set&&p.set.aplus&&!d.aplus)return false;
+  if(p&&p.req&&(p._tfNew||SCR.rulesMode!=='orig')&&!p.req(d))return false;
+  function has(k,v){return S[k]&&S[k].size?S[k].has(v):true;}
+  if(!has('mtf',d.mtf))return false;
+  if(!has('dtr',d.dS))return false;
+  if(!has('wtr',d.wS))return false;
+  if(S.mtr&&S.mtr.size){if(!(S.mtr.has(d.mS)||(S.mtr.has('short')&&d.mShort)))return false;}
+  if(!has('tfup',d.tfUp==null?null:String(d.tfUp)))return false;
+  if(!has('secw',d.secW))return false;
+  if(!has('secm',d.secM))return false;
+  if(!has('conv',d.conv===-1?'avoid':(d.conv==null?null:String(d.conv))))return false;
+  if(!has('hold',d.hold))return false;
+  if(S.ebase&&S.ebase.size){var ok=false;S.ebase.forEach(function(v){
+   if(v==='below'&&d.baseStatus==='below box')ok=true;
+   else if(v==='2050'&&d.emaBase==='20+50')ok=true;
+   else if((v==='20'||v==='50')&&d.emaBase===v)ok=true;});if(!ok)return false;}
+  if(S.e50z&&S.e50z.size){var ok2=false;S.e50z.forEach(function(v){
+   if(v==='near50'&&d.p50!=null&&d.adr&&Math.abs(d.p50)<=d.adr)ok2=true;
+   if(v==='above50'&&d.p50!=null&&d.p50>0)ok2=true;
+   if(v==='above200'&&d.p200!=null&&d.p200>0)ok2=true;});if(!ok2)return false;}
+  if(S.newl&&S.newl.size){var ok3=false;S.newl.forEach(function(v){
+   if(v==='recent'&&d.recent)ok3=true;
+   if(v==='all'&&d.isNew)ok3=true;
+   if(v==='plhbo'&&d.isNew&&d.plhBo)ok3=true;
+   if(v==='ldh'&&d.isNew&&d.ldhReclaim)ok3=true;});if(!ok3)return false;}
+  return true;
+ };
+ return true;
+}
+
+window.tfSetRules=function(mode){
+ SCR.rulesMode=mode;
+ SCR_PRESETS.forEach(function(p){if(!p._orig)return;var s=(mode==='orig')?p._orig:p._new;p.set=s.set;p.desc=s.desc;p.how=s.how;});
+ var cur=SCR.activePreset;
+ try{scrFillPlaybooks();}catch(e){}
+ if(cur&&cur!=='all'){SCR.activePreset=null;try{scrApplyPreset(cur);}catch(e){}}else{try{scrRender();}catch(e){}}
+ tfRenderStrip();
+};
+
+function tfRenderStrip(){
+ var pr=document.getElementById('scr-presets');if(!pr||!pr.parentNode)return;
+ var el=document.getElementById('tf-mtf-strip');
+ if(!el){el=document.createElement('div');el.id='tf-mtf-strip';el.className='tf-strip';pr.parentNode.insertBefore(el,pr);}
+ var L=window.TF_LEGS,A=(typeof ALIGN!=='undefined')?ALIGN:{};
+ function pill(lbl,st,p){return '<span class="tf-pill" style="color:'+(TF_LEGCOL[st]||'var(--muted)')+'" title="% of stocks above the '+lbl+'">'+lbl.split(' ')[0]+' '+(st||'—')+(p!=null?' · '+p+'%':'')+'</span>';}
+ var ok=Object.keys(window.TF_MTF||{}).length>0;
+ var h='<span>Market</span>'+pill('Daily 20 EMA',A.mktState,A.breadth)+pill('Weekly 20 EMA',L.mktW,L.mktWp)+pill('Monthly 9 EMA',L.mktM,L.mktMp);
+ h+='<span style="margin-left:auto">Playbook rules</span><button class="tf-rbtn'+(SCR.rulesMode!=='orig'?' on':'')+'" onclick="tfSetRules(\'new\')">Reframed</button><button class="tf-rbtn'+(SCR.rulesMode==='orig'?' on':'')+'" onclick="tfSetRules(\'orig\')">Original</button>';
+ if(!ok)h+='<span style="width:100%;color:var(--amber)">Trend data not loaded yet — the nightly MTF scan has not written it. Trend columns stay blank until it does.</span>';
+ else h+='<span style="width:100%">Trend data: '+esc(window.TF_MTF_DATE||'—')+' · '+tfEvidence()+'</span>';
+ el.innerHTML=h;
+}
+function tfEvidence(){
+ var ev=window.TF_MTF_EV||[];if(!ev.length)return 'evidence appears after the first full scan';
+ var by={};ev.forEach(function(r){by[r.state+'|'+r.horizon]=r;});
+ var order=['ALL','allup','htfpb','wkturn','stretched','ctbounce','rolling','alldown','mixed','base20','base50'];
+ var rows=order.filter(function(s){return by[s+'|10'];}).map(function(s){
+  function c(h){var r=by[s+'|'+h];return r?fmtP(r.avg_ret):'—';}
+  return '<tr><td>'+TF_EVNAME[s]+'</td><td>'+by[s+'|10'].n+'</td><td>'+c(5)+'</td><td>'+c(10)+'</td><td>'+c(20)+'</td><td>'+by[s+'|10'].win_pct+'%</td></tr>';}).join('');
+ return '<details style="display:inline"><summary style="cursor:pointer;color:var(--cyan)">Does it work? Evidence from your data</summary>'+
+  '<table class="tf-ev"><tr><th>State</th><th>Stock-days</th><th>Avg 5d</th><th>Avg 10d</th><th>Avg 20d</th><th>10d up</th></tr>'+rows+'</table>'+
+  '<div style="margin-top:4px">Average forward return of every stock-day in that state, last ~250 sessions, computed '+esc(ev[0].computed_on)+'. Overlapping days and no costs — a guide, not a backtest. Compare each row with the baseline.</div></details>';
+}
+
+window.tfMtfMerge=async function(){
+ try{
+  tfInstall();
+  await window.tfLoadMtf();
+  var M=window.TF_MTF||{},have={};
+  SCR.data.forEach(function(d){have[d.sym]=1;tfApply(d,M[d.sym]);});
+  Object.keys(M).forEach(function(s){var r=M[s];if(!r.is_ipo||have[s])return;var d=tfIpoRow(r);tfApply(d,r);SCR.data.push(d);});
+  tfComputeLegs();SCR.data.forEach(tfConv);
+  if(!Object.keys(M).length)SCR.rulesMode='orig';
+  setTimeout(tfRenderStrip,0);
+ }catch(e){console.error('MTF merge error:',e);}
+};
+
+/* ── My Picks: hold mode + warnings ───────────────────────────── */
+function tfPicksWarn(){
+ var body=document.getElementById('picks-body');if(!body)return;
+ var tbl=body.closest('table');if(!tbl||!tbl.parentNode)return;
+ var el=document.getElementById('tf-picks-warn');
+ if(!el){el=document.createElement('div');el.id='tf-picks-warn';el.className='tf-warn';tbl.parentNode.insertBefore(el,tbl);}
+ var picks=(typeof momData!=='undefined'&&momData.picks)?momData.picks:[],M=window.TF_MTF||{};
+ if(!picks.length||!Object.keys(M).length){el.style.display='none';return;}
+ var byS={};if(typeof SCR!=='undefined'&&SCR.loaded)SCR.data.forEach(function(d){byS[d.sym]=d;});
+ var out=[];
+ picks.forEach(function(p){
+  var r=M[p.symbol];if(!r)return;var d=byS[p.symbol],st=TF_STATE[r.mtf_state]||TF_STATE.mixed,msg=[];
+  var hold=d?d.hold:((r.mtf_state==='allup'||r.mtf_state==='htfpb')?'poscand?':(r.mtf_state==='ctbounce'?'swingonly':'swing'));
+  if(r.mtf_state==='rolling')msg.push('Rolling Over — weekly closed below its 9 EMA: no adds, back to swing trailing');
+  if(r.mtf_state==='stretched')msg.push('HTF Stretched — book partials, do not add');
+  if(r.mtf_state==='ctbounce')msg.push('Counter-Trend Bounce — swing only');
+  if(r.mtf_state==='alldown')msg.push('All Timeframes Down');
+  if(d&&d.secW==='weak')msg.push('Sector weak on the weekly — back to swing trailing');
+  if(r.below_box_days>0)msg.push('Below its EMA-base box · day '+r.below_box_days+' of 5');
+  var hl=hold==='poscand'?'Position candidate':(hold==='poscand?'?'Position candidate (open the Screener once to confirm the sector)':(hold==='swingonly'?'Swing only':'Swing'));
+  out.push('<div><b>'+esc(p.symbol)+'</b> '+st.i+' '+st.l+' · <span style="color:var(--muted)">'+hl+'</span>'+(msg.length?' — <span style="color:#F59E0B">⚠ '+esc(msg.join(' · '))+'</span>':'')+'</div>');
+ });
+ el.style.display=out.length?'block':'none';
+ el.innerHTML='<div style="font-weight:700;margin-bottom:2px">🧭 Trend check on your picks</div>'+out.join('');
+}
+if(typeof renderPicks==='function'){
+ var _rp=renderPicks;
+ renderPicks=function(){var r=_rp.apply(this,arguments);try{tfPicksWarn();}catch(e){}return r;};
+}
+})();
 </script>
 
 </body>
