@@ -13659,6 +13659,7 @@ var TF_STATE={
  allup:{i:'🟢',l:'All Timeframes Up',t:'Daily, weekly and monthly all rising. Can be held as a position.'},
  htfpb:{i:'🔵',l:'HTF Pullback',t:'Weekly and monthly rising, daily resting or basing — the best entry zone. HTF = higher timeframes (weekly + monthly).'},
  wkturn:{i:'🟣',l:'Weekly Turn',t:'Weekly 9 EMA crossed above the 20 in the last 3 weeks — a new leg starting.'},
+ earlyturn:{i:'🌱',l:'Early Turnaround',t:'Daily up and the weekly 9 EMA crossed above the 20 in the last 3 weeks, but the monthly is still falling. Can be the start of a new run or a bear-market rally. Swing only, never a position. Exit: weekly close back below the weekly 20 EMA. Becomes Weekly Turn once the monthly closes above its 9 EMA.'},
  stretched:{i:'🟠',l:'HTF Stretched',t:'All rising, but more than 15% above the weekly 9 EMA. Stay in and trail the stop tighter (daily 9 EMA close) — do not sell into strength.'},
  ctbounce:{i:'🟡',l:'Counter-Trend Bounce',t:'Daily up while weekly and monthly are falling. Quick swing only, never a position.'},
  rolling:{i:'⚠️',l:'Rolling Over',t:'Monthly still up but the weekly closed below its 9 EMA. No new entries; tighten trails on holdings.'},
@@ -13667,7 +13668,7 @@ var TF_STATE={
 };
 var TF_TF={Up:['▲','#22C55E','Up'],Pullback:['↘','#F59E0B','Pullback (holding the 20 EMA)'],Pullback50:['↘','#F97316','Pullback to the 50 EMA'],Flat:['■','#94A3B8','Flat'],Down:['▼','#EF4444','Down']};
 var TF_LEGCOL={strong:'#22C55E',neutral:'#F59E0B',weak:'#EF4444'};
-var TF_EVNAME={ALL:'All stocks (baseline)',allup:'All Timeframes Up',htfpb:'HTF Pullback',wkturn:'Weekly Turn',stretched:'HTF Stretched',ctbounce:'Counter-Trend Bounce',rolling:'Rolling Over',alldown:'All Timeframes Down',mixed:'Mixed',base20:'20 EMA Base',base50:'50 EMA Base'};
+var TF_EVNAME={ALL:'All stocks (baseline)',allup:'All Timeframes Up',htfpb:'HTF Pullback',wkturn:'Weekly Turn',earlyturn:'Early Turnaround',stretched:'HTF Stretched',ctbounce:'Counter-Trend Bounce',rolling:'Rolling Over',alldown:'All Timeframes Down',mixed:'Mixed',base20:'20 EMA Base',base50:'50 EMA Base'};
 window.TF_MTF=window.TF_MTF||{};
 window.TF_LEGS={mktW:null,mktM:null,secW:{},secM:{},secWp:{},secMp:{}};
 
@@ -13775,7 +13776,7 @@ function tfConv(d){
  else if((d.mtf==='ctbounce'&&(secD==='weak'||d.secW==='weak'))||d.mtf==='alldown')d.conv=-1;
  else if((d.wS==='Up'||d.wS==='Pullback')&&d.dS!=='Down')d.conv=1;
  else d.conv=0;
- d.hold=(d.conv===3&&(d.mtf==='allup'||d.mtf==='htfpb'))?'poscand':(d.mtf==='ctbounce'?'swingonly':'swing');
+ d.hold=(d.conv===3&&(d.mtf==='allup'||d.mtf==='htfpb'))?'poscand':((d.mtf==='ctbounce'||d.mtf==='earlyturn')?'swingonly':'swing');
 }
 function tfGrid(d){
  var L=window.TF_LEGS,A=(typeof ALIGN!=='undefined')?ALIGN:{};
@@ -13800,7 +13801,7 @@ var TF_COLS=[
  {k:'conv',g:'Trend',lbl:'Conviction',a:'c',def:1,tip:'★★★ All Timeframes Up / HTF Pullback / EMA Base with weekly up, AND sector strong daily and weekly, AND market not weak. ★★ daily and weekly up with sector strong on one. ★ weekly up or pulling back. ✕ avoid.',cell:function(d){
   if(d.conv==null)return DASH;if(d.conv===-1)return '<span style="color:#EF4444;font-weight:700">✕ Avoid</span>';if(!d.conv)return DASH;
   return '<span style="color:var(--gold,#F59E0B);letter-spacing:1px">'+'★★★'.slice(0,d.conv)+'</span>';}},
- {k:'hold',g:'Trend',lbl:'Hold',a:'c',def:0,tip:'Position candidate = ★★★ and All Timeframes Up or HTF Pullback. Swing only = counter-trend.',cell:function(d){
+ {k:'hold',g:'Trend',lbl:'Hold',a:'c',def:0,tip:'Position candidate = ★★★ and All Timeframes Up or HTF Pullback. Swing only = Counter-Trend Bounce or Early Turnaround.',cell:function(d){
   return d.hold==='poscand'?'<span style="color:#22C55E;font-weight:700">Position candidate</span>':(d.hold==='swingonly'?'<span style="color:#F59E0B">Swing only</span>':(d.hold?'Swing':DASH));}},
  {k:'emabase',g:'Trend',lbl:'EMA Base',a:'c',def:0,tip:'Box after a 30%+ rally, sitting on the 20 and/or 50 EMA. Fails after 5 closes in a row below the box low.',cell:function(d){
   if(!d.emaBase)return DASH;var lab=(d.emaBase==='20+50'?'20+50':d.emaBase)+'E';
@@ -13817,7 +13818,7 @@ var TF_COLS=[
 
 /* ── filters ──────────────────────────────────────────────────── */
 var TF_FILTERS=[
- {key:'mtf',label:'Trend State',opts:['allup','htfpb','wkturn','stretched','ctbounce','rolling','alldown','mixed'],disp:{},tips:{}},
+ {key:'mtf',label:'Trend State',opts:['allup','htfpb','wkturn','earlyturn','stretched','ctbounce','rolling','alldown','mixed'],disp:{},tips:{}},
  {key:'dtr',label:'Daily Trend',opts:['Up','Pullback','Pullback50','Flat','Down'],disp:{Up:'▲ Up',Pullback:'↘ Pullback (to 20)',Pullback50:'↘ Pullback to 50',Flat:'■ Flat',Down:'▼ Down'},tips:{Up:'Price above the 9 EMA, 9 above 20.',Pullback:'9 above 20, price dipped below the 9 but holding the 20.',Pullback50:'Below the 20 but holding a rising 50 EMA.',Flat:'9 and 20 within 0.5% of each other, or no clear order.',Down:'Price below the 9 EMA, 9 below 20.'}},
  {key:'wtr',label:'Weekly Trend',opts:['Up','Pullback','Flat','Down'],disp:{Up:'▲ Up',Pullback:'↘ Pullback',Flat:'■ Flat',Down:'▼ Down'},tips:{Up:'Last completed week closed above the weekly 9 EMA, 9 above 20.',Pullback:'Weekly 9 above 20, but the last weekly close was below the 9.',Flat:'Weekly 9 and 20 tangled.',Down:'Weekly close below the 9, 9 below 20.'}},
  {key:'mtr',label:'Monthly Trend',opts:['Up','Pullback','Flat','Down','short'],disp:{Up:'▲ Up',Pullback:'↘ Pullback',Flat:'■ Flat',Down:'▼ Down',short:'Short history'},tips:{Up:'Last completed month above the monthly 9 EMA, 9 above 20.',short:'Fewer than 20 months of prices, so the monthly read uses the 9 EMA only (or none).'}},
@@ -13880,6 +13881,7 @@ var TF_NEW=[
  {id:'mtf_pb9',when:'eod',grp:'Multi-Timeframe',label:'HTF Pullback to 9E',set:{mtf:['htfpb']},req:function(d){return d.near9adr;},cols:['mtf','dwm','grid','conv'],desc:'Weekly and monthly up, daily resting within 1 ADR of the 9 EMA.',how:'The big trend is intact and the daily has come back to the 9 EMA. Entry is the reclaim of the 9 or a break of the pullback high; stop under the pullback low. Exit the idea if the daily closes below the 20 and the weekly closes below its 9.'},
  {id:'mtf_coil',when:'eod',grp:'Multi-Timeframe',label:'HTF Coil',set:{mtf:['htfpb']},req:function(d){return d.isNr7||(d.contract!=null&&+d.contract>=0.7);},cols:['mtf','dwm','nr','conv'],desc:'HTF Pullback that is also coiling: NR7 today or contraction ≥0.7.',how:'The daily is compressing while the weekly and monthly push up — the spring is loaded in the direction of the bigger trend. Mark the NR day or box high as the trigger.'},
  {id:'mtf_turn',when:'eod',grp:'Multi-Timeframe',label:'Weekly Turn Early',set:{mtf:['wkturn']},req:function(d){var v=d.wkvols||[];return v.length&&v[v.length-1]>=1.2;},cols:['mtf','dwm','grid','conv'],desc:'Weekly 9 crossed above 20 in the last 3 weeks, monthly up or flat, last week on 1.2× average weekly volume.',how:'A new weekly leg with volume behind it. Swing it now; it becomes a position candidate after two weekly closes above the weekly 9. Exit the idea on a weekly close back below the weekly 20.'},
+ {id:'mtf_early',when:'eod',grp:'Multi-Timeframe',label:'Early Turnaround',set:{mtf:['earlyturn']},req:function(d){var v=d.wkvols||[];return v.length&&v[v.length-1]>=1.2;},cols:['mtf','dwm','grid','hold'],desc:'Daily up, weekly 9 crossed above 20 in the last 3 weeks, monthly still falling. Last week on 1.2× average weekly volume.',how:'The first sign a downtrend may be ending — or a bear-market rally. A long flat base before the turn and volume on the weekly turn favour the real thing. Swing only, never a position. Exit on a weekly close back below the weekly 20 EMA. It graduates to Weekly Turn once the monthly closes above its 9 EMA. Check the evidence panel to see how this state has actually performed.'},
  {id:'mtf_mbo',when:'weekend',grp:'Multi-Timeframe',label:'Monthly Breakout',set:{},req:function(d){return d.mBo&&W_UP(d);},cols:['mtf','dwm','e200','conv'],desc:'Last completed month closed above the prior 6 months, after a base no wider than 40%. Weekly up.',how:'A multi-month base resolving upward on the monthly chart. Plan entries on the daily for the week ahead; these are position-trade material if the sector agrees.'},
  {id:'mtf_pos',when:'weekend',grp:'Multi-Timeframe',label:'Position Candidates',set:{hold:['poscand']},cols:['mtf','dwm','grid','conv','hold'],desc:'★★★ and All Timeframes Up or HTF Pullback.',how:'Your weekend list of names worth holding longer: book a partial as usual, trail the rest on the daily 20 EMA or weekly 9 EMA. If a holding drops to Rolling Over or its sector turns weak on the weekly, go back to swing trailing.'},
  {id:'base_20',when:'eod',grp:'EMA Bases',label:'20 EMA Base',set:{ebase:['20','2050']},cols:['emabase','mtf','dwm','conv'],desc:'Box after a 30%+ rally, sitting on the 20 EMA for 15+ sessions, no deeper than 25%.',how:'The stock ran, then built a box that keeps coming back to the 20 EMA and holding. Closes below the 20 inside the box are normal and do not count. Trigger is the box high. The setup fails only after 5 closes in a row below the box low without reclaiming.'},
@@ -13969,7 +13971,7 @@ function tfRenderStrip(){
 function tfEvidence(){
  var ev=window.TF_MTF_EV||[];if(!ev.length)return 'evidence appears after the first full scan';
  var by={};ev.forEach(function(r){by[r.state+'|'+r.horizon]=r;});
- var order=['ALL','allup','htfpb','wkturn','stretched','ctbounce','rolling','alldown','mixed','base20','base50'];
+ var order=['ALL','allup','htfpb','wkturn','earlyturn','stretched','ctbounce','rolling','alldown','mixed','base20','base50'];
  var rows=order.filter(function(s){return by[s+'|10'];}).map(function(s){
   function c(h){var r=by[s+'|'+h];return r?fmtP(r.avg_ret):'—';}
   return '<tr><td>'+TF_EVNAME[s]+'</td><td>'+by[s+'|10'].n+'</td><td>'+c(5)+'</td><td>'+c(10)+'</td><td>'+c(20)+'</td><td>'+by[s+'|10'].win_pct+'%</td></tr>';}).join('');
@@ -14003,10 +14005,11 @@ function tfPicksWarn(){
  var out=[];
  picks.forEach(function(p){
   var r=M[p.symbol];if(!r)return;var d=byS[p.symbol],st=TF_STATE[r.mtf_state]||TF_STATE.mixed,msg=[];
-  var hold=d?d.hold:((r.mtf_state==='allup'||r.mtf_state==='htfpb')?'poscand?':(r.mtf_state==='ctbounce'?'swingonly':'swing'));
+  var hold=d?d.hold:((r.mtf_state==='allup'||r.mtf_state==='htfpb')?'poscand?':((r.mtf_state==='ctbounce'||r.mtf_state==='earlyturn')?'swingonly':'swing'));
   if(r.mtf_state==='rolling')msg.push('Rolling Over — weekly closed below its 9 EMA: no adds, back to swing trailing');
   if(r.mtf_state==='stretched')msg.push('HTF Stretched — trail tighter on the daily 9 EMA close, do not sell');
   if(r.mtf_state==='ctbounce')msg.push('Counter-Trend Bounce — swing only');
+  if(r.mtf_state==='earlyturn')msg.push('Early Turnaround — swing only; exit on a weekly close below the weekly 20 EMA');
   if(r.mtf_state==='alldown')msg.push('All Timeframes Down');
   if(d&&d.secW==='weak')msg.push('Sector weak on the weekly — back to swing trailing');
   if(r.below_box_days>0)msg.push('Below its EMA-base box · day '+r.below_box_days+' of 5');

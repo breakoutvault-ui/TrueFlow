@@ -11,7 +11,7 @@ WHAT IT DOES (nightly, 8:30 PM IST)
     * Daily / weekly / monthly trend state (Up, Pullback, Pullback to 50,
       Flat, Down) from the 9 and 20 EMA on each timeframe
     * The combined state: All Timeframes Up, HTF Pullback, Weekly Turn,
-      HTF Stretched, Counter-Trend Bounce, Rolling Over,
+      Early Turnaround, HTF Stretched, Counter-Trend Bounce, Rolling Over,
       All Timeframes Down, Mixed
     * Daily 50 and 200 EMA
     * 20 EMA Base / 50 EMA Base (box after a 30%+ rally, sitting on the EMA)
@@ -82,11 +82,12 @@ EVIDENCE_SESSIONS   = 250
 EVIDENCE_HORIZONS   = (5, 10, 20)
 EVIDENCE_BASE_EVERY = 5      # EMA-base evidence sampled every Nth day (speed)
 
-STATES = ["allup", "htfpb", "wkturn", "stretched", "ctbounce",
+STATES = ["allup", "htfpb", "wkturn", "earlyturn", "stretched", "ctbounce",
           "rolling", "alldown", "mixed"]
 STATE_NAMES = {
     "allup": "All Timeframes Up", "htfpb": "HTF Pullback",
-    "wkturn": "Weekly Turn", "stretched": "HTF Stretched",
+    "wkturn": "Weekly Turn", "earlyturn": "Early Turnaround",
+    "stretched": "HTF Stretched",
     "ctbounce": "Counter-Trend Bounce", "rolling": "Rolling Over",
     "alldown": "All Timeframes Down", "mixed": "Mixed",
     "base20": "20 EMA Base", "base50": "50 EMA Base", "ALL": "All stocks",
@@ -212,6 +213,8 @@ def combine(d, w, m, pct_w9, w_turn):
         return "wkturn"
     if m == "Up" and w == "Pullback" and d in ("Down", "Pullback", "Pullback50", "Flat"):
         return "rolling"
+    if d == "Up" and w_turn and m == "Down":
+        return "earlyturn"   # weekly turned up, monthly still falling
     if d == "Up" and w == "Down" and m in ("Down", None):
         return "ctbounce"
     if d == "Down" and w == "Down" and m == "Down":
