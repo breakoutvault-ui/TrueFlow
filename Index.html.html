@@ -13485,6 +13485,9 @@ function tfPickBadges(p){
       else if (b === 'CLEAR') out.push('<span style="color:#22C55E" title="No level standing in the way above the trigger">Clear</span>');
       else if (b === 'EXTENDED') out.push('<span style="color:var(--amber)" title="More than 7% from the 9 EMA — stop would be wide">Extended</span>');
       else if (b === 'FAR_TRIGGER') out.push('<span style="color:var(--muted)" title="Trigger is more than 1.5 ADR away — it may not even be reached">Far trigger</span>');
+      else if (b === 'WK_WITH') out.push('<span style="color:#22C55E" title="Weekly trend agrees with this trade ('+(p.weekly_trend||'—')+'). Recorded with 0 weight — being measured.">Wk ✓</span>');
+      else if (b === 'WK_AGAINST') out.push('<span style="color:#EF4444" title="Weekly trend is the OPPOSITE way ('+(p.weekly_trend||'—')+'). Recorded with 0 weight — being measured.">Wk ✗</span>');
+      else if (b === 'WK_FLAT') out.push('<span style="color:var(--muted)" title="Weekly trend is '+(p.weekly_trend||'flat')+' — not trending either way. Recorded with 0 weight — being measured.">Wk ■</span>');
       else out.push(b);
     });
   }
@@ -13573,6 +13576,7 @@ async function loadWLJournal(){
       + tfSliceTable('By day regime', rows, function(r){ return r.day_regime; }, 'index range vs its ADR')
       + tfSliceTable('By ORB type', rows, function(r){ return r.orb_type; })
       + tfSliceTable('By direction', rows, function(r){ return r.direction; })
+      + tfSliceTable('By weekly trend', rows, function(r){ return r.wk_align ? ({with:'with the weekly trend',against:'against the weekly trend',flat:'weekly flat / pulling back',unknown:'no weekly data'})[r.wk_align] || r.wk_align : null; }, 'new — weight 0, being measured')
       + tfSliceTable('By score bucket', rows, function(r){
           if (r.score == null) return 'no score (old model)';
           var s = Number(r.score);
