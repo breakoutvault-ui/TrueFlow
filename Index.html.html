@@ -14254,12 +14254,28 @@ function mb2Inject(){
   if(tr.dataset.mb2)return;
   var tds=tr.querySelectorAll('td');
   if(tds.length<9)return;
-  var sym=(tds[2]&&tds[2].textContent||'').trim().replace(/[^A-Z0-9&-]/g,'');
-  var ltpTxt=(tds[4]&&tds[4].textContent||'').trim().split(' ')[0].replace(/,/g,'');
+  // symbol: read it from the star button, not the cell text — the cell also
+  // holds the IN ZONE / NEAR badge, which corrupts a textContent read.
+  var sym='',st=tr.querySelector('.star-btn');
+  var oc=st&&(st.getAttribute('onclick')||'');
+  var m=oc&&oc.match(/toggleStar\('([^']+)'/);
+  if(m)sym=m[1];
+  if(!sym){var sp=tr.querySelector('span[onclick*="tradingview"]');if(sp)sym=(sp.textContent||'').trim();}
+  if(!sym)return;
+  var ltpTxt='';
+  for(var q=0;q<tds.length;q++){var t=(tds[q].textContent||'').trim();
+   if(/^[0-9][0-9,]*\.[0-9]/.test(t)){ltpTxt=t.split(' ')[0].replace(/,/g,'');break;}}
   var tmp=document.createElement('tbody');
   tmp.innerHTML='<tr>'+mb2Cells(sym,parseFloat(ltpTxt))+'</tr>';
-  var newCells=tmp.querySelectorAll('td'),ref=tds[6];
-  for(var i=newCells.length-1;i>=0;i--)tr.insertBefore(newCells[i],ref);
+  // insert AFTER the Daily EMA cell (the one holding "9E:"), matching where
+  // the new headers were added. Index-counting is unsafe: the row has a tag
+  // cell the header row numbers differently.
+  var ref=null;
+  for(var j=0;j<tds.length;j++){if(/9E:/.test(tds[j].innerHTML||'')){ref=tds[j].nextSibling;break;}}
+  if(!ref)ref=tds[7]||null;
+  // forward order: each cell goes immediately before ref, so ADR lands first
+  var newCells=Array.prototype.slice.call(tmp.querySelectorAll('td'));
+  for(var i=0;i<newCells.length;i++)tr.insertBefore(newCells[i],ref);
   tr.dataset.mb2='1';
  });
 }
