@@ -14059,7 +14059,11 @@ function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'
 function n(x){return (x==null||x==='')?null:+x;}
 function f1(x){return x==null?'—':(+x).toFixed(1);}
 
-window.MB2={oi:{},orb:{},mom:{},idx:null,loaded:false,filters:{adr:'all',orb:'all',comp:'all',trend:'all',wall:'all'}};
+window.MB2={oi:{},orb:{},mom:{},idx:null,loaded:false,filters:{adr:'all',orb:'all',comp:'all',trend:'all',wall:'all',build:null}};
+window.mb2PickBuild=function(b){
+ MB2.filters.build=(MB2.filters.build===b)?null:b;
+ if(typeof renderMBTable==='function')renderMBTable();
+};
 
 window.mb2Load=async function(){
  if(MB2.loaded)return;MB2.loaded=true;
@@ -14209,8 +14213,11 @@ function mb2Strip(){
  if(!el){el=document.createElement('div');el.id='mb2-strip';el.className='mb2-strip';tbl.parentNode.insertBefore(el,document.getElementById('mb2-bar')||tbl);}
  var c={};for(var s in MB2.oi){var b=MB2.oi[s].oi_buildup||'—';c[b]=(c[b]||0)+1;}
  var parts=[];
- [['Long Buildup','var(--green)'],['Short Buildup','var(--red)'],['Short Covering','var(--amber)'],['Long Unwinding','#FF8C00']].forEach(function(x){
-  if(c[x[0]])parts.push('<span class="mb2-pill" style="color:'+x[1]+'" title="'+esc(TIP.sent)+'">'+x[0]+' '+c[x[0]]+'</span>');
+ [['Long Buildup','var(--green)','Price up with open interest up — fresh long positions being added.'],
+  ['Short Buildup','var(--red)','Price down with open interest up — fresh short positions being added.'],
+  ['Short Covering','var(--amber)','Price up with open interest down — shorts buying back, not new buying.'],
+  ['Long Unwinding','#FF8C00','Price down with open interest down — longs stepping away.']].forEach(function(x){
+  if(c[x[0]])parts.push('<button class="mb2-pill'+(MB2.filters.build===x[0]?' on':'')+'" style="color:'+x[1]+';border:1px solid '+(MB2.filters.build===x[0]?'var(--cyan)':'transparent')+';cursor:pointer" onclick="mb2PickBuild(\''+x[0]+'\')" title="'+esc(x[2]+' Click to show only these stocks; click again to clear.')+'">'+x[0]+' '+c[x[0]]+'</button>');
  });
  var h='';
  if(parts.length)h+='<span title="'+esc(TIP.sent)+'" style="cursor:help">F&amp;O positioning'+(MB2.oiDate?' ('+esc(MB2.oiDate)+')':'')+'</span>'+parts.join('');
@@ -14235,6 +14242,7 @@ function mb2Pass(s){
  if(F.orb==='pos'&&!(o&&n(o.avg_gross_r)>0))return false;
  if(F.orb==='n10'&&!(o&&o.trades>=10))return false;
  if(F.comp==='nr'&&!(m.is_nr7||m.is_nr4))return false;
+ if(F.build){var bu=(w&&w.oi_buildup)||s.oi_buildup;if(bu!==F.build)return false;}
  if(F.trend!=='all'&&t.mtf_state!==F.trend)return false;
  if(F.wall==='near'){
   var p=n(s.ltp),ce=w?n(w.max_ce_strike):null,pe=w?n(w.max_pe_strike):null,near=false;
@@ -14413,6 +14421,7 @@ window.mb2ClearAll=function(){
   ['adr','orb','comp','trend','wall'].forEach(function(k){
    var b=document.querySelector('#mb2-bar .mb2-fb[data-k="'+k+'"][data-v="all"]');if(b)b.click();});
   MBSEC.active=null;
+  if(window.MB2)MB2.filters.build=null;
   var sel=document.getElementById('mb-sector-filter');
   if(sel){sel.value='all';if(typeof setMBFilter==='function')setMBFilter('sector','all');}
  }catch(e){}
@@ -14457,6 +14466,7 @@ function mbCount(){
  document.querySelectorAll('#mb2-bar .mb2-fb.on').forEach(function(b){
   if(b.getAttribute('data-v')!=='all')n++;});
  if(MBSEC.active)n++;
+ if(window.MB2&&MB2.filters.build)n++;
  var el=document.getElementById('mb2-fcount');
  if(el)el.textContent=n?(n+' filter'+(n>1?'s':'')+' on'):'';
 }
@@ -14698,10 +14708,16 @@ setTimeout(function(){clearInterval(t);},40000);
 <!-- ═══ TrueFlow Stock Card v1 — one stock, every data point, slide-over ═══ -->
 <style>
 #sc-back{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:none}
-#sc-panel{position:fixed;top:0;right:0;bottom:0;width:min(760px,92vw);background:var(--bg);border-left:1px solid var(--bg3);
+#sc-panel{position:fixed;top:0;right:0;bottom:0;width:min(820px,94vw);background:var(--bg2,#fff);background-color:var(--bg2,#fff);opacity:1;border-left:1px solid var(--bg3);
  z-index:9999;display:none;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.35)}
 #sc-panel.open,#sc-back.open{display:flex}
-#sc-head{padding:12px 16px;border-bottom:1px solid var(--bg3);flex:none}
+#sc-head{padding:12px 16px;border-bottom:1px solid var(--bg3);flex:none;background:var(--bg2,#fff)}
+#sc-body{background:var(--bg2,#fff)}
+.sc-chart{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:900px){.sc-chart{grid-template-columns:1fr}}
+.sc-cbox{border:1px solid var(--bg3);border-radius:10px;padding:6px 8px;min-height:250px}
+.sc-tg{padding:1px 7px;border-radius:5px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:10px}
+.sc-tg.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
 #sc-body{overflow-y:auto;padding:0 16px 24px;flex:1}
 .sc-nav{background:none;border:1px solid var(--bg3);color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px}
 .sc-nav:hover{border-color:var(--cyan);color:var(--cyan)}
@@ -14943,6 +14959,86 @@ function secNdwl(o){
  }).join('');
 }
 
+
+/* ── charts: TradingView pane + our own relative-strength pane ─── */
+var CH={mode:'sector',weeks:26};
+window.scChartMode=function(m){CH.mode=m;render();};
+window.scChartWeeks=function(w){CH.weeks=+w;render();};
+function wkOf(d){
+ var a=(d&&d.wkcloses)||[];
+ return a.filter(function(x){return x!=null&&!isNaN(+x);}).map(Number);
+}
+function avgSeries(rows,n){
+ var acc=null,cnt=0;
+ rows.forEach(function(r){
+  var w=wkOf(r);if(w.length<n)return;
+  w=w.slice(-n);var base=w[0];if(!base)return;
+  if(!acc)acc=new Array(n).fill(0);
+  for(var i=0;i<n;i++)acc[i]+=w[i]/base*100;
+  cnt++;
+ });
+ if(!acc||!cnt)return null;
+ return {series:acc.map(function(x){return x/cnt;}),n:cnt};
+}
+function line(pts,w,h,min,max,colr,wid){
+ var d=pts.map(function(v,i){
+  var x=(i/(pts.length-1))*(w-8)+4,y=h-6-((v-min)/((max-min)||1))*(h-14);
+  return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ');
+ return '<path d="'+d+'" fill="none" stroke="'+colr+'" stroke-width="'+(wid||1.8)+'" stroke-linejoin="round"/>';
+}
+function chartPanes(o){
+ var d=o.scr||{},sym=SC.sym;
+ var own=wkOf(d),have=own.length;
+ var n=Math.min(CH.weeks,have);
+ var tvUrl='https://in.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(sym);
+ var emb='https://s.tradingview.com/widgetembed/?symbol=NSE%3A'+encodeURIComponent(sym)+'&interval=D&theme=light&style=1&locale=in';
+ var right;
+ if(have<4){
+  right='<div class="sc-none" style="padding:20px 4px">No weekly price history loaded for this stock. Open the Momentum tab once and reopen this card.</div>';
+ }else{
+  var mine=own.slice(-n),base=mine[0];
+  var me=mine.map(function(x){return x/base*100;});
+  var all=(window.SCR&&SCR.data)||[];
+  var peerRows=[],peerLbl='';
+  if(CH.mode==='sector'&&d.sector){peerRows=all.filter(function(x){return x.sector===d.sector&&x.sym!==sym;});peerLbl=d.sector;}
+  if(CH.mode==='industry'&&d.industry&&d.industry!=='—'){peerRows=all.filter(function(x){return x.industry===d.industry&&x.sym!==sym;});peerLbl=d.industry;}
+  var peer=(CH.mode==='none')?null:avgSeries(peerRows,n);
+  var vals=me.slice();if(peer)vals=vals.concat(peer.series);
+  var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
+  var W=360,H=210;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:210px">'+
+   '<line x1="4" y1="'+(H-6-((100-mn)/((mx-mn)||1))*(H-14)).toFixed(1)+'" x2="'+(W-4)+'" y2="'+(H-6-((100-mn)/((mx-mn)||1))*(H-14)).toFixed(1)+'" stroke="var(--bg3)" stroke-dasharray="3 3"/>'+
+   (peer?line(peer.series,W,H,mn,mx,'#94A3B8',1.4):'')+
+   line(me,W,H,mn,mx,(me[me.length-1]>=100?'#22C55E':'#EF4444'),2.1)+'</svg>';
+  var chg=(me[me.length-1]-100),pchg=peer?(peer.series[peer.series.length-1]-100):null;
+  right='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:10px;margin-bottom:2px">'+
+    ['none','sector','industry'].map(function(m){
+     var lab={none:'Stock only',sector:'vs sector',industry:'vs industry'}[m];
+     return '<button class="sc-tg'+(CH.mode===m?' on':'')+'" onclick="scChartMode(\''+m+'\')" title="Compare this stock with the average of its '+(m==='none'?'own line only':m)+'">'+lab+'</button>';}).join('')+
+    '<span style="margin-left:auto"></span>'+
+    [13,26,52].map(function(w){return '<button class="sc-tg'+(CH.weeks===w?' on':'')+'" onclick="scChartWeeks('+w+')" title="'+(w/4.33).toFixed(0)+' months of weekly closes'+(w>have?' — only '+have+' weeks stored':'')+'">'+(w===13?'3M':(w===26?'6M':'1Y'))+'</button>';}).join('')+
+   '</div>'+svg+
+   '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
+    '<b style="color:'+(chg>=0?'#22C55E':'#EF4444')+'">'+sym+' '+(chg>=0?'+':'')+chg.toFixed(1)+'%</b>'+
+    (peer?' · <b style="color:#94A3B8">'+esc(peerLbl)+' avg '+(pchg>=0?'+':'')+pchg.toFixed(1)+'% ('+peer.n+' stocks)</b>':'')+
+    ' · '+n+' weeks, rebased to 100</div>';
+ }
+ return '<div class="sc-chart" style="margin-top:10px">'+
+  '<div class="sc-cbox">'+
+   '<div style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:4px">'+
+    '<span style="color:var(--muted);cursor:help" title="'+esc(T.chart)+'">TradingView</span>'+
+    '<a href="'+tvUrl+'" target="_blank" rel="noopener" style="color:var(--cyan);margin-left:auto" title="Opens your own layout with your indicators and drawings">Open ↗</a>'+
+   '</div>'+
+   '<iframe src="'+emb+'" style="width:100%;height:210px;border:0;border-radius:8px" loading="lazy"></iframe>'+
+   '<div style="font-size:10px;color:var(--muted);margin-top:2px">If the embed refuses the symbol, use Open ↗ — that always works.</div>'+
+  '</div>'+
+  '<div class="sc-cbox">'+
+   '<div style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:4px">'+
+    '<span style="color:var(--muted);cursor:help" title="Weekly closes from your own data, rebased to 100 at the start of the window. The grey line is the average of the other stocks in that sector or industry, so you can see whether this stock is leading or lagging its own group.">Relative strength</span>'+
+   '</div>'+right+
+  '</div></div>';
+}
+
 /* ── render ────────────────────────────────────────────── */
 function render(){
  var o=gather(SC.sym),d=o.scr||{},m=o.mtf||{},mb=o.mb||{};
@@ -14968,16 +15064,7 @@ function render(){
   (pbs.length?'<div style="margin-top:5px" title="'+esc(T.verdict)+'">'+pbs.map(function(x){return '<span class="sc-pill">'+esc(x)+'</span>';}).join('')+'</div>':
    '<div class="sc-none" style="margin-top:4px" title="'+esc(T.verdict)+'">No playbook matches this stock right now.</div>');
 
- var tv='https://s.tradingview.com/widgetembed/?symbol=NSE%3A'+encodeURIComponent(SC.sym)+
-  '&interval=D&theme=light&style=1&hide_side_toolbar=0&studies=%5B%22MAExp%40tv-basicstudies%22%5D&locale=in';
- var body=
-  '<div style="margin-top:10px">'+
-   '<div style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:4px">'+
-    '<span style="color:var(--muted);cursor:help" title="'+esc(T.chart)+'">Chart</span>'+
-    '<a href="https://in.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(SC.sym)+'" target="_blank" rel="noopener" style="color:var(--cyan)" title="Opens your own TradingView layout with your indicators and drawings">Open in TradingView ↗</a>'+
-   '</div>'+
-   '<iframe src="'+tv+'" style="width:100%;height:340px;border:1px solid var(--bg3);border-radius:10px" loading="lazy"></iframe>'+
-  '</div>'+
+ var body=chartPanes(o)+
   sec('trend','TREND & ALIGNMENT','',secTrend(o),T.verdict)+
   sec('ema','EMAs','9 · 20 · 50 · 200 · weekly · monthly',secEMA(o),T.ema)+
   sec('struct','STRUCTURE & PATTERN','52W · QM · base · NR',secStruct(o),T.struct)+
@@ -15032,6 +15119,10 @@ function symFromRow(tr){
  var st=tr.querySelector('.star-btn'),oc=st&&(st.getAttribute('onclick')||'');
  var m=oc&&oc.match(/toggleStar\('([^']+)'/);
  if(m)return m[1];
+ var tv=tr.querySelector('[onclick*="tradingview"],[onclick*="openTV"]');
+ if(tv){var m2=(tv.getAttribute('onclick')||'').match(/['"]([A-Z0-9&.-]{2,18})['"]/);
+  if(m2)return m2[1];
+  var txt=(tv.textContent||'').trim();if(txt)return txt.split(/\s/)[0];}
  var sp=tr.querySelector('span[onclick*="tradingview"],a[onclick*="tradingview"]');
  if(sp)return (sp.textContent||'').trim();
  var td=tr.querySelectorAll('td')[2];
@@ -15048,17 +15139,23 @@ function listFor(tr){
 }
 document.addEventListener('click',function(e){
  var t=e.target;
- if(!t||t.closest('#sc-panel'))return;
- if(t.closest('button,a,select,input,.star-btn'))return;
- var td=t.closest('td');if(!td)return;
- var tr=td.closest('tr');if(!tr)return;
- var tds=tr.querySelectorAll('td');
- var i=Array.prototype.indexOf.call(tds,td);
- if(i>3)return;                        // only the first few columns open the card
+ if(!t||!t.closest||t.closest('#sc-panel'))return;
+ if(t.closest('select,input,.star-btn'))return;
+ var tr=t.closest('tr');if(!tr)return;
+ // The symbol cell is the one wired to TradingView. Catch it first (capture
+ // phase) so the card opens instead of a new TradingView tab. Falls back to
+ // the first three cells for tables without that handler.
+ var hit=t.closest('[onclick]'),oc=hit?(hit.getAttribute('onclick')||''):'';
+ var isSym=/tradingview|openTV|tvLink/i.test(oc);
+ if(!isSym){
+  if(t.closest('button,a'))return;
+  var td=t.closest('td');if(!td)return;
+  var tds=tr.querySelectorAll('td');
+  var i=Array.prototype.indexOf.call(tds,td);
+  if(i>3)return;
+ }
  var sym=symFromRow(tr);
- if(!sym||sym.length>18)return;
- var known=(window.TF_MTF&&TF_MTF[sym])||(window.SCR&&SCR.data&&SCR.data.some(function(d){return d.sym===sym;}));
- if(!known)return;
+ if(!sym||sym.length>18||!/^[A-Z0-9&.-]+$/.test(sym))return;
  e.preventDefault();e.stopPropagation();
  scOpen(sym,listFor(tr));
 },true);
