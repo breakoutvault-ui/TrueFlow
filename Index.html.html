@@ -12719,7 +12719,7 @@ const SCR_FILTERS=[
  {key:'rvolmin',label:'RVOL',opts:['1.5','2','3'],disp:{'1.5':'≥1.5×','2':'≥2×','3':'≥3×'},tips:{'1.5':'Todays volume is at least 1.5x the 20-day average. Today vs 20-day baseline.','2':'Todays volume is at least 2x the 20-day average. Today vs 20-day baseline.','3':'Todays volume is at least 3x the 20-day average. Today vs 20-day baseline.'}},
  {key:'adrmin',label:'ADR%',opts:['3','5','7'],disp:{'3':'≥3%','5':'≥5%','7':'≥7%'},tips:{'3':'Average daily range at least 3% - moves enough to trade.','5':'At least 5% - a strong mover.','7':'At least 7% - very volatile.'}},
  {key:'consolmin',label:'Consol Days',opts:['5','10','20'],disp:{'5':'\u22655d','10':'\u226510d','20':'\u226520d'},tips:{'5':'In the breakout zone/base at least 5 sessions.','10':'At least 10 sessions building a base.','20':'At least 20 sessions - a long, mature base.'}},
- {key:'basemin',label:'Base Days',opts:['5','10','15'],disp:{'5':'\u22655d','10':'\u226510d','15':'\u226515d'},tips:{'5':'QM base at least 5 sessions tight.','10':'At least 10 sessions of tight basing.','15':'At least 15 sessions - a well-formed base.'}},{key:'erwin',label:'Result In',opts:['today','thisweek','nextweek','lastweek'],disp:{today:'Today',thisweek:'This week',nextweek:'Next week',lastweek:'Last week'},tips:{today:'Reports today.',thisweek:'Reports this week (Mon-Sun).',nextweek:'Reports next week.',lastweek:'Reported last week.'}},{key:'erstat',label:'Result Status',opts:['upcoming','done'],disp:{upcoming:'Upcoming',done:'Reported'},tips:{upcoming:'Date known, not yet reported (or post-window incomplete).',done:'Reported with full post-result move computed.'}},{key:'erverd',label:'Verdict',opts:['Positive surprise','Anticipation','Drifting up','Sell the news','Quiet','Watch','Mixed'],disp:{'Positive surprise':'🟢 Positive surprise','Anticipation':'🔵 Anticipation','Drifting up':'🟢 Drifting up','Sell the news':'🔴 Sell the news','Quiet':'⚪ Quiet','Watch':'⚪ Watch','Mixed':'🟡 Mixed'}},{key:'errv',label:'Result RVOL',opts:['1.5','2'],disp:{'1.5':'≥1.5×','2':'≥2×'},tips:{'1.5':'Peak volume around results at least 1.5x average.','2':'At least 2x average.'}},{key:'erreact',label:'Reaction',opts:['pos'],disp:{pos:'Positive post-1d'},tips:{pos:'Up the session after results.'}},
+ {key:'basemin',label:'Base Days',opts:['5','10','15'],disp:{'5':'\u22655d','10':'\u226510d','15':'\u226515d'},tips:{'5':'QM base at least 5 sessions tight.','10':'At least 10 sessions of tight basing.','15':'At least 15 sessions - a well-formed base.'}},{key:'erwin',label:'Result In',opts:['today','thisweek','nextweek','lastweek'],disp:{today:'Today',thisweek:'This week',nextweek:'Next week',lastweek:'Last week'},tips:{today:'Reports today.',thisweek:'Reports this week (Mon-Sun).',nextweek:'Reports next week.',lastweek:'Reported last week.'}},{key:'erstat',label:'Result Status',opts:['upcoming','done'],disp:{upcoming:'Upcoming',done:'Reported'},tips:{upcoming:'Date known, not yet reported (or post-window incomplete).',done:'Reported with full post-result move computed.'}},{key:'erverd',tip:'The results-cycle verdict for this stock: how the scan judged its reaction to the last set of earnings. Use it to separate stocks that were rewarded for results from ones that were sold into them.',label:'Verdict',opts:['Positive surprise','Anticipation','Drifting up','Sell the news','Quiet','Watch','Mixed'],disp:{'Positive surprise':'🟢 Positive surprise','Anticipation':'🔵 Anticipation','Drifting up':'🟢 Drifting up','Sell the news':'🔴 Sell the news','Quiet':'⚪ Quiet','Watch':'⚪ Watch','Mixed':'🟡 Mixed'}},{key:'errv',label:'Result RVOL',opts:['1.5','2'],disp:{'1.5':'≥1.5×','2':'≥2×'},tips:{'1.5':'Peak volume around results at least 1.5x average.','2':'At least 2x average.'}},{key:'erreact',label:'Reaction',opts:['pos'],disp:{pos:'Positive post-1d'},tips:{pos:'Up the session after results.'}},
  {key:'smt',label:'Smart $',opts:['LOADING_UP','ACCUMULATING','NIBBLING','OFFLOADING'],disp:{LOADING_UP:'🔥 Loading Up',ACCUMULATING:'📈 Accumulating',NIBBLING:'👀 Nibbling',OFFLOADING:'📉 Offloading'},tips:{LOADING_UP:'Heavy institutional buying across recent bulk/block deals — a trailing window, not just today.',ACCUMULATING:'Steady institutional buying across recent deals — a trailing window.',NIBBLING:'Light institutional buying across recent deals — a trailing window.',OFFLOADING:'Net institutional selling across recent deals — a trailing window.'}},
  {key:'rclgrade',label:'Reclaim',opts:['A','B','C','D'],disp:{A:'\ud83d\udfe2 A Shallow',B:'\ud83d\udd35 B Deep',C:'\ud83d\udfe1 C Partial',D:'\ud83d\udfe0 D 20EMA'},tips:{A:'Lost the 9 EMA but never lost the 20, and has closed back above the 9. The cleanest version - the trend structure never actually broke.',B:'Lost BOTH the 9 and 20 EMA, and has now closed back above both. The deepest flush, so the most holders were shaken out before it turned.',C:'Lost both EMAs, back above the 9 but still under the 20. Only half recovered - treat as a watch rather than an entry.',D:'Was trading under the 20 EMA specifically and has closed back above it. A slower, larger-degree reclaim than the 9 EMA versions.'}},
  {key:'rclvol',label:'Reclaim Vol',opts:['Ideal','Expansion'],disp:{Ideal:'\u2b50 Ideal',Expansion:'\u2191 Expansion'},tips:{Ideal:'Volume dried up during the dip AND expanded on the reclaim day - sellers exhausted then buyers returning. The textbook shakeout footprint.',Expansion:'Volume on the reclaim day was at least 1.2x the recent average, whatever it did during the dip.'}},
@@ -12727,11 +12727,11 @@ const SCR_FILTERS=[
  {key:'rcldaysmax',label:'Days Below',opts:['2','3','5'],disp:{'2':'\u22642 days','3':'\u22643 days','5':'\u22645 days'},tips:{'2':'A quick one or two day shake only.','3':'Up to three sessions below.','5':'Up to five sessions - the deepest shakeout still counted.'}},
  {key:'polemin',label:'Pole %',opts:['20','30','50','80'],disp:{'20':'\u226520%','30':'\u226530%','50':'\u226550%','80':'\u226580%'},tips:{'20':'The advance into the current base was at least 20%.','30':'At least 30% - a solid pole.','50':'At least 50% - a powerful move into the base.','80':'At least 80% - High Tight Flag territory.'}},
  {key:'polespeedmin',label:'Pole Speed',opts:['1','2','3'],disp:{'1':'\u22651%/day','2':'\u22652%/day','3':'\u22653%/day'},tips:{'1':'The pole gained at least 1% per session on average.','2':'At least 2% per session - fast.','3':'At least 3% per session - explosive. Usually news-driven.'}},
- {key:'sector',label:'Sector',opts:[]},
- {key:'industry',label:'Industry',opts:[]},
- {key:'symbol',label:'Symbol',opts:[]},
+ {key:'sector',tip:'Filter to one or more sectors. The trending-sector strip above the table is the quicker way in: click a sector there and this filter is set for you.',label:'Sector',opts:[]},
+ {key:'industry',tip:'Narrower than sector. Useful when a theme is moving inside a broad sector — say Pharma inside Healthcare — because relative strength is clearest against the closest peers.',label:'Industry',opts:[]},
+ {key:'symbol',tip:'Pick individual stocks by name. Handy for checking a shortlist of your own against every column at once.',label:'Symbol',opts:[]},
  
- {key:'price',label:'Price',opts:['100','500','1000'],disp:{'100':'≥₹100','500':'≥₹500','1000':'≥₹1000'}},
+ {key:'price',tip:'Filter by share price. Mostly useful for option buying, where a very high price means a wider strike ladder and a fatter premium per lot.',label:'Price',opts:['100','500','1000'],disp:{'100':'≥₹100','500':'≥₹500','1000':'≥₹1000'}},
 ];
 SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());
 const SCR_PRESETS=[
@@ -14761,6 +14761,9 @@ setTimeout(function(){clearInterval(t);},40000);
 .sc-pbtn{display:inline-block;margin:3px 4px 0 0;padding:3px 9px;border-radius:7px;border:1px solid var(--bg3);
  background:none;color:var(--text);cursor:pointer;font-size:11px}
 .sc-pbtn:hover{border-color:var(--cyan);color:var(--cyan)}
+#tab-volume .tbl-wrap{overflow:auto;max-height:calc(100vh - 230px)}
+#tab-volume .tbl thead th{position:sticky;top:0;z-index:4;background:var(--bg2)}
+#tab-volume table.vbt-table thead th{position:sticky;top:0;z-index:4;background:var(--bg2)}
 </style>
 <script>
 (function(){
@@ -14842,6 +14845,13 @@ function mapRow(s){
   rclDipVol:n(s.rcl_dip_vol),rclRecVol:n(s.rcl_reclaim_vol),rclVolPat:s.rcl_vol_pattern,
   rclPrior:n(s.rcl_prior_move_pct),rclStop:n(s.rcl_stop_level),rclRisk:n(s.rcl_risk_pct),
   wkcloses:parseWk(s.wk_closes),
+  cat:s.category||null,aplus:(s.category==='AC'),
+  ab9d:s.above_ema9_daily===true?true:(s.above_ema9_daily===false?false:null),
+  ab20d:s.above_ema20_daily===true?true:(s.above_ema20_daily===false?false:null),
+  e9d:!!s.above_ema9_daily,e5d:!!s.above_ema5_daily,e9w:!!s.above_ema9_weekly,
+  fresh:!!s.is_fresh_weekly_cross,build:!!s.is_fresh_daily_cross,
+  active:s.is_active!==false,volRatio:n(s.vol_ratio),rvol:n(s.vol_ratio),
+  nrStatus:s.nr_status,
   _raw:s};
 }
 function loadStock(sym,then){
@@ -14850,9 +14860,9 @@ function loadStock(sym,then){
  if(!CACHE.row[sym])need.push(sbGet('momentum_stocks?symbol=eq.'+encodeURIComponent(sym)+
    '&select=*&order=session_date.desc&limit=1').then(function(r){CACHE.row[sym]=mapRow(r&&r[0])||null;}));
  if(!CACHE.hist[sym])need.push(sbGet('momentum_stocks?symbol=eq.'+encodeURIComponent(sym)+
-   '&select=session_date,ltp&order=session_date.asc&limit=400').then(function(r){
+   '&select=session_date,ltp,vol_ratio&order=session_date.asc&limit=400').then(function(r){
     CACHE.hist[sym]=(r||[]).filter(function(x){return x.ltp!=null;})
-     .map(function(x){return {d:x.session_date,c:+x.ltp};});}));
+     .map(function(x){return {d:x.session_date,c:+x.ltp,v:(x.vol_ratio!=null?+x.vol_ratio:null)};});}));
  var pre=CACHE.row[sym];
  if(pre&&pre.sector&&!CACHE.peers[pre.sector]){
   var sd=(pre._raw&&pre._raw.session_date)||'';
@@ -14886,6 +14896,46 @@ function gather(sym){
        o.scr=mg;}
  }
  o.hist=CACHE.hist[sym]||null;
+ // The reframed playbook rules test trend fields that the Momentum tab
+ // normally attaches. Derive them here so a card opened from any tab is
+ // judged by the same rules.
+ if(o.scr&&o.mtf){
+  var d0=o.scr,m0=o.mtf;
+  function nz(x){return (x==null||x==='')?null:+x;}
+  if(d0.mtf==null)d0.mtf=m0.mtf_state;
+  if(d0.dS==null)d0.dS=m0.d_state;
+  if(d0.wS==null)d0.wS=m0.w_state;
+  if(d0.mS==null)d0.mS=m0.m_state;
+  if(d0.wDev==null)d0.wDev=m0.w_state_dev;
+  if(d0.mShort==null)d0.mShort=!!m0.m_short_history;
+  if(d0.tfUp==null)d0.tfUp=m0.tf_up;
+  if(d0.p50==null)d0.p50=nz(m0.pct_from_ema50);
+  if(d0.p200==null)d0.p200=nz(m0.pct_from_ema200);
+  if(d0.e50up==null)d0.e50up=!!m0.ema50_rising;
+  if(d0.emaBase==null)d0.emaBase=m0.ema_base;
+  if(d0.baseStatus==null)d0.baseStatus=m0.base_status;
+  if(d0.eBaseDays==null)d0.eBaseDays=m0.base_days;
+  if(d0.belowBox==null)d0.belowBox=m0.below_box_days||0;
+  if(d0.boxHigh==null)d0.boxHigh=nz(m0.box_high);
+  if(d0.boxLow==null)d0.boxLow=nz(m0.box_low);
+  if(d0.mBo==null)d0.mBo=!!m0.m_breakout;
+  if(d0.wCrossWeeks==null)d0.wCrossWeeks=m0.w_cross_weeks;
+  if(d0.adr==null)d0.adr=nz(m0.adr_pct);
+  if(d0.isIpo==null)d0.isIpo=!!m0.is_ipo;
+  if(d0.recent==null)d0.recent=!!m0.recently_listed;
+  if(d0.plhBo==null)d0.plhBo=!!m0.plh_breakout;
+  if(d0.ldhReclaim==null)d0.ldhReclaim=!!m0.ldh_reclaim;
+  if(d0.pctPlh==null)d0.pctPlh=nz(m0.pct_from_plh);
+  if(d0.ipoBaseDays==null)d0.ipoBaseDays=m0.ipo_base_days;
+  if(d0.ipoBaseDepth==null)d0.ipoBaseDepth=nz(m0.ipo_base_depth);
+  if(d0.listDate==null)d0.listDate=m0.listing_date;
+  if(d0.listedDays==null)d0.listedDays=m0.days_listed;
+  if(d0.isNew==null)d0.isNew=!!(m0.is_ipo||m0.listing_date);
+  if(d0._mtf==null)d0._mtf=true;
+  var p9=(d0.pct9e!=null)?d0.pct9e:nz(m0.pct_from_ema9_d);
+  if(d0.near9adr==null)d0.near9adr=(p9!=null&&d0.adr)?Math.abs(p9)<=d0.adr:false;
+  try{if(d0.secW==null&&window.TF_LEGS&&TF_LEGS.secW)d0.secW=TF_LEGS.secW[d0.sector]||null;}catch(e){}
+ }
  window.SC_DEBUG={row:!!fx,hist:(CACHE.hist[sym]||[]).length};
  try{o.mtf=(window.TF_MTF||{})[sym]||null;}catch(e){}
  try{o.oi=(window.MB2&&MB2.oi||{})[sym]||null;o.orb=(window.MB2&&MB2.orb||{})[sym]||null;o.mom=(window.MB2&&MB2.mom||{})[sym]||null;}catch(e){}
@@ -14898,25 +14948,32 @@ function gather(sym){
  try{o.alerts=(window.foAlerts||window.alertData||[]).filter(function(a){return a.symbol===sym;}).slice(0,6);}catch(e){}
  return o;
 }
-function playbooksFor(d){
+/* Run the stock through every playbook exactly as the screener would: blank
+   every filter, apply that playbook's own set, then call the screener's own
+   pass function. One implementation, used by both the header pills and the box,
+   so the two can never disagree. */
+function matchPresets(d,objects){
  var out=[];
+ if(!d||typeof scrPasses!=='function'||!window.SCR_PRESETS||!window.SCR)return out;
+ var keep=SCR.activePreset,saved={},k;
+ for(k in SCR.state)saved[k]=SCR.state[k];
  try{
-  if(!d||typeof scrPasses!=='function')return out;
-  var keep=SCR.activePreset,st=SCR.state,saved={};
-  for(var k in st)saved[k]=st[k];
   SCR_PRESETS.forEach(function(p){
-   if(p.id==='all')return;
+   if(!p||p.id==='all')return;
    try{
-    for(var k2 in st)SCR.state[k2]=new Set();
-    if(p.set)for(var f2 in p.set)SCR.state[f2]=new Set(p.set[f2]);
-    SCR.activePreset=p.id;
-    if(scrPasses(d))out.push(p.label);
+    var blank={};
+    for(var k2 in saved)blank[k2]=new Set();
+    if(p.set)for(var f2 in p.set)blank[f2]=new Set(p.set[f2]);
+    SCR.state=blank;SCR.activePreset=p.id;
+    if(scrPasses(d))out.push(objects?p:p.label);
    }catch(e){}
   });
-  SCR.activePreset=keep;for(var k3 in saved)SCR.state[k3]=saved[k3];
- }catch(e){}
- return out.slice(0,10);
+ }finally{
+  SCR.state=saved;SCR.activePreset=keep;
+ }
+ return out;
 }
+function playbooksFor(d){return matchPresets(d,false).slice(0,10);}
 
 /* ── sections ──────────────────────────────────────────── */
 function secEMA(o){
@@ -15116,16 +15173,36 @@ function chartPanes(o){
  var all=closes.concat(e20.filter(Boolean)).concat(e50.filter(Boolean));
  var mn=Math.min.apply(null,all),mx=Math.max.apply(null,all),W=380,H=215;
  var last=closes[closes.length-1],first=closes[0],chg=(last/first-1)*100;
+ // volume first: the price area shrinks when there are bars to fit underneath
+ var vols=win.map(function(x){return x.v;}),hasVol=vols.some(function(x){return x!=null;});
+ var PH=H-(hasVol?52:0);
+ var vbars='';
+ if(hasVol){
+  var vmax=Math.max.apply(null,vols.map(function(x){return x==null?0:x;}))||1;
+  var vh=46;
+  var y1=(H-(1/vmax)*vh).toFixed(1);
+  vbars='<line x1="4" y1="'+y1+'" x2="'+(W-4)+'" y2="'+y1+'" stroke="var(--bg3)" stroke-dasharray="2 3"/>'+
+   vols.map(function(v,i){
+    if(v==null)return '';
+    var bw=Math.max(0.8,(W-8)/vols.length*0.72);
+    var x=(i/(vols.length-1))*(W-8)+4-bw/2;
+    var h2=Math.max(0.6,(v/vmax)*vh);
+    var up=(i===0)||(closes[i]>=closes[i-1]);
+    return '<rect x="'+x.toFixed(1)+'" y="'+(H-h2).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h2.toFixed(1)+
+     '" fill="'+(up?'var(--green)':'var(--red)')+'" opacity="'+(v>=1.5?0.75:0.35)+'"/>';
+   }).join('');
+ }
  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px">'+
-  line(e50,W,H,mn,mx,'var(--muted)',1)+
-  '<path d="'+e20.map(function(v,i){if(v==null)return '';var x=(i/(e20.length-1))*(W-8)+4,y=H-6-((v-mn)/((mx-mn)||1))*(H-14);return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ')+'" fill="none" stroke="var(--amber)" stroke-width="1.2" stroke-dasharray="3 2"/>'+
-  line(closes,W,H,mn,mx,(chg>=0?'var(--green)':'var(--red)'),1.9)+'</svg>';
+  line(e50,W,PH,mn,mx,'var(--muted)',1)+
+  '<path d="'+e20.map(function(v,i){if(v==null)return '';var x=(i/(e20.length-1))*(W-8)+4,y=PH-6-((v-mn)/((mx-mn)||1))*(PH-14);return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ')+'" fill="none" stroke="var(--amber)" stroke-width="1.2" stroke-dasharray="3 2"/>'+
+  line(closes,W,PH,mn,mx,(chg>=0?'var(--green)':'var(--red)'),1.9)+vbars+'</svg>';
  var lo=Math.min.apply(null,closes),hi=Math.max.apply(null,closes);
  return '<div class="sc-chart" style="margin-top:10px">'+
   '<div class="sc-cbox">'+head+svg+
    '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
     '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+n+' sessions · '+
     'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:var(--amber)">20 EMA</span> · 50 EMA'+
+    (hasVol?' · <span title="Relative volume per session: each bar is that day\u2019s volume against its own 20-day average. The dotted line is 1×, so bars above it are above-average participation. Solid bars are 1.5× or more. Green means the close was up on the day.">bars = RVOL</span>':'')+
    '</div>'+
   '</div>'+relBox(o)+'</div>';
 }
@@ -15284,28 +15361,11 @@ function flagBox(title,arr,colr,tip){
   arr.map(function(x){return '<div class="sc-fi" title="'+esc(x.tip)+'"><span style="color:'+colr+'">•</span> '+esc(x.t)+'</div>';}).join('')+'</div>';
 }
 function pbPanel(o){
- var d=o.scr||{},pbs=[];
- try{
-  if(d&&typeof scrPasses==='function'&&window.SCR_PRESETS){
-   var keep=SCR.activePreset,st=SCR.state,saved={};
-   for(var k in st)saved[k]=st[k];
-   SCR_PRESETS.forEach(function(p){
-    if(p.id==='all')return;
-    try{
-     for(var k2 in st)SCR.state[k2]=new Set();
-     if(p.set)for(var f2 in p.set)SCR.state[f2]=new Set(p.set[f2]);
-     SCR.activePreset=p.id;
-     if(scrPasses(d))pbs.push(p);
-    }catch(e){}
-   });
-   SCR.activePreset=keep;for(var k3 in saved)SCR.state[k3]=saved[k3];
-  }
- }catch(e){}
+ var d=o.scr||{},pbs=matchPresets(d,true);
  var tip='Every playbook whose rules this stock passes right now. Click one to open the Momentum screener with that playbook applied, so you can see the rest of today\u2019s candidates for the same setup. Nothing here is a signal on its own — it tells you which of your own setups this stock currently fits.';
  var body;
  if(!pbs.length){
-  body='<div class="sc-none">No playbook matches this stock right now.'+
-   (window.SCR&&SCR.data&&SCR.data.length?'':' Open the Momentum tab once so the playbook rules can be checked.')+'</div>';
+  body='<div class="sc-none">No playbook matches this stock right now — it passes none of their rule sets as they stand today.</div>';
  }else{
   var grp={};
   pbs.forEach(function(p){var g=p.grp||'Other';(grp[g]=grp[g]||[]).push(p);});
