@@ -14948,29 +14948,48 @@ function gather(sym){
  try{o.alerts=(window.foAlerts||window.alertData||[]).filter(function(a){return a.symbol===sym;}).slice(0,6);}catch(e){}
  return o;
 }
-/* Run the stock through every playbook exactly as the screener would: blank
-   every filter, apply that playbook's own set, then call the screener's own
-   pass function. One implementation, used by both the header pills and the box,
-   so the two can never disagree. */
+/* Run the stock through every playbook exactly as the screener would.
+   scrPasses reads SCR.state directly and assumes every filter key holds a real
+   Set (S.pattern.size, S.cat.size and others are unguarded), so we must mutate
+   the existing Sets in place rather than hand it a rebuilt object — a missing
+   key throws, and the throw used to be swallowed silently. Any error is now
+   counted and surfaced instead of being hidden. */
 function matchPresets(d,objects){
- var out=[];
- if(!d||typeof scrPasses!=='function'||!window.SCR_PRESETS||!window.SCR)return out;
- var keep=SCR.activePreset,saved={},k;
- for(k in SCR.state)saved[k]=SCR.state[k];
- try{
-  SCR_PRESETS.forEach(function(p){
-   if(!p||p.id==='all')return;
-   try{
-    var blank={};
-    for(var k2 in saved)blank[k2]=new Set();
-    if(p.set)for(var f2 in p.set)blank[f2]=new Set(p.set[f2]);
-    SCR.state=blank;SCR.activePreset=p.id;
-    if(scrPasses(d))out.push(objects?p:p.label);
-   }catch(e){}
-  });
- }finally{
-  SCR.state=saved;SCR.activePreset=keep;
+ var out=[],errs=0,firstErr='';
+ if(!d||typeof scrPasses!=='function'||!window.SCR_PRESETS||!window.SCR||!SCR.state)return out;
+ var keep=SCR.activePreset,snap={},k;
+ for(k in SCR.state){var s0=SCR.state[k];snap[k]=(s0&&s0.forEach)?Array.prototype.slice.call(Array.from(s0)):null;}
+ function blankAll(){
+  for(var k2 in SCR.state){
+   var s2=SCR.state[k2];
+   if(s2&&typeof s2.clear==='function')s2.clear();
+   else SCR.state[k2]=new Set();
+  }
  }
+ try{
+  SCR_PRESETS.forEach(function(pp){
+   if(!pp||pp.id==='all')return;
+   try{
+    blankAll();
+    if(pp.set)for(var f2 in pp.set){
+     if(!SCR.state[f2]||typeof SCR.state[f2].add!=='function')SCR.state[f2]=new Set();
+     (pp.set[f2]||[]).forEach(function(v){SCR.state[f2].add(v);});
+    }
+    SCR.activePreset=pp.id;
+    if(scrPasses(d))out.push(objects?pp:pp.label);
+   }catch(e){errs++;if(!firstErr)firstErr=(e&&e.message)||String(e);}
+   });
+ }finally{
+  for(var k3 in snap){
+   if(snap[k3]==null)continue;
+   var s3=SCR.state[k3];
+   if(s3&&typeof s3.clear==='function'){s3.clear();snap[k3].forEach(function(v){s3.add(v);});}
+   else SCR.state[k3]=new Set(snap[k3]);
+  }
+  SCR.activePreset=keep;
+ }
+ out.errs=errs;out.firstErr=firstErr;
+ if(errs)console.warn('Stock card: '+errs+' playbook(s) could not be evaluated — '+firstErr);
  return out;
 }
 function playbooksFor(d){return matchPresets(d,false).slice(0,10);}
@@ -15188,8 +15207,10 @@ function chartPanes(o){
     var x=(i/(vols.length-1))*(W-8)+4-bw/2;
     var h2=Math.max(0.6,(v/vmax)*vh);
     var up=(i===0)||(closes[i]>=closes[i-1]);
+    var lbl=(win[i]&&win[i].d?win[i].d+' · ':'')+v.toFixed(2)+'× average volume'+
+     (v>=1.5?' (heavy)':(v<0.8?' (dried up)':''))+' · close '+closes[i].toFixed(1)+(up?' up':' down');
     return '<rect x="'+x.toFixed(1)+'" y="'+(H-h2).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h2.toFixed(1)+
-     '" fill="'+(up?'var(--green)':'var(--red)')+'" opacity="'+(v>=1.5?0.75:0.35)+'"/>';
+     '" fill="'+(up?'var(--green)':'var(--red)')+'" opacity="'+(v>=1.5?0.75:0.35)+'"><title>'+esc(lbl)+'</title></rect>';
    }).join('');
  }
  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px">'+
@@ -15202,7 +15223,8 @@ function chartPanes(o){
    '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
     '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+n+' sessions · '+
     'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:var(--amber)">20 EMA</span> · 50 EMA'+
-    (hasVol?' · <span title="Relative volume per session: each bar is that day\u2019s volume against its own 20-day average. The dotted line is 1×, so bars above it are above-average participation. Solid bars are 1.5× or more. Green means the close was up on the day.">bars = RVOL</span>':'')+
+    (hasVol?' · <span title="Relative volume per session: each bar is that day\u2019s volume against its own 20-day average. The dotted line is 1×, so bars above it are above-average participation. Solid bars are 1.5× or more, faint ones below that. Green means the close was up on the day. Hover any bar for its exact figure.">bars = RVOL'+
+     (vols[vols.length-1]!=null?', today '+vols[vols.length-1].toFixed(2)+'×':'')+'</span>':'')+
    '</div>'+
   '</div>'+relBox(o)+'</div>';
 }
@@ -15362,22 +15384,27 @@ function flagBox(title,arr,colr,tip){
 }
 function pbPanel(o){
  var d=o.scr||{},pbs=matchPresets(d,true);
- var tip='Every playbook whose rules this stock passes right now. Click one to open the Momentum screener with that playbook applied, so you can see the rest of today\u2019s candidates for the same setup. Nothing here is a signal on its own — it tells you which of your own setups this stock currently fits.';
+ var tip='Every playbook whose rules this stock passes right now, checked with the screener\u2019s own rule engine — so a playbook listing 20 stocks will show up on all 20 of their cards, and nothing else. Click one to open the screener with that playbook applied and see the rest of today\u2019s candidates for the same setup. It tells you which of your own setups this stock fits, not that you should trade it.';
+ var partial=!(window.SCR&&SCR.data&&SCR.data.length);
  var body;
  if(!pbs.length){
-  body='<div class="sc-none">No playbook matches this stock right now — it passes none of their rule sets as they stand today.</div>';
+  body='<div class="sc-none">'+(pbs.errs?
+   ('Could not evaluate '+pbs.errs+' playbook'+(pbs.errs>1?'s':'')+' — '+esc(pbs.firstErr||'unknown error')+'. Open the Momentum tab once and reopen this card.'):
+   'No playbook matches this stock right now — it passes none of their rule sets as they stand today.')+'</div>';
  }else{
   var grp={};
   pbs.forEach(function(p){var g=p.grp||'Other';(grp[g]=grp[g]||[]).push(p);});
   body=Object.keys(grp).map(function(g){
    return '<div style="margin-top:4px"><span style="font-size:9.5px;color:var(--muted);letter-spacing:.5px">'+esc(g.toUpperCase())+'</span><br>'+
     grp[g].map(function(p){
-     return '<button class="sc-pbtn" onclick="scGoPlaybook(\''+esc(p.id)+'\')" title="'+esc((p.desc||p.label)+' \u2014 click to open the screener filtered to this playbook.')+'">'+esc(p.label)+' →</button>';
+     var wk=(p.when==='weekend')?' <span style="font-size:9px;color:var(--muted)">wknd</span>':'';
+     return '<button class="sc-pbtn" onclick="scGoPlaybook(\''+esc(p.id)+'\')" title="'+esc((p.desc||p.label)+(p.when==='weekend'?' This one is a weekend scan, so it is not in the End of Day playbook strip today.':'')+' \u2014 click to open the screener filtered to this playbook.')+'">'+esc(p.label)+wk+' →</button>';
     }).join('')+'</div>';
   }).join('');
  }
+ if(partial)body+='<div style="font-size:10px;color:var(--muted);margin-top:6px">Partial check: a few playbooks test volume, delivery, smart-money or earnings data that loads with the Momentum tab. Open it once for the complete list.</div>';
  return '<div class="sc-sec open" style="margin-top:10px"><div class="sc-sh" title="'+esc(tip)+'" style="cursor:help">'+
-  '<b>PLAYBOOKS THIS STOCK FITS</b><span class="sub">'+pbs.length+' match'+(pbs.length===1?'':'es')+'</span></div>'+
+  '<b>PLAYBOOKS THIS STOCK FITS</b><span class="sub">'+pbs.length+' match'+(pbs.length===1?'':'es')+(partial?' · partial':'')+'</span></div>'+
   '<div class="sc-sb" style="display:block">'+body+'</div></div>';
 }
 function flagPanel(o){
