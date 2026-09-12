@@ -14030,5 +14030,271 @@ if(typeof renderPicks==='function'){
 })();
 </script>
 
+
+<!-- ═══ TrueFlow Morning Brief v2 — ADR · ORB record · trend · compression · OI walls ═══ -->
+<style>
+.mb2-chip{display:inline-block;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:3px;cursor:help}
+.mb2-strip{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px 0;padding:7px 11px;border:1px solid var(--bg3);border-radius:10px;font-size:11px;color:var(--muted)}
+.mb2-pill{padding:2px 8px;border-radius:6px;background:var(--bg3);color:var(--text);font-weight:600;cursor:help}
+.mb2-fbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px 0;font-size:11px}
+.mb2-fb{padding:3px 9px;border-radius:6px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11px}
+.mb2-fb.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+</style>
+<script>
+(function(){
+'use strict';
+
+var TIP={
+ adr:'Average Daily Range — how far this stock typically travels in a day, as a % of price. The single strongest filter in your own ORB data: ADR above 3.5% averaged +0.334R per trade, 2.5-3.5% +0.099R, 2.0-2.5% -0.024R, below 2% -0.202R. For an option buyer a low-ADR stock cannot outrun time decay. Green 3.5%+, amber 2.5-3.5%, grey below 2.5%.',
+ orb:'This stock\u2019s own record in your 8,962-trade ORB backtest, under exit A (enter on the opening-range break, hold with the breakout-candle stop to 3:20). Win% = share of trades that closed positive. Avg = average gross R per trade. MFE = how far the average trade ran in your favour at its best point. Only symbols with 5 or more trades are shown. Past record, not a promise.',
+ trend:'Daily, weekly and monthly trend from the 9/20 EMA on each timeframe. Arrows read left to right: daily, weekly, monthly. Hover the arrows for the full state, the 50 and 200 EMA distance and any EMA base. Weekly and monthly are judged on completed candles.',
+ comp:'Range compression. NR7 = today\u2019s range is the narrowest of the last 7 days; NR4 = narrowest of 4. Compression before an opening-range break is the pre-market proxy for a narrow ORB, and narrow ORBs returned +0.130R against +0.020R for wide ones in your backtest. Consol = sessions spent in a tight base.',
+ wall:'Option open interest walls from the NSE F&O bhav copy. The strike with the most call OI acts as a ceiling, the strike with the most put OI as a floor, because writers defend them. The % is how far price sits from each wall. If price is inside 1% of the call wall, an upside move is likely to stall there — which matters for choosing a strike. PCR = put OI divided by call OI; above 1 leans bullish, below 1 bearish.',
+ sent:'Today\u2019s F&O-wide positioning from the bhav copy: how many of the ~213 F&O stocks closed in each open-interest state. Long buildup = price up with OI up (fresh longs). Short buildup = price down with OI up (fresh shorts). Short covering = price up with OI down. Long unwinding = price down with OI down.',
+ ndwl:'Tonight\u2019s Next Day WL picks for the coming session, scored at 6:40 PM from your measured ORB thresholds.',
+ idx:'NIFTY and BANKNIFTY option positioning from the per-strike chain. Support = strike with the most put OI, resistance = strike with the most call OI, max pain = the strike where option buyers lose the most, which price often gravitates toward near expiry.'
+};
+
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function n(x){return (x==null||x==='')?null:+x;}
+function f1(x){return x==null?'—':(+x).toFixed(1);}
+
+window.MB2={oi:{},orb:{},mom:{},idx:null,loaded:false,filters:{adr:'all',orb:'all',comp:'all',trend:'all',wall:'all'}};
+
+window.mb2Load=async function(){
+ if(MB2.loaded)return;MB2.loaded=true;
+ var h={apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey};
+ async function get(q){try{var r=await fetch(CONFIG.supabaseUrl+'/rest/v1/'+q,{headers:h});return r.ok?await r.json():[];}catch(e){return [];}}
+ try{
+  var d=await get('fo_bhav_oi?select=session_date&order=session_date.desc&limit=1');
+  var day=(d&&d[0])?d[0].session_date:null;
+  if(day){
+   var oi=await get('fo_bhav_oi?select=*&session_date=eq.'+day+'&limit=1000');
+   oi.forEach(function(r){MB2.oi[r.symbol]=r;});
+   MB2.oiDate=day;
+  }
+  var orb=await get('orb_symbol_stats?select=*&limit=1000');
+  orb.forEach(function(r){MB2.orb[r.symbol]=r;});
+  var mom=[];
+  for(var o=0;o<3000;o+=1000){
+   var p=await get('momentum_stocks?select=symbol,adr_pct,is_nr4,is_nr7,nr_range_pct,consol_days,session_date&is_active=eq.true&order=session_date.desc&limit=1000&offset='+o);
+   if(!p.length)break;mom=mom.concat(p);if(p.length<1000)break;
+  }
+  var mx='';mom.forEach(function(r){if(r.session_date>mx)mx=r.session_date;});
+  mom.forEach(function(r){if(r.session_date===mx&&!MB2.mom[r.symbol])MB2.mom[r.symbol]=r;});
+  if(day){
+   var ch=await get('oi_chain_eod?select=*&session_date=eq.'+day+'&limit=2000');
+   MB2.idx=mb2Index(ch);
+  }
+  var pk=await get('nextday_picks_v2?select=symbol,direction,score,target_date&order=target_date.desc,score.desc&limit=40');
+  if(pk&&pk.length){var td=pk[0].target_date;MB2.picks=pk.filter(function(x){return x.target_date===td;});}
+ }catch(e){console.error('MB2 load:',e);}
+};
+
+function mb2Index(rows){
+ if(!rows||!rows.length)return null;
+ var by={};
+ rows.forEach(function(r){
+  var d=r.data||{},s=r.symbol;
+  if(!by[s])by[s]={ce:0,pe:0,best:{},peBest:{},pain:[]};
+  var ce=+(d.ce_oi||0),pe=+(d.pe_oi||0),k=+r.strike;
+  by[s].ce+=ce;by[s].pe+=pe;
+  if(!by[s].best.oi||ce>by[s].best.oi)by[s].best={strike:k,oi:ce};
+  if(!by[s].peBest.oi||pe>by[s].peBest.oi)by[s].peBest={strike:k,oi:pe};
+  by[s].pain.push([k,ce,pe]);
+ });
+ var out={};
+ for(var s in by){
+  var b=by[s],best=null;
+  b.pain.forEach(function(x){
+   var loss=0;
+   b.pain.forEach(function(y){
+    if(y[0]<x[0])loss+=y[1]*(x[0]-y[0]);
+    if(y[0]>x[0])loss+=y[2]*(y[0]-x[0]);
+   });
+   if(best===null||loss<best.loss)best={strike:x[0],loss:loss};
+  });
+  out[s]={ce:b.ce,pe:b.pe,pcr:b.ce?b.pe/b.ce:null,res:b.best.strike,sup:b.peBest.strike,pain:best?best.strike:null};
+ }
+ return out;
+}
+
+/* ── cells ─────────────────────────────────────────────── */
+function cAdr(sym){
+ var m=MB2.mom[sym]||{},t=(window.TF_MTF||{})[sym]||{};
+ var a=n(m.adr_pct);if(a==null)a=n(t.adr_pct);
+ if(a==null)return '<span style="color:var(--muted)">—</span>';
+ var c=a>=3.5?'var(--green)':(a>=2.5?'var(--amber)':'var(--muted)');
+ var lab=a>=3.5?'can move':(a>=2.5?'ok':'slow');
+ return '<span style="color:'+c+';font-weight:700">'+a.toFixed(2)+'%</span><br><span style="font-size:9px;color:var(--muted)">'+lab+'</span>';
+}
+function cOrb(sym){
+ var r=MB2.orb[sym];
+ if(!r)return '<span style="color:var(--muted)" title="Fewer than 5 ORB trades on record for this stock">—</span>';
+ var w=n(r.win_pct),g=n(r.avg_gross_r),mf=n(r.avg_mfe_r);
+ var c=(g!=null&&g>0.15)?'var(--green)':((g!=null&&g<-0.15)?'var(--red)':'var(--text)');
+ return '<span style="color:'+c+';font-weight:700">'+f1(w)+'%</span> <span style="font-size:10px;color:var(--muted)">n='+r.trades+'</span><br>'+
+  '<span style="font-size:9px;color:var(--muted)">avg '+(g==null?'—':(g>0?'+':'')+g.toFixed(2))+'R · mfe '+f1(mf)+'R</span>';
+}
+function cTrend(sym){
+ var h=window.tfTrendChip?tfTrendChip(sym):'';
+ return h||'<span style="color:var(--muted)">—</span>';
+}
+function cComp(sym){
+ var m=MB2.mom[sym]||{},out=[];
+ if(m.is_nr7)out.push('<span class="mb2-chip" style="background:rgba(0,255,136,.15);color:var(--green)" title="Narrowest range of the last 7 sessions">NR7</span>');
+ else if(m.is_nr4)out.push('<span class="mb2-chip" style="background:rgba(245,158,11,.15);color:var(--amber)" title="Narrowest range of the last 4 sessions">NR4</span>');
+ if(m.consol_days>=5)out.push('<span style="font-size:9px;color:var(--muted)">consol '+m.consol_days+'d</span>');
+ return out.length?out.join(' '):'<span style="color:var(--muted)">—</span>';
+}
+function cWall(sym,ltp){
+ var r=MB2.oi[sym];
+ if(!r)return '<span style="color:var(--muted)">—</span>';
+ var ce=n(r.max_ce_strike),pe=n(r.max_pe_strike),pcr=n(r.pcr),p=n(ltp);
+ function d(x){return (p&&x)?((x/p-1)*100):null;}
+ var dc=d(ce),dp=d(pe);
+ function tag(v,lab,col){
+  if(v==null)return '';
+  var near=Math.abs(v)<=1.0;
+  return '<span style="color:'+(near?col:'var(--text)')+';font-size:11px'+(near?';font-weight:700':'')+'">'+lab+' '+v.toFixed(1)+'%</span>';
+ }
+ var pc=pcr==null?'':'<span style="font-size:9px;color:'+(pcr>1?'var(--green)':'var(--red)')+'"> PCR '+pcr.toFixed(2)+'</span>';
+ return '<span style="font-size:10px">'+(ce?'R '+ce.toFixed(0):'')+' '+tag(dc,'↑','var(--red)')+'</span><br>'+
+        '<span style="font-size:10px">'+(pe?'S '+pe.toFixed(0):'')+' '+tag(dp,'↓','var(--green)')+pc+'</span>';
+}
+
+/* ── header + filters + strip ──────────────────────────── */
+function mb2Header(){
+ var tr=document.querySelector('#tab-morning thead tr');
+ if(!tr||tr.dataset.mb2)return;tr.dataset.mb2='1';
+ var ths=tr.querySelectorAll('th'),after=null;
+ for(var i=0;i<ths.length;i++){if(/Daily EMA/.test(ths[i].textContent)){after=ths[i];break;}}
+ function th(label,tip){var e=document.createElement('th');e.innerHTML=label;e.title=tip;e.style.cursor='help';return e;}
+ var cells=[th('ADR %',TIP.adr),th('ORB record',TIP.orb),th('Trend D·W·M',TIP.trend),th('Compress',TIP.comp),th('OI walls',TIP.wall)];
+ var ref=after?after.nextSibling:null;
+ cells.forEach(function(c){after?tr.insertBefore(c,ref):tr.appendChild(c);});
+ var tb=document.getElementById('mb-body');
+ if(tb){var e=tb.querySelector('td[colspan]');if(e)e.setAttribute('colspan','21');}
+}
+function mb2Bar(){
+ var tbl=document.querySelector('#tab-morning .tbl-scroll');
+ if(!tbl||!tbl.parentNode||document.getElementById('mb2-bar'))return;
+ var bar=document.createElement('div');bar.id='mb2-bar';bar.className='mb2-fbar';
+ function grp(key,opts,tip){
+  return '<span style="color:var(--muted);cursor:help" title="'+esc(tip)+'">'+opts.label+'</span>'+
+   opts.items.map(function(o){return '<button class="mb2-fb'+(o[0]==='all'?' on':'')+'" data-k="'+key+'" data-v="'+o[0]+'" onclick="mb2Filter(\''+key+'\',\''+o[0]+'\',this)" title="'+esc(o[2]||'')+'">'+o[1]+'</button>';}).join('');
+ }
+ bar.innerHTML=
+  grp('adr',{label:'ADR',items:[['all','All'],['hi','3.5%+','Only stocks that move enough for an option buyer — the +0.334R band'],['mid','2.5%+','Includes the 2.5-3.5% band (+0.099R)']]},TIP.adr)+
+  '<span style="width:10px"></span>'+
+  grp('orb',{label:'ORB',items:[['all','All'],['pos','Positive record','This stock\u2019s own ORB history averages above 0R gross'],['n10','10+ trades','Enough history to mean something']]},TIP.orb)+
+  '<span style="width:10px"></span>'+
+  grp('comp',{label:'Compress',items:[['all','All'],['nr','NR7 / NR4','Range compression today — the narrow-ORB proxy']]},TIP.comp)+
+  '<span style="width:10px"></span>'+
+  grp('trend',{label:'Trend',items:[['all','All'],['allup','All TF up'],['htfpb','HTF pullback'],['alldown','All TF down']]},TIP.trend)+
+  '<span style="width:10px"></span>'+
+  grp('wall',{label:'OI wall',items:[['all','All'],['near','Within 1%','Price is inside 1% of a call or put OI wall — expect the move to stall there']]},TIP.wall);
+ tbl.parentNode.insertBefore(bar,tbl);
+}
+window.mb2Filter=function(k,v,btn){
+ MB2.filters[k]=v;
+ document.querySelectorAll('#mb2-bar .mb2-fb[data-k="'+k+'"]').forEach(function(b){b.classList.remove('on');});
+ if(btn)btn.classList.add('on');
+ if(typeof renderMBTable==='function')renderMBTable();
+};
+function mb2Strip(){
+ var tbl=document.querySelector('#tab-morning .tbl-scroll');
+ if(!tbl||!tbl.parentNode)return;
+ var el=document.getElementById('mb2-strip');
+ if(!el){el=document.createElement('div');el.id='mb2-strip';el.className='mb2-strip';tbl.parentNode.insertBefore(el,document.getElementById('mb2-bar')||tbl);}
+ var c={};for(var s in MB2.oi){var b=MB2.oi[s].oi_buildup||'—';c[b]=(c[b]||0)+1;}
+ var parts=[];
+ [['Long Buildup','var(--green)'],['Short Buildup','var(--red)'],['Short Covering','var(--amber)'],['Long Unwinding','#FF8C00']].forEach(function(x){
+  if(c[x[0]])parts.push('<span class="mb2-pill" style="color:'+x[1]+'" title="'+esc(TIP.sent)+'">'+x[0]+' '+c[x[0]]+'</span>');
+ });
+ var h='';
+ if(parts.length)h+='<span title="'+esc(TIP.sent)+'" style="cursor:help">F&amp;O positioning'+(MB2.oiDate?' ('+esc(MB2.oiDate)+')':'')+'</span>'+parts.join('');
+ else h+='<span style="color:var(--amber)">No F&amp;O open-interest data for the latest session yet — the bhav fetcher runs at 7:30 PM.</span>';
+ if(MB2.idx){
+  for(var k in MB2.idx){
+   var i=MB2.idx[k];
+   h+='<span class="mb2-pill" title="'+esc(TIP.idx)+'">'+k+' S '+(i.sup||'—')+' · R '+(i.res||'—')+' · pain '+(i.pain||'—')+(i.pcr?' · PCR '+i.pcr.toFixed(2):'')+'</span>';
+  }
+ }
+ var picks=MB2.picks||[];
+ if(picks.length)h+='<span style="width:100%" title="'+esc(TIP.ndwl)+'">Next Day WL for '+esc(picks[0].target_date)+': '+picks.slice(0,8).map(function(p){return esc(p.symbol)+' '+(p.direction==='bull'?'▲':'▼')+' '+(p.score!=null?(+p.score).toFixed(0):'');}).join(' · ')+'</span>';
+ el.innerHTML=h;
+}
+
+/* ── wrap the existing renderer ────────────────────────── */
+function mb2Pass(s){
+ var F=MB2.filters,sym=s.symbol,m=MB2.mom[sym]||{},t=(window.TF_MTF||{})[sym]||{},o=MB2.orb[sym],w=MB2.oi[sym];
+ var a=n(m.adr_pct);if(a==null)a=n(t.adr_pct);
+ if(F.adr==='hi'&&!(a!=null&&a>=3.5))return false;
+ if(F.adr==='mid'&&!(a!=null&&a>=2.5))return false;
+ if(F.orb==='pos'&&!(o&&n(o.avg_gross_r)>0))return false;
+ if(F.orb==='n10'&&!(o&&o.trades>=10))return false;
+ if(F.comp==='nr'&&!(m.is_nr7||m.is_nr4))return false;
+ if(F.trend!=='all'&&t.mtf_state!==F.trend)return false;
+ if(F.wall==='near'){
+  var p=n(s.ltp),ce=w?n(w.max_ce_strike):null,pe=w?n(w.max_pe_strike):null,near=false;
+  if(p&&ce&&Math.abs(ce/p-1)*100<=1)near=true;
+  if(p&&pe&&Math.abs(pe/p-1)*100<=1)near=true;
+  if(!near)return false;
+ }
+ return true;
+}
+function mb2Cells(sym,ltp){
+ return '<td>'+cAdr(sym)+'</td><td>'+cOrb(sym)+'</td><td style="text-align:center">'+cTrend(sym)+'</td><td>'+cComp(sym)+'</td><td>'+cWall(sym,ltp)+'</td>';
+}
+function mb2Inject(){
+ var tb=document.getElementById('mb-body');if(!tb)return;
+ var rows=tb.querySelectorAll('tr');
+ rows.forEach(function(tr){
+  if(tr.dataset.mb2)return;
+  var tds=tr.querySelectorAll('td');
+  if(tds.length<9)return;
+  var sym=(tds[2]&&tds[2].textContent||'').trim().replace(/[^A-Z0-9&-]/g,'');
+  var ltpTxt=(tds[4]&&tds[4].textContent||'').trim().split(' ')[0].replace(/,/g,'');
+  var tmp=document.createElement('tbody');
+  tmp.innerHTML='<tr>'+mb2Cells(sym,parseFloat(ltpTxt))+'</tr>';
+  var newCells=tmp.querySelectorAll('td'),ref=tds[6];
+  for(var i=newCells.length-1;i>=0;i--)tr.insertBefore(newCells[i],ref);
+  tr.dataset.mb2='1';
+ });
+}
+function mb2Wrap(){
+ if(typeof renderMBTable!=='function'||renderMBTable._mb2)return false;
+ var orig=renderMBTable;
+ window.renderMBTable=renderMBTable=function(){
+  var all=window.mbData||[],kept=all;
+  try{kept=all.filter(mb2Pass);}catch(e){}
+  var swapped=(kept.length!==all.length);
+  if(swapped)window.mbData=kept;
+  var r;
+  try{r=orig.apply(this,arguments);}finally{if(swapped)window.mbData=all;}
+  try{mb2Header();mb2Bar();mb2Strip();mb2Inject();
+   var c=document.getElementById('mb-count');
+   if(c&&swapped)c.textContent='Showing '+kept.length+' of '+all.length;
+  }catch(e){console.error('MB2 render:',e);}
+  return r;
+ };
+ renderMBTable._mb2=true;
+ return true;
+}
+if(typeof loadMorningBrief==='function'){
+ var _lmb=loadMorningBrief;
+ window.loadMorningBrief=loadMorningBrief=async function(){
+  mb2Wrap();
+  var p=_lmb.apply(this,arguments);
+  try{await Promise.all([window.tfLoadMtf?tfLoadMtf():null,mb2Load()]);}catch(e){}
+  try{await p;}catch(e){}
+  try{if(typeof renderMBTable==='function')renderMBTable();}catch(e){}
+  return p;
+ };
+}
+})();
+</script>
+
 </body>
 </html

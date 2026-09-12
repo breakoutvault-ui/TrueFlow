@@ -73,6 +73,9 @@ Across 8,621 clean trades in orb_backtest:
   historical trades.
 
 Weights and cutoffs are read from nextday_weights where active = true.
+
+12 Sep 2026: added a hard room floor of 1.0 ADR, and a cleanup that removes
+picks left behind by an earlier run of the same target date.
 Tuning the model never requires editing this file.
 
 USAGE
@@ -128,6 +131,7 @@ EARNINGS_WARN  = 5        # badge when results are within N days
 EXTENDED_PCT   = 7.0      # badge when price is this far from the 9 EMA
 LOW_ADR_BADGE  = 2.5      # badge (not reject) below this ADR
 TURNOVER_FLOOR = 10.0     # reject the thinnest N% by traded value
+MIN_ROOM_ADR   = 1.0      # below 1 ADR the reward is smaller than the risk
 ORBHIST_MIN_N  = 20       # trades before a stock's ORB record counts
 BATCH_WRITE    = 200
 
@@ -670,6 +674,13 @@ def evaluate(sym, ehist, m, sectors, earnings, orbhist, w,
                if (lvl and adr) else None
     trig_adr = (abs(trigger - ltp) / ltp * 100.0 / adr) if adr else None
 
+    # Room floor. Not a tuned number: if the nearest level in the way sits
+    # closer than 1 ADR from the trigger, the reward is smaller than the
+    # risk before the trade even starts. At the measured 21-30% win rate
+    # that cannot pay. room_adr None = clear sky, which passes.
+    if room_adr is not None and room_adr < MIN_ROOM_ADR:
+        return None, "room below %.1f ADR" % MIN_ROOM_ADR
+
     sec     = e.get("sector") or (m or {}).get("industry")
     adv_pct = (sectors.get(sec) or {}).get("adv_pct")
     del_pct = f(e.get("del_pct"))
@@ -913,6 +924,23 @@ def main():
     if not rows:
         print("\nNo picks to write.")
         return
+    # Remove picks written by an earlier run of the SAME target date that no
+    # longer qualify. upsert only inserts and updates, so without this a
+    # re-run leaves the old rejects on the dashboard (seen 12 Sep 2026).
+    try:
+        keep = set((p["symbol"], p["direction"]) for p in rows)
+        old = (sb.table("nextday_picks_v2").select("id,symbol,direction")
+                 .eq("target_date", target.isoformat()).execute().data) or []
+        stale = [r["id"] for r in old
+                 if (r["symbol"], r["direction"]) not in keep]
+        if stale:
+            for i in range(0, len(stale), BATCH_WRITE):
+                (sb.table("nextday_picks_v2").delete()
+                   .in_("id", stale[i:i + BATCH_WRITE]).execute())
+            print("  removed %d stale pick(s) from an earlier run" % len(stale))
+    except Exception as ex:
+        print("  stale-pick cleanup failed (harmless): %s" % str(ex)[:90])
+
     written = 0
     for i in range(0, len(rows), BATCH_WRITE):
         chunk = rows[i:i + BATCH_WRITE]
