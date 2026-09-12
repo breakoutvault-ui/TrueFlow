@@ -14077,7 +14077,7 @@ window.mb2Load=async function(){
   orb.forEach(function(r){MB2.orb[r.symbol]=r;});
   var mom=[];
   for(var o=0;o<3000;o+=1000){
-   var p=await get('momentum_stocks?select=symbol,adr_pct,is_nr4,is_nr7,nr_range_pct,consol_days,session_date&is_active=eq.true&order=session_date.desc&limit=1000&offset='+o);
+   var p=await get('momentum_stocks?select=symbol,sector,adr_pct,is_nr4,is_nr7,nr_range_pct,consol_days,day_chg_pct,week_chg_pct,month_chg_pct,session_date&is_active=eq.true&order=session_date.desc&limit=1000&offset='+o);
    if(!p.length)break;mom=mom.concat(p);if(p.length<1000)break;
   }
   var mx='';mom.forEach(function(r){if(r.session_date>mx)mx=r.session_date;});
@@ -14309,6 +14309,202 @@ if(typeof loadMorningBrief==='function'){
   return p;
  };
 }
+})();
+</script>
+
+
+<!-- ═══ TrueFlow layout v1 — compact Morning Brief filters + clickable trending sectors ═══ -->
+<style>
+#mb2-filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+#mb2-filters > div{flex-direction:row!important;align-items:center!important;gap:6px!important;padding:3px 8px!important;margin:0!important;border-radius:8px!important}
+#mb2-filters > div > span:first-child{font-size:9px!important;white-space:nowrap;opacity:.75}
+#mb2-filters .sort-btn{padding:2px 7px!important;font-size:11px!important}
+#mb2-filters select{max-width:150px}
+.sec-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;border:1px solid var(--bg3);background:none;cursor:pointer;font-size:11px;white-space:nowrap}
+.sec-chip:hover{border-color:var(--cyan)}
+.sec-chip.on{border-color:var(--cyan);font-weight:700}
+.sec-per{padding:1px 7px;border-radius:5px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:10px}
+.sec-per.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+.sec-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px 0;padding:6px 10px;border:1px solid var(--bg3);border-radius:10px;font-size:11px}
+</style>
+<script>
+(function(){
+'use strict';
+var PER=[['d','1D','Average change of that sector\u2019s stocks today. One day is mostly noise \u2014 use it for what is moving right now, not for rotation.'],
+         ['w','1W','Average change over the last 5 sessions. The most useful period for spotting rotation that is actually underway.'],
+         ['m','1M','Average change over roughly 22 sessions. Slowest and steadiest \u2014 shows where money has been moving for weeks.']];
+var TIPSEC='Sectors ranked by the average change of their stocks over the chosen period, from your full tracked universe. Green = leading, red = lagging. Click any sector to filter the table to it; click again to clear. Hover a sector for all three periods and how many stocks it holds. Thin sectors move on very few names, so check the count before reading much into a one-day jump.';
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function pc(x){return x==null?'—':((x>0?'+':'')+x.toFixed(1)+'%');}
+function col(x){return x==null?'var(--muted)':(x>0.3?'#22C55E':(x<-0.3?'#EF4444':'var(--muted)'));}
+
+/* ── sector maths, shared by both tabs ─────────────────── */
+function sectorStats(rows,get){
+ var acc={};
+ rows.forEach(function(r){
+  var s=get.sector(r);if(!s||s==='—')return;
+  var a=acc[s]||(acc[s]={n:0,d:0,w:0,m:0,nd:0,nw:0,nm:0});
+  a.n++;
+  var d=get.d(r),w=get.w(r),m=get.m(r);
+  if(d!=null){a.d+=d;a.nd++;}if(w!=null){a.w+=w;a.nw++;}if(m!=null){a.m+=m;a.nm++;}
+ });
+ var out=[];
+ for(var s in acc){var a=acc[s];if(a.n<3)continue;
+  out.push({sector:s,n:a.n,d:a.nd?a.d/a.nd:null,w:a.nw?a.w/a.nw:null,m:a.nm?a.m/a.nm:null});}
+ return out;
+}
+function secTip(x){
+ return x.sector+' — '+x.n+' stocks\n1 day: '+pc(x.d)+'\n1 week: '+pc(x.w)+'\n1 month: '+pc(x.m)+
+   (x.n<5?'\nOnly '+x.n+' stocks, so this average moves on very little.':'');
+}
+function secStrip(id,stats,per,active,onPick,onPer){
+ var key=per,sorted=stats.filter(function(x){return x[key]!=null;})
+   .sort(function(a,b){return b[key]-a[key];});
+ if(!sorted.length)return '<span style="color:var(--muted)">No sector data loaded yet.</span>';
+ var lead=sorted.slice(0,5),seen={};
+ lead.forEach(function(x){seen[x.sector]=1;});
+ var lag=sorted.slice().reverse().filter(function(x){return !seen[x.sector];}).slice(0,5);
+ function chip(x){
+  return '<button class="sec-chip'+(active===x.sector?' on':'')+'" style="color:'+col(x[key])+'"'+
+   ' onclick="'+onPick+'(\''+esc(x.sector).replace(/'/g,"\\'")+'\')" title="'+esc(secTip(x))+'">'+
+   esc(x.sector)+' <b>'+pc(x[key])+'</b></button>';
+ }
+ return '<span style="color:var(--muted);cursor:help" title="'+esc(TIPSEC)+'">Sectors</span>'+
+  PER.map(function(p){return '<button class="sec-per'+(per===p[0]?' on':'')+'" onclick="'+onPer+'(\''+p[0]+'\')" title="'+esc(p[2])+'">'+p[1]+'</button>';}).join('')+
+  '<span style="color:#22C55E;margin-left:6px">Leading</span>'+lead.map(chip).join('')+
+  '<span style="color:#EF4444;margin-left:6px">Lagging</span>'+lag.map(chip).join('')+
+  (active?'<button class="sec-per" style="margin-left:auto" onclick="'+onPick+'(\''+esc(active).replace(/'/g,"\\'")+'\')" title="Clear the sector filter">✕ '+esc(active)+'</button>':'');
+}
+
+/* ═══ 1. MORNING BRIEF ═══ */
+var MBSEC={per:'w',active:null};
+function mbGrid(){
+ var p=document.getElementById('tab-morning');if(!p)return null;
+ var g=p.querySelector('div[style*="grid-template-columns:1fr 1fr"]');
+ return g||null;
+}
+function mbCompact(){
+ var g=mbGrid();if(!g||g.id==='mb2-filters')return;
+ g.id='mb2-filters';g.removeAttribute('style');
+ var kids=g.children;
+ for(var i=0;i<kids.length;i++){
+  var k=kids[i];
+  if(k.textContent.indexOf('Export Filtered')>=0){k.style.marginLeft='auto';k.style.border='none';k.style.background='none';
+   var lbl=k.querySelector('span');if(lbl)lbl.style.display='none';}
+ }
+ var bar=document.getElementById('mb2-bar');
+ if(bar)g.appendChild(bar);
+ var head=document.createElement('div');
+ head.id='mb2-fhead';head.style.cssText='display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px';
+ head.innerHTML='<button class="sec-per on" id="mb2-ftog" onclick="mb2ToggleFilters()" title="Show or hide the filter controls">▾ Filters</button>'+
+  '<span id="mb2-fcount" style="color:var(--muted)"></span>'+
+  '<button class="sec-per" onclick="mb2ClearAll()" title="Reset every filter on this tab">Clear all</button>';
+ g.parentNode.insertBefore(head,g);
+}
+window.mb2ToggleFilters=function(){
+ var g=document.getElementById('mb2-filters'),b=document.getElementById('mb2-ftog');
+ if(!g)return;var hide=g.style.display!=='none';
+ g.style.display=hide?'none':'flex';
+ if(b){b.textContent=(hide?'▸':'▾')+' Filters';b.classList.toggle('on',!hide);}
+};
+window.mb2ClearAll=function(){
+ try{
+  document.querySelectorAll('#mb2-filters [data-filter-val="all"]').forEach(function(b){b.click();});
+  ['adr','orb','comp','trend','wall'].forEach(function(k){
+   var b=document.querySelector('#mb2-bar .mb2-fb[data-k="'+k+'"][data-v="all"]');if(b)b.click();});
+  MBSEC.active=null;
+  var sel=document.getElementById('mb-sector-filter');
+  if(sel){sel.value='all';if(typeof setMBFilter==='function')setMBFilter('sector','all');}
+ }catch(e){}
+};
+window.mb2PickSector=function(s){
+ MBSEC.active=(MBSEC.active===s)?null:s;
+ var sel=document.getElementById('mb-sector-filter');
+ if(sel){
+  var want=MBSEC.active||'all',found=false,op=sel.options||[];
+  for(var i=0;i<op.length;i++)if(op[i].value===want){found=true;break;}
+  sel.value=found?want:'all';
+ }
+ if(typeof setMBFilter==='function')setMBFilter('sector',MBSEC.active||'all');
+ else if(typeof renderMBTable==='function')renderMBTable();
+};
+window.mb2SecPer=function(p){MBSEC.per=p;if(typeof renderMBTable==='function')renderMBTable();};
+function mbSectors(){
+ var tbl=document.querySelector('#tab-morning .tbl-scroll');if(!tbl||!tbl.parentNode)return;
+ var el=document.getElementById('mb2-sec');
+ if(!el){el=document.createElement('div');el.id='mb2-sec';el.className='sec-row';
+  tbl.parentNode.insertBefore(el,document.getElementById('mb2-strip')||tbl);}
+ var mom=(window.MB2&&MB2.mom)||{},rows=[];
+ for(var k in mom)rows.push(mom[k]);
+ var stats=sectorStats(rows,{sector:function(r){return r.sector;},
+  d:function(r){return r.day_chg_pct==null?null:+r.day_chg_pct;},
+  w:function(r){return r.week_chg_pct==null?null:+r.week_chg_pct;},
+  m:function(r){return r.month_chg_pct==null?null:+r.month_chg_pct;}});
+ el.innerHTML=secStrip('mb',stats,MBSEC.per,MBSEC.active,'mb2PickSector','mb2SecPer');
+}
+function mbCount(){
+ var n=0;
+ document.querySelectorAll('#mb2-filters .sort-btn.multi-active').forEach(function(b){
+  if(b.getAttribute('data-filter-val')!=='all')n++;});
+ document.querySelectorAll('#mb2-bar .mb2-fb.on').forEach(function(b){
+  if(b.getAttribute('data-v')!=='all')n++;});
+ if(MBSEC.active)n++;
+ var el=document.getElementById('mb2-fcount');
+ if(el)el.textContent=n?(n+' filter'+(n>1?'s':'')+' on'):'';
+}
+function mbHook(){
+ if(typeof renderMBTable!=='function'||renderMBTable._lay)return;
+ var orig=renderMBTable;
+ window.renderMBTable=renderMBTable=function(){
+  var r=orig.apply(this,arguments);
+  try{mbCompact();mbSectors();mbCount();}catch(e){console.error('layout:',e);}
+  return r;
+ };
+ renderMBTable._lay=true;
+}
+if(typeof loadMorningBrief==='function'){
+ var _l=loadMorningBrief;
+ window.loadMorningBrief=loadMorningBrief=function(){mbHook();return _l.apply(this,arguments);};
+}
+
+/* ═══ 2. SCREENER — clickable leading / lagging sectors ═══ */
+var SCSEC={per:'w'};
+window.scrPickSector=function(s){
+ try{
+  var st=SCR.state.sec||(SCR.state.sec=new Set());
+  if(st.has(s))st.delete(s);else st.add(s);
+  if(typeof scrBuildUI==='function')scrBuildUI();
+  scrRender();
+ }catch(e){console.error(e);}
+};
+window.scrSecPer=function(p){SCSEC.per=p;try{scrRender();}catch(e){}};
+function scrSectors(){
+ var host=document.getElementById('scr-regime');if(!host)return;
+ var el=document.getElementById('scr-sec');
+ if(!el){el=document.createElement('div');el.id='scr-sec';el.className='sec-row';
+  host.parentNode.insertBefore(el,host.nextSibling);}
+ var stats=sectorStats(SCR.data||[],{sector:function(r){return r.sector;},
+  d:function(r){return r.day==null?null:+r.day;},
+  w:function(r){return r.week==null?null:+r.week;},
+  m:function(r){return r.month==null?null:+r.month;}});
+ var act=null,st=SCR.state&&SCR.state.sec;
+ if(st&&st.size===1)st.forEach(function(x){act=x;});
+ el.innerHTML=secStrip('scr',stats,SCSEC.per,act,'scrPickSector','scrSecPer');
+}
+function scrHook(){
+ if(typeof scrRender!=='function'||scrRender._lay)return;
+ var orig=scrRender;
+ window.scrRender=scrRender=function(){
+  var r=orig.apply(this,arguments);
+  try{scrSectors();}catch(e){console.error('sec strip:',e);}
+  return r;
+ };
+ scrRender._lay=true;
+}
+var _t=setInterval(function(){
+ if(typeof scrRender==='function'){scrHook();clearInterval(_t);}
+},400);
+setTimeout(function(){clearInterval(_t);},30000);
 })();
 </script>
 
