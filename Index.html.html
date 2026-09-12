@@ -14733,6 +14733,11 @@ setTimeout(function(){clearInterval(t);},40000);
 .sc-i b{font-weight:600;text-align:right}
 .sc-pill{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;margin:2px 3px 0 0;background:var(--bg3)}
 .sc-none{color:var(--muted);font-size:11.5px;padding:4px 0}
+.sc-flags{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+@media(max-width:900px){.sc-flags{grid-template-columns:1fr}}
+.sc-fb{border:1px solid var(--bg3);border-radius:10px;padding:7px 10px}
+.sc-fh{font-size:11px;letter-spacing:.3px;margin-bottom:4px;cursor:help}
+.sc-fi{font-size:11.5px;padding:2px 0;cursor:help;line-height:1.35}
 </style>
 <script>
 (function(){
@@ -15039,6 +15044,102 @@ function chartPanes(o){
   '</div></div>';
 }
 
+
+/* ── flags: what the data says for and against ─────────── */
+function flags(o){
+ var d=o.scr||{},m=o.mtf||{},oi=o.oi||{},b=o.orb||{},mb=o.mb||{};
+ var B=[],R=[],C=[];
+ function n(x){return (x==null||x===''||isNaN(+x))?null:+x;}
+ function add(a,t,tip){a.push({t:t,tip:tip});}
+ var ltp=n(d.ltp!=null?d.ltp:m.ltp),adr=n(d.adr!=null?d.adr:m.adr_pct);
+
+ /* trend */
+ if(m.mtf_state==='allup')add(B,'All timeframes up','Daily, weekly and monthly are all rising. The rarest and cleanest backdrop for a long, and the only state where a swing can reasonably become a position.');
+ if(m.mtf_state==='htfpb')add(B,'HTF pullback','Weekly and monthly up while the daily rests. Historically your best entry zone: the big trend is intact and you are not chasing.');
+ if(m.mtf_state==='wkturn')add(B,'Weekly turn','The weekly 9 EMA crossed above the 20 within the last 3 weeks — a new leg starting rather than a mature one.');
+ if(m.mtf_state==='earlyturn')add(C,'Early turnaround','Daily and weekly have turned up but the monthly is still falling. This is either the start of a real reversal or a bear-market rally, and the chart cannot tell you which. Swing only.');
+ if(m.mtf_state==='alldown')add(R,'All timeframes down','Daily, weekly and monthly all falling. Nothing on any timeframe supports a long.');
+ if(m.mtf_state==='ctbounce')add(R,'Counter-trend bounce','Daily up against a falling weekly and monthly. In your own evidence this was the only clearly negative state: −1.63% average over 20 days.');
+ if(m.mtf_state==='rolling')add(R,'Rolling over','The weekly closed below its 9 EMA while the monthly is still up — the first crack in the bigger trend.');
+ if(m.mtf_state==='stretched')add(C,'Stretched from the weekly 9 EMA','More than 15% above the weekly 9 EMA. Your data says these kept running, so this is a trail-tighter signal rather than a sell — but the risk per unit of reward is worse here.');
+ if(m.w_state==='Up')add(B,'Weekly trend up','The weekly 9 EMA is above the 20 and price closed above it. Setups taken with the weekly behind them behave differently from ones fighting it.');
+ if(m.w_state==='Down')add(R,'Weekly trend down','Weekly 9 below 20 with price under it. A daily reclaim inside this is a bounce until the weekly turns.');
+ if(m.m_state==='Up')add(B,'Monthly trend up','The long-term trend is intact, which is what allows a position to be held for weeks rather than days.');
+ if(m.m_state==='Down')add(R,'Monthly trend down','The long-term trend is down. Anything on the long side here is counter-trend by definition.');
+
+ /* EMA structure */
+ var p50=n(m.pct_from_ema50),p200=n(m.pct_from_ema200),p9=n(d.pct9e);
+ if(p200!=null&&p200>0)add(B,'Above the 200 EMA','Price is above its long-term average, which is the crude line between an uptrend and a downtrend.');
+ if(p200!=null&&p200<0)add(R,'Below the 200 EMA','Price is under its long-term average.');
+ if(p50!=null&&p50>0&&m.ema50_rising)add(B,'Above a rising 50 EMA','The intermediate trend is up and the 50 EMA is sloping up under price — the level pullbacks tend to hold.');
+ if(p9!=null&&adr&&Math.abs(p9)<=adr)add(B,'Within 1 ADR of the 9 EMA','Price is close enough to the 9 EMA that a stop under the pullback low stays tight. This is the entry zone, not the chase zone.');
+ if(p9!=null&&adr&&p9>3*adr)add(C,'Extended from the 9 EMA','More than three average daily ranges above the 9 EMA. Entering here means a wide stop or a tight one that gets hit by noise.');
+ if(m.ema_base&&m.base_status==='forming')add(B,(m.ema_base==='20+50'?'20 + 50':m.ema_base)+' EMA base','A box built after a 30%+ rally that keeps holding this EMA — '+m.base_days+' sessions, '+m.base_depth_pct+'% deep. Trigger is the box high at '+m.box_high+'.');
+ if(m.below_box_days>0)add(R,'Below its base box · day '+m.below_box_days+' of 5','Price has closed under the box low. Five closes in a row without reclaiming and the base has failed.');
+
+ /* structure */
+ var away=n(d.pct52!=null?d.pct52:(d.away52!=null?-d.away52:null));
+ if(away!=null&&away>=-5)add(B,'At or near 52-week highs','Within 5% of the 52-week high — no overhead supply from buyers waiting to break even.');
+ if(away!=null&&away<-25)add(R,'More than 25% below the 52-week high','A long way of trapped buyers sits above, and each old high is a place the move can stall.');
+ if(d.qm)add(B,d.qm+' pattern','A '+d.qm+' setup was detected by the scan — one of the shapes you actually trade.');
+ if(n(d.contract)!=null&&n(d.contract)>=0.7)add(B,'Tight contraction','The range is compressing hard. Compression before a break is what produces the narrow opening ranges that scored +0.130R against +0.020R for wide ones in your backtest.');
+ if(d.isNr7)add(B,'NR7 today','Narrowest range of the last 7 sessions — the spring is loaded, though it does not say in which direction.');
+ else if(d.isNr4)add(B,'NR4 today','Narrowest range of the last 4 sessions.');
+ if(n(d.basePct)!=null&&n(d.basePct)>25)add(R,'Base deeper than 25%','A deep base is damage, not rest. The tighter the base, the better the odds of the break holding.');
+ if(n(d.poleMovePct)!=null&&n(d.poleMovePct)>=30)add(B,'Strong pole into the base','A '+f(d.poleMovePct,0)+'% move preceded this base. Big bases without a big pole rarely go anywhere.');
+
+ /* volume */
+ var rv=n(d.rvol),del=n(d.del);
+ if(rv!=null&&rv>=1.5)add(B,'Volume '+f(rv,1)+'× average','Real participation behind today\u2019s move rather than drift.');
+ if(d.volDry)add(B,'Volume dried up','Low volume inside a base means sellers are done. This is what you want before a break, not during one.');
+ if(n(d.bovol)!=null&&n(d.bovol)>=2)add(B,'Breakout on '+f(d.bovol,1)+'× volume','The breakout came with conviction behind it.');
+ if(del!=null&&del>=60)add(B,'Delivery '+f(del,0)+'%','A high share of volume was taken to delivery — real buying rather than intraday churn.');
+ if(del!=null&&del<30)add(C,'Delivery only '+f(del,0)+'%','Most of the volume was intraday churn, so the move has less real money behind it.');
+
+ /* sector and market */
+ if(d.secW==='strong')add(B,'Sector strong on the weekly','Its sector is in the top third over five sessions, so this is rotation rather than a one-day pop.');
+ if(d.secW==='weak')add(R,'Sector weak on the weekly','Fighting its own sector. Leaders in weak sectors exist, but they are the exception.');
+ try{if(typeof ALIGN!=='undefined'&&ALIGN.mktState==='weak')add(C,'Market breadth weak','Only '+ALIGN.breadth+'% of your universe is above its 20 EMA. Most setups fail in this backdrop regardless of how good they look.');}catch(e){}
+ if(d.conv===3)add(B,'★★★ conviction','Stock, sector and market all line up — the combination the conviction rule was built around.');
+ if(d.conv===-1)add(R,'Marked avoid','The conviction rule rates this a skip: counter-trend with a weak sector, or every timeframe down.');
+
+ /* F&O and the ORB record */
+ var bu=oi.oi_buildup||mb.oi_buildup;
+ if(bu==='Long Buildup')add(B,'Long buildup','Price up with open interest up — fresh longs, not short covering.');
+ if(bu==='Short Buildup')add(R,'Short buildup','Price down with open interest up — fresh shorts being added, which is bearish evidence but also fuel for a squeeze.');
+ if(bu==='Short Covering')add(C,'Short covering','Price is up because shorts are buying back, not because new buyers arrived. These moves fade once covering finishes.');
+ if(bu==='Long Unwinding')add(R,'Long unwinding','Price down with open interest down — existing longs stepping away.');
+ var ce=n(oi.max_ce_strike),pe=n(oi.max_pe_strike);
+ if(ltp&&ce&&Math.abs(ce/ltp-1)*100<=1.5)add(C,'Right under the call OI wall at '+f(ce,0),'The heaviest call open interest sits here and writers defend it, so an upside move is likely to stall. It matters for which strike you buy.');
+ if(ltp&&pe&&Math.abs(pe/ltp-1)*100<=1.5)add(C,'Right on the put OI wall at '+f(pe,0),'The heaviest put open interest sits here, which often acts as a floor — and as a level that breaks hard if it goes.');
+ if(b&&b.trades>=10){
+  var g=n(b.avg_gross_r);
+  if(g!=null&&g>0.15)add(B,'Good ORB record: '+f(b.win_pct,0)+'% over '+b.trades+' trades','In your own 8,962-trade backtest this stock averaged '+(g>0?'+':'')+f(g,2)+'R gross on opening-range breaks — one of the better behaved names.');
+  if(g!=null&&g<-0.15)add(R,'Poor ORB record: '+f(b.win_pct,0)+'% over '+b.trades+' trades','This stock averaged '+f(g,2)+'R gross on opening-range breaks in your backtest. It has a history of not respecting the setup.');
+ }
+
+ /* option-buyer cautions */
+ if(adr!=null&&adr<2.5)add(C,'ADR only '+f(adr,2)+'% — too slow','Your measured bands: 2.0-2.5% averaged −0.024R and below 2% averaged −0.202R. For an option buyer a stock that does not travel cannot outrun time decay.');
+ if(adr!=null&&adr>=3.5)add(B,'ADR '+f(adr,2)+'% — moves enough','Above 3.5% averaged +0.334R per trade in your data, the best band by a distance. Combined with a narrow opening range it was the strongest combination found.');
+ if(d.ern)add(C,'Earnings: '+esc(String(d.ern)),'An event inside the trade. For an option buyer that means an implied-volatility crush after the print as well as direction risk.');
+ if(m.m_short_history)add(C,'Short price history','Not enough months for a reliable monthly read, so the biggest timeframe is unknown rather than confirmed.');
+ if(m.recently_listed)add(C,'Recently listed','Less than a month of trading. No base, no track record, and levels that have never been tested.');
+ return {B:B,R:R,C:C};
+}
+function flagBox(title,arr,colr,tip){
+ if(!arr.length)return '<div class="sc-fb"><div class="sc-fh" title="'+esc(tip)+'"><b style="color:'+colr+'">'+title+' 0</b></div><div class="sc-none">Nothing found.</div></div>';
+ return '<div class="sc-fb"><div class="sc-fh" title="'+esc(tip)+'"><b style="color:'+colr+'">'+title+' '+arr.length+'</b></div>'+
+  arr.map(function(x){return '<div class="sc-fi" title="'+esc(x.tip)+'"><span style="color:'+colr+'">•</span> '+esc(x.t)+'</div>';}).join('')+'</div>';
+}
+function flagPanel(o){
+ var fl=flags(o);
+ return '<div class="sc-flags">'+
+  flagBox('Bullish evidence',fl.B,'#22C55E','Everything in your data that argues for upside. Hover any line for what it means and why it matters. These are signals, not guarantees — count them against the other two boxes rather than reading any one as a decision.')+
+  flagBox('Bearish evidence',fl.R,'#EF4444','Everything that argues for downside. If you are looking at this as a short, read this box as the supporting case and the green one as the argument against.')+
+  flagBox('Cautions',fl.C,'#F59E0B','Risks that apply whichever way you trade it: slow movers, events inside the trade, option-interest walls overhead, and thin history. These matter most when you are buying options, because time and volatility work against you.')+
+  '</div>';
+}
+
 /* ── render ────────────────────────────────────────────── */
 function render(){
  var o=gather(SC.sym),d=o.scr||{},m=o.mtf||{},mb=o.mb||{};
@@ -15064,7 +15165,7 @@ function render(){
   (pbs.length?'<div style="margin-top:5px" title="'+esc(T.verdict)+'">'+pbs.map(function(x){return '<span class="sc-pill">'+esc(x)+'</span>';}).join('')+'</div>':
    '<div class="sc-none" style="margin-top:4px" title="'+esc(T.verdict)+'">No playbook matches this stock right now.</div>');
 
- var body=chartPanes(o)+
+ var body=chartPanes(o)+flagPanel(o)+
   sec('trend','TREND & ALIGNMENT','',secTrend(o),T.verdict)+
   sec('ema','EMAs','9 · 20 · 50 · 200 · weekly · monthly',secEMA(o),T.ema)+
   sec('struct','STRUCTURE & PATTERN','52W · QM · base · NR',secStruct(o),T.struct)+
