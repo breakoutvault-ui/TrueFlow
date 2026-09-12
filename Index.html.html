@@ -14349,7 +14349,7 @@ function sectorStats(rows,get){
   if(d!=null){a.d+=d;a.nd++;}if(w!=null){a.w+=w;a.nw++;}if(m!=null){a.m+=m;a.nm++;}
  });
  var out=[];
- for(var s in acc){var a=acc[s];if(a.n<3)continue;
+ for(var s in acc){var a=acc[s];if(a.n<2)continue;
   out.push({sector:s,n:a.n,d:a.nd?a.d/a.nd:null,w:a.nw?a.w/a.nw:null,m:a.nm?a.m/a.nm:null});}
  return out;
 }
@@ -14434,8 +14434,16 @@ function mbSectors(){
  var el=document.getElementById('mb2-sec');
  if(!el){el=document.createElement('div');el.id='mb2-sec';el.className='sec-row';
   tbl.parentNode.insertBefore(el,document.getElementById('mb2-strip')||tbl);}
- var mom=(window.MB2&&MB2.mom)||{},rows=[];
- for(var k in mom)rows.push(mom[k]);
+ var mom=(window.MB2&&MB2.mom)||{},rows=[],here=null;
+ // Rank only stocks that are actually on this tab. momentum_stocks covers the
+ // whole 1,450-stock market, but Morning Brief shows the 208 F&O names, so a
+ // sector that leads market-wide can have no F&O stock at all -> zero rows.
+ try{
+  var src=(window.mbData||[]);
+  if(src.length){here={};src.forEach(function(x){here[x.symbol]=1;});}
+ }catch(e){}
+ for(var k in mom){if(here&&!here[k])continue;rows.push(mom[k]);}
+ if(!rows.length){for(var k2 in mom)rows.push(mom[k2]);}
  var stats=sectorStats(rows,{sector:function(r){return r.sector;},
   d:function(r){return r.day_chg_pct==null?null:+r.day_chg_pct;},
   w:function(r){return r.week_chg_pct==null?null:+r.week_chg_pct;},
@@ -14471,7 +14479,7 @@ if(typeof loadMorningBrief==='function'){
 var SCSEC={per:'w'};
 window.scrPickSector=function(s){
  try{
-  var st=SCR.state.sec||(SCR.state.sec=new Set());
+  var st=SCR.state.sector||(SCR.state.sector=new Set());
   if(st.has(s))st.delete(s);else st.add(s);
   if(typeof scrBuildUI==='function')scrBuildUI();
   scrRender();
@@ -14487,7 +14495,7 @@ function scrSectors(){
   d:function(r){return r.day==null?null:+r.day;},
   w:function(r){return r.week==null?null:+r.week;},
   m:function(r){return r.month==null?null:+r.month;}});
- var act=null,st=SCR.state&&SCR.state.sec;
+ var act=null,st=SCR.state&&SCR.state.sector;
  if(st&&st.size===1)st.forEach(function(x){act=x;});
  el.innerHTML=secStrip('scr',stats,SCSEC.per,act,'scrPickSector','scrSecPer');
 }
@@ -14505,6 +14513,184 @@ var _t=setInterval(function(){
  if(typeof scrRender==='function'){scrHook();clearInterval(_t);}
 },400);
 setTimeout(function(){clearInterval(_t);},30000);
+})();
+</script>
+
+
+<!-- ═══ TrueFlow screener layout v1 — outlook on top, collapsible sections ═══ -->
+<style>
+.scl-head{display:flex;align-items:center;gap:8px;margin:8px 0 4px;font-size:11px;flex-wrap:wrap}
+.scl-tog{padding:2px 9px;border-radius:6px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11px}
+.scl-tog.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+.scl-note{color:var(--muted);font-size:10px}
+</style>
+<script>
+(function(){
+'use strict';
+/* Pure layout. Nothing is removed: the same Quick Views, Playbooks and Filter
+   controls are simply moved into collapsible sections, with the market and
+   sector outlook lifted to the top where they are read first. */
+var SEC=[
+ {id:'scr-presets',   label:'Quick views', open:false,
+  tip:'Saved one-click views. Same buttons as before, just folded away until you want them.'},
+ {id:'scr-pbstrip',   label:'Playbooks',   open:false,
+  tip:'Your named strategy screens. Click one to apply its filters. Reframed or Original is chosen on the line above.'},
+ {id:'scr-fbar',      label:'Filters',     open:false,
+  tip:'Every individual filter, click to multi-select. Open this when you want to build a screen by hand instead of using a playbook.'}
+];
+function el(id){return document.getElementById(id);}
+function wrap(sec){
+ var node=el(sec.id)||document.querySelector('.'+sec.id);
+ if(!node||node.dataset.scl)return false;
+ node.dataset.scl='1';
+ var head=document.createElement('div');
+ head.className='scl-head';head.id='scl-h-'+sec.id;
+ head.innerHTML='<button class="scl-tog'+(sec.open?' on':'')+'" onclick="sclToggle(\''+sec.id+'\')" title="'+sec.tip.replace(/"/g,'&quot;')+'">'+
+   (sec.open?'▾ ':'▸ ')+sec.label+'</button><span class="scl-note" id="scl-n-'+sec.id+'"></span>';
+ node.parentNode.insertBefore(head,node);
+ node.style.display=sec.open?'':'none';
+ return true;
+}
+window.sclToggle=function(id){
+ var node=el(id)||document.querySelector('.'+id),h=el('scl-h-'+id);
+ if(!node)return;
+ var hidden=node.style.display==='none';
+ node.style.display=hidden?'':'none';
+ var b=h&&h.querySelector('.scl-tog');
+ if(b){b.textContent=(hidden?'▾ ':'▸ ')+b.textContent.slice(2);b.classList.toggle('on',hidden);}
+};
+function counts(){
+ try{
+  var n=0;for(var k in SCR.state){if(SCR.state[k]&&SCR.state[k].size)n++;}
+  var f=el('scl-n-scr-fbar');
+  if(f)f.textContent=n?(n+' filter group'+(n>1?'s':'')+' active'):'';
+  var p=el('scl-n-scr-pbstrip'),ap=SCR.activePreset;
+  if(p)p.textContent=(ap&&ap!=='all')?('active: '+ap):'';
+ }catch(e){}
+}
+function lift(){
+ // market strip + sector strip to the top of the screener, above everything
+ var reg=el('scr-regime'),host=el('scr-presets');
+ if(!reg||!host||!host.parentNode)return;
+ // sit above the "Quick views" toggle, not between it and its panel
+ var anchor=el('scl-h-scr-presets')||host;
+ if(reg.dataset.scl!=='1'){
+  host.parentNode.insertBefore(reg,anchor);
+  reg.dataset.scl='1';
+ }
+ var sec=el('scr-sec');
+ if(sec&&sec.dataset.scl!=='1'){
+  reg.parentNode.insertBefore(sec,reg.nextSibling);
+  sec.dataset.scl='1';
+ }
+}
+function apply(){
+ SEC.forEach(wrap);
+ lift();
+ counts();
+}
+var tries=0,t=setInterval(function(){
+ tries++;
+ if(el('scr-presets')&&typeof scrRender==='function'){
+  apply();
+  if(!scrRender._scl){
+   var o=scrRender;
+   window.scrRender=scrRender=function(){var r=o.apply(this,arguments);try{apply();}catch(e){}return r;};
+   scrRender._scl=true;
+  }
+  clearInterval(t);
+ }
+ if(tries>80)clearInterval(t);
+},300);
+})();
+</script>
+
+
+<!-- ═══ TrueFlow screener layout v1 — outlook on top, collapsible sections ═══ -->
+<style>
+.scr-sec-h{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 10px;margin:6px 0 0 0;border:1px solid var(--bg3);border-radius:9px;font-size:11px;color:var(--muted);user-select:none}
+.scr-sec-h:hover{border-color:var(--cyan)}
+.scr-sec-h b{color:var(--text);font-size:11px;letter-spacing:.4px}
+.scr-sec-h .cnt{margin-left:auto;font-size:10px}
+.scr-sec-wrap.closed{display:none}
+</style>
+<script>
+(function(){
+'use strict';
+var KEY='tfScrOpen',OPEN={quick:false,pb:false,filt:false};
+try{var v=JSON.parse(localStorage.getItem(KEY)||'null');if(v)OPEN=v;}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(OPEN));}catch(e){}}
+
+function wrap(id,key,label,tip,countFn){
+ var el=document.getElementById(id);
+ if(!el||el.dataset.scrWrapped)return;
+ var host=(id==='scr-filters')?el.closest('.scr-fbar')||el:el;
+ if(host.dataset.scrWrapped)return;
+ host.dataset.scrWrapped='1';el.dataset.scrWrapped='1';
+ var w=document.createElement('div');
+ w.className='scr-sec-wrap'+(OPEN[key]?'':' closed');w.id='scrw-'+key;
+ host.parentNode.insertBefore(w,host);w.appendChild(host);
+ var h=document.createElement('div');
+ h.className='scr-sec-h';h.id='scrh-'+key;h.title=tip;
+ h.innerHTML='<span id="scra-'+key+'">'+(OPEN[key]?'▾':'▸')+'</span><b>'+label+'</b><span class="cnt" id="scrc-'+key+'"></span>';
+ h.onclick=function(){scrSecToggle(key);};
+ w.parentNode.insertBefore(h,w);
+ if(countFn)scrSecCount(key,countFn);
+}
+window.scrSecToggle=function(k){
+ OPEN[k]=!OPEN[k];save();
+ var w=document.getElementById('scrw-'+k),a=document.getElementById('scra-'+k);
+ if(w)w.classList.toggle('closed',!OPEN[k]);
+ if(a)a.textContent=OPEN[k]?'▾':'▸';
+};
+function scrSecCount(k,fn){
+ var el=document.getElementById('scrc-'+k);if(!el)return;
+ try{el.textContent=fn()||'';}catch(e){}
+}
+
+function moveOutlookUp(){
+ var reg=document.getElementById('scr-regime'),pre=document.getElementById('scr-presets');
+ if(!reg||!pre||reg.dataset.moved)return;
+ reg.dataset.moved='1';
+ var sec=document.getElementById('scr-sec');
+ var anchor=document.getElementById('scrh-quick')||pre;
+ var parent=anchor.parentNode;
+ parent.insertBefore(reg,anchor);
+ if(sec)parent.insertBefore(sec,anchor);
+}
+
+function activeFilterCount(){
+ var n=0;
+ try{for(var k in SCR.state){if(SCR.state[k]&&SCR.state[k].size)n++;}}catch(e){}
+ return n?(n+' active'):'';
+}
+function build(){
+ if(!document.getElementById('scr-presets'))return false;
+ wrap('scr-presets','quick','QUICK VIEWS','Saved one-click views. Collapsed by default so the table starts higher up — click to open.',
+  function(){var e=document.getElementById('scr-presets');return e?(e.querySelectorAll('.scr-chip,.scr-preset,button').length-0)+' views':'';});
+ wrap('scr-pbstrip','pb','PLAYBOOKS','Every named setup, one tap to apply. The Reframed / Original switch lives inside.',
+  function(){var e=document.getElementById('scr-pb-list');return e?e.children.length+' playbooks':'';});
+ wrap('scr-filters','filt','FILTERS','Every filter, click any to multi-select.',activeFilterCount);
+ moveOutlookUp();
+ return true;
+}
+function refresh(){
+ try{
+  build();
+  var e=document.getElementById('scrc-filt');
+  if(e)e.textContent=activeFilterCount();
+  var p=document.getElementById('scrc-pb'),l=document.getElementById('scr-pb-list');
+  if(p&&l)p.textContent=l.children.length+' playbooks';
+ }catch(err){console.error('scr layout:',err);}
+}
+function hook(){
+ if(typeof scrRender!=='function'||scrRender._uiw)return false;
+ var orig=scrRender;
+ window.scrRender=scrRender=function(){var r=orig.apply(this,arguments);refresh();return r;};
+ scrRender._uiw=true;return true;
+}
+var t=setInterval(function(){if(hook()){refresh();clearInterval(t);}},400);
+setTimeout(function(){clearInterval(t);},40000);
 })();
 </script>
 
