@@ -14758,6 +14758,9 @@ setTimeout(function(){clearInterval(t);},40000);
 .sc-fb{border:1px solid var(--bg3);border-radius:10px;padding:7px 10px}
 .sc-fh{font-size:11px;letter-spacing:.3px;margin-bottom:4px;cursor:help}
 .sc-fi{font-size:11.5px;padding:2px 0;cursor:help;line-height:1.35}
+.sc-pbtn{display:inline-block;margin:3px 4px 0 0;padding:3px 9px;border-radius:7px;border:1px solid var(--bg3);
+ background:none;color:var(--text);cursor:pointer;font-size:11px}
+.sc-pbtn:hover{border-color:var(--cyan);color:var(--cyan)}
 </style>
 <script>
 (function(){
@@ -15146,6 +15149,33 @@ function relBox(o){
 }
 
 
+
+/* ── jump to the screener with a playbook applied ──────── */
+window.scGoPlaybook=function(id){
+ try{
+  scClose();
+  if(typeof switchMode==='function')switchMode('momentum');
+  var btn=null,all=document.querySelectorAll('[onclick]');
+  for(var i=0;i<all.length;i++){
+   var oc=all[i].getAttribute('onclick')||'';
+   if(oc.indexOf("switchTab('screener'")>=0){btn=all[i];break;}
+  }
+  if(btn&&typeof switchTab==='function')switchTab('screener',btn,'momentum');
+  var tries=0;
+  var t=setInterval(function(){
+   tries++;
+   if(typeof scrApplyPreset==='function'&&window.SCR&&SCR.loaded){
+    clearInterval(t);
+    if(SCR.activePreset===id)SCR.activePreset=null;   // force a fresh apply
+    scrApplyPreset(id);
+    var el=document.getElementById('scr-pb-list')||document.getElementById('scr-presets');
+    if(el&&el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'center'});
+   }
+   if(tries>40)clearInterval(t);
+  },150);
+ }catch(e){console.error('playbook jump:',e);}
+};
+
 /* ── flags: what the data says for and against ─────────── */
 function flags(o){
  var d=o.scr||{},m=o.mtf||{},oi=o.oi||{},b=o.orb||{},mb=o.mb||{};
@@ -15232,13 +15262,50 @@ function flagBox(title,arr,colr,tip){
  return '<div class="sc-fb"><div class="sc-fh" title="'+esc(tip)+'"><b style="color:'+colr+'">'+title+' '+arr.length+'</b></div>'+
   arr.map(function(x){return '<div class="sc-fi" title="'+esc(x.tip)+'"><span style="color:'+colr+'">•</span> '+esc(x.t)+'</div>';}).join('')+'</div>';
 }
+function pbPanel(o){
+ var d=o.scr||{},pbs=[];
+ try{
+  if(d&&typeof scrPasses==='function'&&window.SCR_PRESETS){
+   var keep=SCR.activePreset,st=SCR.state,saved={};
+   for(var k in st)saved[k]=st[k];
+   SCR_PRESETS.forEach(function(p){
+    if(p.id==='all')return;
+    try{
+     for(var k2 in st)SCR.state[k2]=new Set();
+     if(p.set)for(var f2 in p.set)SCR.state[f2]=new Set(p.set[f2]);
+     SCR.activePreset=p.id;
+     if(scrPasses(d))pbs.push(p);
+    }catch(e){}
+   });
+   SCR.activePreset=keep;for(var k3 in saved)SCR.state[k3]=saved[k3];
+  }
+ }catch(e){}
+ var tip='Every playbook whose rules this stock passes right now. Click one to open the Momentum screener with that playbook applied, so you can see the rest of today\u2019s candidates for the same setup. Nothing here is a signal on its own — it tells you which of your own setups this stock currently fits.';
+ var body;
+ if(!pbs.length){
+  body='<div class="sc-none">No playbook matches this stock right now.'+
+   (window.SCR&&SCR.data&&SCR.data.length?'':' Open the Momentum tab once so the playbook rules can be checked.')+'</div>';
+ }else{
+  var grp={};
+  pbs.forEach(function(p){var g=p.grp||'Other';(grp[g]=grp[g]||[]).push(p);});
+  body=Object.keys(grp).map(function(g){
+   return '<div style="margin-top:4px"><span style="font-size:9.5px;color:var(--muted);letter-spacing:.5px">'+esc(g.toUpperCase())+'</span><br>'+
+    grp[g].map(function(p){
+     return '<button class="sc-pbtn" onclick="scGoPlaybook(\''+esc(p.id)+'\')" title="'+esc((p.desc||p.label)+' \u2014 click to open the screener filtered to this playbook.')+'">'+esc(p.label)+' →</button>';
+    }).join('')+'</div>';
+  }).join('');
+ }
+ return '<div class="sc-sec open" style="margin-top:10px"><div class="sc-sh" title="'+esc(tip)+'" style="cursor:help">'+
+  '<b>PLAYBOOKS THIS STOCK FITS</b><span class="sub">'+pbs.length+' match'+(pbs.length===1?'':'es')+'</span></div>'+
+  '<div class="sc-sb" style="display:block">'+body+'</div></div>';
+}
 function flagPanel(o){
  var fl=flags(o);
  return '<div class="sc-flags">'+
   flagBox('Bullish evidence',fl.B,'#22C55E','Everything in your data that argues for upside. Hover any line for what it means and why it matters. These are signals, not guarantees — count them against the other two boxes rather than reading any one as a decision.')+
   flagBox('Bearish evidence',fl.R,'#EF4444','Everything that argues for downside. If you are looking at this as a short, read this box as the supporting case and the green one as the argument against.')+
   flagBox('Cautions',fl.C,'#F59E0B','Risks that apply whichever way you trade it: slow movers, events inside the trade, option-interest walls overhead, and thin history. These matter most when you are buying options, because time and volatility work against you.')+
-  '</div>';
+  '</div>'+pbPanel(o);
 }
 
 /* ── render ────────────────────────────────────────────── */
