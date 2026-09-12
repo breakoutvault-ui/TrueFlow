@@ -14694,5 +14694,376 @@ setTimeout(function(){clearInterval(t);},40000);
 })();
 </script>
 
+
+<!-- ═══ TrueFlow Stock Card v1 — one stock, every data point, slide-over ═══ -->
+<style>
+#sc-back{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:none}
+#sc-panel{position:fixed;top:0;right:0;bottom:0;width:min(760px,92vw);background:var(--bg);border-left:1px solid var(--bg3);
+ z-index:9999;display:none;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.35)}
+#sc-panel.open,#sc-back.open{display:flex}
+#sc-head{padding:12px 16px;border-bottom:1px solid var(--bg3);flex:none}
+#sc-body{overflow-y:auto;padding:0 16px 24px;flex:1}
+.sc-nav{background:none;border:1px solid var(--bg3);color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px}
+.sc-nav:hover{border-color:var(--cyan);color:var(--cyan)}
+.sc-sec{border:1px solid var(--bg3);border-radius:10px;margin-top:10px;overflow:hidden}
+.sc-sh{display:flex;align-items:center;gap:8px;padding:7px 11px;cursor:pointer;font-size:11px;letter-spacing:.4px;user-select:none}
+.sc-sh b{color:var(--text)}
+.sc-sh .sub{margin-left:auto;color:var(--muted);font-size:10px;font-weight:400}
+.sc-sb{padding:4px 11px 11px;display:none}
+.sc-sec.open .sc-sb{display:block}
+.sc-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px 12px}
+.sc-i{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;padding:2px 0;border-bottom:1px dotted var(--bg3);cursor:help}
+.sc-i span:first-child{color:var(--muted)}
+.sc-i b{font-weight:600;text-align:right}
+.sc-pill{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;margin:2px 3px 0 0;background:var(--bg3)}
+.sc-none{color:var(--muted);font-size:11.5px;padding:4px 0}
+</style>
+<script>
+(function(){
+'use strict';
+var SC={sym:null,list:[],idx:-1,open:{}};
+var T={
+ verdict:'A one-line read: the multi-timeframe state, the daily/weekly/monthly arrows, and which of your playbooks this stock currently qualifies for. If a playbook is listed, that is why it is on your screen.',
+ ema:'The 9/20/50/200 EMA suite. % figures are the distance from price to each EMA — negative means price is below it. Weekly and monthly EMA values come from completed candles.',
+ struct:'Where price sits in its own range and what shape it is making: distance from the 52-week high, the QM pattern, base depth and length, contraction, and any narrow-range day.',
+ vol:'Volume against this stock\u2019s own 20-day average. RVOL above 1.5 means real participation; below 0.8 is a dry-up, which is what you want inside a base rather than on a breakout.',
+ fno:'Futures and options positioning from the NSE bhav copy, plus this stock\u2019s own record in your ORB backtest. The call-OI wall acts as a ceiling and the put-OI wall as a floor.',
+ rcl:'Reclaim setup detail: how deep the dip went, how long it stayed below, the volume pattern through it, and where the stop sits.',
+ sm:'Bulk and block deals on record for this stock.',
+ res:'Earnings: when results are due or how the stock reacted to the last set.',
+ alert:'Intraday alerts fired for this stock, with the stage. Stage 3 and 4 are with the daily trend, 1 and 2 against it.',
+ ndwl:'If this stock is a current Next Day WL pick: its score, trigger, room to run and badges.',
+ chart:'Free public TradingView chart. It cannot carry your saved layout, indicators or drawings — use the link above the chart for that.'
+};
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function num(x){return (x==null||x===''||isNaN(+x))?null:+x;}
+function f(x,d){x=num(x);return x==null?null:x.toFixed(d==null?2:d);}
+function pct(x,d){x=num(x);return x==null?null:((x>0?'+':'')+x.toFixed(d==null?1:d)+'%');}
+function col(x){x=num(x);return x==null?'':(x>0?'color:#22C55E':(x<0?'color:#EF4444':''));}
+
+function item(label,val,tip,style){
+ if(val==null||val===''||val==='—')return '';
+ return '<div class="sc-i" title="'+esc(tip||label)+'"><span>'+esc(label)+'</span><b style="'+(style||'')+'">'+val+'</b></div>';
+}
+function sec(key,title,sub,inner,tip){
+ if(!inner||!inner.replace(/\s/g,''))return '';
+ var op=SC.open[key]!==false;
+ return '<div class="sc-sec'+(op?' open':'')+'" id="scs-'+key+'">'+
+  '<div class="sc-sh" onclick="scToggle(\''+key+'\')" title="'+esc(tip||'')+'"><span id="sca-'+key+'">'+(op?'▾':'▸')+'</span>'+
+  '<b>'+esc(title)+'</b><span class="sub">'+esc(sub||'')+'</span></div>'+
+  '<div class="sc-sb">'+inner+'</div></div>';
+}
+window.scToggle=function(k){
+ SC.open[k]=(SC.open[k]===false);
+ var e=document.getElementById('scs-'+k),a=document.getElementById('sca-'+k);
+ if(e)e.classList.toggle('open',SC.open[k]!==false);
+ if(a)a.textContent=(SC.open[k]!==false)?'▾':'▸';
+};
+
+/* ── gather one stock from every dataset ───────────────── */
+function gather(sym){
+ var o={sym:sym};
+ try{o.scr=(window.SCR&&SCR.data||[]).filter(function(d){return d.sym===sym;})[0]||null;}catch(e){}
+ try{o.mtf=(window.TF_MTF||{})[sym]||null;}catch(e){}
+ try{o.oi=(window.MB2&&MB2.oi||{})[sym]||null;o.orb=(window.MB2&&MB2.orb||{})[sym]||null;o.mom=(window.MB2&&MB2.mom||{})[sym]||null;}catch(e){}
+ try{o.mb=(window.mbData||[]).filter(function(d){return d.symbol===sym;})[0]||null;}catch(e){}
+ try{o.picks=(window.MB2&&MB2.picks||[]).filter(function(p){return p.symbol===sym;});}catch(e){}
+ try{var md=window.momData||{};
+  o.sm=(md.smartmoney||[]).filter(function(d){return (d.symbol||d.sym)===sym;}).slice(0,6);
+  o.mine=(md.picks||[]).filter(function(d){return d.symbol===sym;})[0]||null;
+ }catch(e){}
+ try{o.alerts=(window.foAlerts||window.alertData||[]).filter(function(a){return a.symbol===sym;}).slice(0,6);}catch(e){}
+ return o;
+}
+function playbooksFor(d){
+ var out=[];
+ try{
+  if(!d||typeof scrPasses!=='function')return out;
+  var keep=SCR.activePreset,st=SCR.state,saved={};
+  for(var k in st)saved[k]=st[k];
+  SCR_PRESETS.forEach(function(p){
+   if(p.id==='all')return;
+   try{
+    for(var k2 in st)SCR.state[k2]=new Set();
+    if(p.set)for(var f2 in p.set)SCR.state[f2]=new Set(p.set[f2]);
+    SCR.activePreset=p.id;
+    if(scrPasses(d))out.push(p.label);
+   }catch(e){}
+  });
+  SCR.activePreset=keep;for(var k3 in saved)SCR.state[k3]=saved[k3];
+ }catch(e){}
+ return out.slice(0,10);
+}
+
+/* ── sections ──────────────────────────────────────────── */
+function secEMA(o){
+ var d=o.scr||{},m=o.mtf||{},h='';
+ h+=item('Price',f(d.ltp!=null?d.ltp:(m.ltp)),'Last traded price');
+ h+=item('9 EMA',f(d.ema9),'Daily 9 EMA value');
+ h+=item('% from 9E',pct(d.pct9e),'Distance from the daily 9 EMA',col(d.pct9e));
+ h+=item('20 EMA',f(d.ema20),'Daily 20 EMA value');
+ h+=item('% from 20E',pct(m.pct_from_ema20_d),'Distance from the daily 20 EMA',col(m.pct_from_ema20_d));
+ h+=item('50 EMA',f(m.ema50_d),'Daily 50 EMA value');
+ h+=item('% from 50E',pct(m.pct_from_ema50),'Distance from the daily 50 EMA',col(m.pct_from_ema50));
+ h+=item('200 EMA',f(m.ema200_d),'Daily 200 EMA value');
+ h+=item('% from 200E',pct(m.pct_from_ema200),'Distance from the daily 200 EMA',col(m.pct_from_ema200));
+ h+=item('% from 5E',pct(d.pct5e),'Distance from the daily 5 EMA',col(d.pct5e));
+ h+=item('Daily EMA state',d.demastat,'How the daily EMAs are stacked');
+ h+=item('Daily cross',d.dcross+(d.dsince!=null?' ('+d.dsince+'d)':''),'When the daily 9 crossed the 20, and how long ago');
+ h+=item('Weekly 9E',f(m.ema9_w),'Weekly 9 EMA, last completed week');
+ h+=item('% from wk 9E',pct(m.pct_from_ema9_w),'Distance from the weekly 9 EMA',col(m.pct_from_ema9_w));
+ h+=item('Weekly 20E',f(m.ema20_w),'Weekly 20 EMA');
+ h+=item('Weekly cross',d.wcross+(d.wkdays!=null?' ('+d.wkdays+'w)':''),'Weekly 9/20 crossover');
+ h+=item('Monthly 9E',f(m.ema9_m),'Monthly 9 EMA');
+ h+=item('% from mo 9E',pct(m.pct_from_ema9_m),'Distance from the monthly 9 EMA',col(m.pct_from_ema9_m));
+ h+=item('Category',d.cat,'A = above daily 9+20 and weekly 9+20 · B = below daily 9, above weekly 9+20 · C = fresh weekly crossover · AC = both');
+ if(m.ema_base)h+=item('EMA base',(m.ema_base==='20+50'?'20 + 50':m.ema_base)+'E · '+m.base_days+'d · depth '+m.base_depth_pct+'%',
+  'Box after a 30%+ rally sitting on this EMA. Box '+m.box_low+' to '+m.box_high+'. Fails after 5 closes in a row below the box low'+(m.below_box_days?' — currently day '+m.below_box_days+' of 5':'')+'.');
+ return h?'<div class="sc-g">'+h+'</div>':'';
+}
+function secStruct(o){
+ var d=o.scr||{},m=o.mtf||{},h='';
+ h+=item('52W high',f(d.hi52),'Highest price in the last 52 weeks');
+ h+=item('From 52W high',pct(d.pct52!=null?d.pct52:(d.away52!=null?-d.away52:null)),'How far below the 52-week high',col(-1));
+ h+=item('52W low',f(d.low52),'Lowest price in the last 52 weeks');
+ h+=item('52W state',d.z52,'Where price sits in its 52-week range');
+ h+=item('ADR',f(d.adr)+'%','Average daily range — how far it typically travels in a day. Above 3.5% averaged +0.334R in your ORB data; below 2% was -0.202R.');
+ h+=item('QM pattern',d.qm,'Qullamaggie pattern detected: EP, VCP, HTF and so on');
+ h+=item('Pivot',f(d.pivotLvl||d.pivot),'Pattern pivot level — the trigger');
+ h+=item('Base %',d.basePct!=null?f(d.basePct,1)+'%':null,'How deep the base is');
+ h+=item('Base days',d.baseDays,'How many sessions the base has taken');
+ h+=item('Contraction',f(d.contract,2),'How much the range is tightening. 0.7+ is a real coil.');
+ h+=item('Consol days',d.consolDays,'Sessions spent consolidating');
+ h+=item('Pole move',d.poleMovePct!=null?pct(d.poleMovePct):null,'The rally before the base',col(d.poleMovePct));
+ h+=item('Pole days',d.poleDays,'How long the pole took');
+ h+=item('Pole speed',f(d.poleSpeed,2),'% gained per day through the pole — higher is a sharper move');
+ h+=item('NR day',d.isNr7?'NR7':(d.isNr4?'NR4':null),'Narrowest range of the last 7 (or 4) sessions — compression before a move');
+ h+=item('NR range',d.nrRangePct!=null?f(d.nrRangePct,2)+'%':null,'How tight that narrow-range day was');
+ h+=item('NR high / low',(d.nrHigh!=null?f(d.nrHigh):'')+(d.nrLow!=null?' / '+f(d.nrLow):''),'The narrow-range day\u2019s high and low — the trigger levels');
+ h+=item('Trend days',d.trendDays,'Sessions in the current trend');
+ h+=item('Green days',d.greenDays,'Up closes in the recent window');
+ h+=item('Breakout type',d.breakout_type,'What kind of breakout was detected');
+ h+=item('Breakout price',f(d.breakout_price),'Level of the detected breakout');
+ h+=item('Week change',pct(d.week),'Change over the last 5 sessions',col(d.week));
+ h+=item('Month change',pct(d.month),'Change over roughly 22 sessions',col(d.month));
+ if(m.is_ipo||m.listing_date){
+  h+=item('Listed',m.listing_date+(m.days_listed?' ('+m.days_listed+' sessions)':''),'Listing date. Recently listed = the first month after a one-week wait.');
+  h+=item('Listing-day high',f(m.listing_day_high),'The first day\u2019s high — the level early buyers remember');
+  h+=item('Post-listing high',f(m.post_listing_high),'Highest price since listing');
+  h+=item('From that high',pct(m.pct_from_plh),'Distance from the post-listing high',col(m.pct_from_plh));
+ }
+ return h?'<div class="sc-g">'+h+'</div>':'';
+}
+function secVol(o){
+ var d=o.scr||{},h='';
+ h+=item('RVOL',f(d.rvol,2)+'\u00d7','Today\u2019s volume against its own 20-day average');
+ h+=item('Vol ratio',f(d.volRatio,2)+'\u00d7','Volume against average');
+ h+=item('Vol class',d.volClass,'Volume bucket for today');
+ h+=item('Vol signal',d.vsig,'Volume signal classification');
+ h+=item('5-day vol',f(d.vol5,2)+'\u00d7','Average volume over the last 5 sessions');
+ h+=item('Volume dry-up',d.volDry?'Yes':null,'Volume has dried up — what you want inside a base, not on a breakout');
+ h+=item('Vol move',f(d.volMove,2),'Volume on the move');
+ h+=item('Breakout volume',f(d.bovol,2)+'\u00d7','Volume on the breakout day'+(d.bovolWhen?' ('+d.bovolWhen+')':''));
+ h+=item('Delivery %',f(d.del,1)+'%','Share of volume taken to delivery — higher means real buying, not intraday churn');
+ h+=item('Last 5',d.last5,'Last five sessions at a glance');
+ return h?'<div class="sc-g">'+h+'</div>':'';
+}
+function secFno(o){
+ var r=o.oi||{},b=o.orb||{},mb=o.mb||{},h='',p=num((o.scr&&o.scr.ltp)||mb.ltp);
+ function dist(x){x=num(x);return (p&&x)?((x/p-1)*100):null;}
+ h+=item('OI buildup',r.oi_buildup||mb.oi_buildup,'Price and open-interest direction together: long buildup, short buildup, short covering or long unwinding');
+ h+=item('Futures OI',r.fut_oi!=null?(+r.fut_oi).toLocaleString():null,'Open interest in the futures contract');
+ h+=item('Futures OI change',r.fut_oi_chg!=null?(+r.fut_oi_chg).toLocaleString():null,'Change in futures open interest',col(r.fut_oi_chg));
+ h+=item('PCR',f(r.pcr,2),'Put OI divided by call OI. Above 1 leans bullish, below 1 bearish.');
+ h+=item('Call wall (resistance)',r.max_ce_strike!=null?(f(r.max_ce_strike,0)+(dist(r.max_ce_strike)!=null?' ('+pct(dist(r.max_ce_strike))+')':'')):null,'Strike with the most call open interest — writers defend it, so upside often stalls here');
+ h+=item('Put wall (support)',r.max_pe_strike!=null?(f(r.max_pe_strike,0)+(dist(r.max_pe_strike)!=null?' ('+pct(dist(r.max_pe_strike))+')':'')):null,'Strike with the most put open interest — often acts as a floor');
+ h+=item('PDH / PDL',(mb.pdh!=null?f(mb.pdh):'')+(mb.pdl!=null?' / '+f(mb.pdl):''),'Previous day high and low');
+ if(b&&b.trades){
+  h+=item('ORB trades',b.trades,'How many opening-range-break trades this stock has in your 8,962-trade backtest');
+  h+=item('ORB win rate',f(b.win_pct,1)+'%','Share that closed positive, exit A (hold with the breakout stop to 3:20)');
+  h+=item('ORB avg R',(num(b.avg_gross_r)>0?'+':'')+f(b.avg_gross_r,2)+'R','Average gross R per trade. Net of the backtest\u2019s harsh slippage it was '+f(b.avg_net_r,2)+'R.',col(b.avg_gross_r));
+  h+=item('ORB avg best move',f(b.avg_mfe_r,2)+'R','How far the average trade ran in your favour at its best point');
+ }
+ return h?'<div class="sc-g">'+h+'</div>':'';
+}
+function secReclaim(o){
+ var d=o.scr||{},h='';
+ h+=item('Reclaim grade',d.rclGrade,'Quality grade of the reclaim setup');
+ h+=item('Days below',d.rclDays,'Sessions spent below the EMA before reclaiming');
+ h+=item('Dip',d.rclDip!=null?pct(-Math.abs(d.rclDip)):null,'How deep the dip went');
+ h+=item('Dip in ADR',f(d.rclDipAdr,2),'The dip measured in average daily ranges');
+ h+=item('Dip volume',f(d.rclDipVol,2)+'\u00d7','Volume through the dip — lower is better');
+ h+=item('Reclaim volume',f(d.rclRecVol,2)+'\u00d7','Volume on the reclaim day — higher is better');
+ h+=item('Volume pattern',d.rclVolPat,'Volume shape through dip and reclaim');
+ h+=item('Prior move',d.rclPrior!=null?pct(d.rclPrior):null,'The move before the dip',col(d.rclPrior));
+ h+=item('Stop level',f(d.rclStop),'Where the setup fails');
+ h+=item('Risk',d.rclRisk!=null?f(d.rclRisk,1)+'%':null,'Distance from price to that stop');
+ return h?'<div class="sc-g">'+h+'</div>':'';
+}
+function secTrend(o){
+ var m=o.mtf||{},d=o.scr||{},h='';
+ h+=item('Trend state',m.mtf_state,'Combined daily, weekly and monthly read');
+ h+=item('Daily',m.d_state,'Daily trend from the 9/20 EMA');
+ h+=item('Weekly',m.w_state+(m.w_state_dev&&m.w_state_dev!==m.w_state?' (this week: '+m.w_state_dev+')':''),'Weekly trend, judged on the last completed week');
+ h+=item('Monthly',m.m_state+(m.m_short_history?' (short history)':''),'Monthly trend, judged on the last completed month');
+ h+=item('Timeframes up',m.tf_up,'How many of the three timeframes are trending up');
+ h+=item('Conviction',d.conv===3?'\u2605\u2605\u2605':(d.conv===2?'\u2605\u2605':(d.conv===1?'\u2605':(d.conv===-1?'Avoid':null))),'Stock, sector and market alignment combined');
+ h+=item('Hold mode',d.hold==='poscand'?'Position candidate':(d.hold==='swingonly'?'Swing only':(d.hold?'Swing':null)),'Whether this can be held as a position or is a swing only');
+ h+=item('Sector',d.sector,'Sector');
+ h+=item('Industry',d.industry,'Industry');
+ h+=item('Sector rank',d.secRank,'Where this sector ranks among all sectors today');
+ h+=item('Rank in sector',d.rankInSec,'Where this stock ranks inside its own sector');
+ h+=item('Sector weekly',d.secW,'Sector strength on the weekly timeframe');
+ h+=item('Alignment',d.alignState,'Market, sector and stock alignment');
+ h+=item('Monthly breakout',m.m_breakout?'Yes':null,'Last completed month closed above the prior six months');
+ return h?'<div class="sc-g">'+h+'</div>':'';
+}
+function secSmart(o){
+ if(!o.sm||!o.sm.length)return '';
+ return o.sm.map(function(x){
+  return '<div class="sc-i" title="Bulk or block deal on record"><span>'+esc(x.deal_date||x.date||'')+' · '+esc(x.client_name||x.client||'')+'</span><b>'+
+   esc((x.deal_type||x.type||'')+' '+(x.quantity!=null?(+x.quantity).toLocaleString():''))+'</b></div>';
+ }).join('');
+}
+function secAlerts(o){
+ if(!o.alerts||!o.alerts.length)return '';
+ return o.alerts.map(function(a){
+  var st={1:'Stage 1',2:'Stage 2',3:'Stage 3',4:'Stage 4'}[a.stage]||('Stage '+a.stage);
+  return '<div class="sc-i" title="Stage 3 and 4 are with the daily trend; 1 and 2 against it"><span>'+esc(String(a.created_at||a.alert_time||'').slice(0,16).replace('T',' '))+' · '+esc(a.direction||'')+'</span><b>'+esc(st+' · '+(a.orb_type||''))+'</b></div>';
+ }).join('');
+}
+function secNdwl(o){
+ if(!o.picks||!o.picks.length)return '';
+ return o.picks.map(function(p){
+  return '<div class="sc-g">'+
+   item('Direction',p.direction==='bull'?'Bullish':'Bearish','Which way the pick leans')+
+   item('Score',f(p.score,1),'Conviction score out of 100')+
+   item('For',p.target_date,'The session this pick is for')+
+   '</div>';
+ }).join('');
+}
+
+/* ── render ────────────────────────────────────────────── */
+function render(){
+ var o=gather(SC.sym),d=o.scr||{},m=o.mtf||{},mb=o.mb||{};
+ var name=d.name||(o.mom&&o.mom.company_name)||m.company_name||'';
+ var ltp=num(d.ltp!=null?d.ltp:(m.ltp!=null?m.ltp:mb.ltp));
+ var day=num(d.day!=null?d.day:m.day_chg_pct);
+ var pbs=playbooksFor(d);
+ var arrows='';
+ try{arrows=window.tfTrendChip?tfTrendChip(SC.sym):'';}catch(e){}
+ var head=document.getElementById('sc-head');
+ head.innerHTML=
+  '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+   '<button class="sc-nav" onclick="scStep(-1)" title="Previous stock in the list you are looking at">‹</button>'+
+   '<button class="sc-nav" onclick="scStep(1)" title="Next stock in the list you are looking at">›</button>'+
+   '<b style="font-size:17px">'+esc(SC.sym)+'</b>'+
+   (ltp!=null?'<span style="font-size:15px;font-weight:600">'+f(ltp)+'</span>':'')+
+   (day!=null?'<span style="'+col(day)+';font-size:13px">'+pct(day)+'</span>':'')+
+   arrows+
+   (SC.idx>=0?'<span style="color:var(--muted);font-size:11px">'+(SC.idx+1)+' of '+SC.list.length+'</span>':'')+
+   '<button class="sc-nav" style="margin-left:auto" onclick="scClose()" title="Close (Esc)">✕</button>'+
+  '</div>'+
+  '<div style="color:var(--muted);font-size:11.5px;margin-top:3px">'+esc(name)+(d.sector?' · '+esc(d.sector):'')+(d.industry&&d.industry!=='—'?' · '+esc(d.industry):'')+'</div>'+
+  (pbs.length?'<div style="margin-top:5px" title="'+esc(T.verdict)+'">'+pbs.map(function(x){return '<span class="sc-pill">'+esc(x)+'</span>';}).join('')+'</div>':
+   '<div class="sc-none" style="margin-top:4px" title="'+esc(T.verdict)+'">No playbook matches this stock right now.</div>');
+
+ var tv='https://s.tradingview.com/widgetembed/?symbol=NSE%3A'+encodeURIComponent(SC.sym)+
+  '&interval=D&theme=light&style=1&hide_side_toolbar=0&studies=%5B%22MAExp%40tv-basicstudies%22%5D&locale=in';
+ var body=
+  '<div style="margin-top:10px">'+
+   '<div style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:4px">'+
+    '<span style="color:var(--muted);cursor:help" title="'+esc(T.chart)+'">Chart</span>'+
+    '<a href="https://in.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(SC.sym)+'" target="_blank" rel="noopener" style="color:var(--cyan)" title="Opens your own TradingView layout with your indicators and drawings">Open in TradingView ↗</a>'+
+   '</div>'+
+   '<iframe src="'+tv+'" style="width:100%;height:340px;border:1px solid var(--bg3);border-radius:10px" loading="lazy"></iframe>'+
+  '</div>'+
+  sec('trend','TREND & ALIGNMENT','',secTrend(o),T.verdict)+
+  sec('ema','EMAs','9 · 20 · 50 · 200 · weekly · monthly',secEMA(o),T.ema)+
+  sec('struct','STRUCTURE & PATTERN','52W · QM · base · NR',secStruct(o),T.struct)+
+  sec('vol','VOLUME','RVOL · delivery · dry-up',secVol(o),T.vol)+
+  sec('fno','F&O & ORB RECORD','OI walls · PCR · ORB history',secFno(o),T.fno)+
+  sec('rcl','RECLAIM DETAIL','',secReclaim(o),T.rcl)+
+  sec('ndwl','NEXT DAY WL','',secNdwl(o),T.ndwl)+
+  sec('sm','SMART MONEY','bulk & block deals',secSmart(o),T.sm)+
+  sec('alert','ALERTS','',secAlerts(o),T.alert);
+ document.getElementById('sc-body').innerHTML=body+
+  (o.scr?'':'<div class="sc-none" style="margin-top:10px">Open the Momentum tab once to load the full screener data for this stock.</div>');
+ document.getElementById('sc-body').scrollTop=0;
+}
+window.scStep=function(n){
+ if(!SC.list.length)return;
+ SC.idx=(SC.idx+n+SC.list.length)%SC.list.length;
+ SC.sym=SC.list[SC.idx];render();
+};
+window.scClose=function(){
+ document.getElementById('sc-panel').classList.remove('open');
+ document.getElementById('sc-back').classList.remove('open');
+};
+window.scOpen=function(sym,list){
+ if(!sym)return;
+ SC.sym=sym.toUpperCase().trim();
+ SC.list=list&&list.length?list:[SC.sym];
+ SC.idx=SC.list.indexOf(SC.sym);
+ mount();
+ document.getElementById('sc-panel').classList.add('open');
+ document.getElementById('sc-back').classList.add('open');
+ render();
+ if(window.tfLoadMtf)tfLoadMtf().then(function(){if(document.getElementById('sc-panel').classList.contains('open'))render();});
+ if(window.mb2Load)mb2Load().then(function(){if(document.getElementById('sc-panel').classList.contains('open'))render();});
+};
+function mount(){
+ if(document.getElementById('sc-panel'))return;
+ var b=document.createElement('div');b.id='sc-back';b.onclick=scClose;
+ var p=document.createElement('div');p.id='sc-panel';
+ p.innerHTML='<div id="sc-head"></div><div id="sc-body"></div>';
+ document.body.appendChild(b);document.body.appendChild(p);
+}
+document.addEventListener('keydown',function(e){
+ var p=document.getElementById('sc-panel');
+ if(!p||!p.classList.contains('open'))return;
+ if(e.key==='Escape')scClose();
+ if(e.key==='ArrowRight')scStep(1);
+ if(e.key==='ArrowLeft')scStep(-1);
+});
+
+/* ── click any stock name, anywhere ────────────────────── */
+function symFromRow(tr){
+ var st=tr.querySelector('.star-btn'),oc=st&&(st.getAttribute('onclick')||'');
+ var m=oc&&oc.match(/toggleStar\('([^']+)'/);
+ if(m)return m[1];
+ var sp=tr.querySelector('span[onclick*="tradingview"],a[onclick*="tradingview"]');
+ if(sp)return (sp.textContent||'').trim();
+ var td=tr.querySelectorAll('td')[2];
+ return td?(td.textContent||'').trim().split(/\s/)[0]:'';
+}
+function listFor(tr){
+ var tb=tr.parentNode,out=[];
+ if(!tb)return out;
+ Array.prototype.forEach.call(tb.querySelectorAll('tr'),function(r){
+  if(r.style.display==='none')return;
+  var s=symFromRow(r);if(s)out.push(s);
+ });
+ return out;
+}
+document.addEventListener('click',function(e){
+ var t=e.target;
+ if(!t||t.closest('#sc-panel'))return;
+ if(t.closest('button,a,select,input,.star-btn'))return;
+ var td=t.closest('td');if(!td)return;
+ var tr=td.closest('tr');if(!tr)return;
+ var tds=tr.querySelectorAll('td');
+ var i=Array.prototype.indexOf.call(tds,td);
+ if(i>3)return;                        // only the first few columns open the card
+ var sym=symFromRow(tr);
+ if(!sym||sym.length>18)return;
+ var known=(window.TF_MTF&&TF_MTF[sym])||(window.SCR&&SCR.data&&SCR.data.some(function(d){return d.sym===sym;}));
+ if(!known)return;
+ e.preventDefault();e.stopPropagation();
+ scOpen(sym,listFor(tr));
+},true);
+})();
+</script>
+
 </body>
 </html
