@@ -14728,11 +14728,11 @@ setTimeout(function(){clearInterval(t);},40000);
 <!-- ═══ TrueFlow Stock Card v1 — one stock, every data point, slide-over ═══ -->
 <style>
 #sc-back{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:none}
-#sc-panel{position:fixed;top:0;right:0;bottom:0;width:min(820px,94vw);background:var(--bg2,#fff);background-color:var(--bg2,#fff);opacity:1;border-left:1px solid var(--bg3);
+#sc-panel{position:fixed;top:0;right:0;bottom:0;width:min(820px,94vw);background:var(--bg1);background-color:var(--bg1);opacity:1;border-left:1px solid var(--bg3);
  z-index:9999;display:none;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.35)}
 #sc-panel.open,#sc-back.open{display:flex}
-#sc-head{padding:12px 16px;border-bottom:1px solid var(--bg3);flex:none;background:var(--bg2,#fff)}
-#sc-body{background:var(--bg2,#fff)}
+#sc-head{padding:12px 16px;border-bottom:1px solid var(--bg3);flex:none;background:var(--bg1);color:var(--text)}
+#sc-body{background:var(--bg1);color:var(--text)}
 .sc-chart{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:900px){.sc-chart{grid-template-columns:1fr}}
 .sc-cbox{border:1px solid var(--bg3);border-radius:10px;padding:6px 8px;min-height:250px}
@@ -14783,7 +14783,7 @@ function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'
 function num(x){return (x==null||x===''||isNaN(+x))?null:+x;}
 function f(x,d){x=num(x);return x==null?null:x.toFixed(d==null?2:d);}
 function pct(x,d){x=num(x);return x==null?null:((x>0?'+':'')+x.toFixed(d==null?1:d)+'%');}
-function col(x){x=num(x);return x==null?'':(x>0?'color:#22C55E':(x<0?'color:#EF4444':''));}
+function col(x){x=num(x);return x==null?'':(x>0?'color:var(--green)':(x<0?'color:var(--red)':''));}
 
 function item(label,val,tip,style){
  if(val==null||val===''||val==='—')return '';
@@ -14807,11 +14807,15 @@ window.scToggle=function(k){
 
 /* ── the card fetches its own data: it must not depend on which tab
       the user happened to open first ──────────────────────────── */
-var CACHE={row:{},hist:{}};
+var CACHE={row:{},hist:{},peers:{}};
 function sbGet(q){
  var h={apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey};
  return fetch(CONFIG.supabaseUrl+'/rest/v1/'+q,{headers:h})
   .then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
+}
+function parseWk(v){
+ if(!v||typeof v!=='string'||v.indexOf(',')<0)return [];
+ return v.split(',').map(parseFloat).filter(function(x){return !isNaN(x);});
 }
 function mapRow(s){
  if(!s)return null;
@@ -14837,6 +14841,7 @@ function mapRow(s){
   rclGrade:s.rcl_grade,rclDays:s.rcl_days_below,rclDip:n(s.rcl_dip_pct),rclDipAdr:n(s.rcl_dip_adr),
   rclDipVol:n(s.rcl_dip_vol),rclRecVol:n(s.rcl_reclaim_vol),rclVolPat:s.rcl_vol_pattern,
   rclPrior:n(s.rcl_prior_move_pct),rclStop:n(s.rcl_stop_level),rclRisk:n(s.rcl_risk_pct),
+  wkcloses:parseWk(s.wk_closes),
   _raw:s};
 }
 function loadStock(sym,then){
@@ -14848,8 +14853,23 @@ function loadStock(sym,then){
    '&select=session_date,ltp&order=session_date.asc&limit=400').then(function(r){
     CACHE.hist[sym]=(r||[]).filter(function(x){return x.ltp!=null;})
      .map(function(x){return {d:x.session_date,c:+x.ltp};});}));
+ var pre=CACHE.row[sym];
+ if(pre&&pre.sector&&!CACHE.peers[pre.sector]){
+  var sd=(pre._raw&&pre._raw.session_date)||'';
+  CACHE.peers[pre.sector]=[];
+  need.push(sbGet('momentum_stocks?sector=eq.'+encodeURIComponent(pre.sector)+
+   (sd?'&session_date=eq.'+sd:'')+'&select=symbol,sector,industry,wk_closes&limit=400')
+   .then(function(r){
+    CACHE.peers[pre.sector]=(r||[]).map(function(x){
+     return {sym:x.symbol,sector:x.sector,industry:x.industry,wkcloses:parseWk(x.wk_closes)};});
+   }));
+ }
  if(!need.length){done();return;}
- Promise.all(need).then(done).catch(done);
+ Promise.all(need).then(function(){
+  var r2=CACHE.row[sym];
+  if(r2&&r2.sector&&!CACHE.peers[r2.sector]){loadStock(sym,then);return;}
+  done();
+ }).catch(done);
 }
 
 /* ── gather one stock from every dataset ───────────────── */
@@ -15053,7 +15073,7 @@ function secNdwl(o){
 
 
 /* ── charts: TradingView pane + our own relative-strength pane ─── */
-var CH={mode:'none',days:126};
+var CH={mode:'sector',days:126};
 window.scChartMode=function(m){CH.mode=m;render();};
 window.scChartWeeks=function(w){CH.days=+w;render();};
 function wkOf(d){
@@ -15098,14 +15118,14 @@ function chartPanes(o){
  var last=closes[closes.length-1],first=closes[0],chg=(last/first-1)*100;
  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px">'+
   line(e50,W,H,mn,mx,'var(--muted)',1)+
-  '<path d="'+e20.map(function(v,i){if(v==null)return '';var x=(i/(e20.length-1))*(W-8)+4,y=H-6-((v-mn)/((mx-mn)||1))*(H-14);return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ')+'" fill="none" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="3 2"/>'+
-  line(closes,W,H,mn,mx,(chg>=0?'#22C55E':'#EF4444'),1.9)+'</svg>';
+  '<path d="'+e20.map(function(v,i){if(v==null)return '';var x=(i/(e20.length-1))*(W-8)+4,y=H-6-((v-mn)/((mx-mn)||1))*(H-14);return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ')+'" fill="none" stroke="var(--amber)" stroke-width="1.2" stroke-dasharray="3 2"/>'+
+  line(closes,W,H,mn,mx,(chg>=0?'var(--green)':'var(--red)'),1.9)+'</svg>';
  var lo=Math.min.apply(null,closes),hi=Math.max.apply(null,closes);
  return '<div class="sc-chart" style="margin-top:10px">'+
   '<div class="sc-cbox">'+head+svg+
    '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
-    '<b style="color:'+(chg>=0?'#22C55E':'#EF4444')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+n+' sessions · '+
-    'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:#F59E0B">20 EMA</span> · 50 EMA'+
+    '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+n+' sessions · '+
+    'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:var(--amber)">20 EMA</span> · 50 EMA'+
    '</div>'+
   '</div>'+relBox(o)+'</div>';
 }
@@ -15125,10 +15145,11 @@ function relBox(o){
    return '<button class="sc-tg'+(CH.mode===m?' on':'')+'" onclick="scChartMode(\''+m+'\')" title="Compare with the average of its '+m+'">vs '+m+'</button>';}).join('')+
   '<button class="sc-tg'+(CH.mode==='none'?' on':'')+'" onclick="scChartMode(\'none\')" title="This stock on its own">stock only</button>'+
  '</div>';
- if(have<6)return '<div class="sc-cbox">'+head+'<div class="sc-none" style="padding:24px 4px">Weekly history for the peer comparison loads with the Momentum tab. The price chart on the left always works.</div></div>';
+ if(have<6)return '<div class="sc-cbox">'+head+'<div class="sc-none" style="padding:24px 4px">Loading weekly history…</div></div>';
  var n=Math.min(52,have),mine=own.slice(-n),base=mine[0];
  var me=mine.map(function(x){return x/base*100;});
- var all=(window.SCR&&SCR.data)||[],peerRows=[],peerLbl='';
+ var all=(window.SCR&&SCR.data&&SCR.data.length)?SCR.data:(CACHE.peers[d.sector]||[]);
+ var peerRows=[],peerLbl='';
  if(CH.mode==='sector'&&d.sector){peerRows=all.filter(function(x){return x.sector===d.sector&&x.sym!==sym;});peerLbl=d.sector;}
  if(CH.mode==='industry'&&d.industry&&d.industry!=='—'){peerRows=all.filter(function(x){return x.industry===d.industry&&x.sym!==sym;});peerLbl=d.industry;}
  var peer=(CH.mode==='none')?null:avgSeries(peerRows,n);
@@ -15137,13 +15158,13 @@ function relBox(o){
  var y100=(H-6-((100-mn)/((mx-mn)||1))*(H-14)).toFixed(1);
  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px">'+
   '<line x1="4" y1="'+y100+'" x2="'+(W-4)+'" y2="'+y100+'" stroke="var(--bg3)" stroke-dasharray="3 3"/>'+
-  (peer?line(peer.series,W,H,mn,mx,'#94A3B8',1.4):'')+
-  line(me,W,H,mn,mx,(me[me.length-1]>=100?'#22C55E':'#EF4444'),2)+'</svg>';
+  (peer?line(peer.series,W,H,mn,mx,'var(--text2)',1.4):'')+
+  line(me,W,H,mn,mx,(me[me.length-1]>=100?'var(--green)':'var(--red)'),2)+'</svg>';
  var chg=me[me.length-1]-100,pchg=peer?(peer.series[peer.series.length-1]-100):null;
  return '<div class="sc-cbox">'+head+svg+
   '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
-   '<b style="color:'+(chg>=0?'#22C55E':'#EF4444')+'">'+esc(sym)+' '+(chg>=0?'+':'')+chg.toFixed(1)+'%</b>'+
-   (peer?' vs <b style="color:#94A3B8">'+esc(peerLbl)+' '+(pchg>=0?'+':'')+pchg.toFixed(1)+'% ('+peer.n+')</b>':'')+
+   '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+esc(sym)+' '+(chg>=0?'+':'')+chg.toFixed(1)+'%</b>'+
+   (peer?' vs <b style="color:var(--text2)">'+esc(peerLbl)+' '+(pchg>=0?'+':'')+pchg.toFixed(1)+'% ('+peer.n+')</b>':'')+
    ' · '+n+' weeks'+
   '</div></div>';
 }
@@ -15302,9 +15323,9 @@ function pbPanel(o){
 function flagPanel(o){
  var fl=flags(o);
  return '<div class="sc-flags">'+
-  flagBox('Bullish evidence',fl.B,'#22C55E','Everything in your data that argues for upside. Hover any line for what it means and why it matters. These are signals, not guarantees — count them against the other two boxes rather than reading any one as a decision.')+
-  flagBox('Bearish evidence',fl.R,'#EF4444','Everything that argues for downside. If you are looking at this as a short, read this box as the supporting case and the green one as the argument against.')+
-  flagBox('Cautions',fl.C,'#F59E0B','Risks that apply whichever way you trade it: slow movers, events inside the trade, option-interest walls overhead, and thin history. These matter most when you are buying options, because time and volatility work against you.')+
+  flagBox('Bullish evidence',fl.B,'var(--green)','Everything in your data that argues for upside. Hover any line for what it means and why it matters. These are signals, not guarantees — count them against the other two boxes rather than reading any one as a decision.')+
+  flagBox('Bearish evidence',fl.R,'var(--red)','Everything that argues for downside. If you are looking at this as a short, read this box as the supporting case and the green one as the argument against.')+
+  flagBox('Cautions',fl.C,'var(--amber)','Risks that apply whichever way you trade it: slow movers, events inside the trade, option-interest walls overhead, and thin history. These matter most when you are buying options, because time and volatility work against you.')+
   '</div>'+pbPanel(o);
 }
 
