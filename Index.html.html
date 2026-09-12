@@ -14234,18 +14234,18 @@ function mb2Strip(){
 }
 
 /* ── wrap the existing renderer ────────────────────────── */
-function mb2Pass(s){
- var F=MB2.filters,sym=s.symbol,m=MB2.mom[sym]||{},t=(window.TF_MTF||{})[sym]||{},o=MB2.orb[sym],w=MB2.oi[sym];
+function mb2Pass(sym,ltp){
+ var F=MB2.filters,m=MB2.mom[sym]||{},t=(window.TF_MTF||{})[sym]||{},o=MB2.orb[sym],w=MB2.oi[sym],s={};
  var a=n(m.adr_pct);if(a==null)a=n(t.adr_pct);
  if(F.adr==='hi'&&!(a!=null&&a>=3.5))return false;
  if(F.adr==='mid'&&!(a!=null&&a>=2.5))return false;
  if(F.orb==='pos'&&!(o&&n(o.avg_gross_r)>0))return false;
  if(F.orb==='n10'&&!(o&&o.trades>=10))return false;
  if(F.comp==='nr'&&!(m.is_nr7||m.is_nr4))return false;
- if(F.build){var bu=(w&&w.oi_buildup)||s.oi_buildup;if(bu!==F.build)return false;}
+ if(F.build){var bu=w&&w.oi_buildup;if(bu!==F.build)return false;}
  if(F.trend!=='all'&&t.mtf_state!==F.trend)return false;
  if(F.wall==='near'){
-  var p=n(s.ltp),ce=w?n(w.max_ce_strike):null,pe=w?n(w.max_pe_strike):null,near=false;
+  var p=n(ltp),ce=w?n(w.max_ce_strike):null,pe=w?n(w.max_pe_strike):null,near=false;
   if(p&&ce&&Math.abs(ce/p-1)*100<=1)near=true;
   if(p&&pe&&Math.abs(pe/p-1)*100<=1)near=true;
   if(!near)return false;
@@ -14258,8 +14258,9 @@ function mb2Cells(sym,ltp){
 function mb2Inject(){
  var tb=document.getElementById('mb-body');if(!tb)return;
  var rows=tb.querySelectorAll('tr');
+ MB2.rowSyms=[];var shown=0,total=0;
  rows.forEach(function(tr){
-  if(tr.dataset.mb2)return;
+  if(tr.querySelector('td[colspan]'))return;
   var tds=tr.querySelectorAll('td');
   if(tds.length<9)return;
   // symbol: read it from the star button, not the cell text — the cell also
@@ -14274,6 +14275,8 @@ function mb2Inject(){
   for(var q=0;q<tds.length;q++){var t=(tds[q].textContent||'').trim();
    if(/^[0-9][0-9,]*\.[0-9]/.test(t)){ltpTxt=t.split(' ')[0].replace(/,/g,'');break;}}
   var tmp=document.createElement('tbody');
+  MB2.rowSyms.push(sym);
+  if(tr.dataset.mb2)return;
   tmp.innerHTML='<tr>'+mb2Cells(sym,parseFloat(ltpTxt))+'</tr>';
   // insert AFTER the Daily EMA cell (the one holding "9E:"), matching where
   // the new headers were added. Index-counting is unsafe: the row has a tag
@@ -14286,21 +14289,38 @@ function mb2Inject(){
   for(var i=0;i<newCells.length;i++)tr.insertBefore(newCells[i],ref);
   tr.dataset.mb2='1';
  });
+ // Filter at DOM level. The page keeps its stock list in a `let`, which is not
+ // reachable from here, so hiding rows is the only reliable way to filter.
+ rows.forEach(function(tr){
+  if(tr.querySelector('td[colspan]'))return;
+  var sym=mb2Sym(tr);if(!sym)return;
+  total++;
+  var ltp=null,tds=tr.querySelectorAll('td');
+  for(var q=0;q<tds.length;q++){var t2=(tds[q].textContent||'').trim();
+   if(/^[0-9][0-9,]*\.[0-9]/.test(t2)){ltp=parseFloat(t2.split(' ')[0].replace(/,/g,''));break;}}
+  var ok=true;try{ok=mb2Pass(sym,ltp);}catch(e){console.error('MB2 filter:',e);}
+  if(tr.dataset.mbHidden==='1'&&ok){tr.style.display='';tr.dataset.mbHidden='';}
+  else if(!ok){tr.style.display='none';tr.dataset.mbHidden='1';}
+  if(ok)shown++;
+ });
+ MB2.shown=shown;MB2.total=total;
+ var c=document.getElementById('mb-count');
+ if(c&&total)c.textContent='Showing '+shown+' of '+total;
+}
+function mb2Sym(tr){
+ var st=tr.querySelector('.star-btn'),oc=st&&(st.getAttribute('onclick')||'');
+ var m=oc&&oc.match(/toggleStar\('([^']+)'/);
+ if(m)return m[1];
+ var a=tr.querySelector('a.scr-sym,[onclick*="tradingview"]');
+ if(a)return (a.textContent||'').trim().replace(/[^A-Z0-9&.-]/g,'');
+ return '';
 }
 function mb2Wrap(){
  if(typeof renderMBTable!=='function'||renderMBTable._mb2)return false;
  var orig=renderMBTable;
  window.renderMBTable=renderMBTable=function(){
-  var all=window.mbData||[],kept=all;
-  try{kept=all.filter(mb2Pass);}catch(e){}
-  var swapped=(kept.length!==all.length);
-  if(swapped)window.mbData=kept;
-  var r;
-  try{r=orig.apply(this,arguments);}finally{if(swapped)window.mbData=all;}
-  try{mb2Header();mb2Bar();mb2Strip();mb2Inject();
-   var c=document.getElementById('mb-count');
-   if(c&&swapped)c.textContent='Showing '+kept.length+' of '+all.length;
-  }catch(e){console.error('MB2 render:',e);}
+  var r=orig.apply(this,arguments);
+  try{mb2Header();mb2Bar();mb2Strip();mb2Inject();}catch(e){console.error('MB2 render:',e);}
   return r;
  };
  renderMBTable._mb2=true;
@@ -14444,15 +14464,12 @@ function mbSectors(){
  if(!el){el=document.createElement('div');el.id='mb2-sec';el.className='sec-row';
   tbl.parentNode.insertBefore(el,document.getElementById('mb2-strip')||tbl);}
  var mom=(window.MB2&&MB2.mom)||{},rows=[],here=null;
+ if(window.MB2&&MB2.rowSyms&&MB2.rowSyms.length){here={};MB2.rowSyms.forEach(function(x){here[x]=1;});}
  // Rank only stocks that are actually on this tab. momentum_stocks covers the
  // whole 1,450-stock market, but Morning Brief shows the 208 F&O names, so a
  // sector that leads market-wide can have no F&O stock at all -> zero rows.
- try{
-  var src=(window.mbData||[]);
-  if(src.length){here={};src.forEach(function(x){here[x.symbol]=1;});}
- }catch(e){}
  for(var k in mom){if(here&&!here[k])continue;rows.push(mom[k]);}
- if(!rows.length){for(var k2 in mom)rows.push(mom[k2]);}
+ if(!rows.length&&!here){for(var k2 in mom)rows.push(mom[k2]);}
  var stats=sectorStats(rows,{sector:function(r){return r.sector;},
   d:function(r){return r.day_chg_pct==null?null:+r.day_chg_pct;},
   w:function(r){return r.week_chg_pct==null?null:+r.week_chg_pct;},
@@ -14489,8 +14506,11 @@ if(typeof loadMorningBrief==='function'){
 var SCSEC={per:'w'};
 window.scrPickSector=function(s){
  try{
-  var st=SCR.state.sector||(SCR.state.sector=new Set());
-  if(st.has(s))st.delete(s);else st.add(s);
+  // one sector at a time: clicking a different chip switches to it rather than
+  // adding to a growing set, which is what the multi-select filter chips do.
+  var st=SCR.state.sector;
+  var only=st&&st.size===1&&st.has(s);
+  SCR.state.sector=new Set(only?[]:[s]);
   if(typeof scrBuildUI==='function')scrBuildUI();
   scrRender();
  }catch(e){console.error(e);}
@@ -14781,10 +14801,69 @@ window.scToggle=function(k){
  if(a)a.textContent=(SC.open[k]!==false)?'▾':'▸';
 };
 
+
+/* ── the card fetches its own data: it must not depend on which tab
+      the user happened to open first ──────────────────────────── */
+var CACHE={row:{},hist:{}};
+function sbGet(q){
+ var h={apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey};
+ return fetch(CONFIG.supabaseUrl+'/rest/v1/'+q,{headers:h})
+  .then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
+}
+function mapRow(s){
+ if(!s)return null;
+ function n(x){return (x==null||x==='')?null:+x;}
+ var hi=n(s.high_52w),ltp=n(s.ltp);
+ var pct52=(hi&&ltp)?((ltp/hi-1)*100):null;
+ return {sym:s.symbol,name:s.company_name||'',sector:s.sector||'—',industry:s.industry||'—',
+  ltp:ltp,week:n(s.week_chg_pct),month:n(s.month_chg_pct),adr:n(s.adr_pct),
+  ema9:n(s.ema9_daily),ema20:n(s.ema20_daily),pct9e:n(s.pct_from_ema9_daily),
+  pct5e:n(s.pct_from_ema5_daily),pct9w:n(s.pct_from_ema9_weekly),
+  hi52:hi,low52:n(s.low_52w),pct52:pct52,
+  qm:s.qm_status||s.qm_pattern||null,pivotLvl:n(s.qm_pivot_level),basePct:n(s.qm_base_depth),
+  baseDays:s.qm_base_days,contract:n(s.qm_contraction),volDry:!!s.qm_vol_dryup,
+  poleMovePct:n(s.qm_move_pct),poleDays:s.qm_move_days,poleSpeed:n(s.qm_move_speed),
+  reclaim:!!s.qm_ema_reclaim,
+  isNr4:!!s.is_nr4,isNr7:!!s.is_nr7,nrRangePct:n(s.nr_range_pct),nrHigh:n(s.nr_day_high),
+  nrLow:n(s.nr_day_low),nrStatus:s.nr_status,consolDays:s.consol_days,
+  trendDays:s.days_in_uptrend,greenDays:s.consecutive_green,last5:s.last5_summary,
+  dcross:s.daily_crossover_date||'—',wcross:s.weekly_crossover_date||'—',
+  volClass:s.vol_class,bovol:n(s.bo_vol),bovolWhen:s.bo_vol_when,
+  breakout_type:s.breakout_type,breakout_price:n(s.breakout_price),
+  score:s.momentum_score,
+  rclGrade:s.rcl_grade,rclDays:s.rcl_days_below,rclDip:n(s.rcl_dip_pct),rclDipAdr:n(s.rcl_dip_adr),
+  rclDipVol:n(s.rcl_dip_vol),rclRecVol:n(s.rcl_reclaim_vol),rclVolPat:s.rcl_vol_pattern,
+  rclPrior:n(s.rcl_prior_move_pct),rclStop:n(s.rcl_stop_level),rclRisk:n(s.rcl_risk_pct),
+  _raw:s};
+}
+function loadStock(sym,then){
+ var done=function(){then&&then(sym);};
+ var need=[];
+ if(!CACHE.row[sym])need.push(sbGet('momentum_stocks?symbol=eq.'+encodeURIComponent(sym)+
+   '&select=*&order=session_date.desc&limit=1').then(function(r){CACHE.row[sym]=mapRow(r&&r[0])||null;}));
+ if(!CACHE.hist[sym])need.push(sbGet('momentum_stocks?symbol=eq.'+encodeURIComponent(sym)+
+   '&select=session_date,ltp&order=session_date.asc&limit=400').then(function(r){
+    CACHE.hist[sym]=(r||[]).filter(function(x){return x.ltp!=null;})
+     .map(function(x){return {d:x.session_date,c:+x.ltp};});}));
+ if(!need.length){done();return;}
+ Promise.all(need).then(done).catch(done);
+}
+
 /* ── gather one stock from every dataset ───────────────── */
 function gather(sym){
  var o={sym:sym};
  try{o.scr=(window.SCR&&SCR.data||[]).filter(function(d){return d.sym===sym;})[0]||null;}catch(e){}
+ // Merge: the screener row is richer where it exists, but it only exists once
+ // the Momentum tab has loaded. Fill every gap from the row we fetched.
+ var fx=CACHE.row[sym]||null;
+ if(fx){
+  if(!o.scr)o.scr=fx;
+  else{var mg={};for(var k1 in fx)mg[k1]=fx[k1];
+       for(var k2 in o.scr){if(o.scr[k2]!=null&&o.scr[k2]!=='')mg[k2]=o.scr[k2];}
+       o.scr=mg;}
+ }
+ o.hist=CACHE.hist[sym]||null;
+ window.SC_DEBUG={row:!!fx,hist:(CACHE.hist[sym]||[]).length};
  try{o.mtf=(window.TF_MTF||{})[sym]||null;}catch(e){}
  try{o.oi=(window.MB2&&MB2.oi||{})[sym]||null;o.orb=(window.MB2&&MB2.orb||{})[sym]||null;o.mom=(window.MB2&&MB2.mom||{})[sym]||null;}catch(e){}
  try{o.mb=(window.mbData||[]).filter(function(d){return d.symbol===sym;})[0]||null;}catch(e){}
@@ -14861,6 +14940,10 @@ function secStruct(o){
  h+=item('NR day',d.isNr7?'NR7':(d.isNr4?'NR4':null),'Narrowest range of the last 7 (or 4) sessions — compression before a move');
  h+=item('NR range',d.nrRangePct!=null?f(d.nrRangePct,2)+'%':null,'How tight that narrow-range day was');
  h+=item('NR high / low',(d.nrHigh!=null?f(d.nrHigh):'')+(d.nrLow!=null?' / '+f(d.nrLow):''),'The narrow-range day\u2019s high and low — the trigger levels');
+ h+=item('Momentum score',d.score,'The scan\u2019s own momentum score for this stock');
+ h+=item('NR status',d.nrStatus,'Whether the narrow-range day is still intact, broken up or broken down');
+ h+=item('Reclaimed EMA',d.reclaim?'Yes':null,'The scan flagged an EMA reclaim on this stock');
+ h+=item('Vol class',d.volClass,'Volume bucket for today');
  h+=item('Trend days',d.trendDays,'Sessions in the current trend');
  h+=item('Green days',d.greenDays,'Up closes in the recent window');
  h+=item('Breakout type',d.breakout_type,'What kind of breakout was detected');
@@ -14891,6 +14974,7 @@ function secVol(o){
 }
 function secFno(o){
  var r=o.oi||{},b=o.orb||{},mb=o.mb||{},h='',p=num((o.scr&&o.scr.ltp)||mb.ltp);
+ if(!o.oi&&!o.orb&&!mb.pdh)h+='';
  function dist(x){x=num(x);return (p&&x)?((x/p-1)*100):null;}
  h+=item('OI buildup',r.oi_buildup||mb.oi_buildup,'Price and open-interest direction together: long buildup, short buildup, short covering or long unwinding');
  h+=item('Futures OI',r.fut_oi!=null?(+r.fut_oi).toLocaleString():null,'Open interest in the futures contract');
@@ -14966,9 +15050,9 @@ function secNdwl(o){
 
 
 /* ── charts: TradingView pane + our own relative-strength pane ─── */
-var CH={mode:'sector',weeks:26};
+var CH={mode:'none',days:126};
 window.scChartMode=function(m){CH.mode=m;render();};
-window.scChartWeeks=function(w){CH.weeks=+w;render();};
+window.scChartWeeks=function(w){CH.days=+w;render();};
 function wkOf(d){
  var a=(d&&d.wkcloses)||[];
  return a.filter(function(x){return x!=null&&!isNaN(+x);}).map(Number);
@@ -14992,55 +15076,72 @@ function line(pts,w,h,min,max,colr,wid){
  return '<path d="'+d+'" fill="none" stroke="'+colr+'" stroke-width="'+(wid||1.8)+'" stroke-linejoin="round"/>';
 }
 function chartPanes(o){
- var d=o.scr||{},sym=SC.sym;
- var own=wkOf(d),have=own.length;
- var n=Math.min(CH.weeks,have);
+ var d=o.scr||{},sym=SC.sym,hist=o.hist||[];
  var tvUrl='https://in.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(sym);
- var emb='https://s.tradingview.com/widgetembed/?symbol=NSE%3A'+encodeURIComponent(sym)+'&interval=D&theme=light&style=1&locale=in';
- var right;
- if(have<4){
-  right='<div class="sc-none" style="padding:20px 4px">No weekly price history loaded for this stock. Open the Momentum tab once and reopen this card.</div>';
- }else{
-  var mine=own.slice(-n),base=mine[0];
-  var me=mine.map(function(x){return x/base*100;});
-  var all=(window.SCR&&SCR.data)||[];
-  var peerRows=[],peerLbl='';
-  if(CH.mode==='sector'&&d.sector){peerRows=all.filter(function(x){return x.sector===d.sector&&x.sym!==sym;});peerLbl=d.sector;}
-  if(CH.mode==='industry'&&d.industry&&d.industry!=='—'){peerRows=all.filter(function(x){return x.industry===d.industry&&x.sym!==sym;});peerLbl=d.industry;}
-  var peer=(CH.mode==='none')?null:avgSeries(peerRows,n);
-  var vals=me.slice();if(peer)vals=vals.concat(peer.series);
-  var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
-  var W=360,H=210;
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:210px">'+
-   '<line x1="4" y1="'+(H-6-((100-mn)/((mx-mn)||1))*(H-14)).toFixed(1)+'" x2="'+(W-4)+'" y2="'+(H-6-((100-mn)/((mx-mn)||1))*(H-14)).toFixed(1)+'" stroke="var(--bg3)" stroke-dasharray="3 3"/>'+
-   (peer?line(peer.series,W,H,mn,mx,'#94A3B8',1.4):'')+
-   line(me,W,H,mn,mx,(me[me.length-1]>=100?'#22C55E':'#EF4444'),2.1)+'</svg>';
-  var chg=(me[me.length-1]-100),pchg=peer?(peer.series[peer.series.length-1]-100):null;
-  right='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:10px;margin-bottom:2px">'+
-    ['none','sector','industry'].map(function(m){
-     var lab={none:'Stock only',sector:'vs sector',industry:'vs industry'}[m];
-     return '<button class="sc-tg'+(CH.mode===m?' on':'')+'" onclick="scChartMode(\''+m+'\')" title="Compare this stock with the average of its '+(m==='none'?'own line only':m)+'">'+lab+'</button>';}).join('')+
-    '<span style="margin-left:auto"></span>'+
-    [13,26,52].map(function(w){return '<button class="sc-tg'+(CH.weeks===w?' on':'')+'" onclick="scChartWeeks('+w+')" title="'+(w/4.33).toFixed(0)+' months of weekly closes'+(w>have?' — only '+have+' weeks stored':'')+'">'+(w===13?'3M':(w===26?'6M':'1Y'))+'</button>';}).join('')+
-   '</div>'+svg+
-   '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
-    '<b style="color:'+(chg>=0?'#22C55E':'#EF4444')+'">'+sym+' '+(chg>=0?'+':'')+chg.toFixed(1)+'%</b>'+
-    (peer?' · <b style="color:#94A3B8">'+esc(peerLbl)+' avg '+(pchg>=0?'+':'')+pchg.toFixed(1)+'% ('+peer.n+' stocks)</b>':'')+
-    ' · '+n+' weeks, rebased to 100</div>';
- }
+ var PER=[[22,'1M'],[63,'3M'],[126,'6M'],[252,'1Y']];
+ var head='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10px;margin-bottom:3px">'+
+   '<span style="color:var(--muted);cursor:help" title="Daily closing prices from your own database — about a year of history. The dotted line is the 20 EMA and the solid faint one the 50 EMA, both worked out here from the same closes.">Price · daily</span>'+
+   PER.map(function(x){return '<button class="sc-tg'+(CH.days===x[0]?' on':'')+'" onclick="scChartWeeks('+x[0]+')" title="'+x[1]+' of daily closes'+(x[0]>hist.length?' — only '+hist.length+' sessions stored':'')+'">'+x[1]+'</button>';}).join('')+
+   '<a href="'+tvUrl+'" target="_blank" rel="noopener" style="color:var(--cyan);margin-left:auto" title="Opens your own TradingView layout, with your indicators and drawings">TradingView ↗</a>'+
+  '</div>';
+ if(hist.length<10)return '<div class="sc-chart" style="margin-top:10px"><div class="sc-cbox">'+head+
+  '<div class="sc-none" style="padding:24px 4px">Loading price history…</div></div>'+relBox(o)+'</div>';
+ var n=Math.min(CH.days,hist.length),win=hist.slice(-n);
+ var closes=win.map(function(x){return x.c;});
+ var e20=ema(hist.map(function(x){return x.c;}),20).slice(-n);
+ var e50=ema(hist.map(function(x){return x.c;}),50).slice(-n);
+ var all=closes.concat(e20.filter(Boolean)).concat(e50.filter(Boolean));
+ var mn=Math.min.apply(null,all),mx=Math.max.apply(null,all),W=380,H=215;
+ var last=closes[closes.length-1],first=closes[0],chg=(last/first-1)*100;
+ var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px">'+
+  line(e50,W,H,mn,mx,'var(--muted)',1)+
+  '<path d="'+e20.map(function(v,i){if(v==null)return '';var x=(i/(e20.length-1))*(W-8)+4,y=H-6-((v-mn)/((mx-mn)||1))*(H-14);return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ')+'" fill="none" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="3 2"/>'+
+  line(closes,W,H,mn,mx,(chg>=0?'#22C55E':'#EF4444'),1.9)+'</svg>';
+ var lo=Math.min.apply(null,closes),hi=Math.max.apply(null,closes);
  return '<div class="sc-chart" style="margin-top:10px">'+
-  '<div class="sc-cbox">'+
-   '<div style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:4px">'+
-    '<span style="color:var(--muted);cursor:help" title="'+esc(T.chart)+'">TradingView</span>'+
-    '<a href="'+tvUrl+'" target="_blank" rel="noopener" style="color:var(--cyan);margin-left:auto" title="Opens your own layout with your indicators and drawings">Open ↗</a>'+
+  '<div class="sc-cbox">'+head+svg+
+   '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
+    '<b style="color:'+(chg>=0?'#22C55E':'#EF4444')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+n+' sessions · '+
+    'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:#F59E0B">20 EMA</span> · 50 EMA'+
    '</div>'+
-   '<iframe src="'+emb+'" style="width:100%;height:210px;border:0;border-radius:8px" loading="lazy"></iframe>'+
-   '<div style="font-size:10px;color:var(--muted);margin-top:2px">If the embed refuses the symbol, use Open ↗ — that always works.</div>'+
-  '</div>'+
-  '<div class="sc-cbox">'+
-   '<div style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:4px">'+
-    '<span style="color:var(--muted);cursor:help" title="Weekly closes from your own data, rebased to 100 at the start of the window. The grey line is the average of the other stocks in that sector or industry, so you can see whether this stock is leading or lagging its own group.">Relative strength</span>'+
-   '</div>'+right+
+  '</div>'+relBox(o)+'</div>';
+}
+function ema(v,p){
+ var out=new Array(v.length).fill(null);
+ if(v.length<p)return out;
+ var k=2/(p+1),e=0;
+ for(var i=0;i<p;i++)e+=v[i];e/=p;out[p-1]=e;
+ for(var j=p;j<v.length;j++){e=v[j]*k+e*(1-k);out[j]=e;}
+ return out;
+}
+function relBox(o){
+ var d=o.scr||{},sym=SC.sym,own=wkOf(d),have=own.length;
+ var head='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:10px;margin-bottom:3px">'+
+  '<span style="color:var(--muted);cursor:help" title="Weekly closes rebased to 100, so you can compare like with like. The grey line is the average of the other stocks in the same sector or industry — it shows whether this stock is leading or lagging its own group, which a price chart alone cannot tell you.">Relative strength · weekly</span>'+
+  ['sector','industry'].map(function(m){
+   return '<button class="sc-tg'+(CH.mode===m?' on':'')+'" onclick="scChartMode(\''+m+'\')" title="Compare with the average of its '+m+'">vs '+m+'</button>';}).join('')+
+  '<button class="sc-tg'+(CH.mode==='none'?' on':'')+'" onclick="scChartMode(\'none\')" title="This stock on its own">stock only</button>'+
+ '</div>';
+ if(have<6)return '<div class="sc-cbox">'+head+'<div class="sc-none" style="padding:24px 4px">Weekly history for the peer comparison loads with the Momentum tab. The price chart on the left always works.</div></div>';
+ var n=Math.min(52,have),mine=own.slice(-n),base=mine[0];
+ var me=mine.map(function(x){return x/base*100;});
+ var all=(window.SCR&&SCR.data)||[],peerRows=[],peerLbl='';
+ if(CH.mode==='sector'&&d.sector){peerRows=all.filter(function(x){return x.sector===d.sector&&x.sym!==sym;});peerLbl=d.sector;}
+ if(CH.mode==='industry'&&d.industry&&d.industry!=='—'){peerRows=all.filter(function(x){return x.industry===d.industry&&x.sym!==sym;});peerLbl=d.industry;}
+ var peer=(CH.mode==='none')?null:avgSeries(peerRows,n);
+ var vals=me.slice();if(peer)vals=vals.concat(peer.series);
+ var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),W=380,H=215;
+ var y100=(H-6-((100-mn)/((mx-mn)||1))*(H-14)).toFixed(1);
+ var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px">'+
+  '<line x1="4" y1="'+y100+'" x2="'+(W-4)+'" y2="'+y100+'" stroke="var(--bg3)" stroke-dasharray="3 3"/>'+
+  (peer?line(peer.series,W,H,mn,mx,'#94A3B8',1.4):'')+
+  line(me,W,H,mn,mx,(me[me.length-1]>=100?'#22C55E':'#EF4444'),2)+'</svg>';
+ var chg=me[me.length-1]-100,pchg=peer?(peer.series[peer.series.length-1]-100):null;
+ return '<div class="sc-cbox">'+head+svg+
+  '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
+   '<b style="color:'+(chg>=0?'#22C55E':'#EF4444')+'">'+esc(sym)+' '+(chg>=0?'+':'')+chg.toFixed(1)+'%</b>'+
+   (peer?' vs <b style="color:#94A3B8">'+esc(peerLbl)+' '+(pchg>=0?'+':'')+pchg.toFixed(1)+'% ('+peer.n+')</b>':'')+
+   ' · '+n+' weeks'+
   '</div></div>';
 }
 
@@ -15183,6 +15284,9 @@ window.scStep=function(n){
  if(!SC.list.length)return;
  SC.idx=(SC.idx+n+SC.list.length)%SC.list.length;
  SC.sym=SC.list[SC.idx];render();
+ loadStock(SC.sym,function(loaded){
+  if(document.getElementById('sc-panel')&&SC.sym===loaded)render();
+ });
 };
 window.scClose=function(){
  document.getElementById('sc-panel').classList.remove('open');
@@ -15191,6 +15295,9 @@ window.scClose=function(){
 window.scOpen=function(sym,list){
  if(!sym)return;
  SC.sym=sym.toUpperCase().trim();
+ loadStock(SC.sym,function(loaded){
+  if(document.getElementById('sc-panel')&&SC.sym===loaded)render();
+ });
  SC.list=list&&list.length?list:[SC.sym];
  SC.idx=SC.list.indexOf(SC.sym);
  mount();
@@ -15216,14 +15323,21 @@ document.addEventListener('keydown',function(e){
 });
 
 /* ── click any stock name, anywhere ────────────────────── */
+function clean(x){return String(x||'').replace(/[^A-Z0-9&.\-]/g,'');}
 function symFromRow(tr){
+ var a=tr.querySelector('a.scr-sym');
+ if(a)return clean((a.textContent||'').split(/\s/)[0]);
  var st=tr.querySelector('.star-btn'),oc=st&&(st.getAttribute('onclick')||'');
  var m=oc&&oc.match(/toggleStar\('([^']+)'/);
  if(m)return m[1];
- var tv=tr.querySelector('[onclick*="tradingview"],[onclick*="openTV"]');
- if(tv){var m2=(tv.getAttribute('onclick')||'').match(/['"]([A-Z0-9&.-]{2,18})['"]/);
+ var tv=tr.querySelector('[onclick*="tradingview"],[onclick*="openTV"],a[href*="tradingview"]');
+ if(tv){
+  var hr=tv.getAttribute&&tv.getAttribute('href')||'';
+  var mh=hr.match(/symbol=(?:NSE|BSE)(?:%3A|:)([A-Z0-9&.\-]+)/i);
+  if(mh)return clean(mh[1]);
+  var m2=(tv.getAttribute('onclick')||'').match(/['"]([A-Z0-9&.\-]{2,18})['"]/);
   if(m2)return m2[1];
-  var txt=(tv.textContent||'').trim();if(txt)return txt.split(/\s/)[0];}
+  var txt=(tv.textContent||'').trim();if(txt)return clean(txt.split(/\s/)[0]);}
  var sp=tr.querySelector('span[onclick*="tradingview"],a[onclick*="tradingview"]');
  if(sp)return (sp.textContent||'').trim();
  var td=tr.querySelectorAll('td')[2];
@@ -15246,8 +15360,10 @@ document.addEventListener('click',function(e){
  // The symbol cell is the one wired to TradingView. Catch it first (capture
  // phase) so the card opens instead of a new TradingView tab. Falls back to
  // the first three cells for tables without that handler.
+ var link=t.closest('a'),href=link?(link.getAttribute('href')||''):'';
  var hit=t.closest('[onclick]'),oc=hit?(hit.getAttribute('onclick')||''):'';
- var isSym=/tradingview|openTV|tvLink/i.test(oc);
+ var isSym=/tradingview|openTV|tvLink/i.test(oc)||/tradingview/i.test(href)||
+           (link&&/\bscr-sym\b/.test(link.className||''));
  if(!isSym){
   if(t.closest('button,a'))return;
   var td=t.closest('td');if(!td)return;
