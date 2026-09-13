@@ -14678,6 +14678,29 @@ function scrSecCount(k,fn){
  try{el.textContent=fn()||'';}catch(e){}
 }
 
+function syncPbMode(){
+ try{
+  if(typeof SCR==='undefined'||!SCR||!SCR.pbMode)return;
+  if(typeof scrSetPbMode!=='function')return;
+  var a=document.getElementById('scr-pbmode-eod');
+  if(!a||a.dataset.tfSynced)return;
+  a.dataset.tfSynced='1';
+  scrSetPbMode(SCR.pbMode);      // make the highlighted pill match the list
+ }catch(e){}
+}
+function hideInnerTitles(){
+ // the collapsible header already names the section; drop the duplicate label
+ ['scr-pbstrip','scr-filters'].forEach(function(id){
+  var el=document.getElementById(id);if(!el)return;
+  var all=el.querySelectorAll('div,span,h3,h4');
+  for(var i=0;i<all.length;i++){
+   var t=(all[i].textContent||'').trim();
+   if(/^(PLAYBOOKS — ONE TAP TO APPLY|FILTERS — CLICK ANY TO MULTI-SELECT)$/i.test(t)){
+    all[i].style.display='none';
+   }
+  }
+ });
+}
 function moveOutlookUp(){
  var reg=document.getElementById('scr-regime'),pre=document.getElementById('scr-presets');
  if(!reg||!pre||reg.dataset.moved)return;
@@ -14701,7 +14724,7 @@ function build(){
  wrap('scr-pbstrip','pb','PLAYBOOKS','Every named setup, one tap to apply. The Reframed / Original switch lives inside.',
   function(){var e=document.getElementById('scr-pb-list');return e?e.children.length+' playbooks':'';});
  wrap('scr-filters','filt','FILTERS','Every filter, click any to multi-select.',activeFilterCount);
- moveOutlookUp();
+ moveOutlookUp();syncPbMode();hideInnerTitles();
  return true;
 }
 function refresh(){
@@ -14762,6 +14785,10 @@ setTimeout(function(){clearInterval(t);},40000);
  background:none;color:var(--text);cursor:pointer;font-size:11px}
 .sc-pbtn:hover{border-color:var(--cyan);color:var(--cyan)}
 #tab-volume .tbl-wrap{overflow:auto;max-height:calc(100vh - 230px)}
+#vol-board-wrap{max-height:calc(100vh - 250px);overflow:auto}
+#vol-board-wrap table thead th{position:sticky;top:0;z-index:5;background:var(--bg2)}
+#tab-volume .vbt-card{max-height:calc(100vh - 250px)}
+#tab-volume .vbt-card table thead th{position:sticky;top:0;z-index:5;background:var(--bg2)}
 #tab-volume .tbl thead th{position:sticky;top:0;z-index:4;background:var(--bg2)}
 #tab-volume table.vbt-table thead th{position:sticky;top:0;z-index:4;background:var(--bg2)}
 </style>
@@ -14810,7 +14837,14 @@ window.scToggle=function(k){
 
 /* ── the card fetches its own data: it must not depend on which tab
       the user happened to open first ──────────────────────────── */
-var CACHE={row:{},hist:{},peers:{}};
+
+/* SCR, SCR_PRESETS, momData and mbData are declared with let/const, which means
+   they live in the global LEXICAL scope and are NOT properties of window.
+   Reading window.SCR returns undefined and silently disables everything that
+   depends on it — that is exactly what made the playbook box always empty. */
+function SCRx(){try{return (typeof SCR!=='undefined')?SCR:null;}catch(e){return null;}}
+function PRESETSx(){try{return (typeof SCR_PRESETS!=='undefined')?SCR_PRESETS:null;}catch(e){return null;}}
+var CACHE={row:{},hist:{},peers:{},ema:{},sm:{}};
 function sbGet(q){
  var h={apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey};
  return fetch(CONFIG.supabaseUrl+'/rest/v1/'+q,{headers:h})
@@ -14863,6 +14897,10 @@ function loadStock(sym,then){
    '&select=session_date,ltp,vol_ratio&order=session_date.asc&limit=400').then(function(r){
     CACHE.hist[sym]=(r||[]).filter(function(x){return x.ltp!=null;})
      .map(function(x){return {d:x.session_date,c:+x.ltp,v:(x.vol_ratio!=null?+x.vol_ratio:null)};});}));
+ if(!CACHE.ema[sym])need.push(sbGet('ema_filter?symbol=eq.'+encodeURIComponent(sym)+
+   '&select=*&order=session_date.desc&limit=1').then(function(r){CACHE.ema[sym]=(r&&r[0])||null;}));
+ if(!CACHE.sm[sym])need.push(sbGet('smart_money_deals?symbol=eq.'+encodeURIComponent(sym)+
+   '&select=*&order=deal_date.desc&limit=8').then(function(r){CACHE.sm[sym]=r||[];}));
  var pre=CACHE.row[sym];
  if(pre&&pre.sector&&!CACHE.peers[pre.sector]){
   var sd=(pre._raw&&pre._raw.session_date)||'';
@@ -14885,7 +14923,7 @@ function loadStock(sym,then){
 /* ── gather one stock from every dataset ───────────────── */
 function gather(sym){
  var o={sym:sym};
- try{o.scr=(window.SCR&&SCR.data||[]).filter(function(d){return d.sym===sym;})[0]||null;}catch(e){}
+ try{o.scr=(SCRx()&&SCRx().data||[]).filter(function(d){return d.sym===sym;})[0]||null;}catch(e){}
  // Merge: the screener row is richer where it exists, but it only exists once
  // the Momentum tab has loaded. Fill every gap from the row we fetched.
  var fx=CACHE.row[sym]||null;
@@ -14939,10 +14977,11 @@ function gather(sym){
  window.SC_DEBUG={row:!!fx,hist:(CACHE.hist[sym]||[]).length};
  try{o.mtf=(window.TF_MTF||{})[sym]||null;}catch(e){}
  try{o.oi=(window.MB2&&MB2.oi||{})[sym]||null;o.orb=(window.MB2&&MB2.orb||{})[sym]||null;o.mom=(window.MB2&&MB2.mom||{})[sym]||null;}catch(e){}
- try{o.mb=(window.mbData||[]).filter(function(d){return d.symbol===sym;})[0]||null;}catch(e){}
+ try{o.mb=CACHE.ema[sym]||null;}catch(e){}
  try{o.picks=(window.MB2&&MB2.picks||[]).filter(function(p){return p.symbol===sym;});}catch(e){}
- try{var md=window.momData||{};
-  o.sm=(md.smartmoney||[]).filter(function(d){return (d.symbol||d.sym)===sym;}).slice(0,6);
+ try{var md=(typeof momData!=='undefined'&&momData)||{};
+  o.sm=(CACHE.sm[sym]&&CACHE.sm[sym].length)?CACHE.sm[sym]:
+       (md.smartmoney||[]).filter(function(d){return (d.symbol||d.sym)===sym;}).slice(0,6);
   o.mine=(md.picks||[]).filter(function(d){return d.symbol===sym;})[0]||null;
  }catch(e){}
  try{o.alerts=(window.foAlerts||window.alertData||[]).filter(function(a){return a.symbol===sym;}).slice(0,6);}catch(e){}
@@ -14956,9 +14995,9 @@ function gather(sym){
    counted and surfaced instead of being hidden. */
 function matchPresets(d,objects){
  var out=[],errs=0,firstErr='';
- if(!d||typeof scrPasses!=='function'||!window.SCR_PRESETS||!window.SCR||!SCR.state)return out;
- var keep=SCR.activePreset,snap={},k;
- for(k in SCR.state){var s0=SCR.state[k];snap[k]=(s0&&s0.forEach)?Array.prototype.slice.call(Array.from(s0)):null;}
+ if(!d||typeof scrPasses!=='function'||!PRESETSx()||!SCRx()||!SCRx().state)return out;
+ var keep=SCRx().activePreset,snap={},k;
+ var SS=SCRx();for(k in SS.state){var s0=SS.state[k];snap[k]=(s0&&s0.forEach)?Array.prototype.slice.call(Array.from(s0)):null;}
  function blankAll(){
   for(var k2 in SCR.state){
    var s2=SCR.state[k2];
@@ -14967,7 +15006,7 @@ function matchPresets(d,objects){
   }
  }
  try{
-  SCR_PRESETS.forEach(function(pp){
+  PRESETSx().forEach(function(pp){
    if(!pp||pp.id==='all')return;
    try{
     blankAll();
@@ -15058,18 +15097,44 @@ function secStruct(o){
  return h?'<div class="sc-g">'+h+'</div>':'';
 }
 function secVol(o){
- var d=o.scr||{},h='';
- h+=item('RVOL',f(d.rvol,2)+'\u00d7','Today\u2019s volume against its own 20-day average');
- h+=item('Vol ratio',f(d.volRatio,2)+'\u00d7','Volume against average');
- h+=item('Vol class',d.volClass,'Volume bucket for today');
- h+=item('Vol signal',d.vsig,'Volume signal classification');
- h+=item('5-day vol',f(d.vol5,2)+'\u00d7','Average volume over the last 5 sessions');
- h+=item('Volume dry-up',d.volDry?'Yes':null,'Volume has dried up — what you want inside a base, not on a breakout');
- h+=item('Vol move',f(d.volMove,2),'Volume on the move');
- h+=item('Breakout volume',f(d.bovol,2)+'\u00d7','Volume on the breakout day'+(d.bovolWhen?' ('+d.bovolWhen+')':''));
- h+=item('Delivery %',f(d.del,1)+'%','Share of volume taken to delivery — higher means real buying, not intraday churn');
- h+=item('Last 5',d.last5,'Last five sessions at a glance');
- return h?'<div class="sc-g">'+h+'</div>':'';
+ var d=o.scr||{},h=o.hist||[],out='';
+ var vv=h.map(function(x){return x.v;}).filter(function(x){return x!=null;});
+ function avg(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:null;}
+ var today=vv.length?vv[vv.length-1]:num(d.rvol);
+ var a5=avg(vv.slice(-5)),a20=avg(vv.slice(-20));
+ var heavy=vv.slice(-20).filter(function(x){return x>=1.5;}).length;
+ var dry=vv.slice(-20).filter(function(x){return x<0.8;}).length;
+ var mx=null,mxi=-1;vv.slice(-60).forEach(function(x,i){if(mx==null||x>mx){mx=x;mxi=i;}});
+ var mxDate=(mxi>=0&&h.length)?(h.slice(-60)[mxi]||{}).d:null;
+ // a compact 20-session strip so the shape is visible, not just numbers
+ var strip='';
+ if(vv.length>=5){
+  var last=vv.slice(-20),m2=Math.max.apply(null,last)||1;
+  strip='<div style="display:flex;align-items:flex-end;gap:2px;height:34px;margin:6px 0 2px">'+
+   last.map(function(v,i){
+    var col=v>=1.5?'var(--green)':(v<0.8?'var(--text2)':'var(--amber)');
+    return '<div title="'+esc(v.toFixed(2)+'\u00d7 average volume')+'" style="flex:1;height:'+
+     Math.max(6,Math.round(v/m2*34))+'px;background:'+col+';opacity:'+(v>=1.5?0.85:0.45)+';border-radius:1px"></div>';
+   }).join('')+'</div>'+
+   '<div style="font-size:9.5px;color:var(--muted);margin-bottom:4px">Last 20 sessions of relative volume. Green 1.5×+, amber normal, grey dried up.</div>';
+ }
+ var g='';
+ g+=item('Today',today!=null?today.toFixed(2)+'\u00d7':null,'Today\u2019s volume against this stock\u2019s own 20-day average. Above 1.5\u00d7 is real participation; below 0.8\u00d7 is a dry-up.',
+   today!=null?(today>=1.5?'color:var(--green)':(today<0.8?'color:var(--text2)':'')):'');
+ g+=item('5-day average',a5!=null?a5.toFixed(2)+'\u00d7':null,'Average relative volume over the last five sessions — whether interest is building or fading.');
+ g+=item('20-day average',a20!=null?a20.toFixed(2)+'\u00d7':null,'Average relative volume over the last month, the baseline the other figures are judged against.');
+ g+=item('Heavy days (20)',vv.length?heavy:null,'How many of the last 20 sessions traded at 1.5\u00d7 average or more. Clusters of heavy days mark accumulation or distribution.');
+ g+=item('Dry days (20)',vv.length?dry:null,'Sessions under 0.8\u00d7 average. Plenty of dry days inside a base is what you want before a breakout.');
+ g+=item('Biggest day (60)',mx!=null?(mx.toFixed(2)+'\u00d7'+(mxDate?' on '+mxDate:'')):null,'The heaviest relative-volume session in the last 60. Worth checking what happened that day.');
+ g+=item('Delivery %',f(d.del,1),'Share of volume taken to delivery rather than traded intraday. Higher means real buying.');
+ g+=item('Breakout volume',d.bovol!=null?(f(d.bovol,2)+'\u00d7'+(d.bovolWhen?' ('+d.bovolWhen+')':'')):null,'Volume on the breakout day itself. Breakouts on under 1.5\u00d7 tend not to hold.');
+ g+=item('Volume dry-up',d.volDry?'Yes':null,'The scan flagged a dry-up — low volume inside the base, which is the healthy pattern.');
+ g+=item('Vol class',d.volClass,'The scan\u2019s own volume bucket for today.');
+ g+=item('Vol signal',d.vsig,'Volume signal classification from the scan.');
+ g+=item('Last 5',d.last5,'The last five sessions at a glance.');
+ out=strip+(g?'<div class="sc-g">'+g+'</div>':'');
+ if(!vv.length&&!g)out='<div class="sc-none">No volume history loaded for this stock yet.</div>';
+ return out;
 }
 function secFno(o){
  var r=o.oi||{},b=o.orb||{},mb=o.mb||{},h='',p=num((o.scr&&o.scr.ltp)||mb.ltp);
@@ -15123,10 +15188,22 @@ function secTrend(o){
  return h?'<div class="sc-g">'+h+'</div>':'';
 }
 function secSmart(o){
- if(!o.sm||!o.sm.length)return '';
+ if(!o.sm||!o.sm.length)return '<div class="sc-none">No bulk or block deals on record for this stock.</div>';
  return o.sm.map(function(x){
-  return '<div class="sc-i" title="Bulk or block deal on record"><span>'+esc(x.deal_date||x.date||'')+' · '+esc(x.client_name||x.client||'')+'</span><b>'+
-   esc((x.deal_type||x.type||'')+' '+(x.quantity!=null?(+x.quantity).toLocaleString():''))+'</b></div>';
+  var dt=x.deal_date||x.date||x.session_date||'';
+  var who=x.client_name||x.client||x.investor||x.buyer||x.entity||'';
+  var typ=(x.deal_type||x.type||x.txn_type||'').toString();
+  var qty=(x.quantity!=null?x.quantity:(x.qty!=null?x.qty:null));
+  var px=(x.price!=null?x.price:(x.trade_price!=null?x.trade_price:null));
+  var val=(qty!=null&&px!=null)?(qty*px/1e7):null;
+  var buy=/buy|purchase|acquis/i.test(typ);
+  var tip='Bulk or block deal reported to the exchange'+(dt?' on '+dt:'')+
+   (val!=null?'. Deal value about ₹'+val.toFixed(1)+' crore':'')+
+   '. A single large print is not a trend — look for repeats by the same name.';
+  return '<div class="sc-i" title="'+esc(tip)+'"><span>'+esc(String(dt).slice(0,10))+(who?' · '+esc(who):'')+'</span>'+
+   '<b style="'+(buy?'color:var(--green)':(typ?'color:var(--red)':''))+'">'+esc(typ.toUpperCase()||'—')+
+   (qty!=null?' '+(+qty).toLocaleString():'')+(px!=null?' @ '+(+px).toFixed(1):'')+
+   (val!=null?' · ₹'+val.toFixed(1)+'cr':'')+'</b></div>';
  }).join('');
 }
 function secAlerts(o){
@@ -15247,7 +15324,7 @@ function relBox(o){
  if(have<6)return '<div class="sc-cbox">'+head+'<div class="sc-none" style="padding:24px 4px">Loading weekly history…</div></div>';
  var n=Math.min(52,have),mine=own.slice(-n),base=mine[0];
  var me=mine.map(function(x){return x/base*100;});
- var all=(window.SCR&&SCR.data&&SCR.data.length)?SCR.data:(CACHE.peers[d.sector]||[]);
+ var all=(SCRx()&&SCRx().data&&SCRx().data.length)?SCR.data:(CACHE.peers[d.sector]||[]);
  var peerRows=[],peerLbl='';
  if(CH.mode==='sector'&&d.sector){peerRows=all.filter(function(x){return x.sector===d.sector&&x.sym!==sym;});peerLbl=d.sector;}
  if(CH.mode==='industry'&&d.industry&&d.industry!=='—'){peerRows=all.filter(function(x){return x.industry===d.industry&&x.sym!==sym;});peerLbl=d.industry;}
@@ -15284,7 +15361,7 @@ window.scGoPlaybook=function(id){
   var tries=0;
   var t=setInterval(function(){
    tries++;
-   if(typeof scrApplyPreset==='function'&&window.SCR&&SCR.loaded){
+   if(typeof scrApplyPreset==='function'&&SCRx()&&SCRx().loaded){
     clearInterval(t);
     if(SCR.activePreset===id)SCR.activePreset=null;   // force a fresh apply
     scrApplyPreset(id);
@@ -15385,7 +15462,7 @@ function flagBox(title,arr,colr,tip){
 function pbPanel(o){
  var d=o.scr||{},pbs=matchPresets(d,true);
  var tip='Every playbook whose rules this stock passes right now, checked with the screener\u2019s own rule engine — so a playbook listing 20 stocks will show up on all 20 of their cards, and nothing else. Click one to open the screener with that playbook applied and see the rest of today\u2019s candidates for the same setup. It tells you which of your own setups this stock fits, not that you should trade it.';
- var partial=!(window.SCR&&SCR.data&&SCR.data.length);
+ var partial=!(SCRx()&&SCRx().data&&SCRx().data.length);
  var body;
  if(!pbs.length){
   body='<div class="sc-none">'+(pbs.errs?
