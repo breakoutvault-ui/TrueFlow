@@ -13691,7 +13691,17 @@ window.tfLoadMtf=function(){
   try{
    var h={apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey},all=[];
    for(var o=0;o<6000;o+=1000){
-    var r=await fetch(CONFIG.supabaseUrl+'/rest/v1/momentum_mtf?select=*&order=symbol.asc&limit=1000&offset='+o,{headers:h});
+    // select explicit columns: ohlc_120 is ~3.7 KB per stock and would add
+    // about 5.6 MB to every page load. The stock card fetches it per symbol.
+    var cols='symbol,session_date,exchange,company_name,is_ipo,ltp,day_chg_pct,adr_pct,'+
+     'ema9_d,ema20_d,ema50_d,ema200_d,pct_from_ema9_d,pct_from_ema20_d,pct_from_ema50,pct_from_ema200,'+
+     'ema50_rising,ema9_w,ema20_w,pct_from_ema9_w,ema9_m,ema20_m,pct_from_ema9_m,'+
+     'd_state,w_state,w_state_dev,m_state,m_state_dev,m_short_history,w_cross_date,w_cross_weeks,'+
+     'm_breakout,mtf_state,tf_up,ema_base,base_days,base_depth_pct,box_high,box_low,below_box_days,'+
+     'base_status,listing_date,days_listed,listing_open,listing_day_high,listing_day_low,'+
+     'post_listing_high,pct_from_plh,ldh_reclaim,plh_breakout,ipo_base_days,ipo_base_depth,'+
+     'recently_listed,avg_turnover_cr';
+    var r=await fetch(CONFIG.supabaseUrl+'/rest/v1/momentum_mtf?select='+cols+'&order=symbol.asc&limit=1000&offset='+o,{headers:h});
     if(!r.ok)break;var p=await r.json();if(!Array.isArray(p)||!p.length)break;all=all.concat(p);if(p.length<1000)break;
    }
    var mx='';all.forEach(function(x){if(x.session_date>mx)mx=x.session_date;});
@@ -14844,7 +14854,7 @@ window.scToggle=function(k){
    depends on it — that is exactly what made the playbook box always empty. */
 function SCRx(){try{return (typeof SCR!=='undefined')?SCR:null;}catch(e){return null;}}
 function PRESETSx(){try{return (typeof SCR_PRESETS!=='undefined')?SCR_PRESETS:null;}catch(e){return null;}}
-var CACHE={row:{},hist:{},peers:{},ema:{},sm:{}};
+var CACHE={row:{},hist:{},peers:{},ema:{},sm:{},ohlc:{}};
 function sbGet(q){
  var h={apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey};
  return fetch(CONFIG.supabaseUrl+'/rest/v1/'+q,{headers:h})
@@ -14897,6 +14907,8 @@ function loadStock(sym,then){
    '&select=session_date,ltp,vol_ratio&order=session_date.asc&limit=400').then(function(r){
     CACHE.hist[sym]=(r||[]).filter(function(x){return x.ltp!=null;})
      .map(function(x){return {d:x.session_date,c:+x.ltp,v:(x.vol_ratio!=null?+x.vol_ratio:null)};});}));
+ if(!CACHE.ohlc[sym])need.push(sbGet('momentum_mtf?symbol=eq.'+encodeURIComponent(sym)+
+   '&select=ohlc_120&limit=1').then(function(r){CACHE.ohlc[sym]=(r&&r[0]&&r[0].ohlc_120)||'';}));
  if(!CACHE.ema[sym])need.push(sbGet('ema_filter?symbol=eq.'+encodeURIComponent(sym)+
    '&select=*&order=session_date.desc&limit=1').then(function(r){CACHE.ema[sym]=(r&&r[0])||null;}));
  if(!CACHE.sm[sym])need.push(sbGet('smart_money_deals?symbol=eq.'+encodeURIComponent(sym)+
@@ -14935,7 +14947,7 @@ function gather(sym){
        o.scr=mg;}
  }
  o.hist=CACHE.hist[sym]||null;
- try{o.ohlc=parseOhlc(o.mtf&&o.mtf.ohlc_120);}catch(e){o.ohlc=[];}
+ try{o.ohlc=parseOhlc(CACHE.ohlc[sym]||(o.mtf&&o.mtf.ohlc_120));}catch(e){o.ohlc=[];}
  // The reframed playbook rules test trend fields that the Momentum tab
  // normally attaches. Derive them here so a card opened from any tab is
  // judged by the same rules.
@@ -15281,7 +15293,9 @@ function chartPanes(o){
   '</div>';
  if(hist.length<10)return '<div class="sc-chart" style="margin-top:10px"><div class="sc-cbox">'+head+
   '<div class="sc-none" style="padding:24px 4px">Loading price history…</div></div>'+relBox(o)+'</div>';
- var n=Math.min(CH.days,hist.length),win=hist.slice(-n);
+ var n=Math.min(CH.days,hist.length);
+ if(CH.style==='candle'&&hasOhlc)n=Math.min(n,o.ohlc.length);
+ var win=hist.slice(-n);
  var closes=win.map(function(x){return x.c;});
  var e20=ema(hist.map(function(x){return x.c;}),20).slice(-n);
  var e50=ema(hist.map(function(x){return x.c;}),50).slice(-n);
