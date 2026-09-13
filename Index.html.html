@@ -15935,8 +15935,29 @@ function ceRender(){
  });
  // crosshair
  if(CE.hoverIdx!=null&&CE.hoverIdx>=0&&CE.hoverIdx<win.length){
-  var hx=S.x(CE.hoverIdx);
-  g+='<line x1="'+hx.toFixed(1)+'" y1="'+CE_PAD.t+'" x2="'+hx.toFixed(1)+'" y2="'+(CE_PAD.t+S.ph)+'" stroke="var(--muted)" stroke-width="0.7" stroke-dasharray="2 3"/>';
+  var hx=S.x(CE.hoverIdx),hb=win[CE.hoverIdx],hk=cndl?cndl[CE.hoverIdx]:null;
+  var hy=(CE.hoverY!=null)?CE.hoverY:S.y(hb.c);
+  g+='<line x1="'+hx.toFixed(1)+'" y1="'+CE_PAD.t+'" x2="'+hx.toFixed(1)+'" y2="'+(CE_PAD.t+S.ph+(CE.vol?CE_VOL:0)).toFixed(1)+'" stroke="var(--muted)" stroke-width="0.7" stroke-dasharray="3 3"/>';
+  if(hy>=CE_PAD.t&&hy<=CE_PAD.t+S.ph){
+   g+='<line x1="'+CE_PAD.l+'" y1="'+hy.toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+'" y2="'+hy.toFixed(1)+'" stroke="var(--muted)" stroke-width="0.7" stroke-dasharray="3 3"/>'+
+      '<rect x="'+(CE_W-CE_PAD.r+1)+'" y="'+(hy-7).toFixed(1)+'" width="66" height="14" fill="var(--bg3)"/>'+
+      '<text x="'+(CE_W-CE_PAD.r+5)+'" y="'+(hy+3.5).toFixed(1)+'" font-size="10" fill="var(--text)">'+S.yInv(hy).toFixed(2)+'</text>';
+  }
+  g+='<rect x="'+(hx-32).toFixed(1)+'" y="'+(CE_H-CE_PAD.b+2)+'" width="64" height="13" fill="var(--bg3)"/>'+
+     '<text x="'+hx.toFixed(1)+'" y="'+(CE_H-CE_PAD.b+12)+'" font-size="9.5" fill="var(--text)" text-anchor="middle">'+esc(String(hb.d||''))+'</text>';
+  // a small box beside the cursor, so you never have to look away from the bar
+  var bx=(hx>CE_W*0.6)?(hx-176):(hx+10),by=Math.max(CE_PAD.t+4,Math.min(hy-34,CE_PAD.t+S.ph-58));
+  var rows=[];
+  if(hk)rows.push('O '+hk.o+'  H '+hk.h+'  L '+hk.l+'  C '+hk.c);
+  else rows.push('Close '+(hb.c!=null?hb.c.toFixed(2):'—'));
+  var prev=win[CE.hoverIdx-1];
+  if(prev)rows.push(((hb.c/prev.c-1)*100>=0?'+':'')+((hb.c/prev.c-1)*100).toFixed(2)+'% on the day');
+  if(hb.v!=null)rows.push('RVOL '+hb.v.toFixed(2)+'\u00d7');
+  g+='<g pointer-events="none"><rect x="'+bx.toFixed(1)+'" y="'+by.toFixed(1)+'" width="168" height="'+(14+rows.length*13)+
+     '" rx="5" fill="var(--bg2)" stroke="var(--bg3)" opacity="0.97"/>'+
+     '<text x="'+(bx+8).toFixed(1)+'" y="'+(by+14).toFixed(1)+'" font-size="10" font-weight="700" fill="var(--text)">'+esc(String(hb.d||''))+'</text>'+
+     rows.map(function(t,ri){return '<text x="'+(bx+8).toFixed(1)+'" y="'+(by+28+ri*13).toFixed(1)+'" font-size="10" fill="var(--muted)">'+esc(t)+'</text>';}).join('')+
+     '</g>';
  }
  host.innerHTML='<svg id="ce-canvas" viewBox="0 0 '+CE_W+' '+CE_H+'" style="width:100%;height:100%;display:block;cursor:'+(CE.tool==='cursor'?'crosshair':'copy')+'">'+g+'</svg>';
  ceReadout(win,cndl,e,o);
@@ -15971,20 +15992,38 @@ function ceAuto(o,cndl){
  var d=o.scr||{},m=o.mtf||{},A={pole:null,box:null,pivots:[]};
  if(!cndl||cndl.length<15)return A;
  var bd=+(d.baseDays||m.base_days||0)||0, pd=+(d.poleDays||0)||0;
+ var pctK=num(d.poleMovePct);
+
+ /* The box, when the scan says one has formed. */
  if(bd>=5&&bd<cndl.length-3){
   var b0=cndl.length-bd,bw=cndl.slice(b0);
   var top=Math.max.apply(null,bw.map(function(k){return k.h;}));
   var bot=Math.min.apply(null,bw.map(function(k){return k.l;}));
-  A.box={i1:b0,i2:cndl.length-1,top:top,bot:bot,days:bd,
-         depth:((top-bot)/top*100)};
-  if(pd>=3&&b0-pd>=0){
-   var pw=cndl.slice(Math.max(0,b0-pd),b0);
-   var lo=Math.min.apply(null,pw.map(function(k){return k.l;}));
-   var loI=Math.max(0,b0-pd);
-   pw.forEach(function(k,i){if(k.l===lo)loI=Math.max(0,b0-pd)+i;});
-   A.pole={i1:loI,p1:lo,i2:b0,p2:top,days:b0-loI,pct:(top/lo-1)*100};
+  A.box={i1:b0,i2:cndl.length-1,top:top,bot:bot,days:bd,depth:((top-bot)/top*100)};
+ }
+
+ /* The pole. It must NOT depend on a box existing: an EP or a rally still has
+    a pole, and the scan gives us its length and size. Anchor the top at the
+    highest high inside the move, then walk back to the lowest low before it. */
+ if(pd>=2){
+  var end=A.box?A.box.i1:(cndl.length-1);       // box start, else the last bar
+  if(!A.box){
+   var look=Math.min(cndl.length-1,pd+8),hi=-1,hv=-Infinity;
+   for(var q=cndl.length-1;q>=cndl.length-1-look&&q>=0;q--){
+    if(cndl[q].h>hv){hv=cndl[q].h;hi=q;}
+   }
+   if(hi>=0)end=hi;
+  }
+  var from=Math.max(0,end-pd-3),lo=Infinity,loI=-1;
+  for(var w=from;w<=end;w++){if(cndl[w].l<lo){lo=cndl[w].l;loI=w;}}
+  var topP=A.box?A.box.top:cndl[end].h;
+  if(loI>=0&&loI<end&&topP>lo){
+   var pct=(topP/lo-1)*100;
+   A.pole={i1:loI,p1:lo,i2:end,p2:topP,days:end-loI,pct:pct,
+           scanPct:pctK,scanDays:pd,noBox:!A.box};
   }
  }
+
  var L=3;
  for(var i=L;i<cndl.length-L;i++){
   var isH=true,isL=true;
@@ -16012,12 +16051,14 @@ function ceAutoSvg(A,S){
  if(CE.show.pole&&A.pole){
   var px1=S.x(A.pole.i1),py1=S.y(A.pole.p1),px2=S.x(A.pole.i2),py2=S.y(A.pole.p2);
   g+='<g><title>'+esc('Pole: '+A.pole.pct.toFixed(1)+'% in '+A.pole.days+' sessions ('+
-    (A.pole.pct/Math.max(1,A.pole.days)).toFixed(2)+'% a day). The move that earns the base.')+'</title>'+
+    (A.pole.pct/Math.max(1,A.pole.days)).toFixed(2)+'% a day), measured low to high on these candles.'+
+    (A.pole.scanPct!=null?' The scan records '+A.pole.scanPct.toFixed(1)+'% over '+A.pole.scanDays+' sessions; small differences are the scan measuring close-to-close.':'')+
+    (A.pole.noBox?' No consolidation has formed yet, so the pole runs to the most recent high.':' The move that earns the base.'))+'</title>'+
    '<line x1="'+px1.toFixed(1)+'" y1="'+py1.toFixed(1)+'" x2="'+px2.toFixed(1)+'" y2="'+py2.toFixed(1)+
     '" stroke="var(--green)" stroke-width="1.6" opacity="0.85"/>'+
    '<circle cx="'+px1.toFixed(1)+'" cy="'+py1.toFixed(1)+'" r="2.5" fill="var(--green)"/>'+
    '<text x="'+((px1+px2)/2).toFixed(1)+'" y="'+((py1+py2)/2-5).toFixed(1)+'" font-size="10" fill="var(--green)" text-anchor="middle">Pole +'+
-    A.pole.pct.toFixed(0)+'% / '+A.pole.days+'d</text></g>';
+    A.pole.pct.toFixed(0)+'% / '+A.pole.days+'d'+(A.pole.noBox?' (no box yet)':'')+'</text></g>';
  }
  if(CE.show.pivots){
   A.pivots.forEach(function(v){
@@ -16101,6 +16142,8 @@ function ceBar(o){
  h+=btn(false,'ceUndo()','⌫','Remove the last thing you drew');
  h+=btn(false,'ceClear()','Clear','Remove every drawing on this stock');
  h+='<span style="margin-left:auto"></span>';
+ h+='<a class="ce-b" style="text-decoration:none" href="https://in.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(CE.sym)+
+    '" target="_blank" rel="noopener" title="Open this stock in your own TradingView layout, with your indicators and drawings">TradingView ↗</a>';
  h+='<button class="ce-b" onclick="ceClose()" title="Close (Esc)">✕</button>';
  h+='</div><div class="ce-row" style="font-size:10.5px">';
  h+='<span style="color:var(--muted)" title="Levels the scan already knows about, drawn on the chart. Click any to hide it.">Levels</span>';
@@ -16153,7 +16196,11 @@ function ceCoords(ev){
 }
 function ceMove(ev){
  var c=ceCoords(ev);if(!c)return;
- if(CE.hoverIdx!==c.i){CE.hoverIdx=c.i;ceRender();}
+ var svg=document.getElementById('ce-canvas');
+ if(svg){var r=svg.getBoundingClientRect();CE.hoverY=(ev.clientY-r.top)/r.height*CE_H;}
+ if(CE.hoverIdx!==c.i||CE.hoverYr!==Math.round(CE.hoverY/3)){
+  CE.hoverIdx=c.i;CE.hoverYr=Math.round(CE.hoverY/3);ceRender();
+ }
 }
 function ceClick(ev){
  var c=ceCoords(ev);if(!c)return;
@@ -16232,7 +16279,7 @@ window.ceOpen=function(sym){
   var p=document.createElement('div');p.id='ce-panel';
   p.innerHTML='<div id="ce-bar"></div><div id="ce-svg"></div>';
   document.body.appendChild(p);
-  p.addEventListener('mousemove',function(ev){if(CE.tool==='cursor')ceMove(ev);});
+  p.addEventListener('mousemove',function(ev){ceMove(ev);});   // always, whatever tool is active
   p.addEventListener('click',function(ev){
    if(ev.target.closest('button'))return;
    if(CE.tool==='cursor'){
