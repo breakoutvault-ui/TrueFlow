@@ -14888,7 +14888,8 @@ function mapRow(s){
   ema9:n(s.ema9_daily),ema20:n(s.ema20_daily),pct9e:n(s.pct_from_ema9_daily),
   pct5e:n(s.pct_from_ema5_daily),pct9w:n(s.pct_from_ema9_weekly),
   hi52:hi,low52:n(s.low_52w),pct52:pct52,
-  qm:s.qm_status||s.qm_pattern||null,pivotLvl:n(s.qm_pivot_level),basePct:n(s.qm_base_depth),
+  qm:(s.qm_pattern==='BrokenOut'?null:(s.qm_pattern||null)),qm_status:s.qm_status||null,
+  pivotLvl:n(s.qm_pivot_level),basePct:n(s.qm_base_depth),
   baseDays:s.qm_base_days,contract:n(s.qm_contraction),volDry:!!s.qm_vol_dryup,
   poleMovePct:n(s.qm_move_pct),poleDays:s.qm_move_days,poleSpeed:n(s.qm_move_speed),
   reclaim:!!s.qm_ema_reclaim,
@@ -15094,6 +15095,7 @@ function secStruct(o){
  h+=item('52W state',d.z52,'Where price sits in its 52-week range');
  h+=item('ADR',f(d.adr)+'%','Average daily range — how far it typically travels in a day. Above 3.5% averaged +0.334R in your ORB data; below 2% was -0.202R.');
  h+=item('QM pattern',d.qm,'Qullamaggie pattern detected: EP, VCP, HTF and so on');
+ h+=item('QM status',d.qm_status,'Where the scan thinks this pattern is in its life cycle.');
  h+=item('Pivot',f(d.pivotLvl||d.pivot),'Pattern pivot level — the trigger');
  h+=item('Base %',d.basePct!=null?f(d.basePct,1)+'%':null,'How deep the base is');
  h+=item('Base days',d.baseDays,'How many sessions the base has taken');
@@ -15135,15 +15137,16 @@ function secVol(o){
  var mxDate=(mxi>=0&&h.length)?(h.slice(-60)[mxi]||{}).d:null;
  // a compact 20-session strip so the shape is visible, not just numbers
  var strip='';
+ var OM2=ohlcMap(o);
  if(vv.length>=5){
-  var last=vv.slice(-20),m2=Math.max.apply(null,last)||1;
+  var lastH=h.slice(-20),m2=Math.max.apply(null,lastH.map(function(x){return x.v||0;}))||1;
   strip='<div style="display:flex;align-items:flex-end;gap:2px;height:34px;margin:6px 0 2px">'+
-   last.map(function(v,i){
-    var col=v>=1.5?'var(--green)':(v<0.8?'var(--text2)':'var(--amber)');
-    return '<div title="'+esc(v.toFixed(2)+'\u00d7 average volume')+'" style="flex:1;height:'+
-     Math.max(6,Math.round(v/m2*34))+'px;background:'+col+';opacity:'+(v>=1.5?0.85:0.45)+';border-radius:1px"></div>';
+   lastH.map(function(x,i){
+    var up=(i===0)||(x.c>=lastH[i-1].c),vc=volColour(x.v,up,OM2[x.d]);
+    return '<div title="'+esc((x.d||'')+' \u00b7 '+vc.lab)+'" style="flex:1;height:'+
+     Math.max(6,Math.round((x.v||0)/m2*34))+'px;background:'+vc.c+';opacity:'+vc.o+';border-radius:1px"></div>';
    }).join('')+'</div>'+
-   '<div style="font-size:9.5px;color:var(--muted);margin-bottom:4px">Last 20 sessions of relative volume. Green 1.5×+, amber normal, grey dried up.</div>';
+   '<div style="font-size:9.5px;color:var(--muted);margin-bottom:4px">Last 20 sessions. Green = above-average buying \u00b7 red = above-average selling \u00b7 grey = below average, where direction means little.</div>';
  }
  var g='';
  g+=item('Today',today!=null?today.toFixed(2)+'\u00d7':null,'Today\u2019s volume against this stock\u2019s own 20-day average. Above 1.5\u00d7 is real participation; below 0.8\u00d7 is a dry-up.',
@@ -15291,6 +15294,34 @@ function line(pts,w,h,min,max,colr,wid){
   return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ');
  return '<path d="'+d+'" fill="none" stroke="'+colr+'" stroke-width="'+(wid||1.8)+'" stroke-linejoin="round"/>';
 }
+
+/* Volume colouring. Two things decide the colour, not one.
+
+   Direction alone misleads: a stock can close up on huge volume yet finish in
+   the bottom third of its range, which is selling into strength, not buying.
+   So where a candle is available we use the CLOSE LOCATION in that day's range;
+   where only a closing price exists we fall back to up-or-down.
+
+   Below its own average volume the bar is grey whatever happened, because
+   direction on thin volume is noise rather than pressure. */
+function volColour(v,up,k){
+ if(v==null)return {c:'var(--text2)',o:0.22,lab:'no volume data'};
+ if(v<1.0)return {c:'var(--text2)',o:0.28,lab:v.toFixed(2)+'\u00d7 \u2014 below its own average, so the direction means little'};
+ var heavy=v>=1.5,op=heavy?0.92:0.5,str=heavy?'heavy':'above-average';
+ if(k&&k.h!=null&&k.l!=null&&k.h>k.l){
+  var loc=(k.c-k.l)/(k.h-k.l);
+  if(loc>=0.66)return {c:'var(--green)',o:op,lab:v.toFixed(2)+'\u00d7 \u2014 '+str+' buying, closed in the top '+
+    Math.round((1-loc)*100)+'% of the day\u2019s range'};
+  if(loc<=0.34)return {c:'var(--red)',o:op,lab:v.toFixed(2)+'\u00d7 \u2014 '+str+' selling, closed in the bottom '+
+    Math.round(loc*100)+'% of the day\u2019s range'};
+  return {c:'var(--amber)',o:op,lab:v.toFixed(2)+'\u00d7 \u2014 '+str+' volume but the close finished mid-range: buyers and sellers fought to a draw'};
+ }
+ return {c:up?'var(--green)':'var(--red)',o:op,lab:v.toFixed(2)+'\u00d7 \u2014 '+str+' '+(up?'buying':'selling')+' (close only, no candle for this session)'};
+}
+/* date -> candle, so colour can use the range regardless of chart style */
+function ohlcMap(o){
+ var m={};(o.ohlc||[]).forEach(function(k){m[k.d]=k;});return m;
+}
 function chartPanes(o){
  var d=o.scr||{},sym=SC.sym,hist=o.hist||[];
  var hasOhlc=!!(o.ohlc&&o.ohlc.length>=5);
@@ -15317,7 +15348,7 @@ function chartPanes(o){
  var mn=Math.min.apply(null,all),mx=Math.max.apply(null,all),W=380,H=215;
  var last=closes[closes.length-1],first=closes[0],chg=(last/first-1)*100;
  // volume first: the price area shrinks when there are bars to fit underneath
- var vols=win.map(function(x){return x.v;}),hasVol=vols.some(function(x){return x!=null;});
+ var vols=win.map(function(x){return x.v;}),hasVol=vols.some(function(x){return x!=null;}),OM=ohlcMap(o);
  var PH=H-(hasVol?52:0);
  var vbars='';
  if(hasVol){
@@ -15330,11 +15361,10 @@ function chartPanes(o){
     var bw=Math.max(0.8,(W-8)/vols.length*0.72);
     var x=(i/(vols.length-1))*(W-8)+4-bw/2;
     var h2=Math.max(0.6,(v/vmax)*vh);
-    var up=(i===0)||(closes[i]>=closes[i-1]);
-    var lbl=(win[i]&&win[i].d?win[i].d+' · ':'')+v.toFixed(2)+'× average volume'+
-     (v>=1.5?' (heavy)':(v<0.8?' (dried up)':''))+' · close '+closes[i].toFixed(1)+(up?' up':' down');
+    var up=(i===0)||(closes[i]>=closes[i-1]),vc=volColour(v,up,OM[(win[i]||{}).d]);
+    var lbl=(win[i]&&win[i].d?win[i].d+' \u00b7 ':'')+vc.lab+' \u00b7 close '+closes[i].toFixed(1)+(up?' up':' down');
     return '<rect x="'+x.toFixed(1)+'" y="'+(H-h2).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h2.toFixed(1)+
-     '" fill="'+(up?'var(--green)':'var(--red)')+'" opacity="'+(v>=1.5?0.75:0.35)+'"><title>'+esc(lbl)+'</title></rect>';
+     '" fill="'+vc.c+'" opacity="'+vc.o+'"><title>'+esc(lbl)+'</title></rect>';
    }).join('');
  }
  var cndl=(CH.style==='candle')?(o.ohlc||[]).slice(-n):null;
@@ -15369,7 +15399,7 @@ function chartPanes(o){
     '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+n+' sessions · '+
     'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:var(--amber)">20 EMA</span> · 50 EMA'+
     (CH.style==='candle'&&cndl&&n>cndl.length?' · candles cover the last '+cndl.length+' sessions':'')+
-    (hasVol?' · <span title="Relative volume per session: each bar is that day\u2019s volume against its own 20-day average. The dotted line is 1×, so bars above it are above-average participation. Solid bars are 1.5× or more, faint ones below that. Green means the close was up on the day. Hover any bar for its exact figure.">bars = RVOL'+
+    (hasVol?' · <span title="Relative volume per session: each bar is that day\u2019s volume against its own 20-day average. The dotted line is 1×. Grey means the session traded below its own average, where direction is noise rather than pressure; green is above-average buying and red above-average selling, solid at 1.5× or more. Hover any bar for its figure.">bars = RVOL'+
      (vols[vols.length-1]!=null?', today '+vols[vols.length-1].toFixed(2)+'×':'')+'</span>':'')+
    '</div>'+
   '</div>'+relBox(o)+'</div>';
@@ -15709,7 +15739,7 @@ document.addEventListener('click',function(e){
    the period or style changes. */
 var CE={sym:null,style:'candle',days:126,tool:'cursor',pending:null,
         ema:{9:true,20:true,50:true,200:false},levels:{},open:false,hoverIdx:null,
-        show:{pole:true,box:true,pivots:false},measure:null,adr:null,lastScale:null};
+        show:{pole:true,box:true,pivots:false,accum:false,smart:true},measure:null,adr:null,lastScale:null};
 var CE_W=1280,CE_H=660,CE_PAD={l:8,r:74,t:14,b:26},CE_VOL=92;
 
 function ceKey(){return 'tfDraw:'+CE.sym;}
@@ -15805,7 +15835,8 @@ function ceRender(){
   });
  }else{
   var pts=win.map(function(x,i){return (i?'L':'M')+S.x(i).toFixed(1)+' '+S.y(x.c).toFixed(1);}).join(' ');
-  g+='<path d="'+pts+'" fill="none" stroke="var(--cyan)" stroke-width="1.7"/>';
+  g+='<path d="'+pts+'" fill="none" stroke="var(--cyan)" stroke-width="1.7"><title>'+
+   esc('Closing price each session. Switch to Candles for the open, high and low too.')+'</title></path>';
  }
  // EMAs
  var EC={9:'var(--amber)',20:'var(--cyan)',50:'var(--text2)',200:'var(--red)'};
@@ -15813,9 +15844,15 @@ function ceRender(){
   if(!CE.ema[p])return;
   var d2='',started=false;
   e[p].forEach(function(v,i){if(v==null)return;d2+=(started?'L':'M')+S.x(i).toFixed(1)+' '+S.y(v).toFixed(1)+' ';started=true;});
-  if(d2)g+='<path d="'+d2+'" fill="none" stroke="'+EC[p]+'" stroke-width="1.2" opacity="0.9"/>';
+  if(d2)g+='<path d="'+d2+'" fill="none" stroke="'+EC[p]+'" stroke-width="1.2" opacity="0.9"><title>'+
+   esc(p+' EMA \u2014 average close over the last '+p+' sessions, weighted to recent days. '+
+   (p===9?'Your swing trail: a close below it usually ends the trade.':
+    p===20?'Where healthy pullbacks tend to stop inside a trend.':
+    p===50?'The second-stage level \u2014 bases that hold it are the ones worth sizing into.':
+    'The long-term line: above it is an uptrend, below it is not.'))+'</title></path>';
  });
  // volume pane
+ var OMc=ohlcMap(o);
  var vols=win.map(function(x){return x.v;}),hv=vols.some(function(x){return x!=null;});
  if(hv){
   var vmax=Math.max.apply(null,vols.map(function(x){return x==null?0:x;}))||1;
@@ -15825,13 +15862,44 @@ function ceRender(){
   vols.forEach(function(v,i){
    if(v==null)return;
    var bw=Math.max(1,S.pw/vols.length*0.6),x=S.x(i)-bw/2,hh=Math.max(0.6,(v/vmax)*vh);
-   var up=i===0||win[i].c>=win[i-1].c;
-   g+='<rect x="'+x.toFixed(1)+'" y="'+(vtop+vh-hh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hh.toFixed(1)+'" fill="'+(up?'var(--green)':'var(--red)')+'" opacity="'+(v>=1.5?0.8:0.35)+'"><title>'+esc((win[i].d||'')+' · '+v.toFixed(2)+'× average volume')+'</title></rect>';
+   var up=i===0||win[i].c>=win[i-1].c,vc=volColour(v,up,OMc[(win[i]||{}).d]);
+   g+='<rect x="'+x.toFixed(1)+'" y="'+(vtop+vh-hh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hh.toFixed(1)+'" fill="'+vc.c+'" opacity="'+vc.o+'"><title>'+esc((win[i].d||'')+' \u00b7 '+vc.lab)+'</title></rect>';
   });
+  var vmaxI=-1;vols.forEach(function(v2,i2){if(v2!=null&&(vmaxI<0||v2>vols[vmaxI]))vmaxI=i2;});
+  if(vmaxI>=0)g+='<text x="'+S.x(vmaxI).toFixed(1)+'" y="'+(vtop+vh+9).toFixed(1)+'" font-size="9" fill="var(--muted)" text-anchor="middle"><title>'+
+   esc('Heaviest session in this window: '+vols[vmaxI].toFixed(2)+'\u00d7 average on '+((win[vmaxI]||{}).d||'')+'. This bar usually explains the structure around it.')+'</title>\u25b2 max</text>';
+  if(CE.show.accum){
+   var run=0,ap=[],mnA=0,mxA=0;
+   win.forEach(function(b2,i3){
+    var v3=b2.v==null?0:b2.v,u3=(i3===0)||(b2.c>=win[i3-1].c);
+    run+=(u3?v3:-v3);ap.push(run);if(run<mnA)mnA=run;if(run>mxA)mxA=run;
+   });
+   var rngA=(mxA-mnA)||1;
+   var dA=ap.map(function(v4,i4){return (i4?'L':'M')+S.x(i4).toFixed(1)+' '+(vtop+vh-((v4-mnA)/rngA)*vh).toFixed(1);}).join(' ');
+   g+='<path d="'+dA+'" fill="none" stroke="var(--cyan)" stroke-width="1.2" opacity="0.9"><title>'+
+    esc('Accumulation line: a running total of up-session volume minus down-session volume. If price makes a new high and this line does not, the buying underneath the move is thinning.')+'</title></path>';
+  }
  }
  CE.lastScale=S;CE.adr=num((o.scr||{}).adr);
  g+=ceAutoSvg(ceAuto(o,cndl),S);
  g+=ceMeasureSvg(S,win);
+ if(CE.show.smart){
+  var deals=(CACHE.sm[CE.sym]||[]),dmap={};
+  win.forEach(function(b4,i5){dmap[b4.d]=i5;});
+  deals.forEach(function(x){
+   var dt=String(x.deal_date||x.date||x.session_date||'').slice(0,10),i6=dmap[dt];
+   if(i6==null)return;
+   var typ=String(x.deal_type||x.type||x.txn_type||''),buy=/buy|purchase|acquis/i.test(typ);
+   var qty=(x.quantity!=null?x.quantity:x.qty),px2=(x.price!=null?x.price:x.trade_price);
+   var val=(qty!=null&&px2!=null)?(qty*px2/1e7):null;
+   var yy=S.y((win[i6]||{}).c)+(buy?18:-18);
+   g+='<g><title>'+esc(dt+' \u00b7 '+(buy?'BOUGHT':'SOLD')+' '+(x.client_name||x.client||'')+
+     (qty!=null?' \u00b7 '+(+qty).toLocaleString()+' shares':'')+(val!=null?' \u00b7 \u20b9'+val.toFixed(1)+' crore':'')+
+     ' \u00b7 a reported bulk or block deal. One print is not a trend \u2014 look for the same name repeating.')+'</title>'+
+    '<circle cx="'+S.x(i6).toFixed(1)+'" cy="'+yy.toFixed(1)+'" r="4.5" fill="'+(buy?'var(--green)':'var(--red)')+'" opacity="0.88"/>'+
+    '<text x="'+S.x(i6).toFixed(1)+'" y="'+(yy+2.8).toFixed(1)+'" font-size="7" fill="var(--bg1)" text-anchor="middle">'+(buy?'B':'S')+'</text></g>';
+  });
+ }
  // drawings
  var dr=ceLoad();
  dr.forEach(function(k,i){
@@ -16002,6 +16070,8 @@ function ceBar(o){
  h+=btn(CE.show.pole,'ceShow(\'pole\')','Pole','Draw the rally that precedes the base, with its % and length');
  h+=btn(CE.show.box,'ceShow(\'box\')','Box','Shade the consolidation and label its depth and length');
  h+=btn(CE.show.pivots,'ceShow(\'pivots\')','Pivots','Mark prior swing highs and lows — levels the market has already reacted to');
+ h+=btn(CE.show.accum,"ceShow('accum')",'Accum','Accumulation line: up-volume minus down-volume, running. A new price high without a new high here means the buying is thinning.');
+ h+=btn(CE.show.smart,"ceShow('smart')",'Smart $','Mark reported bulk and block deals on the day they happened — green bought, red sold.');
  h+=btn(false,'ceToDraw()','Edit','Copy the pole and box into your own drawings so you can adjust them by redrawing');
  h+='<span class="ce-sep"></span>';
  h+=btn(false,'ceUndo()','⌫','Remove the last thing you drew');

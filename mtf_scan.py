@@ -71,7 +71,8 @@ BASE50_MIN_DAYS     = 20
 BASE_NEAR_ADR       = 1.0    # "on the EMA" = within this many ADRs of it
 BASE_FAIL_SESSIONS  = 5      # closes below the box low in a row = Base Failed
 
-OHLC_KEEP           = 120    # daily candles stored per stock for the dashboard chart
+OHLC_KEEP           = 250    # daily candles per stock — matches the 250 sessions of
+                             # closes the dashboard holds, so the chart is candles all the way
 
 LISTINGS_FILE       = "/root/trueflow/mtf_listings.json"
 IPO_SEED_DAYS       = 365    # first run: pick up mainboard listings from the last year
