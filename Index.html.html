@@ -15708,7 +15708,8 @@ document.addEventListener('click',function(e){
    kept per symbol in this browser, in chart coordinates, so they stay put when
    the period or style changes. */
 var CE={sym:null,style:'candle',days:126,tool:'cursor',pending:null,
-        ema:{9:true,20:true,50:true,200:false},levels:{},open:false,hoverIdx:null};
+        ema:{9:true,20:true,50:true,200:false},levels:{},open:false,hoverIdx:null,
+        show:{pole:true,box:true,pivots:false},measure:null,adr:null,lastScale:null};
 var CE_W=1280,CE_H=660,CE_PAD={l:8,r:74,t:14,b:26},CE_VOL=92;
 
 function ceKey(){return 'tfDraw:'+CE.sym;}
@@ -15828,6 +15829,9 @@ function ceRender(){
    g+='<rect x="'+x.toFixed(1)+'" y="'+(vtop+vh-hh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hh.toFixed(1)+'" fill="'+(up?'var(--green)':'var(--red)')+'" opacity="'+(v>=1.5?0.8:0.35)+'"><title>'+esc((win[i].d||'')+' · '+v.toFixed(2)+'× average volume')+'</title></rect>';
   });
  }
+ CE.lastScale=S;CE.adr=num((o.scr||{}).adr);
+ g+=ceAutoSvg(ceAuto(o,cndl),S);
+ g+=ceMeasureSvg(S,win);
  // drawings
  var dr=ceLoad();
  dr.forEach(function(k,i){
@@ -15862,7 +15866,113 @@ function ceReadout(win,cndl,e,o){
  if(i>0&&win[i-1])parts.push('<span style="color:'+(bar.c>=win[i-1].c?'var(--green)':'var(--red)')+'">'+((bar.c/win[i-1].c-1)*100).toFixed(2)+'%</span>');
  if(bar.v!=null)parts.push('RVOL <b>'+bar.v.toFixed(2)+'×</b>');
  [9,20,50,200].forEach(function(p){if(CE.ema[p]&&e[p]&&e[p][i]!=null)parts.push(p+'E '+e[p][i].toFixed(1));});
- el.innerHTML=parts.join(' <span style="opacity:.35">·</span> ');
+ var out=parts.join(' <span style="opacity:.35">·</span> ');
+ if(CE.measure&&CE.measure.i2!=null){
+  var st=ceMeasureStats(CE.measure,win);
+  out='<span style="color:'+(st.pct>=0?'var(--green)':'var(--red)')+'" title="Angle depends on how far the chart is zoomed, so judge speed by % per session and ADR per session instead.">'+
+   esc(st.full)+'</span> <span style="opacity:.35">·</span> '+out;
+ }
+ el.innerHTML=out;
+}
+
+
+/* ── the setup drawn for you: pole, box and prior pivots ──────────
+   Worked out from the candles plus the scan's own qm_* figures, so what
+   you see is the same structure the playbooks are scoring. */
+function ceAuto(o,cndl){
+ var d=o.scr||{},m=o.mtf||{},A={pole:null,box:null,pivots:[]};
+ if(!cndl||cndl.length<15)return A;
+ var bd=+(d.baseDays||m.base_days||0)||0, pd=+(d.poleDays||0)||0;
+ if(bd>=5&&bd<cndl.length-3){
+  var b0=cndl.length-bd,bw=cndl.slice(b0);
+  var top=Math.max.apply(null,bw.map(function(k){return k.h;}));
+  var bot=Math.min.apply(null,bw.map(function(k){return k.l;}));
+  A.box={i1:b0,i2:cndl.length-1,top:top,bot:bot,days:bd,
+         depth:((top-bot)/top*100)};
+  if(pd>=3&&b0-pd>=0){
+   var pw=cndl.slice(Math.max(0,b0-pd),b0);
+   var lo=Math.min.apply(null,pw.map(function(k){return k.l;}));
+   var loI=Math.max(0,b0-pd);
+   pw.forEach(function(k,i){if(k.l===lo)loI=Math.max(0,b0-pd)+i;});
+   A.pole={i1:loI,p1:lo,i2:b0,p2:top,days:b0-loI,pct:(top/lo-1)*100};
+  }
+ }
+ var L=3;
+ for(var i=L;i<cndl.length-L;i++){
+  var isH=true,isL=true;
+  for(var j=i-L;j<=i+L;j++){
+   if(j===i)continue;
+   if(cndl[j].h>=cndl[i].h)isH=false;
+   if(cndl[j].l<=cndl[i].l)isL=false;
+  }
+  if(isH)A.pivots.push({i:i,p:cndl[i].h,up:true});
+  else if(isL)A.pivots.push({i:i,p:cndl[i].l,up:false});
+ }
+ A.pivots=A.pivots.slice(-14);
+ return A;
+}
+function ceAutoSvg(A,S){
+ var g='';
+ if(CE.show.box&&A.box){
+  var x1=S.x(A.box.i1),x2=S.x(A.box.i2),yt=S.y(A.box.top),yb=S.y(A.box.bot);
+  g+='<g><title>'+esc('Consolidation box: '+A.box.days+' sessions, '+A.box.depth.toFixed(1)+
+    '% deep, '+A.box.bot.toFixed(1)+' to '+A.box.top.toFixed(1)+'. A break of the top is the trigger; the bottom is where the base fails.')+'</title>'+
+   '<rect x="'+x1.toFixed(1)+'" y="'+yt.toFixed(1)+'" width="'+Math.max(2,x2-x1).toFixed(1)+'" height="'+Math.max(2,yb-yt).toFixed(1)+
+    '" fill="var(--amber)" opacity="0.09" stroke="var(--amber)" stroke-width="1" stroke-dasharray="4 3"/>'+
+   '<text x="'+(x1+4).toFixed(1)+'" y="'+(yt-4).toFixed(1)+'" font-size="10" fill="var(--amber)">Box '+A.box.days+'d · '+A.box.depth.toFixed(1)+'% deep</text></g>';
+ }
+ if(CE.show.pole&&A.pole){
+  var px1=S.x(A.pole.i1),py1=S.y(A.pole.p1),px2=S.x(A.pole.i2),py2=S.y(A.pole.p2);
+  g+='<g><title>'+esc('Pole: '+A.pole.pct.toFixed(1)+'% in '+A.pole.days+' sessions ('+
+    (A.pole.pct/Math.max(1,A.pole.days)).toFixed(2)+'% a day). The move that earns the base.')+'</title>'+
+   '<line x1="'+px1.toFixed(1)+'" y1="'+py1.toFixed(1)+'" x2="'+px2.toFixed(1)+'" y2="'+py2.toFixed(1)+
+    '" stroke="var(--green)" stroke-width="1.6" opacity="0.85"/>'+
+   '<circle cx="'+px1.toFixed(1)+'" cy="'+py1.toFixed(1)+'" r="2.5" fill="var(--green)"/>'+
+   '<text x="'+((px1+px2)/2).toFixed(1)+'" y="'+((py1+py2)/2-5).toFixed(1)+'" font-size="10" fill="var(--green)" text-anchor="middle">Pole +'+
+    A.pole.pct.toFixed(0)+'% / '+A.pole.days+'d</text></g>';
+ }
+ if(CE.show.pivots){
+  A.pivots.forEach(function(v){
+   var x=S.x(v.i),y=S.y(v.p);
+   g+='<g><title>'+esc((v.up?'Swing high ':'Swing low ')+v.p+' — a level the market has already reacted to.')+'</title>'+
+     '<path d="M'+(x-3.5).toFixed(1)+' '+(v.up?(y-4):(y+4)).toFixed(1)+' L'+(x+3.5).toFixed(1)+' '+(v.up?(y-4):(y+4)).toFixed(1)+
+     ' L'+x.toFixed(1)+' '+(v.up?(y-9):(y+9)).toFixed(1)+' Z" fill="'+(v.up?'var(--red)':'var(--green)')+'" opacity="0.7"/></g>';
+  });
+ }
+ return g;
+}
+
+/* ── measure: drag one bar to another and read the move ───────── */
+function ceMeasureSvg(S,win){
+ var M=CE.measure;if(!M||M.i2==null)return '';
+ var x1=S.x(M.i1),y1=S.y(M.p1),x2=S.x(M.i2),y2=S.y(M.p2);
+ var up=M.p2>=M.p1,colr=up?'var(--green)':'var(--red)';
+ var st=ceMeasureStats(M,win);
+ return '<g><rect x="'+Math.min(x1,x2).toFixed(1)+'" y="'+Math.min(y1,y2).toFixed(1)+'" width="'+Math.abs(x2-x1).toFixed(1)+
+  '" height="'+Math.abs(y2-y1).toFixed(1)+'" fill="'+colr+'" opacity="0.10"/>'+
+  '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+colr+'" stroke-width="1.6"/>'+
+  '<text x="'+((x1+x2)/2).toFixed(1)+'" y="'+(Math.min(y1,y2)-6).toFixed(1)+'" font-size="11" fill="'+colr+'" text-anchor="middle">'+
+  esc(st.short)+'</text></g>';
+}
+function ceMeasureStats(M,win){
+ var pct=(M.p2/M.p1-1)*100,bars=Math.abs(M.i2-M.i1);
+ var d1=(win[M.i1]||{}).d,d2=(win[M.i2]||{}).d,cal=null;
+ if(d1&&d2){var t=(new Date(d2)-new Date(d1))/864e5;if(isFinite(t))cal=Math.abs(Math.round(t));}
+ var perBar=bars?pct/bars:pct;
+ var adr=num((CE.adr!=null)?CE.adr:null);
+ var adrPer=(adr&&bars)?(Math.abs(pct)/bars/adr):null;
+ var ang=null;
+ try{
+  var S2=CE.lastScale;
+  if(S2){var dx=S2.x(M.i2)-S2.x(M.i1),dy=S2.y(M.p1)-S2.y(M.p2);ang=Math.atan2(dy,dx)*180/Math.PI;}
+ }catch(e){}
+ return {pct:pct,bars:bars,cal:cal,perBar:perBar,adrPer:adrPer,ang:ang,
+  short:(pct>=0?'+':'')+pct.toFixed(2)+'%  ·  '+bars+' bars  ·  '+(perBar>=0?'+':'')+perBar.toFixed(2)+'%/bar',
+  full:(pct>=0?'+':'')+pct.toFixed(2)+'% from '+M.p1+' to '+M.p2+
+   ' · '+bars+' sessions'+(cal!=null?' ('+cal+' calendar days)':'')+
+   ' · '+(perBar>=0?'+':'')+perBar.toFixed(2)+'% per session'+
+   (adrPer!=null?' · '+adrPer.toFixed(2)+' ADR per session':'')+
+   (ang!=null?' · '+ang.toFixed(0)+'° on screen':'')};
 }
 
 /* ── toolbar ──────────────────────────────────────────── */
@@ -15887,6 +15997,13 @@ function ceBar(o){
  h+=btn(CE.tool==='h','ceTool(\'h\')','─','Horizontal line: click once at the price you want to mark');
  h+=btn(CE.tool==='l','ceTool(\'l\')','╱','Trendline: click the start, then the end');
  h+=btn(CE.tool==='x','ceTool(\'x\')','T','Text: click where you want it, then type the note');
+ h+=btn(CE.tool==='m','ceTool(\'m\')','⇄','Measure: click the first bar, then the second. Gives the move in %, sessions, % per session and ADR per session.');
+ h+='<span class="ce-sep"></span>';
+ h+=btn(CE.show.pole,'ceShow(\'pole\')','Pole','Draw the rally that precedes the base, with its % and length');
+ h+=btn(CE.show.box,'ceShow(\'box\')','Box','Shade the consolidation and label its depth and length');
+ h+=btn(CE.show.pivots,'ceShow(\'pivots\')','Pivots','Mark prior swing highs and lows — levels the market has already reacted to');
+ h+=btn(false,'ceToDraw()','Edit','Copy the pole and box into your own drawings so you can adjust them by redrawing');
+ h+='<span class="ce-sep"></span>';
  h+=btn(false,'ceUndo()','⌫','Remove the last thing you drew');
  h+=btn(false,'ceClear()','Clear','Remove every drawing on this stock');
  h+='<span style="margin-left:auto"></span>';
@@ -15903,7 +16020,18 @@ function ceBar(o){
 window.ceSet=function(k,v){CE[k]=v;ceRefresh();};
 window.ceEma=function(p){CE.ema[p]=!CE.ema[p];ceRefresh();};
 window.ceLvl=function(id){CE.levels[id]=(CE.levels[id]===false);ceRefresh();};
-window.ceTool=function(t){CE.tool=t;CE.pending=null;ceRefresh();};
+window.ceTool=function(t){CE.tool=t;CE.pending=null;if(t!=='m')CE.measure=null;ceRefresh();};
+window.ceShow=function(k){CE.show[k]=!CE.show[k];ceRefresh();};
+window.ceToDraw=function(){
+ var o=gather(CE.sym),hist=o.hist||[],n=Math.min(CE.days,hist.length);
+ var cndl=(o.ohlc&&o.ohlc.length>=5)?o.ohlc.slice(-Math.min(n,o.ohlc.length)):null;
+ var A=ceAuto(o,cndl),a=ceLoad(),added=0;
+ if(A.box){a.push({t:'h',p:+A.box.top.toFixed(2),c:'var(--amber)'});
+           a.push({t:'h',p:+A.box.bot.toFixed(2),c:'var(--amber)'});added+=2;}
+ if(A.pole){a.push({t:'l',i1:A.pole.i1,p1:+A.pole.p1.toFixed(2),i2:A.pole.i2,p2:+A.pole.p2.toFixed(2),c:'var(--green)'});added++;}
+ if(!added)return;
+ ceSave(a);CE.show.box=false;CE.show.pole=false;ceRefresh();
+};
 window.ceUndo=function(){var a=ceLoad();a.pop();ceSave(a);ceRender();};
 window.ceClear=function(){ceSave([]);ceRender();};
 function ceRefresh(){
@@ -15938,6 +16066,10 @@ function ceClick(ev){
  else if(CE.tool==='l'){
   if(!CE.pending){CE.pending={i:c.i,p:c.p};}
   else{a.push({t:'l',i1:CE.pending.i,p1:CE.pending.p,i2:c.i,p2:c.p,c:'var(--cyan)'});CE.pending=null;ceSave(a);ceRender();}
+ }else if(CE.tool==='m'){
+  if(!CE.measure||CE.measure.i2!=null){CE.measure={i1:c.i,p1:c.p,i2:null,p2:null};}
+  else{CE.measure.i2=c.i;CE.measure.p2=c.p;}
+  ceRender();
  }else if(CE.tool==='x'){
   var txt=window.prompt('Note to place on the chart:');
   if(txt){a.push({t:'x',i:c.i,p:c.p,txt:txt.slice(0,60),c:'var(--text)'});ceSave(a);ceRender();}
