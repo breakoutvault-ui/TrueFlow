@@ -71,6 +71,8 @@ BASE50_MIN_DAYS     = 20
 BASE_NEAR_ADR       = 1.0    # "on the EMA" = within this many ADRs of it
 BASE_FAIL_SESSIONS  = 5      # closes below the box low in a row = Base Failed
 
+OHLC_KEEP           = 120    # daily candles stored per stock for the dashboard chart
+
 LISTINGS_FILE       = "/root/trueflow/mtf_listings.json"
 IPO_SEED_DAYS       = 365    # first run: pick up mainboard listings from the last year
 MIN_LISTED_SESSIONS = 5      # wait a week after listing
@@ -440,6 +442,7 @@ def build_row(sym, meta, S, fetch_from):
         "ldh_reclaim": False, "plh_breakout": False,
         "ipo_base_days": None, "ipo_base_depth": None,
         "recently_listed": False, "avg_turnover_cr": None,
+        "ohlc_120": pack_ohlc(S),
     }
     b = S.ema_base_at(i)
     if b:
@@ -473,6 +476,27 @@ def build_row(sym, meta, S, fetch_from):
             "avg_turnover_cr": rnd(sum(tv) / len(tv) / 1e7),
         })
     return row
+
+
+def pack_ohlc(S, n=OHLC_KEEP):
+    """Last n daily candles as one compact string for the stock card’s chart.
+
+    Format: YYMMDD,o,h,l,c  separated by ';'  — about 3 KB per stock.
+    momentum_mtf holds one row per stock and is overwritten nightly, so this
+    does not accumulate. Kite candles are already in memory here; storing them
+    saves the dashboard from having anywhere else to get open/high/low."""
+    out = []
+    start = max(0, S.n - n)
+    for i in range(start, S.n):
+        d = S.dates[i]
+        out.append("%02d%02d%02d,%s,%s,%s,%s" % (
+            d.year % 100, d.month, d.day,
+            r2(S.o[i]), r2(S.h[i]), r2(S.l[i]), r2(S.cl[i])))
+    return ";".join(out)
+
+
+def r2(x):
+    return ("%.2f" % x).rstrip("0").rstrip(".") if x is not None else ""
 
 
 def evidence_for(S, acc):

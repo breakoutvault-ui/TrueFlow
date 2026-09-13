@@ -14923,6 +14923,7 @@ function loadStock(sym,then){
 /* ── gather one stock from every dataset ───────────────── */
 function gather(sym){
  var o={sym:sym};
+ try{o.mtf=(window.TF_MTF||{})[sym]||null;}catch(e){}
  try{o.scr=(SCRx()&&SCRx().data||[]).filter(function(d){return d.sym===sym;})[0]||null;}catch(e){}
  // Merge: the screener row is richer where it exists, but it only exists once
  // the Momentum tab has loaded. Fill every gap from the row we fetched.
@@ -14934,6 +14935,7 @@ function gather(sym){
        o.scr=mg;}
  }
  o.hist=CACHE.hist[sym]||null;
+ try{o.ohlc=parseOhlc(o.mtf&&o.mtf.ohlc_120);}catch(e){o.ohlc=[];}
  // The reframed playbook rules test trend fields that the Momentum tab
  // normally attaches. Derive them here so a card opened from any tab is
  // judged by the same rules.
@@ -14975,7 +14977,6 @@ function gather(sym){
   try{if(d0.secW==null&&window.TF_LEGS&&TF_LEGS.secW)d0.secW=TF_LEGS.secW[d0.sector]||null;}catch(e){}
  }
  window.SC_DEBUG={row:!!fx,hist:(CACHE.hist[sym]||[]).length};
- try{o.mtf=(window.TF_MTF||{})[sym]||null;}catch(e){}
  try{o.oi=(window.MB2&&MB2.oi||{})[sym]||null;o.orb=(window.MB2&&MB2.orb||{})[sym]||null;o.mom=(window.MB2&&MB2.mom||{})[sym]||null;}catch(e){}
  try{o.mb=CACHE.ema[sym]||null;}catch(e){}
  try{o.picks=(window.MB2&&MB2.picks||[]).filter(function(p){return p.symbol===sym;});}catch(e){}
@@ -15226,9 +15227,22 @@ function secNdwl(o){
 
 
 /* ── charts: TradingView pane + our own relative-strength pane ─── */
-var CH={mode:'sector',days:126};
+var CH={mode:'sector',days:126,rs:52,style:'line'};
 window.scChartMode=function(m){CH.mode=m;render();};
 window.scChartWeeks=function(w){CH.days=+w;render();};
+window.scRsWeeks=function(w){CH.rs=+w;render();};
+window.scChartStyle=function(t){CH.style=t;render();};
+/* Daily candles come from momentum_mtf.ohlc_120, written by the nightly scan:
+   "YYMMDD,o,h,l,c" joined by ';'. No other table stores open/high/low. */
+function parseOhlc(v){
+ if(!v||typeof v!=='string')return [];
+ return v.split(';').map(function(p){
+  var a=p.split(',');if(a.length<5)return null;
+  var d=a[0],o=+a[1],hi=+a[2],lo=+a[3],c=+a[4];
+  if(isNaN(o)||isNaN(hi)||isNaN(lo)||isNaN(c))return null;
+  return {d:'20'+d.slice(0,2)+'-'+d.slice(2,4)+'-'+d.slice(4,6),o:o,h:hi,l:lo,c:c};
+ }).filter(Boolean);
+}
 function wkOf(d){
  var a=(d&&d.wkcloses)||[];
  return a.filter(function(x){return x!=null&&!isNaN(+x);}).map(Number);
@@ -15253,12 +15267,17 @@ function line(pts,w,h,min,max,colr,wid){
 }
 function chartPanes(o){
  var d=o.scr||{},sym=SC.sym,hist=o.hist||[];
+ var hasOhlc=!!(o.ohlc&&o.ohlc.length>=5);
+ if(!hasOhlc&&CH.style==='candle')CH.style='line';
  var tvUrl='https://in.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(sym);
  var PER=[[22,'1M'],[63,'3M'],[126,'6M'],[252,'1Y']];
  var head='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10px;margin-bottom:3px">'+
    '<span style="color:var(--muted);cursor:help" title="Daily closing prices from your own database — about a year of history. The dotted line is the 20 EMA and the solid faint one the 50 EMA, both worked out here from the same closes.">Price · daily</span>'+
    PER.map(function(x){return '<button class="sc-tg'+(CH.days===x[0]?' on':'')+'" onclick="scChartWeeks('+x[0]+')" title="'+x[1]+' of daily closes'+(x[0]>hist.length?' — only '+hist.length+' sessions stored':'')+'">'+x[1]+'</button>';}).join('')+
-   '<a href="'+tvUrl+'" target="_blank" rel="noopener" style="color:var(--cyan);margin-left:auto" title="Opens your own TradingView layout, with your indicators and drawings">TradingView ↗</a>'+
+   '<span style="margin-left:auto"></span>'+
+   (hasOhlc?('<button class="sc-tg'+(CH.style==='line'?' on':'')+'" onclick="scChartStyle(\'line\')" title="Closing price only — cleaner for judging trend and EMA position">Line</button>'+
+     '<button class="sc-tg'+(CH.style==='candle'?' on':'')+'" onclick="scChartStyle(\'candle\')" title="Open, high, low and close for each session. Hover any candle for its exact figures. Candles are stored for the last 120 sessions, so the 1Y view stays a line.">Candles</button>'):'')+
+   '<a href="'+tvUrl+'" target="_blank" rel="noopener" style="color:var(--cyan)" title="Opens your own TradingView layout, with your indicators and drawings">TradingView ↗</a>'+
   '</div>';
  if(hist.length<10)return '<div class="sc-chart" style="margin-top:10px"><div class="sc-cbox">'+head+
   '<div class="sc-none" style="padding:24px 4px">Loading price history…</div></div>'+relBox(o)+'</div>';
@@ -15290,16 +15309,38 @@ function chartPanes(o){
      '" fill="'+(up?'var(--green)':'var(--red)')+'" opacity="'+(v>=1.5?0.75:0.35)+'"><title>'+esc(lbl)+'</title></rect>';
    }).join('');
  }
+ var cndl=(CH.style==='candle')?(o.ohlc||[]).slice(-n):null;
+ if(cndl&&cndl.length>=5){
+  var cl2=cndl.map(function(x){return x.c;});
+  mn=Math.min.apply(null,cndl.map(function(x){return x.l;}).concat(e20.filter(Boolean)).concat(e50.filter(Boolean)));
+  mx=Math.max.apply(null,cndl.map(function(x){return x.h;}).concat(e20.filter(Boolean)).concat(e50.filter(Boolean)));
+ }
+ function yOf(v){return PH-6-((v-mn)/((mx-mn)||1))*(PH-14);}
+ var candles='';
+ if(cndl&&cndl.length>=5){
+  var cw=Math.max(1.2,(W-8)/cndl.length*0.62);
+  candles=cndl.map(function(k,i){
+   var x=(i/(cndl.length-1))*(W-8)+4;
+   var up=k.c>=k.o,colr=up?'var(--green)':'var(--red)';
+   var yo=yOf(k.o),yc=yOf(k.c),top=Math.min(yo,yc),hgt=Math.max(0.8,Math.abs(yc-yo));
+   var tip=k.d+'  O '+k.o+'  H '+k.h+'  L '+k.l+'  C '+k.c+
+    '  ('+(k.o?(((k.c/k.o)-1)*100).toFixed(2):'0')+'% on the day)';
+   return '<g><title>'+esc(tip)+'</title>'+
+    '<line x1="'+x.toFixed(1)+'" y1="'+yOf(k.h).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+yOf(k.l).toFixed(1)+'" stroke="'+colr+'" stroke-width="0.9"/>'+
+    '<rect x="'+(x-cw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+cw.toFixed(1)+'" height="'+hgt.toFixed(1)+'" fill="'+colr+'" opacity="0.9"/></g>';
+  }).join('');
+ }
  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px">'+
   line(e50,W,PH,mn,mx,'var(--muted)',1)+
   '<path d="'+e20.map(function(v,i){if(v==null)return '';var x=(i/(e20.length-1))*(W-8)+4,y=PH-6-((v-mn)/((mx-mn)||1))*(PH-14);return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ')+'" fill="none" stroke="var(--amber)" stroke-width="1.2" stroke-dasharray="3 2"/>'+
-  line(closes,W,PH,mn,mx,(chg>=0?'var(--green)':'var(--red)'),1.9)+vbars+'</svg>';
+  (candles?candles:line(closes,W,PH,mn,mx,(chg>=0?'var(--green)':'var(--red)'),1.9))+vbars+'</svg>';
  var lo=Math.min.apply(null,closes),hi=Math.max.apply(null,closes);
  return '<div class="sc-chart" style="margin-top:10px">'+
   '<div class="sc-cbox">'+head+svg+
    '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
     '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+n+' sessions · '+
     'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:var(--amber)">20 EMA</span> · 50 EMA'+
+    (CH.style==='candle'&&cndl&&n>cndl.length?' · candles cover the last '+cndl.length+' sessions':'')+
     (hasVol?' · <span title="Relative volume per session: each bar is that day\u2019s volume against its own 20-day average. The dotted line is 1×, so bars above it are above-average participation. Solid bars are 1.5× or more, faint ones below that. Green means the close was up on the day. Hover any bar for its exact figure.">bars = RVOL'+
      (vols[vols.length-1]!=null?', today '+vols[vols.length-1].toFixed(2)+'×':'')+'</span>':'')+
    '</div>'+
@@ -15320,9 +15361,13 @@ function relBox(o){
   ['sector','industry'].map(function(m){
    return '<button class="sc-tg'+(CH.mode===m?' on':'')+'" onclick="scChartMode(\''+m+'\')" title="Compare with the average of its '+m+'">vs '+m+'</button>';}).join('')+
   '<button class="sc-tg'+(CH.mode==='none'?' on':'')+'" onclick="scChartMode(\'none\')" title="This stock on its own">stock only</button>'+
+  '<span style="margin-left:auto"></span>'+
+  [[13,'3M'],[26,'6M'],[52,'1Y']].map(function(x){
+   return '<button class="sc-tg'+(CH.rs===x[0]?' on':'')+'" onclick="scRsWeeks('+x[0]+')" title="'+x[1]+' of weekly closes'+(x[0]>have?' — only '+have+' weeks stored':'')+'. A shorter window shows current rotation; a longer one shows who has actually led.">'+x[1]+'</button>';
+  }).join('')+
  '</div>';
  if(have<6)return '<div class="sc-cbox">'+head+'<div class="sc-none" style="padding:24px 4px">Loading weekly history…</div></div>';
- var n=Math.min(52,have),mine=own.slice(-n),base=mine[0];
+ var n=Math.min(CH.rs,have),mine=own.slice(-n),base=mine[0];
  var me=mine.map(function(x){return x/base*100;});
  var all=(SCRx()&&SCRx().data&&SCRx().data.length)?SCR.data:(CACHE.peers[d.sector]||[]);
  var peerRows=[],peerLbl='';
