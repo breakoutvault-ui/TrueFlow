@@ -14794,6 +14794,20 @@ setTimeout(function(){clearInterval(t);},40000);
 .sc-pbtn{display:inline-block;margin:3px 4px 0 0;padding:3px 9px;border-radius:7px;border:1px solid var(--bg3);
  background:none;color:var(--text);cursor:pointer;font-size:11px}
 .sc-pbtn:hover{border-color:var(--cyan);color:var(--cyan)}
+#ce-panel{position:fixed;inset:0;z-index:10001;background:var(--bg1);display:none;flex-direction:column}
+#ce-panel.open{display:flex}
+#ce-bar{flex:none;padding:7px 12px;border-bottom:1px solid var(--bg3);background:var(--bg2)}
+#ce-svg{flex:1;min-height:0;padding:4px 8px 0}
+.ce-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:4px}
+.ce-row:first-child{margin-top:0}
+.ce-b{padding:2px 9px;border-radius:6px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11px}
+.ce-b:hover{border-color:var(--cyan);color:var(--cyan)}
+.ce-b.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+.ce-sep{width:1px;height:15px;background:var(--bg3);margin:0 3px}
+.sc-cbox{position:relative}
+.sc-expand{position:absolute;top:5px;right:7px;z-index:2;padding:1px 7px;border-radius:6px;border:1px solid var(--bg3);
+ background:var(--bg2);color:var(--muted);cursor:pointer;font-size:11px}
+.sc-expand:hover{border-color:var(--cyan);color:var(--cyan)}
 #tab-volume .tbl-wrap{overflow:auto;max-height:calc(100vh - 230px)}
 #vol-board-wrap{max-height:calc(100vh - 250px);overflow:auto}
 #vol-board-wrap table thead th{position:sticky;top:0;z-index:5;background:var(--bg2)}
@@ -15350,7 +15364,7 @@ function chartPanes(o){
   (candles?candles:line(closes,W,PH,mn,mx,(chg>=0?'var(--green)':'var(--red)'),1.9))+vbars+'</svg>';
  var lo=Math.min.apply(null,closes),hi=Math.max.apply(null,closes);
  return '<div class="sc-chart" style="margin-top:10px">'+
-  '<div class="sc-cbox">'+head+svg+
+  '<div class="sc-cbox"><button class="sc-expand" onclick="ceOpen(\''+esc(sym)+'\')" title="Open the full chart: bigger candles, every EMA, your levels marked, and tools to draw lines and add notes">⤢ Expand</button>'+head+svg+
    '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
     '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+n+' sessions · '+
     'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:var(--amber)">20 EMA</span> · 50 EMA'+
@@ -15687,6 +15701,276 @@ document.addEventListener('click',function(e){
  e.preventDefault();e.stopPropagation();
  scOpen(sym,listFor(tr));
 },true);
+
+/* ═══ Enlarged chart — full screen, EMAs, levels, crosshair, drawing tools ═══
+   Everything here is drawn from data the card already holds: 250 daily closes,
+   120 candles, RVOL per session and the levels the scan works out. Drawings are
+   kept per symbol in this browser, in chart coordinates, so they stay put when
+   the period or style changes. */
+var CE={sym:null,style:'candle',days:126,tool:'cursor',pending:null,
+        ema:{9:true,20:true,50:true,200:false},levels:{},open:false,hoverIdx:null};
+var CE_W=1280,CE_H=660,CE_PAD={l:8,r:74,t:14,b:26},CE_VOL=92;
+
+function ceKey(){return 'tfDraw:'+CE.sym;}
+function ceLoad(){try{return JSON.parse(localStorage.getItem(ceKey())||'[]');}catch(e){return [];}}
+function ceSave(a){try{localStorage.setItem(ceKey(),JSON.stringify(a));}catch(e){}}
+
+/* ── levels worth marking, pulled from what the scan already knows ── */
+function ceLevels(o){
+ var d=o.scr||{},m=o.mtf||{},oi=o.oi||{},mb=o.mb||{},L=[];
+ function add(id,v,lab,colr,tip){
+  v=num(v);if(v==null||!isFinite(v))return;
+  L.push({id:id,v:v,lab:lab,c:colr,tip:tip});
+ }
+ add('pivot',d.pivotLvl||d.pivot,'Pivot','var(--cyan)','The pattern pivot — the level the setup triggers on.');
+ add('hi52',d.hi52,'52W high','var(--green)','Highest price in the last 52 weeks. No overhead supply above it.');
+ add('lo52',d.low52,'52W low','var(--red)','Lowest price in the last 52 weeks.');
+ add('boxh',m.box_high,'Box high','var(--amber)','Top of the EMA base box — the breakout trigger.');
+ add('boxl',m.box_low,'Box low','var(--amber)','Bottom of the box. Five closes below without reclaiming and the base has failed.');
+ add('pdh',mb.pdh,'PDH','var(--text2)','Previous day high — the opening-range reference for a long.');
+ add('pdl',mb.pdl,'PDL','var(--text2)','Previous day low.');
+ add('nrh',d.nrHigh,'NR high','var(--cyan)','High of the narrow-range day — the compression trigger.');
+ add('nrl',d.nrLow,'NR low','var(--cyan)','Low of the narrow-range day.');
+ add('cew',oi.max_ce_strike,'Call OI wall','var(--red)','Strike with the most call open interest. Upside often stalls here.');
+ add('pew',oi.max_pe_strike,'Put OI wall','var(--green)','Strike with the most put open interest. Often acts as a floor.');
+ add('stop',d.rclStop,'Reclaim stop','var(--red)','Where the reclaim setup fails.');
+ return L;
+}
+
+/* ── scales ───────────────────────────────────────────── */
+function ceScale(win,cndl,e){
+ var vals=[];
+ if(cndl&&cndl.length){cndl.forEach(function(k){vals.push(k.h,k.l);});}
+ else win.forEach(function(x){vals.push(x.c);});
+ [9,20,50,200].forEach(function(p){if(CE.ema[p]&&e[p])e[p].forEach(function(v){if(v!=null)vals.push(v);});});
+ (CE.shownLevels||[]).forEach(function(l){vals.push(l.v);});
+ var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),pad=(mx-mn)*0.04||1;
+ mn-=pad;mx+=pad;
+ var pw=CE_W-CE_PAD.l-CE_PAD.r,ph=CE_H-CE_PAD.t-CE_PAD.b-CE_VOL;
+ var n=Math.max(1,(cndl&&cndl.length?cndl.length:win.length)-1);
+ return {x:function(i){return CE_PAD.l+(i/n)*pw;},
+         y:function(v){return CE_PAD.t+(1-(v-mn)/((mx-mn)||1))*ph;},
+         yInv:function(py){return mn+(1-(py-CE_PAD.t)/ph)*((mx-mn)||1);},
+         xInv:function(px){return Math.round((px-CE_PAD.l)/pw*n);},
+         mn:mn,mx:mx,n:n,pw:pw,ph:ph};
+}
+
+/* ── draw ─────────────────────────────────────────────── */
+function ceRender(){
+ var host=document.getElementById('ce-svg');if(!host||!CE.sym)return;
+ var o=gather(CE.sym),hist=o.hist||[];
+ if(hist.length<5){host.innerHTML='<div class="sc-none" style="padding:40px">Loading price history…</div>';return;}
+ var full=hist.map(function(x){return x.c;});
+ var E={9:ema(full,9),20:ema(full,20),50:ema(full,50),200:ema(full,200)};
+ var n=Math.min(CE.days,hist.length);
+ var cndl=(CE.style==='candle'&&o.ohlc&&o.ohlc.length>=5)?o.ohlc.slice(-Math.min(n,o.ohlc.length)):null;
+ if(cndl)n=cndl.length;
+ var win=hist.slice(-n);
+ var e={};[9,20,50,200].forEach(function(p){e[p]=E[p].slice(-n);});
+ var all=ceLevels(o);
+ CE.shownLevels=all.filter(function(l){return CE.levels[l.id]!==false;});
+ var S=ceScale(win,cndl,e);
+ var g='';
+
+ // grid + price axis
+ var steps=6;
+ for(var i=0;i<=steps;i++){
+  var v=S.mn+(S.mx-S.mn)*i/steps,y=S.y(v);
+  g+='<line x1="'+CE_PAD.l+'" y1="'+y.toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+'" y2="'+y.toFixed(1)+'" stroke="var(--bg3)" stroke-width="0.5" opacity="0.6"/>'+
+     '<text x="'+(CE_W-CE_PAD.r+5)+'" y="'+(y+3).toFixed(1)+'" font-size="10" fill="var(--muted)">'+v.toFixed(1)+'</text>';
+ }
+ // date axis
+ var marks=Math.min(8,win.length);
+ for(var j=0;j<marks;j++){
+  var idx=Math.round(j*(win.length-1)/(marks-1||1)),dt=(win[idx]||{}).d||'';
+  g+='<text x="'+S.x(idx).toFixed(1)+'" y="'+(CE_H-6)+'" font-size="9.5" fill="var(--muted)" text-anchor="middle">'+esc(String(dt).slice(2))+'</text>';
+ }
+ // level lines
+ CE.shownLevels.forEach(function(l){
+  var y=S.y(l.v);
+  if(y<CE_PAD.t-4||y>CE_PAD.t+S.ph+4)return;
+  g+='<line x1="'+CE_PAD.l+'" y1="'+y.toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+'" y2="'+y.toFixed(1)+'" stroke="'+l.c+'" stroke-width="1" stroke-dasharray="5 4" opacity="0.85"><title>'+esc(l.lab+' '+l.v+' — '+l.tip)+'</title></line>'+
+     '<text x="'+(CE_PAD.l+4)+'" y="'+(y-3).toFixed(1)+'" font-size="9.5" fill="'+l.c+'">'+esc(l.lab)+' '+l.v+'</text>';
+ });
+ // price
+ if(cndl){
+  var cw=Math.max(1.4,S.pw/cndl.length*0.62);
+  cndl.forEach(function(k,i){
+   var x=S.x(i),up=k.c>=k.o,c2=up?'var(--green)':'var(--red)';
+   var yo=S.y(k.o),yc=S.y(k.c),top=Math.min(yo,yc),hh=Math.max(0.8,Math.abs(yc-yo));
+   g+='<g><title>'+esc(k.d+'  O '+k.o+'  H '+k.h+'  L '+k.l+'  C '+k.c)+'</title>'+
+      '<line x1="'+x.toFixed(1)+'" y1="'+S.y(k.h).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+S.y(k.l).toFixed(1)+'" stroke="'+c2+'" stroke-width="1"/>'+
+      '<rect x="'+(x-cw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+cw.toFixed(1)+'" height="'+hh.toFixed(1)+'" fill="'+c2+'"/></g>';
+  });
+ }else{
+  var pts=win.map(function(x,i){return (i?'L':'M')+S.x(i).toFixed(1)+' '+S.y(x.c).toFixed(1);}).join(' ');
+  g+='<path d="'+pts+'" fill="none" stroke="var(--cyan)" stroke-width="1.7"/>';
+ }
+ // EMAs
+ var EC={9:'var(--amber)',20:'var(--cyan)',50:'var(--text2)',200:'var(--red)'};
+ [9,20,50,200].forEach(function(p){
+  if(!CE.ema[p])return;
+  var d2='',started=false;
+  e[p].forEach(function(v,i){if(v==null)return;d2+=(started?'L':'M')+S.x(i).toFixed(1)+' '+S.y(v).toFixed(1)+' ';started=true;});
+  if(d2)g+='<path d="'+d2+'" fill="none" stroke="'+EC[p]+'" stroke-width="1.2" opacity="0.9"/>';
+ });
+ // volume pane
+ var vols=win.map(function(x){return x.v;}),hv=vols.some(function(x){return x!=null;});
+ if(hv){
+  var vmax=Math.max.apply(null,vols.map(function(x){return x==null?0:x;}))||1;
+  var vtop=CE_PAD.t+S.ph+16,vh=CE_VOL-22;
+  g+='<line x1="'+CE_PAD.l+'" y1="'+(vtop+vh-(1/vmax)*vh).toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+'" y2="'+(vtop+vh-(1/vmax)*vh).toFixed(1)+'" stroke="var(--bg3)" stroke-dasharray="3 3"/>';
+  g+='<text x="'+(CE_W-CE_PAD.r+5)+'" y="'+(vtop+vh-(1/vmax)*vh+3).toFixed(1)+'" font-size="9" fill="var(--muted)">1×</text>';
+  vols.forEach(function(v,i){
+   if(v==null)return;
+   var bw=Math.max(1,S.pw/vols.length*0.6),x=S.x(i)-bw/2,hh=Math.max(0.6,(v/vmax)*vh);
+   var up=i===0||win[i].c>=win[i-1].c;
+   g+='<rect x="'+x.toFixed(1)+'" y="'+(vtop+vh-hh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hh.toFixed(1)+'" fill="'+(up?'var(--green)':'var(--red)')+'" opacity="'+(v>=1.5?0.8:0.35)+'"><title>'+esc((win[i].d||'')+' · '+v.toFixed(2)+'× average volume')+'</title></rect>';
+  });
+ }
+ // drawings
+ var dr=ceLoad();
+ dr.forEach(function(k,i){
+  if(k.t==='h'){
+   var y=S.y(k.p);
+   g+='<g class="ce-dr" data-i="'+i+'"><line x1="'+CE_PAD.l+'" y1="'+y.toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+'" y2="'+y.toFixed(1)+'" stroke="'+(k.c||'var(--text)')+'" stroke-width="1.3"/>'+
+     '<text x="'+(CE_W-CE_PAD.r-4)+'" y="'+(y-4).toFixed(1)+'" font-size="10" fill="'+(k.c||'var(--text)')+'" text-anchor="end">'+esc(k.p)+'</text></g>';
+  }else if(k.t==='l'){
+   g+='<g class="ce-dr" data-i="'+i+'"><line x1="'+S.x(k.i1).toFixed(1)+'" y1="'+S.y(k.p1).toFixed(1)+'" x2="'+S.x(k.i2).toFixed(1)+'" y2="'+S.y(k.p2).toFixed(1)+'" stroke="'+(k.c||'var(--text)')+'" stroke-width="1.5"/></g>';
+  }else if(k.t==='x'){
+   g+='<g class="ce-dr" data-i="'+i+'"><text x="'+S.x(k.i).toFixed(1)+'" y="'+S.y(k.p).toFixed(1)+'" font-size="12" fill="'+(k.c||'var(--text)')+'">'+esc(k.txt)+'</text></g>';
+  }
+ });
+ // crosshair
+ if(CE.hoverIdx!=null&&CE.hoverIdx>=0&&CE.hoverIdx<win.length){
+  var hx=S.x(CE.hoverIdx);
+  g+='<line x1="'+hx.toFixed(1)+'" y1="'+CE_PAD.t+'" x2="'+hx.toFixed(1)+'" y2="'+(CE_PAD.t+S.ph)+'" stroke="var(--muted)" stroke-width="0.7" stroke-dasharray="2 3"/>';
+ }
+ host.innerHTML='<svg id="ce-canvas" viewBox="0 0 '+CE_W+' '+CE_H+'" style="width:100%;height:100%;display:block;cursor:'+(CE.tool==='cursor'?'crosshair':'copy')+'">'+g+'</svg>';
+ ceReadout(win,cndl,e,o);
+}
+
+function ceReadout(win,cndl,e,o){
+ var el=document.getElementById('ce-read');if(!el)return;
+ var i=(CE.hoverIdx!=null&&CE.hoverIdx>=0&&CE.hoverIdx<win.length)?CE.hoverIdx:win.length-1;
+ var bar=win[i]||{},k=cndl?cndl[i]:null;
+ var parts=[];
+ parts.push('<b>'+esc(CE.sym)+'</b>');
+ parts.push(esc(bar.d||''));
+ if(k)parts.push('O <b>'+k.o+'</b> H <b>'+k.h+'</b> L <b>'+k.l+'</b> C <b style="color:'+(k.c>=k.o?'var(--green)':'var(--red)')+'">'+k.c+'</b>');
+ else parts.push('Close <b>'+(bar.c!=null?bar.c.toFixed(2):'—')+'</b>');
+ if(i>0&&win[i-1])parts.push('<span style="color:'+(bar.c>=win[i-1].c?'var(--green)':'var(--red)')+'">'+((bar.c/win[i-1].c-1)*100).toFixed(2)+'%</span>');
+ if(bar.v!=null)parts.push('RVOL <b>'+bar.v.toFixed(2)+'×</b>');
+ [9,20,50,200].forEach(function(p){if(CE.ema[p]&&e[p]&&e[p][i]!=null)parts.push(p+'E '+e[p][i].toFixed(1));});
+ el.innerHTML=parts.join(' <span style="opacity:.35">·</span> ');
+}
+
+/* ── toolbar ──────────────────────────────────────────── */
+function ceBar(o){
+ var lv=ceLevels(o);
+ function btn(on,fn,lab,tip){return '<button class="ce-b'+(on?' on':'')+'" onclick="'+fn+'" title="'+esc(tip)+'">'+lab+'</button>';}
+ var h='<div class="ce-row">';
+ h+='<b style="font-size:14px">'+esc(CE.sym)+'</b>';
+ h+='<span class="ce-sep"></span>';
+ h+=btn(CE.style==='candle','ceSet(\'style\',\'candle\')','Candles','Open, high, low and close. Stored for the last 120 sessions.');
+ h+=btn(CE.style==='line','ceSet(\'style\',\'line\')','Line','Closing price only — cleaner for judging trend.');
+ h+='<span class="ce-sep"></span>';
+ [[22,'1M'],[63,'3M'],[126,'6M'],[252,'1Y']].forEach(function(x){
+  h+=btn(CE.days===x[0],'ceSet(\'days\','+x[0]+')',x[1],x[1]+' of sessions'+(x[0]>120?' — candles cover 120, so this falls back to more history on the line':''));
+ });
+ h+='<span class="ce-sep"></span>';
+ [9,20,50,200].forEach(function(p){
+  h+=btn(CE.ema[p],'ceEma('+p+')',p+'E','Show or hide the '+p+' EMA');
+ });
+ h+='<span class="ce-sep"></span>';
+ h+=btn(CE.tool==='cursor','ceTool(\'cursor\')','↖','Cursor — move over the chart to read each session');
+ h+=btn(CE.tool==='h','ceTool(\'h\')','─','Horizontal line: click once at the price you want to mark');
+ h+=btn(CE.tool==='l','ceTool(\'l\')','╱','Trendline: click the start, then the end');
+ h+=btn(CE.tool==='x','ceTool(\'x\')','T','Text: click where you want it, then type the note');
+ h+=btn(false,'ceUndo()','⌫','Remove the last thing you drew');
+ h+=btn(false,'ceClear()','Clear','Remove every drawing on this stock');
+ h+='<span style="margin-left:auto"></span>';
+ h+='<button class="ce-b" onclick="ceClose()" title="Close (Esc)">✕</button>';
+ h+='</div><div class="ce-row" style="font-size:10.5px">';
+ h+='<span style="color:var(--muted)" title="Levels the scan already knows about, drawn on the chart. Click any to hide it.">Levels</span>';
+ if(!lv.length)h+='<span style="color:var(--muted)">none for this stock</span>';
+ lv.forEach(function(l){
+  h+='<button class="ce-b'+(CE.levels[l.id]!==false?' on':'')+'" style="border-color:'+l.c+'" onclick="ceLvl(\''+l.id+'\')" title="'+esc(l.tip)+'">'+esc(l.lab)+'</button>';
+ });
+ h+='<span style="margin-left:auto;color:var(--muted)" id="ce-read"></span></div>';
+ return h;
+}
+window.ceSet=function(k,v){CE[k]=v;ceRefresh();};
+window.ceEma=function(p){CE.ema[p]=!CE.ema[p];ceRefresh();};
+window.ceLvl=function(id){CE.levels[id]=(CE.levels[id]===false);ceRefresh();};
+window.ceTool=function(t){CE.tool=t;CE.pending=null;ceRefresh();};
+window.ceUndo=function(){var a=ceLoad();a.pop();ceSave(a);ceRender();};
+window.ceClear=function(){ceSave([]);ceRender();};
+function ceRefresh(){
+ var b=document.getElementById('ce-bar');
+ if(b&&CE.sym)b.innerHTML=ceBar(gather(CE.sym));
+ ceRender();
+}
+
+/* ── mouse ────────────────────────────────────────────── */
+function ceCoords(ev){
+ var svg=document.getElementById('ce-canvas');if(!svg)return null;
+ var r=svg.getBoundingClientRect();
+ var px=(ev.clientX-r.left)/r.width*CE_W,py=(ev.clientY-r.top)/r.height*CE_H;
+ var o=gather(CE.sym),hist=o.hist||[];
+ var n=Math.min(CE.days,hist.length);
+ var cndl=(CE.style==='candle'&&o.ohlc&&o.ohlc.length>=5)?o.ohlc.slice(-Math.min(n,o.ohlc.length)):null;
+ if(cndl)n=cndl.length;
+ var win=hist.slice(-n),e={};
+ [9,20,50,200].forEach(function(p){e[p]=ema(hist.map(function(x){return x.c;}),p).slice(-n);});
+ CE.shownLevels=ceLevels(o).filter(function(l){return CE.levels[l.id]!==false;});
+ var S=ceScale(win,cndl,e);
+ return {i:Math.max(0,Math.min(S.n,S.xInv(px))),p:+S.yInv(py).toFixed(2),len:win.length};
+}
+function ceMove(ev){
+ var c=ceCoords(ev);if(!c)return;
+ if(CE.hoverIdx!==c.i){CE.hoverIdx=c.i;ceRender();}
+}
+function ceClick(ev){
+ var c=ceCoords(ev);if(!c)return;
+ var a=ceLoad();
+ if(CE.tool==='h'){a.push({t:'h',p:c.p,c:'var(--cyan)'});ceSave(a);ceRender();}
+ else if(CE.tool==='l'){
+  if(!CE.pending){CE.pending={i:c.i,p:c.p};}
+  else{a.push({t:'l',i1:CE.pending.i,p1:CE.pending.p,i2:c.i,p2:c.p,c:'var(--cyan)'});CE.pending=null;ceSave(a);ceRender();}
+ }else if(CE.tool==='x'){
+  var txt=window.prompt('Note to place on the chart:');
+  if(txt){a.push({t:'x',i:c.i,p:c.p,txt:txt.slice(0,60),c:'var(--text)'});ceSave(a);ceRender();}
+ }
+}
+
+/* ── open / close ─────────────────────────────────────── */
+window.ceOpen=function(sym){
+ if(!sym)return;
+ CE.sym=sym;CE.open=true;CE.hoverIdx=null;CE.pending=null;
+ if(!document.getElementById('ce-panel')){
+  var p=document.createElement('div');p.id='ce-panel';
+  p.innerHTML='<div id="ce-bar"></div><div id="ce-svg"></div>';
+  document.body.appendChild(p);
+  p.addEventListener('mousemove',function(ev){if(CE.tool==='cursor')ceMove(ev);});
+  p.addEventListener('click',function(ev){
+   if(ev.target.closest('button'))return;
+   if(CE.tool!=='cursor')ceClick(ev);
+  });
+ }
+ document.getElementById('ce-panel').classList.add('open');
+ ceRefresh();
+ loadStock(sym,function(loaded){if(CE.open&&CE.sym===loaded)ceRefresh();});
+};
+window.ceClose=function(){
+ CE.open=false;
+ var p=document.getElementById('ce-panel');if(p)p.classList.remove('open');
+};
+document.addEventListener('keydown',function(e){
+ if(!CE.open)return;
+ if(e.key==='Escape'){ceClose();e.stopPropagation();}
+});
+
 })();
 </script>
 
