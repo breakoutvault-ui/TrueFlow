@@ -15739,10 +15739,25 @@ document.addEventListener('click',function(e){
    the period or style changes. */
 var CE={sym:null,style:'candle',days:126,tool:'cursor',pending:null,
         ema:{9:true,20:true,50:true,200:false},levels:{},open:false,hoverIdx:null,
-        show:{pole:true,box:true,pivots:false,accum:false,smart:true},measure:null,adr:null,lastScale:null};
+        show:{pole:true,box:true,pivots:false,accum:false,smart:true},measure:null,adr:null,lastScale:null,
+        vol:true,scale:'linear',sel:null,alerts:[]};
 var CE_W=1280,CE_H=660,CE_PAD={l:8,r:74,t:14,b:26},CE_VOL=92;
 
 function ceKey(){return 'tfDraw:'+CE.sym;}
+/* Toolbar choices are yours, so they persist. Drawings are stored per stock;
+   these settings are global, because you want the same chart every time. */
+function cePrefSave(){
+ try{localStorage.setItem('tfChart',JSON.stringify({style:CE.style,days:CE.days,ema:CE.ema,
+  show:CE.show,levels:CE.levels,vol:CE.vol,scale:CE.scale}));}catch(e){}
+}
+function cePrefLoad(){
+ try{
+  var v=JSON.parse(localStorage.getItem('tfChart')||'null');if(!v)return;
+  if(v.style)CE.style=v.style;if(v.days)CE.days=v.days;
+  if(v.ema)CE.ema=v.ema;if(v.show)CE.show=v.show;if(v.levels)CE.levels=v.levels;
+  if(v.vol!=null)CE.vol=v.vol;if(v.scale)CE.scale=v.scale;
+ }catch(e){}
+}
 function ceLoad(){try{return JSON.parse(localStorage.getItem(ceKey())||'[]');}catch(e){return [];}}
 function ceSave(a){try{localStorage.setItem(ceKey(),JSON.stringify(a));}catch(e){}}
 
@@ -15777,11 +15792,15 @@ function ceScale(win,cndl,e){
  (CE.shownLevels||[]).forEach(function(l){vals.push(l.v);});
  var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),pad=(mx-mn)*0.04||1;
  mn-=pad;mx+=pad;
- var pw=CE_W-CE_PAD.l-CE_PAD.r,ph=CE_H-CE_PAD.t-CE_PAD.b-CE_VOL;
+ var lg=(CE.scale==='log')&&mn>0;
+ function f2(v){return lg?Math.log(v):v;}
+ function f2i(v){return lg?Math.exp(v):v;}
+ var fmn=f2(mn),fmx=f2(mx);
+ var pw=CE_W-CE_PAD.l-CE_PAD.r,ph=CE_H-CE_PAD.t-CE_PAD.b-(CE.vol?CE_VOL:0);
  var n=Math.max(1,(cndl&&cndl.length?cndl.length:win.length)-1);
  return {x:function(i){return CE_PAD.l+(i/n)*pw;},
-         y:function(v){return CE_PAD.t+(1-(v-mn)/((mx-mn)||1))*ph;},
-         yInv:function(py){return mn+(1-(py-CE_PAD.t)/ph)*((mx-mn)||1);},
+         y:function(v){return CE_PAD.t+(1-(f2(v)-fmn)/((fmx-fmn)||1))*ph;},
+         yInv:function(py){return f2i(fmn+(1-(py-CE_PAD.t)/ph)*((fmx-fmn)||1));},
          xInv:function(px){return Math.round((px-CE_PAD.l)/pw*n);},
          mn:mn,mx:mx,n:n,pw:pw,ph:ph};
 }
@@ -15854,7 +15873,7 @@ function ceRender(){
  // volume pane
  var OMc=ohlcMap(o);
  var vols=win.map(function(x){return x.v;}),hv=vols.some(function(x){return x!=null;});
- if(hv){
+ if(hv&&CE.vol){
   var vmax=Math.max.apply(null,vols.map(function(x){return x==null?0:x;}))||1;
   var vtop=CE_PAD.t+S.ph+16,vh=CE_VOL-22;
   g+='<line x1="'+CE_PAD.l+'" y1="'+(vtop+vh-(1/vmax)*vh).toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+'" y2="'+(vtop+vh-(1/vmax)*vh).toFixed(1)+'" stroke="var(--bg3)" stroke-dasharray="3 3"/>';
@@ -15881,6 +15900,7 @@ function ceRender(){
   }
  }
  CE.lastScale=S;CE.adr=num((o.scr||{}).adr);
+ g+=ceAlertSvg(S);
  g+=ceAutoSvg(ceAuto(o,cndl),S);
  g+=ceMeasureSvg(S,win);
  if(CE.show.smart){
@@ -16065,6 +16085,10 @@ function ceBar(o){
  h+=btn(CE.tool==='h','ceTool(\'h\')','─','Horizontal line: click once at the price you want to mark');
  h+=btn(CE.tool==='l','ceTool(\'l\')','╱','Trendline: click the start, then the end');
  h+=btn(CE.tool==='x','ceTool(\'x\')','T','Text: click where you want it, then type the note');
+ h+=btn(CE.tool==='a',"ceTool('a')",'🔔','Alert: click a price and you get a Telegram message when it trades there. Checked every 2 minutes while the market is open.');
+ h+='<span class="ce-sep"></span>';
+ h+=btn(CE.vol,'ceVol()','Vol','Show or hide the volume pane. Hidden gives the price the full height.');
+ h+=btn(CE.scale==='log','ceScale()','Log','Log scale: equal percentage moves take equal space. Worth using on a year of a stock that has doubled.');
  h+=btn(CE.tool==='m','ceTool(\'m\')','⇄','Measure: click the first bar, then the second. Gives the move in %, sessions, % per session and ADR per session.');
  h+='<span class="ce-sep"></span>';
  h+=btn(CE.show.pole,'ceShow(\'pole\')','Pole','Draw the rally that precedes the base, with its % and length');
@@ -16087,11 +16111,13 @@ function ceBar(o){
  h+='<span style="margin-left:auto;color:var(--muted)" id="ce-read"></span></div>';
  return h;
 }
-window.ceSet=function(k,v){CE[k]=v;ceRefresh();};
-window.ceEma=function(p){CE.ema[p]=!CE.ema[p];ceRefresh();};
-window.ceLvl=function(id){CE.levels[id]=(CE.levels[id]===false);ceRefresh();};
+window.ceSet=function(k,v){CE[k]=v;cePrefSave();ceRefresh();};
+window.ceEma=function(p){CE.ema[p]=!CE.ema[p];cePrefSave();ceRefresh();};
+window.ceLvl=function(id){CE.levels[id]=(CE.levels[id]===false);cePrefSave();ceRefresh();};
+window.ceVol=function(){CE.vol=!CE.vol;cePrefSave();ceRefresh();};
+window.ceScale=function(){CE.scale=(CE.scale==='log')?'linear':'log';cePrefSave();ceRefresh();};
 window.ceTool=function(t){CE.tool=t;CE.pending=null;if(t!=='m')CE.measure=null;ceRefresh();};
-window.ceShow=function(k){CE.show[k]=!CE.show[k];ceRefresh();};
+window.ceShow=function(k){CE.show[k]=!CE.show[k];cePrefSave();ceRefresh();};
 window.ceToDraw=function(){
  var o=gather(CE.sym),hist=o.hist||[],n=Math.min(CE.days,hist.length);
  var cndl=(o.ohlc&&o.ohlc.length>=5)?o.ohlc.slice(-Math.min(n,o.ohlc.length)):null;
@@ -16140,16 +16166,68 @@ function ceClick(ev){
   if(!CE.measure||CE.measure.i2!=null){CE.measure={i1:c.i,p1:c.p,i2:null,p2:null};}
   else{CE.measure.i2=c.i;CE.measure.p2=c.p;}
   ceRender();
+ }else if(CE.tool==='a'){
+  var lv=window.prompt('Alert me when the price reaches:',c.p);
+  if(lv==null||lv==='')return;
+  lv=parseFloat(lv);if(isNaN(lv))return;
+  var cur=num((gather(CE.sym).scr||{}).ltp);
+  var dir=(cur!=null&&lv<cur)?'below':'above';
+  var nt=window.prompt('A note for this alert (optional):','');
+  ceAlertAdd(lv,dir,nt||null);
  }else if(CE.tool==='x'){
   var txt=window.prompt('Note to place on the chart:');
   if(txt){a.push({t:'x',i:c.i,p:c.p,txt:txt.slice(0,60),c:'var(--text)'});ceSave(a);ceRender();}
  }
 }
 
+/* ── price alerts: set a level, get a Telegram when it trades there ── */
+function ceAlertsLoad(sym,then){
+ sbGet('price_alerts?symbol=eq.'+encodeURIComponent(sym)+'&status=eq.active&select=*&limit=50')
+  .then(function(r){CE.alerts=r||[];then&&then();});
+}
+window.ceAlertAdd=function(level,dir,note){
+ var body={symbol:CE.sym,level:level,direction:dir,note:note||null,status:'active',
+           created_price:(gather(CE.sym).scr||{}).ltp||null,created_at:new Date().toISOString()};
+ var h={apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey,
+        'Content-Type':'application/json',Prefer:'return=representation'};
+ return fetch(CONFIG.supabaseUrl+'/rest/v1/price_alerts',{method:'POST',headers:h,body:JSON.stringify(body)})
+  .then(function(r){return r.ok?r.json():null;})
+  .then(function(j){
+   if(j&&j[0])CE.alerts.push(j[0]);
+   else alert('Could not save the alert. The price_alerts table may not exist yet.');
+   ceRender();
+  }).catch(function(){alert('Could not save the alert — no connection.');});
+};
+window.ceAlertCancel=function(id){
+ var h={apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey,
+        'Content-Type':'application/json'};
+ fetch(CONFIG.supabaseUrl+'/rest/v1/price_alerts?id=eq.'+encodeURIComponent(id),
+   {method:'PATCH',headers:h,body:JSON.stringify({status:'cancelled'})})
+  .then(function(){CE.alerts=CE.alerts.filter(function(a){return String(a.id)!==String(id);});ceRender();});
+};
+function ceAlertSvg(S){
+ if(!CE.alerts||!CE.alerts.length)return '';
+ var cur=num((gather(CE.sym).scr||{}).ltp);
+ return CE.alerts.map(function(a){
+  var v=num(a.level);if(v==null)return '';
+  var y=S.y(v);if(y<CE_PAD.t-4)return '';
+  var dir=(a.direction==='below')?'falls below':'crosses above';
+  var away=(cur&&v)?(((v/cur)-1)*100).toFixed(1)+'% away':'';
+  return '<g style="cursor:pointer" onclick="ceAlertCancel(\''+esc(String(a.id))+'\')"><title>'+
+   esc('Alert: Telegram when '+CE.sym+' '+dir+' '+v+(away?' ('+away+')':'')+
+   (a.note?' — '+a.note:'')+'. Click the bell to cancel it.')+'</title>'+
+   '<line x1="'+CE_PAD.l+'" y1="'+y.toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+'" y2="'+y.toFixed(1)+
+   '" stroke="var(--amber)" stroke-width="1.2" stroke-dasharray="2 4"/>'+
+   '<text x="'+(CE_PAD.l+4)+'" y="'+(y+11).toFixed(1)+'" font-size="10" fill="var(--amber)">\ud83d\udd14 '+v+(away?' · '+away:'')+'</text></g>';
+ }).join('');
+}
+
 /* ── open / close ─────────────────────────────────────── */
 window.ceOpen=function(sym){
  if(!sym)return;
- CE.sym=sym;CE.open=true;CE.hoverIdx=null;CE.pending=null;
+ CE.sym=sym;CE.open=true;CE.hoverIdx=null;CE.pending=null;CE.alerts=[];
+ cePrefLoad();
+ ceAlertsLoad(sym,function(){if(CE.open&&CE.sym===sym)ceRender();});
  if(!document.getElementById('ce-panel')){
   var p=document.createElement('div');p.id='ce-panel';
   p.innerHTML='<div id="ce-bar"></div><div id="ce-svg"></div>';
@@ -16157,6 +16235,16 @@ window.ceOpen=function(sym){
   p.addEventListener('mousemove',function(ev){if(CE.tool==='cursor')ceMove(ev);});
   p.addEventListener('click',function(ev){
    if(ev.target.closest('button'))return;
+   if(CE.tool==='cursor'){
+    var grp=ev.target.closest?ev.target.closest('.ce-dr'):null;
+    if(grp){
+     var idx=+grp.getAttribute('data-i');
+     if(!isNaN(idx)&&window.confirm('Delete this drawing?')){
+      var a=ceLoad();a.splice(idx,1);ceSave(a);ceRender();
+     }
+     return;
+    }
+   }
    if(CE.tool!=='cursor')ceClick(ev);
   });
  }
