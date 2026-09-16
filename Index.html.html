@@ -7962,8 +7962,7 @@ async function toggleMomStar(symbol, btn) {
     let refPrice = stock ? stock.ltp : null;
     if (refPrice == null) {
       try {
-        if (typeof CACHE !== 'undefined' && CACHE.row && CACHE.row[symbol] && CACHE.row[symbol].ltp != null) refPrice = CACHE.row[symbol].ltp;
-        else if (typeof CACHE !== 'undefined' && CACHE.ema && CACHE.ema[symbol] && CACHE.ema[symbol].ltp != null) refPrice = CACHE.ema[symbol].ltp;
+        if (typeof window.tfCardLtp === 'function') refPrice = window.tfCardLtp(symbol);
       } catch(e) {}
     }
     await fetch(`${CONFIG.supabaseUrl}/rest/v1/momentum_picks`, {
@@ -15761,23 +15760,79 @@ document.addEventListener('click',function(e){
    120 candles, RVOL per session and the levels the scan works out. Drawings are
    kept per symbol in this browser, in chart coordinates, so they stay put when
    the period or style changes. */
-var CE={sym:null,style:'candle',days:126,tool:'cursor',pending:null,
+var CE={sym:null,style:'candle',tf:'D',days:126,view:{n:126,off:0},tool:'cursor',pending:null,
         ema:{9:true,20:true,50:true,200:false},levels:{},open:false,hoverIdx:null,
         show:{pole:true,box:true,pivots:false,accum:false,smart:true},measure:null,adr:null,lastScale:null,
         vol:true,scale:'linear',sel:null,alerts:[]};
-var CE_W=1280,CE_H=660,CE_PAD={l:8,r:74,t:14,b:26},CE_VOL=92;
+var CE_W=1280,CE_H=660,CE_PAD={l:8,r:74,t:14,b:26},CE_VOL=92,CE_GAP=26;
+/* CE_GAP keeps the newest bar off the price axis. CE_W/CE_H are measured from
+   the panel on every render so the viewBox matches the screen shape - a fixed
+   1280x660 box was being letterboxed on wide monitors. */
 
+/* Weekly bars are aggregated from the stored dailies: open=first, high=max,
+   low=min, close=last, RVOL=mean. ~250 dailies gives ~50 weekly bars, so
+   weekly history stops around one year until the server stores more. */
+function ceWkKey(ds){
+ var p=String(ds||'').split('-');
+ if(p.length<3)return ds;
+ var dt=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));
+ if(isNaN(dt.getTime()))return ds;
+ dt.setUTCDate(dt.getUTCDate()-((dt.getUTCDay()+6)%7));
+ return dt.toISOString().slice(0,10);
+}
+function ceAggBars(rows){
+ var out=[],cur=null,key=null;
+ (rows||[]).forEach(function(b){
+  var k=ceWkKey(b.d);
+  if(k!==key){ if(cur)out.push(cur); key=k;
+   cur={d:b.d,c:b.c,v:null,_s:0,_n:0}; }
+  else { cur.d=b.d; cur.c=b.c; }
+  if(b.v!=null&&!isNaN(+b.v)){cur._s+=+b.v;cur._n++;}
+  cur.v=cur._n?(cur._s/cur._n):null;
+ });
+ if(cur)out.push(cur);
+ return out;
+}
+function ceAggOhlc(rows){
+ var out=[],cur=null,key=null;
+ (rows||[]).forEach(function(b){
+  var k=ceWkKey(b.d);
+  if(k!==key){ if(cur)out.push(cur); key=k; cur={d:b.d,o:b.o,h:b.h,l:b.l,c:b.c}; }
+  else { cur.d=b.d; cur.h=Math.max(cur.h,b.h); cur.l=Math.min(cur.l,b.l); cur.c=b.c; }
+ });
+ if(cur)out.push(cur);
+ return out;
+}
+function ceSeries(o){
+ var bars=(o&&o.hist)||[],oh=(o&&o.ohlc)||[];
+ if(CE.tf==='W'){bars=ceAggBars(bars);oh=ceAggOhlc(oh);}
+ var om={};oh.forEach(function(k){om[k.d]=k;});
+ return {bars:bars,ohlc:oh,omap:om};
+}
+/* CACHE is private to this IIFE; expose a price getter so the star action in
+   the other script block can record a ref_price. */
+window.tfCardLtp=function(sym){
+ try{
+  if(CACHE.row&&CACHE.row[sym]&&CACHE.row[sym].ltp!=null)return +CACHE.row[sym].ltp;
+  if(CACHE.ema&&CACHE.ema[sym]&&CACHE.ema[sym].ltp!=null)return +CACHE.ema[sym].ltp;
+  var h=CACHE.hist&&CACHE.hist[sym];
+  if(h&&h.length&&h[h.length-1].c!=null)return +h[h.length-1].c;
+ }catch(e){}
+ return null;
+};
 function ceKey(){return 'tfDraw:'+CE.sym;}
 /* Toolbar choices are yours, so they persist. Drawings are stored per stock;
    these settings are global, because you want the same chart every time. */
 function cePrefSave(){
- try{localStorage.setItem('tfChart',JSON.stringify({style:CE.style,days:CE.days,ema:CE.ema,
+ try{localStorage.setItem('tfChart',JSON.stringify({style:CE.style,days:CE.days,tf:CE.tf,view:CE.view,ema:CE.ema,
   show:CE.show,levels:CE.levels,vol:CE.vol,scale:CE.scale}));}catch(e){}
 }
 function cePrefLoad(){
  try{
   var v=JSON.parse(localStorage.getItem('tfChart')||'null');if(!v)return;
   if(v.style)CE.style=v.style;if(v.days)CE.days=v.days;
+  if(v.tf==='D'||v.tf==='W')CE.tf=v.tf;
+  if(v.view&&v.view.n)CE.view={n:v.view.n,off:0};
   if(v.ema)CE.ema=v.ema;if(v.show)CE.show=v.show;if(v.levels)CE.levels=v.levels;
   if(v.vol!=null)CE.vol=v.vol;if(v.scale)CE.scale=v.scale;
  }catch(e){}
@@ -15820,7 +15875,7 @@ function ceScale(win,cndl,e){
  function f2(v){return lg?Math.log(v):v;}
  function f2i(v){return lg?Math.exp(v):v;}
  var fmn=f2(mn),fmx=f2(mx);
- var pw=CE_W-CE_PAD.l-CE_PAD.r,ph=CE_H-CE_PAD.t-CE_PAD.b-(CE.vol?CE_VOL:0);
+ var pw=CE_W-CE_PAD.l-CE_PAD.r-CE_GAP,ph=CE_H-CE_PAD.t-CE_PAD.b-(CE.vol?CE_VOL:0);
  var n=Math.max(1,(cndl&&cndl.length?cndl.length:win.length)-1);
  return {x:function(i){return CE_PAD.l+(i/n)*pw;},
          y:function(v){return CE_PAD.t+(1-(f2(v)-fmn)/((fmx-fmn)||1))*ph;},
@@ -15832,15 +15887,35 @@ function ceScale(win,cndl,e){
 /* ── draw ─────────────────────────────────────────────── */
 function ceRender(){
  var host=document.getElementById('ce-svg');if(!host||!CE.sym)return;
+ var _hw=host.clientWidth||0,_hh=host.clientHeight||0;
+ if(_hw>300&&_hh>200){CE_W=Math.round(_hw);CE_H=Math.round(_hh);}
  var o=gather(CE.sym),hist=o.hist||[];
  if(hist.length<5){host.innerHTML='<div class="sc-none" style="padding:40px">Loading price history…</div>';return;}
- var full=hist.map(function(x){return x.c;});
+ var SER=ceSeries(o);
+ var bars=SER.bars;hist=bars;
+ if(bars.length<3){host.innerHTML='<div class="sc-none" style="padding:40px">Not enough history for this timeframe.</div>';return;}
+ var full=bars.map(function(x){return x.c;});
  var E={9:ema(full,9),20:ema(full,20),50:ema(full,50),200:ema(full,200)};
- var n=Math.min(CE.days,hist.length);
- var cndl=(CE.style==='candle'&&o.ohlc&&o.ohlc.length>=5)?o.ohlc.slice(-Math.min(n,o.ohlc.length)):null;
- if(cndl)n=cndl.length;
- var win=hist.slice(-n);
- var e={};[9,20,50,200].forEach(function(p){e[p]=E[p].slice(-n);});
+ var hmap={},vmap={};
+ bars.forEach(function(b,i){hmap[b.d]=i;vmap[b.d]=b.v;});
+ /* Candles and closes are aligned by DATE, not by a blind slice from the end. */
+ var useC=(CE.style==='candle'&&SER.ohlc&&SER.ohlc.length>=5);
+ var prim=useC?SER.ohlc:bars;
+ var total=prim.length;
+ if(!CE.view)CE.view={n:126,off:0};
+ var n=Math.max(12,Math.min(CE.view.n||126,total));
+ var off=Math.max(0,Math.min(CE.view.off||0,total-n));
+ CE.view.n=n;CE.view.off=off;CE._total=total;
+ var _st=total-off-n,_en=total-off;
+ var win=prim.slice(_st,_en).map(function(b){
+  return {d:b.d,c:b.c,o:b.o,h:b.h,l:b.l,v:(vmap[b.d]!=null?vmap[b.d]:null)};
+ });
+ var cndl=useC?win:null;
+ var e={};[9,20,50,200].forEach(function(p){
+  e[p]=win.map(function(b){var ix=hmap[b.d];return (ix==null)?null:E[p][ix];});
+ });
+ CE._winD=win.map(function(b){return b.d;});
+ CE._dmap={};CE._winD.forEach(function(d,i){CE._dmap[d]=i;});
  var all=ceLevels(o);
  CE.shownLevels=all.filter(function(l){return CE.levels[l.id]!==false;});
  var S=ceScale(win,cndl,e);
@@ -15895,7 +15970,7 @@ function ceRender(){
     'The long-term line: above it is an uptrend, below it is not.'))+'</title></path>';
  });
  // volume pane
- var OMc=ohlcMap(o);
+ var OMc=SER.omap;
  var vols=win.map(function(x){return x.v;}),hv=vols.some(function(x){return x!=null;});
  if(hv&&CE.vol){
   var vmax=Math.max.apply(null,vols.map(function(x){return x==null?0:x;}))||1;
@@ -15946,7 +16021,12 @@ function ceRender(){
     '<text x="'+S.x(i6).toFixed(1)+'" y="'+(yy+2.8).toFixed(1)+'" font-size="7" fill="var(--bg1)" text-anchor="middle">'+(buy?'B':'S')+'</text></g>';
   });
  }
- // drawings
+ // drawings - resolve saved dates to the current window; legacy index-only
+ // drawings keep their old behaviour so nothing vanishes.
+ function DI(idx,dt){
+  if(dt&&CE._dmap&&CE._dmap[dt]!=null)return CE._dmap[dt];
+  return idx;
+ }
  var dr=ceLoad();
  dr.forEach(function(k,i){
   if(k.t==='h'){
@@ -15954,9 +16034,9 @@ function ceRender(){
    g+='<g class="ce-dr" data-i="'+i+'"><line x1="'+CE_PAD.l+'" y1="'+y.toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+'" y2="'+y.toFixed(1)+'" stroke="'+(k.c||'var(--text)')+'" stroke-width="1.3"/>'+
      '<text x="'+(CE_W-CE_PAD.r-4)+'" y="'+(y-4).toFixed(1)+'" font-size="10" fill="'+(k.c||'var(--text)')+'" text-anchor="end">'+esc(k.p)+'</text></g>';
   }else if(k.t==='l'){
-   g+='<g class="ce-dr" data-i="'+i+'"><line x1="'+S.x(k.i1).toFixed(1)+'" y1="'+S.y(k.p1).toFixed(1)+'" x2="'+S.x(k.i2).toFixed(1)+'" y2="'+S.y(k.p2).toFixed(1)+'" stroke="'+(k.c||'var(--text)')+'" stroke-width="1.5"/></g>';
+   g+='<g class="ce-dr" data-i="'+i+'"><line x1="'+S.x(DI(k.i1,k.d1)).toFixed(1)+'" y1="'+S.y(k.p1).toFixed(1)+'" x2="'+S.x(DI(k.i2,k.d2)).toFixed(1)+'" y2="'+S.y(k.p2).toFixed(1)+'" stroke="'+(k.c||'var(--text)')+'" stroke-width="1.5"/></g>';
   }else if(k.t==='x'){
-   g+='<g class="ce-dr" data-i="'+i+'"><text x="'+S.x(k.i).toFixed(1)+'" y="'+S.y(k.p).toFixed(1)+'" font-size="12" fill="'+(k.c||'var(--text)')+'">'+esc(k.txt)+'</text></g>';
+   g+='<g class="ce-dr" data-i="'+i+'"><text x="'+S.x(DI(k.i,k.d)).toFixed(1)+'" y="'+S.y(k.p).toFixed(1)+'" font-size="12" fill="'+(k.c||'var(--text)')+'">'+esc(k.txt)+'</text></g>';
   }
  });
  // crosshair
@@ -16021,7 +16101,9 @@ function ceAuto(o,cndl){
  var pctK=num(d.poleMovePct);
 
  /* The box, when the scan says one has formed. */
- if(bd>=5&&bd<cndl.length-3){
+ /* base_days and move_days are counts of DAILY sessions, so the box and pole
+    are only meaningful on the daily timeframe. Pivots are fractals and stay. */
+ if(CE.tf!=='W'&&bd>=5&&bd<cndl.length-3){
   var b0=cndl.length-bd,bw=cndl.slice(b0);
   var top=Math.max.apply(null,bw.map(function(k){return k.h;}));
   var bot=Math.min.apply(null,bw.map(function(k){return k.l;}));
@@ -16031,7 +16113,7 @@ function ceAuto(o,cndl){
  /* The pole. It must NOT depend on a box existing: an EP or a rally still has
     a pole, and the scan gives us its length and size. Anchor the top at the
     highest high inside the move, then walk back to the lowest low before it. */
- if(pd>=2){
+ if(CE.tf!=='W'&&pd>=2){
   var end=A.box?A.box.i1:(cndl.length-1);       // box start, else the last bar
   if(!A.box){
    var look=Math.min(cndl.length-1,pd+8),hi=-1,hv=-Infinity;
@@ -16139,12 +16221,15 @@ function ceBar(o){
  h+='<b style="font-size:14px">'+esc(CE.sym)+'</b>';
  h+=tfStarBtn(CE.sym,'ce-b');
  h+='<span class="ce-sep"></span>';
- h+=btn(CE.style==='candle','ceSet(\'style\',\'candle\')','Candles','Open, high, low and close. Stored for the last 120 sessions.');
+ h+=btn(CE.style==='candle'&&CE.tf==='D',"ceTf('D')",'Daily','Daily candles - open, high, low and close from the nightly scan.');
+ h+=btn(CE.style==='candle'&&CE.tf==='W',"ceTf('W')",'Weekly','Weekly candles built from the stored dailies. About one year of weekly history is available.');
  h+=btn(CE.style==='line','ceSet(\'style\',\'line\')','Line','Closing price only — cleaner for judging trend.');
  h+='<span class="ce-sep"></span>';
- [[22,'1M'],[63,'3M'],[126,'6M'],[252,'1Y']].forEach(function(x){
-  h+=btn(CE.days===x[0],'ceSet(\'days\','+x[0]+')',x[1],x[1]+' of sessions'+(x[0]>120?' — candles cover 120, so this falls back to more history on the line':''));
+ var _rg=(CE.tf==='W')?[[4,'1M'],[13,'3M'],[26,'6M'],[52,'1Y']]:[[22,'1M'],[63,'3M'],[126,'6M'],[252,'1Y']];
+ _rg.forEach(function(x){
+  h+=btn((CE.view&&CE.view.n===x[0]&&CE.view.off===0),"ceZoom('+x[0]+')",x[1],'Jump to the last '+x[1]+'. Wheel zooms, drag pans, double-click fits.');
  });
+ h+=btn(false,'ceFit()','Fit','Show the whole stored history for this timeframe.');
  h+='<span class="ce-sep"></span>';
  [9,20,50,200].forEach(function(p){
   h+=btn(CE.ema[p],'ceEma('+p+')',p+'E','Show or hide the '+p+' EMA');
@@ -16183,6 +16268,16 @@ function ceBar(o){
  return h;
 }
 window.ceSet=function(k,v){CE[k]=v;cePrefSave();ceRefresh();};
+function ceDateAt(i){try{return (CE._winD&&CE._winD[i])||null;}catch(e){return null;}}
+window.ceTf=function(t){
+ if(CE.tf===t&&CE.style==='candle')return;
+ CE.tf=t;CE.style='candle';
+ CE.view={n:(t==='W'?52:126),off:0};
+ CE.measure=null;CE.pending=null;
+ cePrefSave();ceRefresh();
+};
+window.ceZoom=function(n){CE.view={n:n,off:0};cePrefSave();ceRefresh();};
+window.ceFit=function(){CE.view={n:(CE._total||500),off:0};cePrefSave();ceRefresh();};
 window.ceEma=function(p){CE.ema[p]=!CE.ema[p];cePrefSave();ceRefresh();};
 window.ceLvl=function(id){CE.levels[id]=(CE.levels[id]===false);cePrefSave();ceRefresh();};
 window.ceVol=function(){CE.vol=!CE.vol;cePrefSave();ceRefresh();};
@@ -16235,8 +16330,8 @@ function ceClick(ev){
  var a=ceLoad();
  if(CE.tool==='h'){a.push({t:'h',p:c.p,c:'var(--cyan)'});ceSave(a);ceRender();}
  else if(CE.tool==='l'){
-  if(!CE.pending){CE.pending={i:c.i,p:c.p};}
-  else{a.push({t:'l',i1:CE.pending.i,p1:CE.pending.p,i2:c.i,p2:c.p,c:'var(--cyan)'});CE.pending=null;ceSave(a);ceRender();}
+  if(!CE.pending){CE.pending={i:c.i,d:ceDateAt(c.i),p:c.p};}
+  else{a.push({t:'l',i1:CE.pending.i,d1:CE.pending.d,p1:CE.pending.p,i2:c.i,d2:ceDateAt(c.i),p2:c.p,c:'var(--cyan)'});CE.pending=null;ceSave(a);ceRender();}
  }else if(CE.tool==='m'){
   if(!CE.measure||CE.measure.i2!=null){CE.measure={i1:c.i,p1:c.p,i2:null,p2:null};}
   else{CE.measure.i2=c.i;CE.measure.p2=c.p;}
@@ -16251,7 +16346,7 @@ function ceClick(ev){
   ceAlertAdd(lv,dir,nt||null);
  }else if(CE.tool==='x'){
   var txt=window.prompt('Note to place on the chart:');
-  if(txt){a.push({t:'x',i:c.i,p:c.p,txt:txt.slice(0,60),c:'var(--text)'});ceSave(a);ceRender();}
+  if(txt){a.push({t:'x',i:c.i,d:ceDateAt(c.i),p:c.p,txt:txt.slice(0,60),c:'var(--text)'});ceSave(a);ceRender();}
  }
 }
 
@@ -16320,8 +16415,56 @@ window.ceOpen=function(sym){
      return;
     }
    }
+   if(CE._dragged){CE._dragged=false;return;}
    if(CE.tool!=='cursor')ceClick(ev);
   });
+  /* Wheel = zoom about the bar under the cursor. Drag = pan. dblclick = fit. */
+  p.addEventListener('wheel',function(ev){
+   if(!CE.open||!CE._total)return;
+   ev.preventDefault();
+   var cv=document.getElementById('ce-canvas');if(!cv)return;
+   var r=cv.getBoundingClientRect();
+   var pw=CE_W-CE_PAD.l-CE_PAD.r-CE_GAP;
+   var px=(ev.clientX-r.left)*(CE_W/(r.width||1));
+   var fx=Math.max(0,Math.min(1,(px-CE_PAD.l)/(pw||1)));
+   var total=CE._total,n=CE.view.n,off=CE.view.off;
+   var st=total-off-n;
+   var anchor=st+fx*n;
+   var nn=Math.round(n*(ev.deltaY<0?0.82:1.22));
+   nn=Math.max(12,Math.min(total,nn));
+   var nst=Math.round(anchor-fx*nn);
+   nst=Math.max(0,Math.min(total-nn,nst));
+   CE.view.n=nn;CE.view.off=total-nn-nst;
+   ceRender();
+  },{passive:false});
+  p.addEventListener('mousedown',function(ev){
+   if(ev.target.closest&&ev.target.closest('button'))return;
+   if(CE.tool!=='cursor')return;
+   CE._pan={x:ev.clientX,n:CE.view.n,off:CE.view.off,moved:false};
+  });
+  window.addEventListener('mousemove',function(ev){
+   if(!CE._pan||!CE._total)return;
+   var cv=document.getElementById('ce-canvas');if(!cv)return;
+   var r=cv.getBoundingClientRect();
+   var dx=ev.clientX-CE._pan.x;
+   if(!CE._pan.moved&&Math.abs(dx)<4)return;
+   CE._pan.moved=true;CE._dragged=true;
+   var pw=CE_W-CE_PAD.l-CE_PAD.r-CE_GAP;
+   var barsPerPx=CE._pan.n/((r.width||1)*(pw/CE_W));
+   var shift=Math.round(dx*barsPerPx);
+   var noff=CE._pan.off+shift;
+   CE.view.off=Math.max(0,Math.min(CE._total-CE.view.n,noff));
+   ceRender();
+  });
+  window.addEventListener('mouseup',function(){
+   if(CE._pan&&!CE._pan.moved)CE._dragged=false;
+   CE._pan=null;
+  });
+  p.addEventListener('dblclick',function(ev){
+   if(ev.target.closest&&ev.target.closest('button'))return;
+   if(typeof window.ceFit==='function')window.ceFit();
+  });
+  window.addEventListener('resize',function(){if(CE.open)ceRender();});
  }
  document.getElementById('ce-panel').classList.add('open');
  ceRefresh();
