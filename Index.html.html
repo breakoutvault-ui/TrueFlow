@@ -2385,13 +2385,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
     <div id="scr-play-info" class="scr-play-info" style="display:none"></div>
 
-    <div class="scr-fbar"><span class="lbl">Filters — click any to multi-select</span><div class="scr-filters" id="scr-filters"></div></div>
+    <div class="scr-fbar"><div class="scr-filters" id="scr-filters"></div></div>
 
     <div class="scr-bar2">
       <input class="scr-search" id="scr-q" placeholder="🔍 Search symbol or name…" oninput="scrRender()">
       <details class="scr-f"><summary class="scr-tool">⊞ Columns</summary><div class="scr-panel" id="scr-col-panel" style="min-width:230px"></div></details>
       <button class="scr-tool" id="scr-ctx-btn" style="color:var(--cyan)" onclick="scrToggleCtx()" title="Smart columns: show only what is relevant to the active playbook and the filters you have applied. Frozen columns and anything you add by hand always stay visible. Click again to show every column instead.">◉ Smart columns ON</button><button class="scr-tool unhide" onclick="scrUnhideAll()">⟲ Unhide all columns</button>
-      <details class="scr-f scr-pb"><summary class="scr-tool">📓 Playbooks</summary><div class="scr-panel" style="min-width:300px"><div class="ph">Predefined strategy screens — click one to apply &amp; read how to trade it</div><div id="scr-pb-list"></div></div></details>
+      <!-- Playbooks dropdown removed 16 Sep 2026: it carried a duplicate list-container
+           id, so getElementById only ever filled the strip above and this panel
+           was always empty. The PLAYBOOKS section is the single entry point. -->
       <details class="scr-f"><summary class="scr-tool">💾 Presets</summary><div class="scr-panel" style="min-width:230px"><div class="ph">Save current filters</div><div class="scr-psave"><input id="scr-pname" placeholder="Name this preset…"><button class="scr-tool" onclick="scrSavePreset()">Save</button></div><div class="ph" style="margin-top:6px">Saved</div><div id="scr-saved-list"></div></div></details>
       <button class="scr-tool" onclick="scrCopyTV()">📋 TradingView</button>
       <button class="scr-tool clear" onclick="scrClearAll()">✕ Clear all filters</button>
@@ -7930,19 +7932,40 @@ function renderExited() {
 }
 
 // ── STAR / PICKS ACTIONS ──────────────────────────────
+function tfSyncStars(symbol) {
+  try {
+    var on = momStarred.has(symbol);
+    document.querySelectorAll('[data-tfstar="' + symbol + '"]').forEach(function(b){
+      b.textContent = on ? '\u2b50' : '\u2606';
+      if (on) b.classList.add('starred'); else b.classList.remove('starred');
+    });
+  } catch(e) { console.error('tfSyncStars', e); }
+}
+window.tfSyncStars = tfSyncStars;
+window.tfIsStarred = function(sym){ try { return momStarred.has(sym); } catch(e){ return false; } };
+
 async function toggleMomStar(symbol, btn) {
   const headers = { 'apikey': CONFIG.supabaseKey, 'Authorization': 'Bearer ' + CONFIG.supabaseKey, 'Content-Type': 'application/json' };
   if (momStarred.has(symbol)) {
     momStarred.delete(symbol);
-    btn.classList.remove('starred'); btn.textContent = '☆';
+    if (btn) { btn.classList.remove('starred'); btn.textContent = '☆'; }
+    tfSyncStars(symbol);
     await fetch(`${CONFIG.supabaseUrl}/rest/v1/momentum_picks?symbol=eq.${symbol}`, { method:'DELETE', headers });
     showToast(`${symbol} removed from My Picks`, 'info');
   } else {
     momStarred.add(symbol);
-    btn.classList.add('starred'); btn.textContent = '⭐';
-    // Get ref price from scanner data
+    if (btn) { btn.classList.add('starred'); btn.textContent = '⭐'; }
+    tfSyncStars(symbol);
+    // Ref price: momentum tables first, then the stock card's own loaded row,
+    // so starring from the card / chart / any other tab still records a price.
     const stock = momData.scanner.find(s => s.symbol === symbol) || momData.ema.find(s => s.symbol === symbol) || momData.sharp.find(s => s.symbol === symbol);
-    const refPrice = stock ? stock.ltp : null;
+    let refPrice = stock ? stock.ltp : null;
+    if (refPrice == null) {
+      try {
+        if (typeof CACHE !== 'undefined' && CACHE.row && CACHE.row[symbol] && CACHE.row[symbol].ltp != null) refPrice = CACHE.row[symbol].ltp;
+        else if (typeof CACHE !== 'undefined' && CACHE.ema && CACHE.ema[symbol] && CACHE.ema[symbol].ltp != null) refPrice = CACHE.ema[symbol].ltp;
+      } catch(e) {}
+    }
     await fetch(`${CONFIG.supabaseUrl}/rest/v1/momentum_picks`, {
       method:'POST',
       headers: { ...headers, 'Prefer':'resolution=merge-duplicates' },
@@ -15611,6 +15634,7 @@ function render(){
    '<button class="sc-nav" onclick="scStep(-1)" title="Previous stock in the list you are looking at">‹</button>'+
    '<button class="sc-nav" onclick="scStep(1)" title="Next stock in the list you are looking at">›</button>'+
    '<b style="font-size:17px">'+esc(SC.sym)+'</b>'+
+   tfStarBtn(SC.sym,'sc-nav')+
    (ltp!=null?'<span style="font-size:15px;font-weight:600">'+f(ltp)+'</span>':'')+
    (day!=null?'<span style="'+col(day)+';font-size:13px">'+pct(day)+'</span>':'')+
    arrows+
@@ -15909,7 +15933,9 @@ function ceRender(){
   deals.forEach(function(x){
    var dt=String(x.deal_date||x.date||x.session_date||'').slice(0,10),i6=dmap[dt];
    if(i6==null)return;
-   var typ=String(x.deal_type||x.type||x.txn_type||''),buy=/buy|purchase|acquis/i.test(typ);
+   var sd=String(x.side||x.txn_side||'').trim().toUpperCase();
+   var typ=String(x.deal_type||x.type||x.txn_type||'');
+   var buy=(sd==='BUY'||sd==='B'||sd==='BUY/PURCHASE')?true:(sd==='SELL'||sd==='S')?false:/buy|purchase|acquis/i.test(typ);
    var qty=(x.quantity!=null?x.quantity:x.qty),px2=(x.price!=null?x.price:x.trade_price);
    var val=(qty!=null&&px2!=null)?(qty*px2/1e7):null;
    var yy=S.y((win[i6]||{}).c)+(buy?18:-18);
@@ -16109,7 +16135,9 @@ function ceBar(o){
  var lv=ceLevels(o);
  function btn(on,fn,lab,tip){return '<button class="ce-b'+(on?' on':'')+'" onclick="'+fn+'" title="'+esc(tip)+'">'+lab+'</button>';}
  var h='<div class="ce-row">';
+ h+=ceNavHtml();
  h+='<b style="font-size:14px">'+esc(CE.sym)+'</b>';
+ h+=tfStarBtn(CE.sym,'ce-b');
  h+='<span class="ce-sep"></span>';
  h+=btn(CE.style==='candle','ceSet(\'style\',\'candle\')','Candles','Open, high, low and close. Stored for the last 120 sessions.');
  h+=btn(CE.style==='line','ceSet(\'style\',\'line\')','Line','Closing price only — cleaner for judging trend.');
@@ -16299,6 +16327,51 @@ window.ceOpen=function(sym){
  ceRefresh();
  loadStock(sym,function(loaded){if(CE.open&&CE.sym===loaded)ceRefresh();});
 };
+/* Star button, one implementation used by the card and the chart.
+   momStarred lives in an earlier script block; function declarations there are
+   global, so toggleMomStar/tfIsStarred are callable from here. Guarded anyway. */
+function tfStarBtn(sym,cls){
+ if(!sym)return '';
+ var on=false;
+ try{ on=(typeof window.tfIsStarred==='function')&&window.tfIsStarred(sym); }catch(e){}
+ return '<button class="'+cls+(on?' starred':'')+'" data-tfstar="'+esc(sym)+'"'+
+  ' onclick="tfStarClick(\''+esc(sym)+'\')"'+
+  ' title="'+(on?'Remove from My Picks':'Star \u2014 add to My Picks')+'">'+(on?'\u2b50':'\u2606')+'</button>';
+}
+window.tfStarClick=function(sym){
+ try{
+  if(typeof toggleMomStar==='function')toggleMomStar(sym,null);
+  else console.error('toggleMomStar unavailable');
+ }catch(e){console.error('tfStarClick',e);}
+};
+/* Walk the same filtered list the card is using. SC and CE share this script
+   block, so SC.list/SC.idx are read directly - no window lookup. */
+window.ceStep=function(n){
+ try{
+  if(typeof SC==='undefined'||!SC.list||!SC.list.length)return;
+  var i=SC.list.indexOf(CE.sym); if(i<0)i=(SC.idx>=0?SC.idx:0);
+  i=(i+n+SC.list.length)%SC.list.length;
+  var s2=SC.list[i];
+  if(!s2||s2===CE.sym)return;
+  SC.idx=i;SC.sym=s2;
+  CE.sym=s2;CE.hoverIdx=null;CE.hoverY=null;CE.pending=null;CE.alerts=[];
+  ceAlertsLoad(s2,function(){if(CE.open&&CE.sym===s2)ceRender();});
+  ceRefresh();
+  loadStock(s2,function(loaded){
+   if(CE.open&&CE.sym===loaded)ceRefresh();
+   if(document.getElementById('sc-panel')&&SC.sym===loaded)render();
+  });
+ }catch(e){console.error('ceStep',e);}
+};
+function ceNavHtml(){
+ var nL=(typeof SC!=='undefined'&&SC.list)?SC.list.length:0;
+ if(nL<2)return '';
+ var i=(typeof SC!=='undefined'&&SC.list)?SC.list.indexOf(CE.sym):-1;
+ return '<button class="ce-b" onclick="ceStep(-1)" title="Previous stock in the list you filtered">\u2039</button>'+
+  '<button class="ce-b" onclick="ceStep(1)" title="Next stock in the list you filtered">\u203a</button>'+
+  (i>=0?'<span style="color:var(--muted);font-size:11px;margin:0 4px">'+(i+1)+' of '+nL+'</span>':'')+
+  '<span class="ce-sep"></span>';
+}
 window.ceClose=function(){
  CE.open=false;
  var p=document.getElementById('ce-panel');if(p)p.classList.remove('open');
