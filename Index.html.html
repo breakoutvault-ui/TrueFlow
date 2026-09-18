@@ -12360,12 +12360,23 @@ function vbHideCol(k){VB.vis[k]=false;vbSyncColMenu();vbBoardRender();}
 function vbUnhideAll(){VB_COLS.forEach(c=>VB.vis[c.k]=true);vbSyncColMenu();vbBoardRender();}
 function vbSyncChecks(){document.querySelectorAll('#vol-filters input').forEach(cb=>{const s=VB.state[cb.dataset.k];cb.checked=!!(s&&s.has(cb.dataset.o));});}
 function vbSyncColMenu(){document.querySelectorAll('#vol-col-panel input').forEach(cb=>cb.checked=!!VB.vis[cb.dataset.col]);}
-function vbSyncChips(){VB_FILTERS.forEach(f=>{const c=document.getElementById('vbf-cnt-'+f.key);if(!c)return;const n=VB.state[f.key].size;c.style.display=n?'inline-block':'none';c.textContent=n;const sm=c.closest('summary');if(sm)sm.classList.toggle('has',n>0);});document.querySelectorAll('#vol-presets .scr-pre').forEach(b=>b.classList.toggle('active',b.dataset.p===VB.activePreset));}
+function vbSyncChips(){try{tfPresetFill('vol-pname',VB,VB_FILTERS);}catch(e){}
+ VB_FILTERS.forEach(f=>{const c=document.getElementById('vbf-cnt-'+f.key);if(!c)return;const n=VB.state[f.key].size;c.style.display=n?'inline-block':'none';c.textContent=n;const sm=c.closest('summary');if(sm)sm.classList.toggle('has',n>0);});document.querySelectorAll('#vol-presets .scr-pre').forEach(b=>b.classList.toggle('active',b.dataset.p===VB.activePreset));}
 function vbEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function vbPresetTip(state){if(!state)return 'Custom preset';var parts=[];VB_FILTERS.forEach(function(f){var sel=(state[f.key]||[]);if(sel.length){var labs=sel.map(function(o){return (f.disp&&f.disp[o])||o;});parts.push(f.label+': '+labs.join(', '));}});return parts.length?('Filters — '+parts.join('   ·   ')):'Shows all (no filters)';}
 function vbGetSaved(){try{return JSON.parse(localStorage.getItem('tf_vol_presets')||'[]');}catch(e){return [];}}
-function vbAppendUserPills(){var pr=document.getElementById('vol-presets');if(!pr)return;pr.querySelectorAll('.scr-pre-user').forEach(function(b){b.remove();});var saved=vbGetSaved();if(!saved.length)return;pr.insertAdjacentHTML('beforeend',saved.map(function(s,i){return '<button class="scr-pre scr-pre-user" title="'+vbEsc(vbPresetTip(s.state))+'" onclick="vbLoadPreset('+i+')">'+vbEsc(s.n)+'<span class="scr-pre-x" onclick="event.stopPropagation();vbDelPreset('+i+')">×</span></button>';}).join(''));}
-function vbSavePreset(){const i=document.getElementById('vol-pname');if(!i)return;const n=(i.value||'').trim();if(!n)return;const all=vbGetSaved();all.push({n,state:Object.fromEntries(Object.entries(VB.state).map(([k,v])=>[k,[...v]]))});localStorage.setItem('tf_vol_presets',JSON.stringify(all));i.value='';vbAppendUserPills();}
+function vbAppendUserPills(){var pr=document.getElementById('vol-presets');if(!pr)return;pr.querySelectorAll('.scr-pre-user').forEach(function(b){b.remove();});var saved=vbGetSaved();if(!saved.length)return;pr.insertAdjacentHTML('beforeend',saved.map(function(s,i){return '<button class="scr-pre scr-pre-user" title="'+vbEsc(s.desc||vbPresetTip(s.state))+'" onclick="vbLoadPreset('+i+')">'+vbEsc(s.n)+'<span class="scr-pre-x" onclick="event.stopPropagation();vbDelPreset('+i+')">×</span></button>';}).join(''));}
+function vbSavePreset(){
+ var i=document.getElementById('vol-pname');if(!i)return;
+ var st=tfStateArr(VB);
+ var n=(i.value||'').trim()||tfPresetName(VB_FILTERS,st);
+ var all=vbGetSaved();
+ all.push({n:n,state:st,desc:tfPresetDesc(VB_FILTERS,st)});
+ localStorage.setItem('tf_vol_presets',JSON.stringify(all));
+ i.value='';VB._nameSug='';
+ vbAppendUserPills();
+ try{tfPresetFill('vol-pname',VB,VB_FILTERS);}catch(e){}
+}
 function vbLoadPreset(i){const all=vbGetSaved();const s=all[i];if(!s)return;VB_FILTERS.forEach(f=>VB.state[f.key]=new Set((s.state&&s.state[f.key])||[]));VB.activePreset=null;vbSyncChecks();vbSyncChips();vbBoardRender();}
 function vbDelPreset(i){const all=vbGetSaved();all.splice(i,1);localStorage.setItem('tf_vol_presets',JSON.stringify(all));vbAppendUserPills();}
 function vbSectorDrill(sec){VB.state.sector=new Set([sec]);VB.activePreset=null;vbSyncChecks();vbSyncChips();VOLstate.view='board';var f=document.getElementById('vbt-filters');if(f)f.style.display='flex';var bw=document.getElementById('vol-board-wrap');if(bw)bw.style.display='block';var sw=document.getElementById('vol-sector-wrap');if(sw)sw.style.display='none';document.querySelectorAll('#tab-volume .vbt-view').forEach(function(b){b.classList.toggle('active',/board/i.test(b.getAttribute('onclick')||''));});vbBoardRender();}
@@ -12978,7 +12989,8 @@ function scrBuildUI(){
  document.addEventListener('click',e=>{if(!e.target.closest('#tab-screener details.scr-f'))document.querySelectorAll('#tab-screener details.scr-f').forEach(d=>d.open=false);});
  scrRenderSaved();
 }
-function scrSyncChips(){SCR_FILTERS.forEach(f=>{const c=document.getElementById('scr-cnt-'+f.key);if(!c)return;const n=SCR.state[f.key].size;c.style.display=n?'inline-block':'none';c.textContent=n;const sm=c.closest('summary');if(sm)sm.classList.toggle('has',n>0);});document.querySelectorAll('#tab-screener .scr-pre').forEach(b=>b.classList.toggle('active',b.dataset.p===SCR.activePreset));}
+function scrSyncChips(){try{tfPresetFill('scr-pname',SCR,SCR_FILTERS);}catch(e){}
+ SCR_FILTERS.forEach(f=>{const c=document.getElementById('scr-cnt-'+f.key);if(!c)return;const n=SCR.state[f.key].size;c.style.display=n?'inline-block':'none';c.textContent=n;const sm=c.closest('summary');if(sm)sm.classList.toggle('has',n>0);});document.querySelectorAll('#tab-screener .scr-pre').forEach(b=>b.classList.toggle('active',b.dataset.p===SCR.activePreset));}
 function scrSyncChecks(){document.querySelectorAll('#scr-filters input').forEach(cb=>{var k=cb.dataset.k;if(k&&SCR.state[k])cb.checked=SCR.state[k].has(cb.dataset.o);});}
 function scrSyncColMenu(){document.querySelectorAll('#scr-col-panel input').forEach(cb=>cb.checked=SCR.vis[cb.dataset.col]);}
 function scrToggleFilter(k,o,on){on?SCR.state[k].add(o):SCR.state[k].delete(o);SCR.activePreset=null;scrSyncChips();scrRender();}
@@ -13292,11 +13304,128 @@ function scrClearAll(){SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());SCR.ac
 function scrHideCol(k){SCR.vis[k]=false;if(SCR.manualCols)SCR.manualCols.delete(k);scrSyncColMenu();scrRender();}
 function scrUnhideAll(){SCR.ctxMode=false;SCR_COLS.forEach(c=>SCR.vis[c.k]=true);scrSyncColMenu();scrRender();}
 function scrEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* ── preset naming ──────────────────────────────────────────────────────────
+   A saved preset now gets the same two parts a playbook has: a short label and
+   a plain-English description. The label is SUGGESTED, never forced - the box
+   stays editable. Combinations that are recognised get a real name; anything
+   else gets an accurate composed one ("VCP - Cat A - ADR 3+"), because a good
+   evocative name cannot be invented reliably for an arbitrary filter set.
+   The description is built from each selected option's own tooltip, so it says
+   the same thing the filter bar says - nothing new is invented here either. */
+var TF_PNAME_RULES=[
+ {n:'Smart Money Coils',       need:{pattern:['VCP','HTF'],smt:['LOADING_UP','ACCUMULATING']}},
+ {n:'EP + Smart Money',        need:{pattern:['EP'],smt:['LOADING_UP','ACCUMULATING']}},
+ {n:'Coiled Pullback',         need:{pattern:['VCP','HTF'],zone:['near9e']}},
+ {n:'Coiled Pullback',         need:{pattern:['VCP','HTF'],entry:['pullback']}},
+ {n:'VCP at Pivot',            need:{pattern:['VCP','HTF'],z52:['zone']}},
+ {n:'Tightest Contraction',    need:{pattern:['VCP','HTF'],contractmin:['0.5','0.6','0.7','0.8']}},
+ {n:'Coiled & Drying',         need:{pattern:['VCP','HTF']}},
+ {n:'Fresh 9E Reclaim',        need:{pattern:['Reclaim'],vsig:['acc']}},
+ {n:'Reclaim + Ideal Volume',  need:{rclvol:['Ideal']}},
+ {n:'Reclaim - Tightest Risk', need:{rclgrade:['A','B','C','D'],rclriskmax:['2','3','4','5']}},
+ {n:'Reclaim Watch',           need:{rclgrade:['A','B','C','D']}},
+ {n:'High-ADR Breakouts',      need:{pattern:['BrokenOut'],adrmin:['4','5','6','7','8']}},
+ {n:'Breakout + Volume',       need:{pattern:['BrokenOut'],rvolmin:['1.5','2','2.5','3']}},
+ {n:'Breakout Confirmed',      need:{pattern:['BrokenOut']}},
+ {n:'At the Pivot',            need:{pattern:['NearPivot']}},
+ {n:'EP Continuation',         need:{pattern:['EP'],zone:['above9d']}},
+ {n:'Episodic Pivots',         need:{pattern:['EP']}},
+ {n:'Coiled & Aligned',        need:{nr:['nr7','nr4'],align:['full','sectorled']}},
+ {n:'NR Breakout Confirmed',   need:{nr:['brokenUp']}},
+ {n:'Narrow-Range Watch',      need:{nr:['nr7','nr4','coiling']}},
+ {n:'Catalyst-Backed Loners',  need:{align:['lone'],catalyst:['yes']}},
+ {n:'Unexplained Movers',      need:{align:['lone'],catalyst:['no']}},
+ {n:'Quiet Accumulation',      need:{smt:['LOADING_UP','ACCUMULATING'],zone:['near9e','w10']}},
+ {n:'Leaders Near Highs',      need:{z52:['zone'],cat:['A','AC'],rvolmin:['1.5','2','2.5','3']}},
+ {n:'All Timeframes Up',       need:{mtf:['allup']}},
+ {n:'HTF Pullback',            need:{mtf:['htfpb']}},
+ {n:'Weekly Turn',             need:{mtf:['wkturn']}},
+ {n:'Strong-Sector Leaders',   need:{sec:['strong'],cat:['A','AC']}},
+ {n:'Full Alignment',          need:{align:['full']}},
+ {n:'Sector-Led Leaders',      need:{align:['sectorled']}},
+ {n:'Results Watch',           need:{erstat:['pre','post','due']}},
+ {n:'In the BO Zone',          need:{z52:['zone','base']}},
+ {n:'Volume Buildup',          need:{vsig:['acc']}},
+ {n:'Quiet Pullbacks',         need:{vsig:['pull']}},
+ {n:'Fresh Crossovers',        need:{signal:['fresh']}}
+];
+function tfPStrip(x){return String(x==null?'':x).replace(/[^\x20-\x7E\u00b7\u00d7\u20b9]/g,'').replace(/\s{2,}/g,' ').trim();}
+function tfStateArr(ST){
+ var out={};
+ if(!ST||!ST.state)return out;
+ for(var k in ST.state){
+  var v=ST.state[k];
+  out[k]=(v&&typeof v.forEach==='function')?Array.from(v):[];
+ }
+ return out;
+}
+function tfPSel(state,key){var a=(state&&state[key])||[];return a.length?a:[];}
+function tfPHas(state,key,opts){
+ var a=tfPSel(state,key);
+ if(!a.length)return false;
+ for(var i=0;i<opts.length;i++){if(a.indexOf(opts[i])>=0)return true;}
+ return false;
+}
+function tfPMatch(state,need){
+ for(var k in need){if(!tfPHas(state,k,need[k]))return false;}
+ return true;
+}
+function tfPresetName(FILTERS,state){
+ var any=false;
+ for(var z in (state||{})){if((state[z]||[]).length){any=true;break;}}
+ if(!any)return 'All stocks';
+ for(var i=0;i<TF_PNAME_RULES.length;i++){
+  if(tfPMatch(state,TF_PNAME_RULES[i].need))return TF_PNAME_RULES[i].n;
+ }
+ var parts=[];
+ (FILTERS||[]).forEach(function(f){
+  var sel=tfPSel(state,f.key);if(!sel.length)return;
+  var labs=sel.map(function(o){return tfPStrip((f.disp&&f.disp[o])||o);}).filter(Boolean);
+  if(!labs.length)return;
+  if(labs.length>2)parts.push(tfPStrip(f.label)+' \u00d7'+labs.length);
+  else if(/(min|max)$/.test(f.key))parts.push(tfPStrip(f.label)+' '+labs.join('/'));  /* "3%" alone means nothing */
+  else parts.push(labs.join('/'));
+ });
+ if(!parts.length)return 'Custom filters';
+ return parts.slice(0,3).join(' \u00b7 ')+(parts.length>3?(' +'+(parts.length-3)):'');
+}
+function tfPresetDesc(FILTERS,state){
+ var parts=[],tips=[];
+ (FILTERS||[]).forEach(function(f){
+  var sel=tfPSel(state,f.key);if(!sel.length)return;
+  parts.push(f.label+': '+sel.map(function(o){return tfPStrip((f.disp&&f.disp[o])||o);}).join(', '));
+  sel.forEach(function(o){
+   var t=f.tips&&f.tips[o];
+   if(t&&tips.length<6&&tips.indexOf(t)<0)tips.push(t);
+  });
+ });
+ if(!parts.length)return 'Shows every stock - no filters applied.';
+ return 'Filters \u2014 '+parts.join('   \u00b7   ')+(tips.length?('\n\n'+tips.join('\n')):'');
+}
+/* keeps the Save box carrying the current suggestion until he types his own */
+function tfPresetFill(inputId,ST,FILTERS){
+ var i=document.getElementById(inputId);if(!i)return;
+ var sug=tfPresetName(FILTERS,tfStateArr(ST));
+ if(!i.value||i.value===ST._nameSug)i.value=sug;
+ i.placeholder=sug;
+ i.title='Suggested from the filters you have selected \u2014 edit it if you want something else.';
+ ST._nameSug=sug;
+}
 function scrPresetTip(state){if(!state)return 'Custom preset';var parts=[];SCR_FILTERS.forEach(function(f){var sel=(state[f.key]||[]);if(sel.length){var labs=sel.map(function(o){return (f.disp&&f.disp[o])||o;});parts.push(f.label+': '+labs.join(', '));}});return parts.length?('Filters — '+parts.join('   ·   ')):'Shows all (no filters)';}
-function scrAppendUserPills(){var pr=document.getElementById('scr-presets');if(!pr)return;pr.querySelectorAll('.scr-pre-user').forEach(function(b){b.remove();});var saved=scrGetSaved();if(!saved.length)return;pr.insertAdjacentHTML('beforeend',saved.map(function(s,i){return '<button class="scr-pre scr-pre-user" title="'+scrEsc(scrPresetTip(s.state))+'" onclick="scrLoadPreset('+i+')">'+scrEsc(s.n)+'<span class="scr-pre-x" onclick="event.stopPropagation();scrDelPreset('+i+')">×</span></button>';}).join(''));}
-function scrSavePreset(){const i=document.getElementById('scr-pname');const n=(i.value||'').trim();if(!n)return;const all=scrGetSaved();all.push({n,state:Object.fromEntries(Object.entries(SCR.state).map(([k,v])=>[k,[...v]]))});localStorage.setItem('tf_scr_presets',JSON.stringify(all));i.value='';scrRenderSaved();scrAppendUserPills();}
+function scrAppendUserPills(){var pr=document.getElementById('scr-presets');if(!pr)return;pr.querySelectorAll('.scr-pre-user').forEach(function(b){b.remove();});var saved=scrGetSaved();if(!saved.length)return;pr.insertAdjacentHTML('beforeend',saved.map(function(s,i){return '<button class="scr-pre scr-pre-user" title="'+scrEsc(s.desc||scrPresetTip(s.state))+'" onclick="scrLoadPreset('+i+')">'+scrEsc(s.n)+'<span class="scr-pre-x" onclick="event.stopPropagation();scrDelPreset('+i+')">×</span></button>';}).join(''));}
+function scrSavePreset(){
+ var i=document.getElementById('scr-pname');if(!i)return;
+ var st=tfStateArr(SCR);
+ var n=(i.value||'').trim()||tfPresetName(SCR_FILTERS,st);
+ var all=scrGetSaved();
+ all.push({n:n,state:st,desc:tfPresetDesc(SCR_FILTERS,st)});
+ localStorage.setItem('tf_scr_presets',JSON.stringify(all));
+ i.value='';SCR._nameSug='';
+ scrRenderSaved();scrAppendUserPills();
+ try{tfPresetFill('scr-pname',SCR,SCR_FILTERS);}catch(e){}
+}
 function scrGetSaved(){try{return JSON.parse(localStorage.getItem('tf_scr_presets')||'[]');}catch(e){return [];}}
-function scrRenderSaved(){const all=scrGetSaved();const el=document.getElementById('scr-saved-list');if(!el)return;el.innerHTML=all.length?all.map((s,i)=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 7px"><span style="cursor:pointer;color:var(--cyan);font-weight:600" onclick="scrLoadPreset(${i})">${s.n}</span><span style="cursor:pointer;color:var(--red)" onclick="scrDelPreset(${i})">✕</span></div>`).join(''):'<div style="color:var(--muted);font-size:11px;padding:5px 7px">No saved presets yet</div>';}
+function scrRenderSaved(){const all=scrGetSaved();const el=document.getElementById('scr-saved-list');if(!el)return;el.innerHTML=all.length?all.map((s,i)=>`<div style="padding:5px 7px;border-bottom:1px solid var(--bg3)" title="${scrEsc(s.desc||scrPresetTip(s.state))}"><div style="display:flex;justify-content:space-between;gap:8px"><span style="cursor:pointer;color:var(--cyan);font-weight:600" onclick="scrLoadPreset(${i})">${scrEsc(s.n)}</span><span style="cursor:pointer;color:var(--red)" onclick="scrDelPreset(${i})">✕</span></div><div style="color:var(--muted);font-size:10px;margin-top:2px;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${scrEsc(String(s.desc||scrPresetTip(s.state)).split('\n')[0].replace('Filters — ',''))}</div></div>`).join(''):'<div style="color:var(--muted);font-size:11px;padding:5px 7px">No saved presets yet</div>';}
 function scrLoadPreset(i){const all=scrGetSaved();const s=all[i];if(!s)return;SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set((s.state&&s.state[f.key])||[]));SCR.activePreset=null;scrSyncChecks();scrSyncChips();scrRender();}
 function scrDelPreset(i){const all=scrGetSaved();all.splice(i,1);localStorage.setItem('tf_scr_presets',JSON.stringify(all));scrRenderSaved();scrAppendUserPills();}
 function scrCopyTV(){const syms=SCR.last.map(d=>'NSE:'+d.sym).join(',');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(syms).then(()=>scrToast('Copied '+SCR.last.length+' filtered symbols for TradingView'),()=>scrToast('Copy failed — copy manually'));}else scrToast('Clipboard not available');}
@@ -15278,11 +15407,106 @@ function secNdwl(o){
 
 
 /* ── charts: TradingView pane + our own relative-strength pane ─── */
-var CH={mode:'sector',days:126,rs:52,style:'line'};
-window.scChartMode=function(m){CH.mode=m;render();};
-window.scChartWeeks=function(w){CH.days=+w;render();};
-window.scRsWeeks=function(w){CH.rs=+w;render();};
-window.scChartStyle=function(t){CH.style=t;render();};
+var CH={mode:'sector',days:126,rs:52,style:'line',
+ /* view = the price pane, rview = the relative-strength pane.
+    n/off are the visible bar window; ylo/yhi are set ONLY when the price axis
+    has been scaled by hand (wheel or drag on the axis), which is what makes the
+    manual scale absolute and survive a time pan, the way TradingView behaves.
+    Double-click clears them and the pane goes back to auto-fit. */
+ view:{n:null,off:0,ylo:null,yhi:null},
+ rview:{n:null,off:0,ylo:null,yhi:null}};
+var CH_MW=380,CH_MH=215,CH_AXW=40;   /* mini-chart viewBox + price-axis gutter */
+window.scChartMode=function(m){CH.mode=m;CH.rview.ylo=null;CH.rview.yhi=null;render();};
+window.scChartWeeks=function(w){CH.days=+w;CH.view={n:null,off:0,ylo:null,yhi:null};render();};
+window.scRsWeeks=function(w){CH.rs=+w;CH.rview={n:null,off:0,ylo:null,yhi:null};render();};
+window.scChartStyle=function(t){CH.style=t;CH.view={n:null,off:0,ylo:null,yhi:null};render();};
+
+/* ── card charts: wheel / drag / axis / double-click ────────────────────────
+   Redraws ONLY the pane, not the whole card - a full render() on every wheel
+   tick rebuilds ~40 data rows and stutters. */
+/* a zoom / hand-set scale belongs to one stock - clear it when the card moves */
+function scMiniReset(){
+ CH.view={n:null,off:0,ylo:null,yhi:null};
+ CH.rview={n:null,off:0,ylo:null,yhi:null};
+}
+window.scPxRedraw=function(){var el=document.getElementById('sc-px-body');if(el&&SC.sym)el.innerHTML=pxBody(gather(SC.sym));};
+window.scRsRedraw=function(){var el=document.getElementById('sc-rs-body');if(el&&SC.sym)el.innerHTML=rsBody(gather(SC.sym));};
+function chPane(p){
+ return (p==='rs')
+  ?{v:CH.rview,dom:CH._rsDom,total:CH._rsTotal,draw:window.scRsRedraw}
+  :{v:CH.view, dom:CH._pxDom, total:CH._pxTotal,draw:window.scPxRedraw};
+}
+function chXY(svg,ev){
+ var r=svg.getBoundingClientRect();
+ return {px:(ev.clientX-r.left)/(r.width||1)*CH_MW,py:(ev.clientY-r.top)/(r.height||1)*CH_MH,w:r.width||1,h:r.height||1};
+}
+function chOnAxis(px){return px>=CH_MW-CH_AXW-2;}
+/* price-axis scale: keep the value under the cursor fixed, stretch around it */
+function chYScale(pane,py,k){
+ var o=chPane(pane);if(!o.v||!o.dom)return;
+ var ph=o.dom.ph,r0=o.dom.mx-o.dom.mn;
+ var fr=Math.max(0,Math.min(1,(ph-6-py)/((ph-14)||1)));
+ var anchor=o.dom.mn+fr*r0,r1=r0/k;
+ if(!isFinite(r1)||r1<=0)return;
+ o.v.ylo=Math.max(0,anchor-fr*r1);o.v.yhi=o.v.ylo+r1;
+ o.draw();
+}
+function chTZoom(pane,fx,zin){
+ var o=chPane(pane);if(!o.v||!o.total)return;
+ var total=o.total,n=Math.min(o.v.n||total,total),off=o.v.off||0;
+ var s=total-off-n,anchor=s+fx*n;
+ var nn=Math.max(8,Math.min(total,Math.round(n*(zin?0.82:1.22))));
+ var ns=Math.max(0,Math.min(total-nn,Math.round(anchor-fx*nn)));
+ o.v.n=nn;o.v.off=total-nn-ns;
+ o.draw();
+}
+function scMiniBind(p){
+ if(!p||p._miniBound)return;p._miniBound=true;
+ function hit(ev){return (ev.target&&ev.target.closest)?ev.target.closest('svg.sc-mini'):null;}
+ p.addEventListener('wheel',function(ev){
+  var svg=hit(ev);if(!svg)return;
+  ev.preventDefault();
+  var pane=svg.getAttribute('data-pane'),c=chXY(svg,ev);
+  if(chOnAxis(c.px))chYScale(pane,c.py,ev.deltaY<0?1.12:1/1.12);
+  else chTZoom(pane,Math.max(0,Math.min(1,(c.px-4)/((CH_MW-CH_AXW-8)||1))),ev.deltaY<0);
+ },{passive:false});
+ p.addEventListener('mousedown',function(ev){
+  var svg=hit(ev);if(!svg)return;
+  var pane=svg.getAttribute('data-pane'),c=chXY(svg,ev),o=chPane(pane);
+  if(!o.v)return;
+  if(chOnAxis(c.px))CH._drag={pane:pane,mode:'y',y:ev.clientY,h:c.h,mn:(o.dom||{}).mn,mx:(o.dom||{}).mx};
+  else CH._drag={pane:pane,mode:'x',x:ev.clientX,w:c.w,n:Math.min(o.v.n||o.total||1,o.total||1),off:o.v.off||0};
+  ev.preventDefault();
+ });
+ window.addEventListener('mousemove',function(ev){
+  var g=CH._drag;if(!g)return;
+  var o=chPane(g.pane);if(!o.v)return;
+  if(g.mode==='y'){
+   if(g.mn==null||g.mx==null)return;
+   var dy=(ev.clientY-g.y)/g.h*CH_MH;
+   var k=Math.max(0.15,Math.min(8,Math.pow(1.010,-dy)));   /* drag up = stretch */
+   var r1=(g.mx-g.mn)/k,mid=(g.mn+g.mx)/2;
+   o.v.ylo=Math.max(0,mid-r1/2);o.v.yhi=o.v.ylo+r1;
+   o.draw();
+  }else{
+   var total=o.total||1;
+   var dx=(ev.clientX-g.x)/g.w*(CH_MW-CH_AXW);
+   var noff=Math.round(g.off+dx*(g.n/((CH_MW-CH_AXW-8)||1)));
+   noff=Math.max(0,Math.min(total-g.n,noff));
+   if(noff===o.v.off)return;
+   o.v.n=g.n;o.v.off=noff;o.draw();
+  }
+ });
+ window.addEventListener('mouseup',function(){CH._drag=null;});
+ p.addEventListener('dblclick',function(ev){
+  var svg=hit(ev);if(!svg)return;
+  var pane=svg.getAttribute('data-pane'),c=chXY(svg,ev),o=chPane(pane);
+  if(!o.v)return;
+  o.v.ylo=null;o.v.yhi=null;                       /* axis dbl-click: price only */
+  if(!chOnAxis(c.px)){o.v.n=null;o.v.off=0;}       /* chart dbl-click: fit both  */
+  o.draw();
+ });
+}
 /* Daily candles come from momentum_mtf.ohlc_120, written by the nightly scan:
    "YYMMDD,o,h,l,c" joined by ';'. No other table stores open/high/low. */
 function parseOhlc(v){
@@ -15360,28 +15584,61 @@ function chartPanes(o){
   '</div>';
  if(hist.length<10)return '<div class="sc-chart" style="margin-top:10px"><div class="sc-cbox">'+head+
   '<div class="sc-none" style="padding:24px 4px">Loading price history…</div></div>'+relBox(o)+'</div>';
- var n=Math.min(CH.days,hist.length);
- if(CH.style==='candle'&&hasOhlc)n=Math.min(n,o.ohlc.length);
- var win=hist.slice(-n);
+ return '<div class="sc-chart" style="margin-top:10px">'+
+  '<div class="sc-cbox"><button class="sc-expand" onclick="ceOpen(\''+esc(sym)+'\')" title="Open the full chart: bigger candles, every EMA, your levels marked, and tools to draw lines and add notes">⤢ Expand</button>'+head+
+   '<div id="sc-px-body">'+pxBody(o)+'</div>'+
+  '</div>'+relBox(o)+'</div>';
+}
+/* The price pane, on its own so wheel and drag can redraw just this and not the
+   whole card. Bars are matched to EMAs by DATE, never by a blind slice from the
+   end - candles are stored for fewer sessions than closes, so a slice misaligns
+   them (same class of bug as the stale trigger). */
+function pxBody(o){
+ var hist=o.hist||[],hasOhlc=!!(o.ohlc&&o.ohlc.length>=5);
+ if(!hasOhlc&&CH.style==='candle')CH.style='line';
+ var W=CH_MW,H=CH_MH,PW=W-CH_AXW;
+ var useC=(CH.style==='candle'&&hasOhlc);
+ var closesAll=hist.map(function(x){return x.c;});
+ var E20=ema(closesAll,20),E50=ema(closesAll,50);
+ var hmap={},vmap={};
+ hist.forEach(function(b,i){hmap[b.d]=i;vmap[b.d]=b.v;});
+ var prim=useC?(o.ohlc||[]):hist;
+ var total=prim.length;
+ if(total<3)return '<div class="sc-none" style="padding:24px 4px">Not enough history.</div>';
+ if(!CH.view)CH.view={n:null,off:0,ylo:null,yhi:null};
+ var n=Math.max(8,Math.min(CH.view.n||Math.min(CH.days,total),total));
+ var off=Math.max(0,Math.min(CH.view.off||0,total-n));
+ CH.view.n=n;CH.view.off=off;CH._pxTotal=total;
+ var st=total-off-n;
+ var win=prim.slice(st,st+n).map(function(b){
+  return {d:b.d,c:b.c,o:b.o,h:b.h,l:b.l,v:(vmap[b.d]!=null?vmap[b.d]:null)};
+ });
  var closes=win.map(function(x){return x.c;});
- var e20=ema(hist.map(function(x){return x.c;}),20).slice(-n);
- var e50=ema(hist.map(function(x){return x.c;}),50).slice(-n);
- var all=closes.concat(e20.filter(Boolean)).concat(e50.filter(Boolean));
- var mn=Math.min.apply(null,all),mx=Math.max.apply(null,all),W=380,H=215;
- var last=closes[closes.length-1],first=closes[0],chg=(last/first-1)*100;
- // volume first: the price area shrinks when there are bars to fit underneath
+ var e20=win.map(function(b){var ix=hmap[b.d];return (ix==null)?null:E20[ix];});
+ var e50=win.map(function(b){var ix=hmap[b.d];return (ix==null)?null:E50[ix];});
+ var vals=closes.slice();
+ if(useC)win.forEach(function(k){if(k.h!=null)vals.push(k.h);if(k.l!=null)vals.push(k.l);});
+ e20.forEach(function(v){if(v!=null)vals.push(v);});
+ e50.forEach(function(v){if(v!=null)vals.push(v);});
+ var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
+ var pad=(mx-mn)*0.04||1;mn-=pad;mx+=pad;
+ if(CH.view.ylo!=null&&CH.view.yhi!=null&&CH.view.yhi>CH.view.ylo){mn=CH.view.ylo;mx=CH.view.yhi;}
+ var first=closes[0],last=closes[closes.length-1],chg=(last/first-1)*100;
  var vols=win.map(function(x){return x.v;}),hasVol=vols.some(function(x){return x!=null;}),OM=ohlcMap(o);
  var PH=H-(hasVol?52:0);
+ CH._pxDom={mn:mn,mx:mx,ph:PH};
+ function xOf(i){return (i/((win.length-1)||1))*(PW-8)+4;}
+ function yOf(v){return PH-6-((v-mn)/((mx-mn)||1))*(PH-14);}
  var vbars='';
  if(hasVol){
   var vmax=Math.max.apply(null,vols.map(function(x){return x==null?0:x;}))||1;
   var vh=46;
   var y1=(H-(1/vmax)*vh).toFixed(1);
-  vbars='<line x1="4" y1="'+y1+'" x2="'+(W-4)+'" y2="'+y1+'" stroke="var(--bg3)" stroke-dasharray="2 3"/>'+
+  vbars='<line x1="4" y1="'+y1+'" x2="'+(PW-4)+'" y2="'+y1+'" stroke="var(--bg3)" stroke-dasharray="2 3"/>'+
    vols.map(function(v,i){
     if(v==null)return '';
-    var bw=Math.max(0.8,(W-8)/vols.length*0.72);
-    var x=(i/(vols.length-1))*(W-8)+4-bw/2;
+    var bw=Math.max(0.8,(PW-8)/vols.length*0.72);
+    var x=xOf(i)-bw/2;
     var h2=Math.max(0.6,(v/vmax)*vh);
     var up=(i===0)||(closes[i]>=closes[i-1]),vc=volColour(v,up,OM[(win[i]||{}).d]);
     var lbl=(win[i]&&win[i].d?win[i].d+' \u00b7 ':'')+vc.lab+' \u00b7 close '+closes[i].toFixed(1)+(up?' up':' down');
@@ -15389,18 +15646,19 @@ function chartPanes(o){
      '" fill="'+vc.c+'" opacity="'+vc.o+'"><title>'+esc(lbl)+'</title></rect>';
    }).join('');
  }
- var cndl=(CH.style==='candle')?(o.ohlc||[]).slice(-n):null;
- if(cndl&&cndl.length>=5){
-  var cl2=cndl.map(function(x){return x.c;});
-  mn=Math.min.apply(null,cndl.map(function(x){return x.l;}).concat(e20.filter(Boolean)).concat(e50.filter(Boolean)));
-  mx=Math.max.apply(null,cndl.map(function(x){return x.h;}).concat(e20.filter(Boolean)).concat(e50.filter(Boolean)));
+ /* price axis + gridlines, then a transparent strip that is the drag target */
+ var ax='';
+ for(var q=0;q<=4;q++){
+  var gv=mn+(mx-mn)*q/4,gy=yOf(gv);
+  ax+='<line x1="4" y1="'+gy.toFixed(1)+'" x2="'+(PW-4)+'" y2="'+gy.toFixed(1)+'" stroke="var(--bg3)" stroke-width="0.4" opacity="0.55"/>'+
+      '<text x="'+(PW+3)+'" y="'+(gy+3).toFixed(1)+'" font-size="8.5" fill="var(--muted)">'+gv.toFixed(1)+'</text>';
  }
- function yOf(v){return PH-6-((v-mn)/((mx-mn)||1))*(PH-14);}
  var candles='';
- if(cndl&&cndl.length>=5){
-  var cw=Math.max(1.2,(W-8)/cndl.length*0.62);
-  candles=cndl.map(function(k,i){
-   var x=(i/(cndl.length-1))*(W-8)+4;
+ if(useC){
+  var cw=Math.max(1.2,(PW-8)/win.length*0.62);
+  candles=win.map(function(k,i){
+   if(k.o==null||k.h==null||k.l==null)return '';
+   var x=xOf(i);
    var up=k.c>=k.o,colr=up?'var(--green)':'var(--red)';
    var yo=yOf(k.o),yc=yOf(k.c),top=Math.min(yo,yc),hgt=Math.max(0.8,Math.abs(yc-yo));
    var tip=k.d+'  O '+k.o+'  H '+k.h+'  L '+k.l+'  C '+k.c+
@@ -15410,21 +15668,32 @@ function chartPanes(o){
     '<rect x="'+(x-cw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+cw.toFixed(1)+'" height="'+hgt.toFixed(1)+'" fill="'+colr+'" opacity="0.9"/></g>';
   }).join('');
  }
- var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px">'+
-  line(e50,W,PH,mn,mx,'var(--muted)',1)+
-  '<path d="'+e20.map(function(v,i){if(v==null)return '';var x=(i/(e20.length-1))*(W-8)+4,y=PH-6-((v-mn)/((mx-mn)||1))*(PH-14);return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ')+'" fill="none" stroke="var(--amber)" stroke-width="1.2" stroke-dasharray="3 2"/>'+
-  (candles?candles:line(closes,W,PH,mn,mx,(chg>=0?'var(--green)':'var(--red)'),1.9))+vbars+'</svg>';
+ function path(arr,colr,wid,dash){
+  var d='',started=false;
+  arr.forEach(function(v,i){if(v==null)return;d+=(started?'L':'M')+xOf(i).toFixed(1)+' '+yOf(v).toFixed(1)+' ';started=true;});
+  if(!started)return '';
+  return '<path d="'+d.trim()+'" fill="none" stroke="'+colr+'" stroke-width="'+wid+'"'+(dash?' stroke-dasharray="'+dash+'"':'')+' stroke-linejoin="round"/>';
+ }
+ var manual=(CH.view.ylo!=null);
+ var svg='<svg class="sc-mini" data-pane="px" viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px;display:block;cursor:crosshair;touch-action:none">'+
+  ax+
+  path(e50,'var(--muted)',1)+
+  path(e20,'var(--amber)',1.2,'3 2')+
+  (candles?candles:path(closes,(chg>=0?'var(--green)':'var(--red)'),1.9))+
+  vbars+
+  '<rect x="'+PW+'" y="0" width="'+CH_AXW+'" height="'+H+'" fill="transparent" data-yax="1" style="cursor:ns-resize"><title>Wheel or drag here to squash / stretch the price scale. Double-click to auto-fit.</title></rect>'+
+  '</svg>';
  var lo=Math.min.apply(null,closes),hi=Math.max.apply(null,closes);
- return '<div class="sc-chart" style="margin-top:10px">'+
-  '<div class="sc-cbox"><button class="sc-expand" onclick="ceOpen(\''+esc(sym)+'\')" title="Open the full chart: bigger candles, every EMA, your levels marked, and tools to draw lines and add notes">⤢ Expand</button>'+head+svg+
-   '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
-    '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+n+' sessions · '+
-    'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:var(--amber)">20 EMA</span> · 50 EMA'+
-    (CH.style==='candle'&&cndl&&n>cndl.length?' · candles cover the last '+cndl.length+' sessions':'')+
-    (hasVol?' · <span title="Relative volume per session: each bar is that day\u2019s volume against its own 20-day average. The dotted line is 1×. Grey means the session traded below its own average, where direction is noise rather than pressure; green is above-average buying and red above-average selling, solid at 1.5× or more. Hover any bar for its figure.">bars = RVOL'+
-     (vols[vols.length-1]!=null?', today '+vols[vols.length-1].toFixed(2)+'×':'')+'</span>':'')+
-   '</div>'+
-  '</div>'+relBox(o)+'</div>';
+ return svg+
+  '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
+   '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</b> over '+win.length+' sessions · '+
+   'low '+lo.toFixed(1)+' · high '+hi.toFixed(1)+' · <span style="color:var(--amber)">20 EMA</span> · 50 EMA'+
+   (useC?'':' · <span title="Candles are stored for the last 120 sessions only, so longer windows stay a line.">line</span>')+
+   (hasVol?' · <span title="Relative volume per session: each bar is that day\u2019s volume against its own 20-day average. The dotted line is 1×. Grey means the session traded below its own average, where direction is noise rather than pressure; green is above-average buying and red above-average selling, solid at 1.5× or more. Hover any bar for its figure.">bars = RVOL'+
+    (vols[vols.length-1]!=null?', today '+vols[vols.length-1].toFixed(2)+'×':'')+'</span>':'')+
+   (manual?' · <span style="color:var(--cyan)" title="The price scale has been set by hand. Double-click the chart or the axis to go back to auto-fit.">scale: manual</span>':'')+
+   '<span style="float:right">wheel = zoom · drag = pan · axis = price · dbl-click = fit</span>'+
+  '</div>';
 }
 function ema(v,p){
  var out=new Array(v.length).fill(null);
@@ -15447,27 +15716,62 @@ function relBox(o){
   }).join('')+
  '</div>';
  if(have<6)return '<div class="sc-cbox">'+head+'<div class="sc-none" style="padding:24px 4px">Loading weekly history…</div></div>';
- var n=Math.min(CH.rs,have),mine=own.slice(-n),base=mine[0];
+ return '<div class="sc-cbox">'+head+'<div id="sc-rs-body">'+rsBody(o)+'</div></div>';
+}
+/* Relative-strength pane. Rebased to the FIRST VISIBLE week, so zooming or
+   panning re-bases - which is the honest reading: "who led over the window I am
+   looking at". The peer average is rebased to the same week. */
+function rsBody(o){
+ var d=o.scr||{},sym=SC.sym,own=wkOf(d),have=own.length;
+ var W=CH_MW,H=CH_MH,PW=W-CH_AXW;
+ if(!CH.rview)CH.rview={n:null,off:0,ylo:null,yhi:null};
+ var n=Math.max(5,Math.min(CH.rview.n||Math.min(CH.rs,have),have));
+ var off=Math.max(0,Math.min(CH.rview.off||0,have-n));
+ CH.rview.n=n;CH.rview.off=off;CH._rsTotal=have;
+ var mine=own.slice(have-off-n,have-off),base=mine[0]||1;
  var me=mine.map(function(x){return x/base*100;});
  var all=(SCRx()&&SCRx().data&&SCRx().data.length)?SCR.data:(CACHE.peers[d.sector]||[]);
  var peerRows=[],peerLbl='';
  if(CH.mode==='sector'&&d.sector){peerRows=all.filter(function(x){return x.sector===d.sector&&x.sym!==sym;});peerLbl=d.sector;}
  if(CH.mode==='industry'&&d.industry&&d.industry!=='—'){peerRows=all.filter(function(x){return x.industry===d.industry&&x.sym!==sym;});peerLbl=d.industry;}
- var peer=(CH.mode==='none')?null:avgSeries(peerRows,n);
+ var peer=(CH.mode==='none')?null:avgSeries(peerRows,n+off);
+ if(peer)peer={series:peer.series.slice(0,n),n:peer.n};
  var vals=me.slice();if(peer)vals=vals.concat(peer.series);
- var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),W=380,H=215;
- var y100=(H-6-((100-mn)/((mx-mn)||1))*(H-14)).toFixed(1);
- var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px">'+
-  '<line x1="4" y1="'+y100+'" x2="'+(W-4)+'" y2="'+y100+'" stroke="var(--bg3)" stroke-dasharray="3 3"/>'+
-  (peer?line(peer.series,W,H,mn,mx,'var(--text2)',1.4):'')+
-  line(me,W,H,mn,mx,(me[me.length-1]>=100?'var(--green)':'var(--red)'),2)+'</svg>';
+ var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
+ var pad=(mx-mn)*0.04||1;mn-=pad;mx+=pad;
+ if(CH.rview.ylo!=null&&CH.rview.yhi!=null&&CH.rview.yhi>CH.rview.ylo){mn=CH.rview.ylo;mx=CH.rview.yhi;}
+ CH._rsDom={mn:mn,mx:mx,ph:H};
+ function xOf(i){return (i/((me.length-1)||1))*(PW-8)+4;}
+ function yOf(v){return H-6-((v-mn)/((mx-mn)||1))*(H-14);}
+ function path(arr,colr,wid){
+  var s='',started=false;
+  arr.forEach(function(v,i){if(v==null)return;s+=(started?'L':'M')+xOf(i).toFixed(1)+' '+yOf(v).toFixed(1)+' ';started=true;});
+  if(!started)return '';
+  return '<path d="'+s.trim()+'" fill="none" stroke="'+colr+'" stroke-width="'+wid+'" stroke-linejoin="round"/>';
+ }
+ var ax='';
+ for(var q=0;q<=4;q++){
+  var gv=mn+(mx-mn)*q/4,gy=yOf(gv);
+  ax+='<line x1="4" y1="'+gy.toFixed(1)+'" x2="'+(PW-4)+'" y2="'+gy.toFixed(1)+'" stroke="var(--bg3)" stroke-width="0.4" opacity="0.55"/>'+
+      '<text x="'+(PW+3)+'" y="'+(gy+3).toFixed(1)+'" font-size="8.5" fill="var(--muted)">'+gv.toFixed(0)+'</text>';
+ }
+ var y100=yOf(100).toFixed(1);
+ var manual=(CH.rview.ylo!=null);
+ var svg='<svg class="sc-mini" data-pane="rs" viewBox="0 0 '+W+' '+H+'" style="width:100%;height:215px;display:block;cursor:crosshair;touch-action:none">'+
+  ax+
+  '<line x1="4" y1="'+y100+'" x2="'+(PW-4)+'" y2="'+y100+'" stroke="var(--bg3)" stroke-dasharray="3 3"/>'+
+  (peer?path(peer.series,'var(--text2)',1.4):'')+
+  path(me,(me[me.length-1]>=100?'var(--green)':'var(--red)'),2)+
+  '<rect x="'+PW+'" y="0" width="'+CH_AXW+'" height="'+H+'" fill="transparent" data-yax="1" style="cursor:ns-resize"><title>Wheel or drag here to squash / stretch the scale. Double-click to auto-fit.</title></rect>'+
+  '</svg>';
  var chg=me[me.length-1]-100,pchg=peer?(peer.series[peer.series.length-1]-100):null;
- return '<div class="sc-cbox">'+head+svg+
+ return svg+
   '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+
    '<b style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+esc(sym)+' '+(chg>=0?'+':'')+chg.toFixed(1)+'%</b>'+
    (peer?' vs <b style="color:var(--text2)">'+esc(peerLbl)+' '+(pchg>=0?'+':'')+pchg.toFixed(1)+'% ('+peer.n+')</b>':'')+
-   ' · '+n+' weeks'+
-  '</div></div>';
+   ' · '+n+' weeks'+(off?' ending '+off+' weeks back':'')+
+   (manual?' · <span style="color:var(--cyan)">scale: manual</span>':'')+
+  '</div>';
 }
 
 
@@ -15630,15 +15934,17 @@ function render(){
  var head=document.getElementById('sc-head');
  head.innerHTML=
   '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
-   '<button class="sc-nav" onclick="scStep(-1)" title="Previous stock in the list you are looking at">‹</button>'+
-   '<button class="sc-nav" onclick="scStep(1)" title="Next stock in the list you are looking at">›</button>'+
    '<b style="font-size:17px">'+esc(SC.sym)+'</b>'+
    tfStarBtn(SC.sym,'sc-nav')+
    (ltp!=null?'<span style="font-size:15px;font-weight:600">'+f(ltp)+'</span>':'')+
    (day!=null?'<span style="'+col(day)+';font-size:13px">'+pct(day)+'</span>':'')+
    arrows+
    (SC.idx>=0?'<span style="color:var(--muted);font-size:11px">'+(SC.idx+1)+' of '+SC.list.length+'</span>':'')+
-   '<button class="sc-nav" style="margin-left:auto" onclick="scClose()" title="Close (Esc)">✕</button>'+
+   '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">'+
+    '<button class="sc-nav" onclick="scStep(-1)" title="Previous stock in the list you are looking at (← key)">‹</button>'+
+    '<button class="sc-nav" onclick="scStep(1)" title="Next stock in the list you are looking at (→ key)">›</button>'+
+    '<button class="sc-nav" onclick="scClose()" title="Close (Esc)">✕</button>'+
+   '</span>'+
   '</div>'+
   '<div style="color:var(--muted);font-size:11.5px;margin-top:3px">'+esc(name)+(d.sector?' · '+esc(d.sector):'')+(d.industry&&d.industry!=='—'?' · '+esc(d.industry):'')+'</div>'+
   (pbs.length?'<div style="margin-top:5px" title="'+esc(T.verdict)+'">'+pbs.map(function(x){return '<span class="sc-pill">'+esc(x)+'</span>';}).join('')+'</div>':
@@ -15661,7 +15967,7 @@ function render(){
 window.scStep=function(n){
  if(!SC.list.length)return;
  SC.idx=(SC.idx+n+SC.list.length)%SC.list.length;
- SC.sym=SC.list[SC.idx];render();
+ SC.sym=SC.list[SC.idx];scMiniReset();render();
  loadStock(SC.sym,function(loaded){
   if(document.getElementById('sc-panel')&&SC.sym===loaded)render();
  });
@@ -15672,7 +15978,7 @@ window.scClose=function(){
 };
 window.scOpen=function(sym,list){
  if(!sym)return;
- SC.sym=sym.toUpperCase().trim();
+ SC.sym=sym.toUpperCase().trim();scMiniReset();
  loadStock(SC.sym,function(loaded){
   if(document.getElementById('sc-panel')&&SC.sym===loaded)render();
  });
@@ -15691,6 +15997,7 @@ function mount(){
  var p=document.createElement('div');p.id='sc-panel';
  p.innerHTML='<div id="sc-head"></div><div id="sc-body"></div>';
  document.body.appendChild(b);document.body.appendChild(p);
+ scMiniBind(p);
 }
 document.addEventListener('keydown',function(e){
  var p=document.getElementById('sc-panel');
@@ -15871,6 +16178,12 @@ function ceScale(win,cndl,e){
  (CE.shownLevels||[]).forEach(function(l){vals.push(l.v);});
  var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),pad=(mx-mn)*0.04||1;
  mn-=pad;mx+=pad;
+ /* A hand-set price scale (wheel or drag on the price axis) is ABSOLUTE: it
+    stays put while you pan time, the way TradingView behaves. Double-clicking
+    the axis clears it and the chart goes back to auto-fit. */
+ if(CE.view&&CE.view.ylo!=null&&CE.view.yhi!=null&&CE.view.yhi>CE.view.ylo){
+  mn=CE.view.ylo;mx=CE.view.yhi;
+ }
  var lg=(CE.scale==='log')&&mn>0;
  function f2(v){return lg?Math.log(v):v;}
  function f2i(v){return lg?Math.exp(v):v;}
@@ -15883,6 +16196,42 @@ function ceScale(win,cndl,e){
          xInv:function(px){return Math.round((px-CE_PAD.l)/pw*n);},
          mn:mn,mx:mx,n:n,pw:pw,ph:ph};
 }
+
+/* ── price-axis scaling (TradingView behaviour) ─────────────────────────────
+   Wheel over the axis squashes / stretches price about the cursor, dragging the
+   axis scales it about the middle, double-clicking the axis auto-fits again.
+   Everything on the chart is drawn through S.y, so levels, alerts, drawings and
+   the pole/box follow the new scale with no extra work. */
+function ceOnYAxis(px){return px>=CE_W-CE_PAD.r-2;}
+function ceYFns(lo){
+ var lg=(CE.scale==='log'&&lo>0);
+ return {F:lg?Math.log:function(v){return v;},FI:lg?Math.exp:function(v){return v;}};
+}
+function ceYSet(lo,hi){
+ if(!isFinite(lo)||!isFinite(hi)||hi<=lo)return false;
+ /* price cannot be negative, and a log scale needs a positive floor */
+ if(CE.scale==='log'){if(lo<=0)lo=hi/1000;}else if(lo<0)lo=0;
+ if(hi<=lo)return false;
+ if(!CE.view)CE.view={n:126,off:0};
+ CE.view.ylo=lo;CE.view.yhi=hi;
+ ceRender();return true;
+}
+function ceYScale(py,k){
+ var S=CE.lastScale;if(!S)return;
+ var fn=ceYFns(S.mn),a=fn.F(S.mn),b=fn.F(S.mx),r0=b-a;
+ var fr=Math.max(0,Math.min(1,1-(py-CE_PAD.t)/(S.ph||1)));
+ var anchor=a+fr*r0,r1=r0/k;
+ if(!isFinite(r1)||r1<=0)return;
+ ceYSet(fn.FI(anchor-fr*r1),fn.FI(anchor-fr*r1+r1));
+}
+function ceYDragTo(dy){
+ var g=CE._ydrag;if(!g)return;
+ var fn=ceYFns(g.lo),a=fn.F(g.lo),b=fn.F(g.hi),mid=(a+b)/2;
+ var k=Math.max(0.15,Math.min(8,Math.pow(1.008,-dy)));   /* drag up = stretch */
+ var r1=(b-a)/k;
+ ceYSet(fn.FI(mid-r1/2),fn.FI(mid+r1/2));
+}
+window.ceYFit=function(){if(CE.view){CE.view.ylo=null;CE.view.yhi=null;}ceRender();};
 
 /* ── draw ─────────────────────────────────────────────── */
 function ceRender(){
@@ -16065,6 +16414,8 @@ function ceRender(){
      rows.map(function(t,ri){return '<text x="'+(bx+8).toFixed(1)+'" y="'+(by+28+ri*13).toFixed(1)+'" font-size="10" fill="var(--muted)">'+esc(t)+'</text>';}).join('')+
      '</g>';
  }
+ g+='<rect x="'+(CE_W-CE_PAD.r)+'" y="'+CE_PAD.t+'" width="'+CE_PAD.r+'" height="'+(CE_H-CE_PAD.t)+'" fill="transparent" data-ceyax="1" style="cursor:ns-resize">'+
+    '<title>Price scale — wheel or drag to squash / stretch price. Double-click to auto-fit.</title></rect>';
  host.innerHTML='<svg id="ce-canvas" viewBox="0 0 '+CE_W+' '+CE_H+'" style="width:100%;height:100%;display:block;cursor:'+(CE.tool==='cursor'?'crosshair':'copy')+'">'+g+'</svg>';
  ceReadout(win,cndl,e,o);
 }
@@ -16397,6 +16748,7 @@ window.ceOpen=function(sym){
  if(!sym)return;
  CE.sym=sym;CE.open=true;CE.hoverIdx=null;CE.pending=null;CE.alerts=[];
  cePrefLoad();
+ if(CE.view){CE.view.ylo=null;CE.view.yhi=null;}
  ceAlertsLoad(sym,function(){if(CE.open&&CE.sym===sym)ceRender();});
  if(!document.getElementById('ce-panel')){
   var p=document.createElement('div');p.id='ce-panel';
@@ -16416,6 +16768,7 @@ window.ceOpen=function(sym){
     }
    }
    if(CE._dragged){CE._dragged=false;return;}
+   if(ev.target&&ev.target.getAttribute&&ev.target.getAttribute('data-ceyax'))return;
    if(CE.tool!=='cursor')ceClick(ev);
   });
   /* Wheel = zoom about the bar under the cursor. Drag = pan. dblclick = fit. */
@@ -16426,6 +16779,12 @@ window.ceOpen=function(sym){
    var r=cv.getBoundingClientRect();
    var pw=CE_W-CE_PAD.l-CE_PAD.r-CE_GAP;
    var px=(ev.clientX-r.left)*(CE_W/(r.width||1));
+   /* over the price axis: squash / stretch price about the cursor instead */
+   if(ceOnYAxis(px)){
+    var py=(ev.clientY-r.top)*(CE_H/(r.height||1));
+    ceYScale(py,ev.deltaY<0?1.12:1/1.12);
+    return;
+   }
    var fx=Math.max(0,Math.min(1,(px-CE_PAD.l)/(pw||1)));
    var total=CE._total,n=CE.view.n,off=CE.view.off;
    var st=total-off-n;
@@ -16439,10 +16798,24 @@ window.ceOpen=function(sym){
   },{passive:false});
   p.addEventListener('mousedown',function(ev){
    if(ev.target.closest&&ev.target.closest('button'))return;
+   var cv0=document.getElementById('ce-canvas');
+   if(cv0&&CE.lastScale){
+    var r0=cv0.getBoundingClientRect();
+    var px0=(ev.clientX-r0.left)*(CE_W/(r0.width||1));
+    if(ceOnYAxis(px0)){
+     CE._ydrag={y:ev.clientY,h:r0.height||1,lo:CE.lastScale.mn,hi:CE.lastScale.mx};
+     ev.preventDefault();return;
+    }
+   }
    if(CE.tool!=='cursor')return;
    CE._pan={x:ev.clientX,n:CE.view.n,off:CE.view.off,moved:false};
   });
   window.addEventListener('mousemove',function(ev){
+   if(CE._ydrag){
+    CE._dragged=true;
+    ceYDragTo((ev.clientY-CE._ydrag.y)*(CE_H/CE._ydrag.h));
+    return;
+   }
    if(!CE._pan||!CE._total)return;
    var cv=document.getElementById('ce-canvas');if(!cv)return;
    var r=cv.getBoundingClientRect();
@@ -16458,10 +16831,17 @@ window.ceOpen=function(sym){
   });
   window.addEventListener('mouseup',function(){
    if(CE._pan&&!CE._pan.moved)CE._dragged=false;
-   CE._pan=null;
+   CE._pan=null;CE._ydrag=null;
   });
   p.addEventListener('dblclick',function(ev){
    if(ev.target.closest&&ev.target.closest('button'))return;
+   var cv2=document.getElementById('ce-canvas');
+   if(cv2){
+    var r2=cv2.getBoundingClientRect();
+    var px2=(ev.clientX-r2.left)*(CE_W/(r2.width||1));
+    /* on the axis: auto-fit price only, leave the time window alone */
+    if(ceOnYAxis(px2)){window.ceYFit();return;}
+   }
    if(typeof window.ceFit==='function')window.ceFit();
   });
   window.addEventListener('resize',function(){if(CE.open)ceRender();});
@@ -16498,6 +16878,7 @@ window.ceStep=function(n){
   if(!s2||s2===CE.sym)return;
   SC.idx=i;SC.sym=s2;
   CE.sym=s2;CE.hoverIdx=null;CE.hoverY=null;CE.pending=null;CE.alerts=[];
+  if(CE.view){CE.view.ylo=null;CE.view.yhi=null;}   /* a hand-set price scale belongs to one stock */
   ceAlertsLoad(s2,function(){if(CE.open&&CE.sym===s2)ceRender();});
   ceRefresh();
   loadStock(s2,function(loaded){
