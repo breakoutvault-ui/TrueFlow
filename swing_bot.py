@@ -361,7 +361,8 @@ def offer(t):
     stop, src, adr = work_out_stop(sym, level)
     if stop is not None:
         pass
-    elif src.startswith("could not read candles"):
+    elif (src.startswith("could not read candles")
+          or src.startswith("no candles for today")):
         warn_once("\u26a0\ufe0f <b>%s</b> is waiting - %s. Trigger still live." % (sym, src))
         return
     if stop is None:
@@ -618,6 +619,14 @@ def main():
         time.sleep(5)
 
     expire_old()
+    # anything still waiting at the close is done - it must not resurface tomorrow
+    stale = sb_get("swing_triggers", "status=eq.new&select=id,symbol")
+    for t in stale:
+        sb_patch("swing_triggers", "id=eq.%s" % t["id"],
+                 {"status": "expired", "reject_reason": "never resolved during the session",
+                  "decided_at": now_ist().isoformat()})
+    if stale:
+        tg_send("\u23f1 %d trigger(s) expired unresolved at the close." % len(stale))
     log("swing_bot done for the day")
 
 
