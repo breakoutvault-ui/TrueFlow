@@ -200,6 +200,29 @@ def kite():
     return _kite
 
 
+_warned_at = 0
+
+
+def kite_ok():
+    """Is the Kite session usable right now? A dead token is TEMPORARY -
+    it must never cause a live trigger to be thrown away."""
+    try:
+        kite().profile()
+        return True, None
+    except Exception as e:
+        global _kite
+        _kite = None                      # force a re-read of access_token.txt
+        return False, str(e)[:200]
+
+
+def warn_once(msg, every=1800):
+    global _warned_at
+    if time.time() - _warned_at > every:
+        _warned_at = time.time()
+        tg_send(msg)
+    log(msg)
+
+
 def quote_of(symbol):
     d = kite().ltp(["NSE:" + symbol])["NSE:" + symbol]
     return d["last_price"], d["instrument_token"]
@@ -329,12 +352,18 @@ def offer(t):
     try:
         ltp, _ = quote_of(sym)
     except Exception as e:
-        sb_patch("swing_triggers", "id=eq.%s" % t["id"],
-                 {"status": "rejected", "reject_reason": "no price (%s)" % e})
+        # left as 'new' on purpose - it will be retried, not binned
+        warn_once("\u26a0\ufe0f <b>%s</b> is waiting - cannot reach Zerodha (%s). "
+                  "The trigger is still live and will retry." % (sym, e))
         return
 
     level = float(t.get("alert_level") or t.get("trigger_price") or ltp)
     stop, src, adr = work_out_stop(sym, level)
+    if stop is not None:
+        pass
+    elif src.startswith("could not read candles"):
+        warn_once("\u26a0\ufe0f <b>%s</b> is waiting - %s. Trigger still live." % (sym, src))
+        return
     if stop is None:
         sb_patch("swing_triggers", "id=eq.%s" % t["id"],
                  {"status": "rejected", "reject_reason": src, "adr_pct": adr,
@@ -560,13 +589,25 @@ def main():
 
     log("swing_bot up  DRY_RUN=%s  risk=Rs%d  cap=%d positions"
         % (DRY_RUN, RISK_RUPEES, MAX_OPEN_POSITIONS))
-    tg_send("\U0001f916 Swing bot started%s" % (" <b>[DRY RUN]</b>" if DRY_RUN else ""))
+    ok, err = kite_ok()
+    tg_send("\U0001f916 Swing bot started%s\n%s" % (
+        " <b>[DRY RUN]</b>" if DRY_RUN else "",
+        "Zerodha: connected" if ok else
+        "\U0001f534 <b>Zerodha: NOT connected - log in now</b> (%s)" % err))
 
     tick = 0
     while in_session():
         try:
             handle_taps()
             if tick % max(1, TRIGGER_POLL_SEC // 5) == 0:
+                ok, err = kite_ok()
+                if not ok:
+                    warn_once("\U0001f534 <b>Kite login needed.</b> The bot cannot "
+                              "read prices or place orders until you log in. "
+                              "Triggers are being held, not lost. (%s)" % err)
+                    tick += 1
+                    time.sleep(5)
+                    continue
                 for t in sb_get("swing_triggers",
                                 "status=eq.new&order=created_at.asc&limit=5"):
                     offer(t)
