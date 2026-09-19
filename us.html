@@ -13091,6 +13091,14 @@ const SCR_COLS=[
  
  {k:'smt',g:'Smart $',lbl:'Smart $',a:'c',tip:'Smart-money tier from SEC insider filings',def:1,cell:d=>scrSmB(d.smt)},
  {k:'aplus',g:'Actions',lbl:'A+',a:'c',tip:'A+ confluence flag',def:1,cell:d=>d.aplus?`<span class="scr-aplus"${SCR_T('A+ Setup — VCP/HTF + Cat A/A+C + base >5d & <10% deep + volume dry-up (base + last-5 avg RVOL <0.8x) + 2x+ volume day in last 20 + BO zone + ADR 3+')}>⭐</span>`:''},
+ {k:'cgbuyers',g:'Congress',lbl:'🏛️ Buyers',a:'r',tip:'How many DIFFERENT members of Congress bought this in the last 6 months. Several separate people buying means more than one person buying repeatedly. Disclosures lag up to 45 days, so treat this as conviction context, not a trigger.',def:0,cell:d=>d.cg&&d.cg.distinct_buyers?`<span class="scr-score ${d.cg.distinct_buyers>=5?'scr-s-hi':d.cg.distinct_buyers>=3?'scr-s-mid':'scr-s-lo'}"${SCR_T(d.cg.distinct_buyers+' different members bought in 6 months')}>${d.cg.distinct_buyers}</span>`:'<span class="scr-dash">—</span>'},
+ {k:'cgbuy30',g:'Congress',lbl:'🏛️ 30D',a:'r',tip:'Different members who bought in the last 30 days. Usually 0 or 1 — congressional buying is diffuse and disclosure lags.',def:0,cell:d=>d.cg&&d.cg.distinct_buyers_30d?`<span class="scr-yes">${d.cg.distinct_buyers_30d}</span>`:'<span class="scr-dash">—</span>'},
+ {k:'cglast',g:'Congress',lbl:'Last Buy',a:'c',tip:'Date the most recent congressional buy was DISCLOSED — the first day you could have seen it',def:0,cell:d=>d.cg&&d.cg.last_buy_date?`<span class="scr-sub">${d.cg.last_buy_date.slice(5)}</span>`:'<span class="scr-dash">—</span>'},
+ {k:'cgnet',g:'Congress',lbl:'Net $',a:'r',tip:'Buys minus sells using the MIDPOINT of each disclosed band. Filings give ranges only, never exact values — for ranking, not a real figure.',def:0,cell:d=>{if(!d.cg||!d.cg.net_amount_mid)return '<span class="scr-dash">—</span>';const v=d.cg.net_amount_mid,a2=Math.abs(v);const t=a2>=1e6?'$'+(a2/1e6).toFixed(1)+'M':a2>=1e3?'$'+(a2/1e3).toFixed(0)+'K':'$'+a2.toFixed(0);return `<span style="color:${v>0?'var(--green)':'var(--red)'};font-weight:600">${v>0?'+':'-'}${t}</span>`;}},
+ {k:'cgparty',g:'Congress',lbl:'R / D',a:'c',tip:'Party split of the buyers — Republican / Democrat',def:0,cell:d=>d.cg&&(d.cg.buyers_republican||d.cg.buyers_democrat)?`<span style="font-size:10px"><span style="color:var(--red)">${d.cg.buyers_republican||0}</span><span class="scr-dash">/</span><span style="color:var(--cyan)">${d.cg.buyers_democrat||0}</span></span>`:'<span class="scr-dash">—</span>'},
+ {k:'cgret',g:'Congress',lbl:'% since disc',a:'r',tip:'Best return of any congressional buy here, measured from its DISCLOSURE date. Across all data the median congressional buy has slightly UNDERPERFORMED SPY since going public.',def:0,cell:d=>(d.cg&&d.cg.best_ret_since_disclosure!=null)?scrPct(d.cg.best_ret_since_disclosure):'<span class="scr-dash">—</span>'},
+ {k:'cgconf',g:'Congress',lbl:'⚖️',a:'c',tip:'Committee conflict — a member who bought sits on a committee whose remit covers the sector of this stock',def:0,cell:d=>(d.cg&&d.cg.has_committee_conflict)?`<span class="scr-yes"${SCR_T('A buyer sits on a committee covering this sector')}>⚖️</span>`:'<span class="scr-dash">—</span>'},
+ {k:'cgconv',g:'Congress',lbl:'🔗',a:'c',tip:'Convergence — congressional buying PLUS an insider cluster, activist 13D or Delayed EP. This overlap is the reason the congressional data earns its place; on its own it lags too much to trade.',def:0,cell:d=>{if(!d.cg||!d.cg.has_convergence)return '<span class="scr-dash">—</span>';const src=[d.cg.conv_insider_cluster?'insider cluster':'',d.cg.conv_activist_stake?'activist 13D':'',d.cg.conv_delayed_ep?'Delayed EP':''].filter(Boolean).join(' + ');return `<span class="scr-yes"${SCR_T('Also flagged: '+src)}>🔗</span>`;}},
 ];
 SCR_COLS.forEach(c=>SCR.vis[c.k]=!!c.def);
 SCR.manualCols=new Set();SCR.ctxMode=true;
@@ -13122,6 +13130,12 @@ const SCR_FILTERS=[
  {key:'symbol',label:'Symbol',opts:[]},
  
  {key:'price',label:'Price',opts:['100','500','1000'],disp:{'100':'≥$100','500':'≥$500','1000':'≥$1000'}},
+ {key:'cgbuyersmin',label:'🏛️ Congress Buyers',tip:'Stocks bought by several DIFFERENT members of Congress in the last 6 months. Disclosures lag up to 45 days — this is conviction context, not an entry trigger.',opts:['2','3','5'],disp:{'2':'≥2 members','3':'≥3 members','5':'≥5 members'},tips:{'2':'At least two different members bought this.','3':'At least three — a genuine spread of interest.','5':'Five or more different members. Rare.'}},
+ {key:'cgrecent',label:'🏛️ Recent',tip:'Congressional buying disclosed recently',opts:['30','21'],disp:{'30':'Bought in 30D','21':'Still actionable'},tips:{'30':'At least one member bought and disclosed within the last 30 days.','21':'Disclosed within the last 21 days — as fresh as this data gets.'}},
+ {key:'cgconf',label:'🏛️ Conflict',tip:'A member who bought sits on a committee covering the sector of this stock',opts:['y'],disp:{y:'⚖️ Committee conflict'},tips:{y:'One of the buyers sits on a committee whose remit covers this sector. Note: six members including Pelosi have no committee assignments, so this can never fire for them.'}},
+ {key:'cgconv',label:'🏛️ Convergence',tip:'Congressional buying that coincides with another TrueFlow signal',opts:['any','insider','activist','ep'],disp:{any:'🔗 Any overlap',insider:'Insider cluster',activist:'Activist 13D',ep:'Delayed EP'},tips:{any:'Congress bought AND there is an insider cluster, activist 13D or Delayed EP. The overlap worth looking at.',insider:'Congress bought and 3+ company insiders also clustered buys.',activist:'Congress bought and an activist filed a 13D stake.',ep:'Congress bought and the stock has a Delayed Episodic Pivot.'}},
+ {key:'cgparty',label:'🏛️ Party',tip:'Which side is doing the buying',opts:['R','D'],disp:{R:'🔴 R-led',D:'🔵 D-led'},tips:{R:'More Republican buyers than Democrat.',D:'More Democrat buyers than Republican.'}},
+ {key:'cgretmin',label:'🏛️ Since Disclosure',tip:'Best return since the buy became public',opts:['0','10','25'],disp:{'0':'≥0%','10':'≥10%','25':'≥25%'},tips:{'0':'Still above where it was when disclosed.','10':'Up 10%+ since disclosure.','25':'Up 25%+ since disclosure.'}},
 ];
 SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());
 const SCR_PRESETS=[
@@ -13305,6 +13319,14 @@ async function scrLoad(){
   const ld=latest[0].session_date;SCR.updated=ld;
   const snap=latest.filter(s=>s.session_date===ld);
   const sm=await volGet('us_smart_money_scores?select=*&limit=1000');const tm={};(sm||[]).forEach(r=>tm[r.symbol]={tier:r.tier,score:r.cooking_score,isCluster:!!r.is_cluster,clBuyers:r.cluster_buyers,clStars:r.cluster_stars,clSpan:r.cluster_span_days,clValue:r.cluster_buy_value,bsRatio:r.buy_sell_ratio});SCR.tierMap=tm;
+  // Congressional trades - per-ticker rollup (patcher B)
+  const _cg={};
+  try{
+    const _cgr=await volGet('us_congress_ticker_agg?select=ticker,distinct_buyers,distinct_buyers_30d,buys_6m,sells_6m,buyers_republican,buyers_democrat,net_amount_mid,last_buy_date,best_ret_since_disclosure,has_committee_conflict,has_convergence,conv_insider_cluster,conv_activist_stake,conv_delayed_ep,still_actionable&limit=1000');
+    (_cgr||[]).forEach(r=>{ if(r.ticker) _cg[r.ticker]=r; });
+  }catch(e){ console.warn('congress load failed',e); }
+  SCR.congMap=_cg;
+
   // Relative strength vs SPY / QQQ (own table, joined on symbol)
   const rsm={};const _rs=await volGet('us_rs?select=*&limit=1000');(_rs||[]).forEach(r=>{if(r.symbol)rsm[r.symbol]=r;});
   if(_rs&&_rs.length>=1000){for(let _o=1000;_o<4000;_o+=1000){const _p=await volGet('us_rs?select=*&order=symbol.asc&limit=1000&offset='+_o);if(!_p||!_p.length)break;_p.forEach(r=>{if(r.symbol)rsm[r.symbol]=r;});if(_p.length<1000)break;}}
@@ -13354,6 +13376,7 @@ async function scrLoad(){
   SCR.data=snap.map(s=>{
    const _rsr=SCR.rsMap?SCR.rsMap[s.symbol]:null;
    const _stk=SCR.stakeMap?SCR.stakeMap[s.symbol]:null;
+   const _cgr2=SCR.congMap?SCR.congMap[s.symbol]:null;
    const closes=(s.last5_closes&&typeof s.last5_closes==='string'&&s.last5_closes.indexOf(',')>-1)?s.last5_closes.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
    const vols=(s.vol5_ratios&&typeof s.vol5_ratios==='string'&&s.vol5_ratios.indexOf(',')>-1)?s.vol5_ratios.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
    const vols20=(s.vol20_ratios&&typeof s.vol20_ratios==='string'&&s.vol20_ratios.indexOf(',')>-1)?s.vol20_ratios.split(',').map(parseFloat).filter(x=>!isNaN(x)):[];
@@ -13368,7 +13391,7 @@ async function scrLoad(){
    const cat=s.category||null;
    const _d5=vols.length?vols.reduce((x,y)=>x+y,0)/vols.length:null;const _pk20=vols20.length?Math.max.apply(null,vols20):null;const aplus=(cat==='A'||cat==='AC')&&(s.qm_pattern==='VCP'||s.qm_pattern==='HTF')&&s.qm_base_days!=null&&+s.qm_base_days>5&&s.qm_base_depth!=null&&+s.qm_base_depth<10&&!!s.qm_vol_dryup&&_d5!=null&&_d5<0.8&&_pk20!=null&&_pk20>=2&&(z52==='zone'||z52==='base'||z52==='bo')&&s.adr_pct!=null&&+s.adr_pct>=3;
    return {sym:s.symbol,name:(s.company_name||''),sector:s.sector||'—',industry:s.industry||'—',cat,
-    rs:_rsr||null, stk:_stk||null,ltp:s.ltp!=null?+s.ltp:null,
+    rs:_rsr||null, stk:_stk||null,cg:_cgr2||null,ltp:s.ltp!=null?+s.ltp:null,
     day,week:s.week_chg_pct!=null?+s.week_chg_pct:null,month:s.month_chg_pct!=null?+s.month_chg_pct:null,
     e9d:!!s.above_ema9_daily,e9w:!!s.above_ema9_weekly,
     pct9e:s.pct_from_ema9_daily!=null?+s.pct_from_ema9_daily:null,pct9w:s.pct_from_ema9_weekly!=null?+s.pct_from_ema9_weekly:null,
@@ -13458,7 +13481,7 @@ function scrTogglePB(){
   b.textContent=hidden?'\u25BE hide':'\u25B8 show';
 }
 function scrPlayInfo(p){var el=document.getElementById('scr-play-info');if(el){if(p&&p.how){el.innerHTML='<div class="pi-h">\uD83D\uDCD3 '+(p.label||'')+'</div><div class="pi-b">'+p.how+'</div>';el.style.display='block';}else{el.style.display='none';el.innerHTML='';}}document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',!!(p&&b.dataset.p===p.id));});}
-const SCR_FILTER_COL={rclgrade:'rclgrade',rclvol:'rclvol',rclriskmax:'rclrisk',rcldaysmax:'rcldays',polemin:'pole',polespeedmin:'pole',pole:'pole',entry:'entry',align:'align',mkt:'dots',sec:'secrank',catalyst:'catalyst',nr:'nr',contractmin:'contract',rvolmin:'rvol',adrmin:'adr',consolmin:'consolDays',basemin:'baseDays',pattern:'qm',cat:'cat',smt:'smt',vsig:'vsig',z52:'z52',rsr:'rsrank',rshi:'rshigh',clust:'clust',stake:'stake',erstage:'erstage',erverd:'erverdict',ersurp:'ersurp',errv:'errvol',signal:'setup',trend:'trend'};
+const SCR_FILTER_COL={cgbuyersmin:'cgbuyers',cgrecent:'cgbuy30',cgconf:'cgconf',cgconv:'cgconv',cgparty:'cgparty',cgretmin:'cgret',rclgrade:'rclgrade',rclvol:'rclvol',rclriskmax:'rclrisk',rcldaysmax:'rcldays',polemin:'pole',polespeedmin:'pole',pole:'pole',entry:'entry',align:'align',mkt:'dots',sec:'secrank',catalyst:'catalyst',nr:'nr',contractmin:'contract',rvolmin:'rvol',adrmin:'adr',consolmin:'consolDays',basemin:'baseDays',pattern:'qm',cat:'cat',smt:'smt',vsig:'vsig',z52:'z52',rsr:'rsrank',rshi:'rshigh',clust:'clust',stake:'stake',erstage:'erstage',erverd:'erverdict',ersurp:'ersurp',errv:'errvol',signal:'setup',trend:'trend'};
 function scrApplyCtxCols(preset){
   if(!SCR.ctxMode)return;
   const keep=new Set(['sector','industry','last5','pv','z52']);
@@ -13505,6 +13528,12 @@ function scrPasses(d){
  if(S.smt.size&&!S.smt.has(d.smt))return false;
  if(S.sector.size&&!S.sector.has(d.sector))return false;
  if(S.industry&&S.industry.size&&!S.industry.has(d.industry))return false;
+ if(S.cgbuyersmin&&S.cgbuyersmin.size){const m=Math.min(...[...S.cgbuyersmin].map(Number));if(!d.cg||!d.cg.distinct_buyers||d.cg.distinct_buyers<m)return false;}
+ if(S.cgrecent&&S.cgrecent.size){let ok=false;S.cgrecent.forEach(v=>{if(v==='30'&&d.cg&&d.cg.distinct_buyers_30d>0)ok=true;if(v==='21'&&d.cg&&d.cg.still_actionable)ok=true;});if(!ok)return false;}
+ if(S.cgconf&&S.cgconf.size){if(!d.cg||!d.cg.has_committee_conflict)return false;}
+ if(S.cgconv&&S.cgconv.size){let ok=false;S.cgconv.forEach(v=>{if(!d.cg)return;if(v==='any'&&d.cg.has_convergence)ok=true;if(v==='insider'&&d.cg.conv_insider_cluster)ok=true;if(v==='activist'&&d.cg.conv_activist_stake)ok=true;if(v==='ep'&&d.cg.conv_delayed_ep)ok=true;});if(!ok)return false;}
+ if(S.cgparty&&S.cgparty.size){let ok=false;S.cgparty.forEach(v=>{if(!d.cg)return;const R=d.cg.buyers_republican||0,D=d.cg.buyers_democrat||0;if(v==='R'&&R>D)ok=true;if(v==='D'&&D>R)ok=true;});if(!ok)return false;}
+ if(S.cgretmin&&S.cgretmin.size){const m=Math.min(...[...S.cgretmin].map(Number));if(!d.cg||d.cg.best_ret_since_disclosure==null||d.cg.best_ret_since_disclosure<m)return false;}
  if(S.symbol&&S.symbol.size&&!S.symbol.has(d.sym))return false;
  if(S.adrmin&&S.adrmin.size){const m=Math.min(...[...S.adrmin].map(Number));if(d.adr==null||d.adr<m)return false;}
   if(S.rclgrade&&S.rclgrade.size){if(!d.rclGrade||!S.rclgrade.has(d.rclGrade))return false;}
