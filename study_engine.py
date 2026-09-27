@@ -38,7 +38,8 @@ H = {"apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY}
 
 COLS = ("symbol,session_date,ltp,sector,industry,qm_pattern,category,adr_pct,"
         "vol_ratio,high_52w,qm_contraction,qm_base_days,qm_vol_dryup,is_nr7,"
-        "nr_status,rcl_grade,breakout_type,momentum_score,day_high,day_low")
+        "nr_status,rcl_grade,breakout_type,momentum_score,day_high,day_low,"
+        "qm_pivot_level")
 
 HORIZONS = (5, 10, 20)
 MIN_GROUP = 5          # a group needs this many members to be ranked
@@ -108,15 +109,15 @@ def f(x):
 
 
 def build(rows):
-    """price[symbol] = list of (date, close) in date order; plus a date index."""
+    """px[symbol] = [(date, close, high)] in date order, plus a date index."""
     px = defaultdict(list)
     for r in rows:
         c = f(r.get("ltp"))
         if c and c > 0:
-            px[r["symbol"]].append((r["session_date"], c))
+            px[r["symbol"]].append((r["session_date"], c, f(r.get("day_high")) or c))
     for s in px:
         px[s].sort()
-    idx = {s: {d: i for i, (d, _) in enumerate(v)} for s, v in px.items()}
+    idx = {s: {d: i for i, (d, _, _) in enumerate(v)} for s, v in px.items()}
     return px, idx
 
 
@@ -142,6 +143,30 @@ def back(px, idx, sym, date, n):
         return None
     a, b = v[i - n][1], v[i][1]
     return (b / a - 1) * 100 if a else None
+
+
+def trigger_fwd(px, idx, sym, date, pivot, wait, h):
+    """
+    The honest test for a PRE-BREAKOUT setup. A coil playbook does not say
+    "buy today" - it says "wait for the break". So: from the day after the
+    signal, look up to `wait` sessions for the first session whose HIGH clears
+    the pivot. Enter AT the pivot, then measure h sessions on from there.
+
+    Returns (return_pct, days_to_trigger) or (None, None) if it never broke out
+    inside the window - which is itself a result worth counting.
+    """
+    v = px.get(sym)
+    if not v or not pivot or pivot <= 0:
+        return None, None
+    i = idx[sym].get(date)
+    if i is None:
+        return None, None
+    for j in range(i + 1, min(i + 1 + wait, len(v))):
+        if v[j][2] >= pivot:                       # the high cleared the pivot
+            if j + h >= len(v):
+                return None, None                  # not enough history after it
+            return (v[j + h][1] / pivot - 1) * 100, j - i
+    return None, None
 
 
 def group_ranks(rows_by_date, px, idx, key, lookback=63):
@@ -238,6 +263,8 @@ def near_high(r, pct):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sessions", type=int, default=150)
+    ap.add_argument("--wait", type=int, default=10,
+                    help="sessions to wait for a pre-breakout setup to trigger")
     ap.add_argument("--horizon", type=int, default=10,
                     help="which horizon the tailwind tables use")
     a = ap.parse_args()
@@ -263,6 +290,28 @@ def main():
             print("  %-14s ALL NULL" % col); continue
         top = sorted(cnt.items(), key=lambda kv: -kv[1])[:8]
         print("  %-14s %s" % (col, "  ".join("%s=%d" % (k, v) for k, v in top)))
+    print()
+
+    # ---------------- 0b. WHAT EACH VALUE IS ACTUALLY WORTH ----------------
+    # Instead of me guessing that a reclaim is stored as "Reclaim", measure
+    # EVERY value that appears. No filter can be written on a wrong literal.
+    print("FORWARD RETURN BY COLUMN VALUE - %d sessions ahead" % a.horizon)
+    for col in ("qm_pattern", "nr_status", "rcl_grade", "breakout_type",
+                "category", "vol_class"):
+        buck = defaultdict(list)
+        for date, rws in by_date.items():
+            for r in rws:
+                v = r.get(col)
+                if v is None or v == "":
+                    continue
+                fv = fwd(px, idx, r["symbol"], date, a.horizon)
+                if fv is not None:
+                    buck[str(v)].append(fv)
+        rowsout = [(k, v) for k, v in buck.items() if len(v) >= 50]
+        if not rowsout:
+            print("\n  %s: nothing with 50+ samples" % col); continue
+        rowsout.sort(key=lambda kv: -median(kv[1]))
+        show("  " + col, rowsout)
     print()
 
     print("Ranking groups by 3-month median member return (min %d members)..."
@@ -326,6 +375,42 @@ def main():
         res.append((name, vals))
     res = [res[0]] + sorted(res[1:], key=lambda x: -(stats(x[1])["med"] if x[1] else -99))
     show("PLAYBOOK AUDIT - forward %d sessions, ranked by median" % a.horizon, res)
+
+    # ---------------- 3. PRE-BREAKOUT SETUPS, MEASURED PROPERLY ----------
+    # Coil playbooks say "wait for the break", so holding from the signal date
+    # marks them down for something they never told you to do. This enters at
+    # the pivot instead, and counts how often the break even happens.
+    print("\n\nPRE-BREAKOUT SETUPS - entered AT the pivot, not on the signal day")
+    print("  (waits up to %d sessions for the break, then holds %d)"
+          % (a.wait, a.horizon))
+    print("  %-34s %7s %7s %8s %8s %7s"
+          % ("", "signals", "broke%", "median", "mean", "win%"))
+    for name in ("Coiled & Drying (VCP, Cat A)", "Tight Contraction (>=0.7)",
+                 "VCP at Pivot (within 15% of 52wH)", "NR7 + VCP",
+                 "Weekend Coils (VCP/HTF, ADR3+, base5+)"):
+        test = PLAYS[name]
+        sig = 0; hit = []
+        for date, rws in by_date.items():
+            for r in rws:
+                try:
+                    if not test(r):
+                        continue
+                except Exception:
+                    continue
+                pv = f(r.get("qm_pivot_level"))
+                if not pv:
+                    continue
+                sig += 1
+                v, _d = trigger_fwd(px, idx, r["symbol"], date, pv, a.wait, a.horizon)
+                if v is not None:
+                    hit.append(v)
+        st = stats(hit)
+        if not st or sig == 0:
+            print("  %-34s %7d %7s" % (name, sig, "-")); continue
+        print("  %-34s %7d %6.1f%% %7.2f%% %7.2f%% %6.1f%%"
+              % (name, sig, 100.0 * len(hit) / sig, st["med"], st["avg"], st["win"]))
+    print("  Signals with no stored pivot are skipped, so 'signals' can be")
+    print("  lower than the count in the table above.")
 
     print("\nNot measurable from this table, so deliberately NOT shown:")
     for s in SKIPPED:
