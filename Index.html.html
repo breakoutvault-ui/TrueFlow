@@ -15213,6 +15213,15 @@ function loadStock(sym,then){
      .map(function(x){return {d:x.session_date,c:+x.ltp,v:(x.vol_ratio!=null?+x.vol_ratio:null)};});}));
  if(!CACHE.ohlc[sym])need.push(sbGet('momentum_mtf?symbol=eq.'+encodeURIComponent(sym)+
    '&select=ohlc_120&limit=1').then(function(r){CACHE.ohlc[sym]=(r&&r[0]&&r[0].ohlc_120)||'';}));
+ /* Three years of real open/high/low/close from daily_ohlc. momentum_mtf
+    carries only the last 120 sessions, which is why the chart could never
+    show a base that formed six months ago. ~750 rows, one request, under
+    the 1000-row page cap. ohlc_120 stays as the fallback. */
+ if(!CACHE.dohlc)CACHE.dohlc={};
+ if(!CACHE.dohlc[sym])need.push(sbGet('daily_ohlc?symbol=eq.'+encodeURIComponent(sym)+
+   '&select=d,o,h,l,c&order=d.asc&limit=1000').then(function(r){
+    CACHE.dohlc[sym]=(r||[]).filter(function(x){return x.c!=null;});
+   }).catch(function(){CACHE.dohlc[sym]=[];}));
  if(!CACHE.ema[sym])need.push(sbGet('ema_filter?symbol=eq.'+encodeURIComponent(sym)+
    '&select=*&order=session_date.desc&limit=1').then(function(r){CACHE.ema[sym]=(r&&r[0])||null;}));
  if(!CACHE.sm[sym])need.push(sbGet('smart_money_deals?symbol=eq.'+encodeURIComponent(sym)+
@@ -15252,6 +15261,18 @@ function gather(sym){
  }
  o.hist=CACHE.hist[sym]||null;
  try{o.ohlc=parseOhlc(CACHE.ohlc[sym]||(o.mtf&&o.mtf.ohlc_120));}catch(e){o.ohlc=[];}
+ /* Prefer the long history when it is there. hist keeps its RVOL values by
+    date, so the volume bars still work for the sessions that have them and
+    the EMAs now run over three years instead of 400 sessions. */
+ try{
+  var _dl=(CACHE.dohlc&&CACHE.dohlc[sym])||null;
+  if(_dl&&_dl.length>200){
+   var _vm={};(CACHE.hist[sym]||[]).forEach(function(x){_vm[x.d]=x.v;});
+   o.hist=_dl.map(function(b){return {d:b.d,c:+b.c,v:(_vm[b.d]!=null?_vm[b.d]:null)};});
+   o.ohlc=_dl.map(function(b){return {d:b.d,o:+b.o,h:+b.h,l:+b.l,c:+b.c};});
+   o.longHist=true;
+  }
+ }catch(e){}
  // The reframed playbook rules test trend fields that the Momentum tab
  // normally attaches. Derive them here so a card opened from any tab is
  // judged by the same rules.
@@ -16240,10 +16261,15 @@ function ceWkKey(ds){
  dt.setUTCDate(dt.getUTCDate()-((dt.getUTCDay()+6)%7));
  return dt.toISOString().slice(0,10);
 }
+/* Weekly groups by Monday, monthly by calendar month. One place decides,
+   so the bar and candle aggregators can never disagree about the buckets. */
+function ceKeyFor(ds){
+ return (CE.tf==='M') ? String(ds||'').slice(0,7) : ceWkKey(ds);
+}
 function ceAggBars(rows){
  var out=[],cur=null,key=null;
  (rows||[]).forEach(function(b){
-  var k=ceWkKey(b.d);
+  var k=ceKeyFor(b.d);
   if(k!==key){ if(cur)out.push(cur); key=k;
    cur={d:b.d,c:b.c,v:null,_s:0,_n:0}; }
   else { cur.d=b.d; cur.c=b.c; }
@@ -16256,7 +16282,7 @@ function ceAggBars(rows){
 function ceAggOhlc(rows){
  var out=[],cur=null,key=null;
  (rows||[]).forEach(function(b){
-  var k=ceWkKey(b.d);
+  var k=ceKeyFor(b.d);
   if(k!==key){ if(cur)out.push(cur); key=k; cur={d:b.d,o:b.o,h:b.h,l:b.l,c:b.c}; }
   else { cur.d=b.d; cur.h=Math.max(cur.h,b.h); cur.l=Math.min(cur.l,b.l); cur.c=b.c; }
  });
@@ -16265,7 +16291,7 @@ function ceAggOhlc(rows){
 }
 function ceSeries(o){
  var bars=(o&&o.hist)||[],oh=(o&&o.ohlc)||[];
- if(CE.tf==='W'){bars=ceAggBars(bars);oh=ceAggOhlc(oh);}
+ if(CE.tf==='W'||CE.tf==='M'){bars=ceAggBars(bars);oh=ceAggOhlc(oh);}
  var om={};oh.forEach(function(k){om[k.d]=k;});
  return {bars:bars,ohlc:oh,omap:om};
 }
@@ -16607,7 +16633,7 @@ function ceAuto(o,cndl){
  /* The box, when the scan says one has formed. */
  /* base_days and move_days are counts of DAILY sessions, so the box and pole
     are only meaningful on the daily timeframe. Pivots are fractals and stay. */
- if(CE.tf!=='W'&&bd>=5&&bd<cndl.length-3){
+ if(CE.tf==='D'&&bd>=5&&bd<cndl.length-3){
   var b0=cndl.length-bd,bw=cndl.slice(b0);
   var top=Math.max.apply(null,bw.map(function(k){return k.h;}));
   var bot=Math.min.apply(null,bw.map(function(k){return k.l;}));
@@ -16617,7 +16643,7 @@ function ceAuto(o,cndl){
  /* The pole. It must NOT depend on a box existing: an EP or a rally still has
     a pole, and the scan gives us its length and size. Anchor the top at the
     highest high inside the move, then walk back to the lowest low before it. */
- if(CE.tf!=='W'&&pd>=2){
+ if(CE.tf==='D'&&pd>=2){
   var end=A.box?A.box.i1:(cndl.length-1);       // box start, else the last bar
   if(!A.box){
    var look=Math.min(cndl.length-1,pd+8),hi=-1,hv=-Infinity;
@@ -16725,11 +16751,12 @@ function ceBar(o){
  h+='<b style="font-size:14px">'+esc(CE.sym)+'</b>';
  h+=tfStarBtn(CE.sym,'ce-b');
  h+='<span class="ce-sep"></span>';
- h+=btn(CE.style==='candle'&&CE.tf==='D',"ceTf('D')",'Daily','Daily candles - open, high, low and close from the nightly scan.');
- h+=btn(CE.style==='candle'&&CE.tf==='W',"ceTf('W')",'Weekly','Weekly candles built from the stored dailies. About one year of weekly history is available.');
+ h+=btn(CE.style==='candle'&&CE.tf==='D',"ceTf('D')",'Daily','Three years of daily candles - open, high, low and close from the nightly scan.');
+ h+=btn(CE.style==='candle'&&CE.tf==='W',"ceTf('W')",'Weekly','Weekly candles built from the daily history - now about three years, so a weekly base that formed last year is visible.');
+ h+=btn(CE.style==='candle'&&CE.tf==='M',"ceTf('M')",'Monthly','Monthly candles, one bar per calendar month. For seeing whether the bigger trend is intact before trusting a daily setup.');
  h+=btn(CE.style==='line','ceSet(\'style\',\'line\')','Line','Closing price only — cleaner for judging trend.');
  h+='<span class="ce-sep"></span>';
- var _rg=(CE.tf==='W')?[[4,'1M'],[13,'3M'],[26,'6M'],[52,'1Y']]:[[22,'1M'],[63,'3M'],[126,'6M'],[252,'1Y']];
+ var _rg=(CE.tf==='M')?[[6,'6M'],[12,'1Y'],[24,'2Y'],[36,'3Y']]:((CE.tf==='W')?[[13,'3M'],[26,'6M'],[52,'1Y'],[156,'3Y']]:[[63,'3M'],[126,'6M'],[252,'1Y'],[756,'3Y']]);
  _rg.forEach(function(x){
   h+=btn((CE.view&&CE.view.n===x[0]&&CE.view.off===0),"ceZoom('+x[0]+')",x[1],'Jump to the last '+x[1]+'. Wheel zooms, drag pans, double-click fits.');
  });
@@ -16776,7 +16803,7 @@ function ceDateAt(i){try{return (CE._winD&&CE._winD[i])||null;}catch(e){return n
 window.ceTf=function(t){
  if(CE.tf===t&&CE.style==='candle')return;
  CE.tf=t;CE.style='candle';
- CE.view={n:(t==='W'?52:126),off:0};
+ CE.view={n:(t==='M'?60:(t==='W'?104:250)),off:0};
  CE.measure=null;CE.pending=null;
  cePrefSave();ceRefresh();
 };
