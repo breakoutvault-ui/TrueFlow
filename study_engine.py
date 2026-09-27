@@ -147,8 +147,8 @@ def fetch_ohlc(symbols):   # returns (px, idx, breadth)
         if len(rows) < 30:
             continue
 
-        k9, k50 = 2.0 / (9 + 1), 2.0 / (50 + 1)
-        e9 = e50 = None
+        k9, k20, k50 = 2.0 / (9 + 1), 2.0 / (20 + 1), 2.0 / (50 + 1)
+        e9 = e20 = e50 = None
         panel = []
         for n, b in enumerate(rows):
             c = f(b.get("c"))
@@ -157,8 +157,9 @@ def fetch_ohlc(symbols):   # returns (px, idx, breadth)
             if not c or c <= 0:
                 continue
             e9 = c if e9 is None else (c - e9) * k9 + e9
+            e20 = c if e20 is None else (c - e20) * k20 + e20
             e50 = c if e50 is None else (c - e50) * k50 + e50
-            panel.append((b["d"], c, hi, c > e9, lo, f(b.get("o")) or c))
+            panel.append((b["d"], c, hi, c > e9, lo, f(b.get("o")) or c, c > e20))
             if n >= 50:                        # only once the 50 EMA is settled
                 breadth[b["d"]][1] += 1
                 if c > e50:
@@ -342,7 +343,8 @@ def market_regime(breadth, universe=1000, thresh=50.0):
     return out, series
 
 
-def run_trade(px, sym, i, entry, stop, basis, need=2, cap=120):
+def run_trade(px, sym, i, entry, stop, basis, need=2, cap=120,
+              ema_ix=3, trail_adr=None, adr=None):
     """
     One trade, start to finish.
 
@@ -364,8 +366,17 @@ def run_trade(px, sym, i, entry, stop, basis, need=2, cap=120):
         return None
     run = 0
     wicks = 0
+    peak = entry
     for j in range(i, min(i + cap, len(v))):
         c, hi, ab, lo = v[j][1], v[j][2], v[j][3], v[j][4]
+        if len(v[j]) > ema_ix:
+            ab = v[j][ema_ix]
+        if trail_adr and adr:
+            # a trailing stop only ever ratchets up, never down
+            # R is ALWAYS measured against the risk taken at entry. Letting the
+            # denominator shrink as the trail rises turns a normal trade into a
+            # 27R fantasy - which is exactly what it did before this line went.
+            stop = max(stop, peak * (1 - trail_adr * adr / 100.0))
         if lo <= stop:
             if basis == "touch":
                 # filled at the stop; a gap through it would fill worse, and
@@ -380,6 +391,8 @@ def run_trade(px, sym, i, entry, stop, basis, need=2, cap=120):
                 return (c - entry) / risk, j - i + 1, "ema", wicks
         elif ab is True:
             run = 0
+        if c > peak:
+            peak = c
     return None                              # still open when the data ran out
 
 
@@ -712,14 +725,14 @@ def main():
             entry, ei = entry_after(px, sym, i)     # next session's open
             if entry is None:
                 continue
-            sigs.append((sym, ei, entry, adr, r.get("qm_pattern"), date))
+            sigs.append((sym, ei, entry, adr, r.get("qm_pattern"), date, r))
     print("\n%d setups with an ADR and a tradable entry.\n" % len(sigs))
 
     # ---- 5a. where the stop BELONGS, from the trades themselves ----
     print("MAXIMUM ADVERSE EXCURSION - how deep it dug before it worked")
     print("  (measured over %d sessions, in ADR units, no stop applied)\n" % a.horizon)
     win_mae, lose_mae, win_mfe = [], [], []
-    for sym, i, entry, adr, _p, _dt in sigs:
+    for sym, i, entry, adr, _p, _dt, _r in sigs:
         lo, hi = excursions(px, sym, i, entry, a.horizon)
         if lo is None:
             continue
@@ -755,7 +768,7 @@ def main():
     for mult in (0.5, 0.75, 1.0, 1.25, 1.5, 2.0):
         for basis in ("touch", "close"):
             Rs, days, stopped, wicks = [], [], 0, 0
-            for sym, i, entry, adr, _p, _dt in sigs:
+            for sym, i, entry, adr, _p, _dt, _r in sigs:
                 stop = entry * (1 - mult * adr / 100.0)
                 res = run_trade(px, sym, i, entry, stop, basis)
                 if not res:
@@ -783,7 +796,7 @@ def main():
     print("    %-8s %10s %12s" % ("stop", "wick days", "per 100 trades"))
     for mult in (0.5, 0.75, 1.0, 1.5):
         tot, wk = 0, 0
-        for sym, i, entry, adr, _p, _dt in sigs:
+        for sym, i, entry, adr, _p, _dt, _r in sigs:
             stop = entry * (1 - mult * adr / 100.0)
             res = run_trade(px, sym, i, entry, stop, "close")
             if not res:
@@ -858,7 +871,7 @@ def main():
           % ("stop", "UP n", "UP expect", "UP win%", "DOWN n", "DOWN expect", "DOWN win%"))
     for mult in (0.75, 1.0, 1.25, 1.5, 2.0):
         got = {"UP": [], "DOWN": []}
-        for sym, i, entry, adr, _p, dt in sigs:
+        for sym, i, entry, adr, _p, dt, _r in sigs:
             g = reg.get(dt)
             if g not in got:
                 continue
@@ -917,6 +930,106 @@ def main():
     print("\n  If the UP columns are positive and the DOWN columns negative, the")
     print("  setups are fine and the missing rule is WHEN to trade them.")
     print("  If UP is also negative, the problem is the setups themselves.")
+
+    # ---------------- 7. THE FILTER LADDER -------------------------------
+    print("\n\n" + "=" * 74)
+    print("FILTER LADDER - conditions stacked one at a time")
+    print("=" * 74)
+    print("\n  Stop 1.5x ADR close basis, exit on 2 closes under the 9 EMA,")
+    print("  costs deducted. Every earlier table tested filters ONE AT A TIME on")
+    print("  the whole pool. This is the question that was never asked: what")
+    print("  happens when you apply them together?\n")
+
+    def q_of(r, date):
+        rk = ind_rank.get(date)
+        if not rk:
+            return None
+        g = (r.get("industry") or "").strip()
+        if g not in rk:
+            return None
+        pos, tot, _ = rk[g]
+        frac = (pos - 1) / max(1, tot - 1)
+        return 1 if frac <= .25 else (4 if frac > .75 else 23)
+
+    RUNGS = [
+      ("all QM setups",              lambda r, d: True),
+      ("+ UP breadth only",          lambda r, d: reg.get(d) == "UP"),
+      ("+ not a Q4 industry",        lambda r, d: q_of(r, d) not in (4, None)),
+      ("+ leading (Q1) industry",    lambda r, d: q_of(r, d) == 1),
+      ("+ category A or A+C",        lambda r, d: r.get("category") in ("A", "AC")),
+      ("+ ADR 3% or more",           lambda r, d: (f(r.get("adr_pct")) or 0) >= 3),
+      ("+ VCP or HTF only",          lambda r, d: r.get("qm_pattern") in ("VCP", "HTF")),
+      ("+ within 15% of 52w high",   lambda r, d: near_high(r, 15)),
+    ]
+    print("  %-28s %7s %9s %8s %7s %7s %7s"
+          % ("", "trades", "expect", "medianR", "win%", "avgWin", "avgLoss"))
+    active = []
+    for label, test in RUNGS:
+        active.append(test)
+        Rs = []
+        for sym, i, entry, adr, _p, dt, r in sigs:
+            ok = True
+            for t in active:
+                try:
+                    if not t(r, dt):
+                        ok = False; break
+                except Exception:
+                    ok = False; break
+            if not ok:
+                continue
+            stop = entry * (1 - 1.5 * adr / 100.0)
+            res = run_trade(px, sym, i, entry, stop, "close")
+            if not res:
+                continue
+            Rs.append(res[0] - (entry * COST_PCT / 100.0) / (entry - stop))
+        if len(Rs) < 20:
+            print("  %-28s %7d   sample too small to read" % (label, len(Rs)))
+            continue
+        w = [x for x in Rs if x > 0]; l = [x for x in Rs if x <= 0]
+        print("  %-28s %7d %8.3fR %7.2fR %6.1f%% %6.2fR %6.2fR"
+              % (label, len(Rs), sum(Rs) / len(Rs), median(Rs),
+                 100.0 * len(w) / len(Rs),
+                 (sum(w) / len(w)) if w else 0, (sum(l) / len(l)) if l else 0))
+    print("\n  Watch the trades column as much as the expectancy one. A rung that")
+    print("  improves the number while collapsing the sample has not proved")
+    print("  anything - it has just found a smaller group to be lucky in.")
+
+    # ---------------- 8. DOES A SLOWER EXIT PAY? -------------------------
+    print("\n\n" + "=" * 74)
+    print("EXIT TEST - same trades, same 1.5x ADR stop, different trend exits")
+    print("=" * 74)
+    print("\n  A 9 EMA exit holds a median 4-6 days. Winners reached 2.16 ADR")
+    print("  inside ten sessions, so the move is there - the question is whether")
+    print("  the exit is cutting it off.\n")
+    filt = [t for _l, t in RUNGS[:3]]          # UP breadth, not Q4 - the two that held up
+    pool = []
+    for sym, i, entry, adr, _p, dt, r in sigs:
+        if all((lambda t: t(r, dt))(t) for t in filt):
+            pool.append((sym, i, entry, adr))
+    print("  Pool: %d setups in UP breadth, outside Q4 industries.\n" % len(pool))
+    print("  %-34s %7s %9s %8s %7s %6s"
+          % ("exit rule", "trades", "expect", "medianR", "win%", "days"))
+    EXITS = [("1 close under the 9 EMA",  dict(ema_ix=3, need=1)),
+             ("2 closes under the 9 EMA", dict(ema_ix=3, need=2)),
+             ("1 close under the 20 EMA", dict(ema_ix=6, need=1)),
+             ("2 closes under the 20 EMA",dict(ema_ix=6, need=2)),
+             ("trail 1.5 ADR off the high", dict(ema_ix=3, need=99, trail_adr=1.5)),
+             ("trail 2.5 ADR off the high", dict(ema_ix=3, need=99, trail_adr=2.5))]
+    for label, kw in EXITS:
+        Rs, dys = [], []
+        for sym, i, entry, adr in pool:
+            stop = entry * (1 - 1.5 * adr / 100.0)
+            res = run_trade(px, sym, i, entry, stop, "close", adr=adr, **kw)
+            if not res:
+                continue
+            Rs.append(res[0] - (entry * COST_PCT / 100.0) / (entry - stop))
+            dys.append(res[1])
+        if len(Rs) < 20:
+            print("  %-34s %7d  too few" % (label, len(Rs))); continue
+        w = [x for x in Rs if x > 0]
+        print("  %-34s %7d %8.3fR %7.2fR %6.1f%% %5.0f"
+              % (label, len(Rs), sum(Rs) / len(Rs), median(Rs),
+                 100.0 * len(w) / len(Rs), median(dys)))
 
     print("\nNot measurable from this table, so deliberately NOT shown:")
     for s in SKIPPED:
