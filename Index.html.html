@@ -16136,6 +16136,7 @@ function render(){
   '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
    '<b style="font-size:17px">'+esc(SC.sym)+'</b>'+
    tfStarBtn(SC.sym,'sc-nav')+
+   '<button class="sc-nav" onclick="wlQuickAdd(\''+esc(SC.sym)+'\')" title="Add '+esc(SC.sym)+' to a watchlist - works from any tab, since this card opens everywhere">\u2795</button>'+
    scIndQ(o)+
    (ltp!=null?'<span style="font-size:15px;font-weight:600">'+f(ltp)+'</span>':'')+
    (day!=null?'<span style="'+col(day)+';font-size:13px">'+pct(day)+'</span>':'')+
@@ -16350,8 +16351,97 @@ function cePrefLoad(){
   if(v.vol!=null)CE.vol=v.vol;if(v.scale)CE.scale=v.scale;
  }catch(e){}
 }
-function ceLoad(){try{return JSON.parse(localStorage.getItem(ceKey())||'[]');}catch(e){return [];}}
-function ceSave(a){try{localStorage.setItem(ceKey(),JSON.stringify(a));}catch(e){}}
+/* ── drawings ──────────────────────────────────────────────────────────────
+   These used to live only in localStorage: one browser, and gone the moment
+   you cleared your cache. They now live in Supabase, with localStorage kept
+   as an instant cache so the chart still renders without waiting on a round
+   trip. ceLoad has to stay synchronous because it is called during render -
+   so it reads the cache, and the server copy arrives a moment later and
+   triggers a redraw if it differs. */
+var CE_DRAW={};      /* symbol -> array, the live copy */
+var CE_UNDO={};      /* symbol -> {back:[],fwd:[]} */
+
+function ceDrawKey(){return 'tfDraw:'+CE.sym;}
+
+function ceLoad(){
+ var sym=CE.sym;
+ if(CE_DRAW[sym])return CE_DRAW[sym];
+ var local=[];
+ try{local=JSON.parse(localStorage.getItem(ceDrawKey())||'[]');}catch(e){local=[];}
+ CE_DRAW[sym]=local;
+ ceDrawPull(sym);
+ return local;
+}
+
+function ceDrawPull(sym){
+ if(!sym||CE_DRAW['_pull:'+sym])return;
+ CE_DRAW['_pull:'+sym]=true;
+ try{
+  fetch(CONFIG.supabaseUrl+'/rest/v1/chart_drawings?symbol=eq.'+encodeURIComponent(sym)+
+        '&market=eq.IN&select=data',
+        {headers:{'apikey':CONFIG.supabaseKey,'Authorization':'Bearer '+CONFIG.supabaseKey}})
+  .then(function(r){return r.json();})
+  .then(function(j){
+   var srv=(j&&j[0]&&j[0].data)||null;
+   if(!srv||!srv.length)return;
+   var cur=CE_DRAW[sym]||[];
+   if(JSON.stringify(srv)===JSON.stringify(cur))return;
+   /* the server copy wins only when the local one is empty - otherwise
+      something drawn offline would be silently thrown away */
+   if(!cur.length){
+    CE_DRAW[sym]=srv;
+    try{localStorage.setItem('tfDraw:'+sym,JSON.stringify(srv));}catch(e){}
+    if(CE.open&&CE.sym===sym&&typeof ceRender==='function')ceRender();
+   }
+  }).catch(function(){});
+ }catch(e){}
+}
+
+function ceSave(a,noUndo){
+ var sym=CE.sym;
+ if(!noUndo){
+  var u=CE_UNDO[sym]||(CE_UNDO[sym]={back:[],fwd:[]});
+  u.back.push(JSON.stringify(CE_DRAW[sym]||[]));
+  if(u.back.length>40)u.back.shift();
+  u.fwd=[];
+ }
+ CE_DRAW[sym]=a;
+ try{localStorage.setItem('tfDraw:'+sym,JSON.stringify(a));}catch(e){}
+ ceDrawPush(sym,a);
+}
+
+var _cePushT={};
+function ceDrawPush(sym,a){
+ clearTimeout(_cePushT[sym]);
+ _cePushT[sym]=setTimeout(function(){
+  try{
+   fetch(CONFIG.supabaseUrl+'/rest/v1/chart_drawings',
+    {method:'POST',
+     headers:{'apikey':CONFIG.supabaseKey,'Authorization':'Bearer '+CONFIG.supabaseKey,
+              'Content-Type':'application/json',
+              'Prefer':'resolution=merge-duplicates,return=minimal'},
+     body:JSON.stringify([{symbol:sym,market:'IN',data:a,updated_at:new Date().toISOString()}])
+    }).catch(function(){});
+  }catch(e){}
+ },900);            /* debounced: dragging a line should not be 40 writes */
+}
+
+window.ceUndo=function(){
+ var sym=CE.sym,u=CE_UNDO[sym];
+ if(!u||!u.back.length)return;
+ u.fwd.push(JSON.stringify(CE_DRAW[sym]||[]));
+ var prev=JSON.parse(u.back.pop());
+ ceSave(prev,true);
+ if(typeof ceRender==='function')ceRender();
+};
+window.ceRedo=function(){
+ var sym=CE.sym,u=CE_UNDO[sym];
+ if(!u||!u.fwd.length)return;
+ u.back.push(JSON.stringify(CE_DRAW[sym]||[]));
+ var nxt=JSON.parse(u.fwd.pop());
+ ceSave(nxt,true);
+ if(typeof ceRender==='function')ceRender();
+};
 
 /* ── levels worth marking, pulled from what the scan already knows ── */
 function ceLevels(o){
@@ -16810,7 +16900,9 @@ function ceBar(o){
  h+=btn(CE.show.smart,"ceShow('smart')",'Smart $','Mark reported bulk and block deals on the day they happened — green bought, red sold.');
  h+=btn(false,'ceToDraw()','Edit','Copy the pole and box into your own drawings so you can adjust them by redrawing');
  h+='<span class="ce-sep"></span>';
- h+=btn(false,'ceUndo()','⌫','Remove the last thing you drew');
+ h+=btn(false,'ceUndo()','⌫','Undo - steps back through your last 40 changes');
+ h+=btn(false,'ceRedo()','↷','Redo the change you just undid');
+ h+=btn(false,'wlQuickAdd()','➕ List','Add this stock to a watchlist');
  h+=btn(false,'ceClear()','Clear','Remove every drawing on this stock');
  h+='<span style="margin-left:auto"></span>';
  h+='<a class="ce-b" style="text-decoration:none" href="https://in.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(CE.sym)+
@@ -16852,7 +16944,9 @@ window.ceToDraw=function(){
  if(!added)return;
  ceSave(a);CE.show.box=false;CE.show.pole=false;ceRefresh();
 };
-window.ceUndo=function(){var a=ceLoad();a.pop();ceSave(a);ceRender();};
+/* ceUndo / ceRedo are defined above with a proper 40-step history.
+   The one that used to sit here only popped the last drawing and, being
+   later in the file, silently replaced them. */
 window.ceClear=function(){ceSave([]);ceRender();};
 function ceRefresh(){
  var b=document.getElementById('ce-bar');
@@ -17270,6 +17364,28 @@ function wlRender(){
 }
 
 window.wlPickList=function(id){WL.active=id;WL._px=null;wlRender();};
+
+/* Add one stock to a list from wherever you happen to be - the stock card
+   and the chart both open from every tab, so this covers all of them without
+   touching each tab's own table. */
+window.wlQuickAdd=function(sym){
+ sym=sym||(typeof CE!=='undefined'&&CE.sym)||(typeof SC!=='undefined'&&SC.sym);
+ if(!sym){wlToast('No stock selected');return;}
+ var go=function(){
+  var statics=WL.lists.filter(function(l){return l.kind!=='live';});
+  if(!statics.length){wlToast('Create a watchlist first, in the Charts tab');return;}
+  var names=statics.map(function(l,i){return (i+1)+') '+l.name;}).join('\n');
+  var pick=prompt('Add '+sym+' to which list?\n\n'+names,'1');
+  var idx=parseInt(pick,10)-1;
+  if(isNaN(idx)||idx<0||idx>=statics.length)return;
+  var wl=statics[idx];
+  wlApi('watchlist_items',{method:'POST',
+    headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify([{wl_id:wl.id,symbol:sym}])})
+   .then(function(){wlToast(sym+' added to '+wl.name);WL._px=null;wlLoad();});
+ };
+ if(!WL.lists.length){wlLoad();setTimeout(go,900);} else go();
+};
 
 window.wlCopyList=function(){
  var syms=wlSymbols(wlActive())||[];
