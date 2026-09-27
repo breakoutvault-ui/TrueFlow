@@ -1064,6 +1064,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div class="nav-tabs" id="momentum-tabs" style="display:none">
         <button class="nav-tab active" onclick="switchTab('screener',this,'momentum')">🔎 Screener</button>
         <button class="nav-tab" onclick="switchTab('volume',this,'momentum')">🌊 Volume</button>
+        <button class="nav-tab" onclick="switchTab('charts',this,'momentum')">📈 Charts</button>
         <button class="nav-tab" onclick="switchTab('smartmoney',this,'momentum')">🏦 Smart Money</button>
         <button class="nav-tab" onclick="switchTab('emasignals',this,'momentum')">🔄 EMA Signals</button>
         <button class="nav-tab" onclick="switchTab('sharpmovers',this,'momentum')">🎯 Breakout Setups</button>
@@ -2396,7 +2397,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
            id, so getElementById only ever filled the strip above and this panel
            was always empty. The PLAYBOOKS section is the single entry point. -->
       <details class="scr-f"><summary class="scr-tool">💾 Presets</summary><div class="scr-panel" style="min-width:230px"><div class="ph">Save current filters</div><div class="scr-psave"><input id="scr-pname" placeholder="Name this preset…"><button class="scr-tool" onclick="scrSavePreset()">Save</button></div><div class="ph" style="margin-top:6px">Saved</div><div id="scr-saved-list"></div></div></details>
-      <button class="scr-tool" id="scr-tvbtn" onclick="scrCopyTV()">📋 TradingView</button><button class="scr-tool" onclick="scrPickAll()" title="Tick every row currently showing">☑ Select all</button><span id="scr-picked" class="scr-tool" style="display:none;align-items:center;cursor:default"></span>
+      <button class="scr-tool" id="scr-tvbtn" onclick="scrCopyTV()">📋 TradingView</button><button class="scr-tool" onclick="scrPickAll()" title="Tick every row currently showing">☑ Select all</button><button class="scr-tool" onclick="wlAddFromScreener()" title="Add your ticked rows (or the whole filtered list) to a watchlist in the Charts tab">➕ Add to watchlist</button><span id="scr-picked" class="scr-tool" style="display:none;align-items:center;cursor:default"></span>
       <button class="scr-tool clear" onclick="scrClearAll()">✕ Clear all filters</button>
       <span style="flex:1"></span>
       <span class="scr-count"><b id="scr-cnt">0</b> of <span id="scr-tot">0</span> match · Updated <span id="scr-updated">—</span></span>
@@ -2859,6 +2860,32 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <div style="font-size:11px;color:var(--muted);margin-bottom:8px;cursor:pointer" onclick="toggleExcluded()">▶ Hidden stocks (<span id="sharp-excluded-count">0</span>) — click to show</div>
           <div id="sharp-excluded-list" style="display:none"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CHARTS TAB ── -->
+  <div id="tab-charts" class="panel">
+    <div class="momentum-panel">
+      <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+
+        <div style="flex:0 0 210px;min-width:190px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <b style="font-size:12px;letter-spacing:.4px;color:var(--muted)">WATCHLISTS</b>
+            <button class="scr-tool" onclick="wlNew()" title="Create a new watchlist">+ New</button>
+          </div>
+          <div id="wl-lists"></div>
+          <div style="margin-top:12px">
+            <b style="font-size:12px;letter-spacing:.4px;color:var(--muted)">COLOUR LABELS</b>
+            <div id="wl-colours" style="margin-top:5px"></div>
+          </div>
+        </div>
+
+        <div style="flex:1 1 520px;min-width:320px">
+          <div id="wl-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px"></div>
+          <div id="wl-grid"></div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -5940,7 +5967,7 @@ function switchTab(tab, btn, mode) {
     if (el) el.classList.add('active');
     if (btn) btn.classList.add('active');
     if(!window.momLoaded)window.momLoaded=new Set();
-    var _momLd={scanner:loadMomScanner,emasignals:loadMomEMA,sharpmovers:loadMomSharp,mypicks:loadMomPicks,exited:loadMomExited,smartmoney:loadSmartMoney,volume:loadVolume,screener:scrLoad};
+    var _momLd={charts:function(){try{wlLoad();}catch(e){console.error('charts tab:',e);}},scanner:loadMomScanner,emasignals:loadMomEMA,sharpmovers:loadMomSharp,mypicks:loadMomPicks,exited:loadMomExited,smartmoney:loadSmartMoney,volume:loadVolume,screener:scrLoad};
     if(_momLd[tab]&&!window.momLoaded.has(tab)){window.momLoaded.add(tab);_momLd[tab]();}
     return;
   }
@@ -17033,6 +17060,257 @@ window.ceOpen=function(sym){
 /* Star button, one implementation used by the card and the chart.
    momStarred lives in an earlier script block; function declarations there are
    global, so toggleMomStar/tfIsStarred are callable from here. Guarded anyway. */
+
+/* ═══════════════════════════════════════════════════════════════════
+   CHARTS TAB - watchlists, colour tags, and a way into the chart.
+
+   Two kinds of list:
+     STATIC - symbols you put there, they stay until you remove them.
+     LIVE   - bound to a playbook id; recomputed from today's screener
+              every time you open it, so it never goes stale.
+
+   Clicking a symbol sets SC.list to the whole watchlist before opening
+   the chart, so the chart's back/forward arrows walk the list rather
+   than whatever table you came from.
+   ═══════════════════════════════════════════════════════════════════ */
+var WL={lists:[],items:{},colours:{},active:null,loading:false};
+
+var WL_SWATCH={red:'#ef4444',amber:'#f59e0b',green:'#22c55e',
+               cyan:'#06b6d4',purple:'#a855f7',grey:'#94a3b8'};
+
+function wlHdr(extra){
+ var h={'apikey':CONFIG.supabaseKey,'Authorization':'Bearer '+CONFIG.supabaseKey,
+        'Content-Type':'application/json'};
+ for(var k in (extra||{}))h[k]=extra[k];
+ return h;
+}
+function wlApi(path,opts){
+ return fetch(CONFIG.supabaseUrl+'/rest/v1/'+path,opts||{headers:wlHdr()})
+  .then(function(r){
+   if(r.status===204)return null;
+   return r.json().catch(function(){return null;});
+  });
+}
+function wlToast(m){try{scrToast(m);}catch(e){try{showToast(m,'info');}catch(e2){}}}
+
+function wlLoad(){
+ if(WL.loading)return;
+ WL.loading=true;
+ var el=document.getElementById('wl-grid');
+ if(el)el.innerHTML='<div style="color:var(--muted);padding:18px">Loading watchlists...</div>';
+ Promise.all([
+  wlApi('watchlists?market=eq.IN&order=sort_order.asc,id.asc'),
+  wlApi('watchlist_items?select=*'),
+  wlApi('watchlist_colours?select=*')
+ ]).then(function(r){
+  WL.lists=r[0]||[];
+  WL.items={};
+  (r[1]||[]).forEach(function(it){(WL.items[it.wl_id]=WL.items[it.wl_id]||[]).push(it);});
+  WL.colours={};
+  (r[2]||[]).forEach(function(c){WL.colours[c.colour]=c.label||'';});
+  if(!WL.active||!WL.lists.some(function(l){return l.id===WL.active;}))
+   WL.active=WL.lists.length?WL.lists[0].id:null;
+  WL.loading=false;
+  wlRender();
+ }).catch(function(e){
+  WL.loading=false;
+  if(el)el.innerHTML='<div style="color:var(--red);padding:18px">Could not load watchlists ('+
+    String(e).slice(0,90)+'). Has charts_tab.sql been run?</div>';
+ });
+}
+
+/* A live list borrows the screener's own filter, so it matches exactly what
+   the playbook shows. State is saved and restored around the call. */
+function wlLiveSyms(pid){
+ try{
+  if(typeof SCR==='undefined'||!SCR.data||!SCR.data.length)return null;
+  var p=(typeof SCR_PRESETS!=='undefined')&&SCR_PRESETS.find(function(x){return x.id===pid;});
+  if(!p)return [];
+  var keep={},prev=SCR.activePreset;
+  SCR_FILTERS.forEach(function(f){keep[f.key]=SCR.state[f.key];});
+  var keepA=SCR.state.aplus;
+  SCR_FILTERS.forEach(function(f){SCR.state[f.key]=new Set();});
+  SCR.state.aplus=new Set();
+  SCR.activePreset=pid;
+  if(p.set)for(var k in p.set)SCR.state[k]=new Set(p.set[k]);
+  var out=SCR.data.filter(scrPasses).map(function(d){return d.sym;});
+  SCR_FILTERS.forEach(function(f){SCR.state[f.key]=keep[f.key];});
+  SCR.state.aplus=keepA;
+  SCR.activePreset=prev;
+  return out;
+ }catch(e){console.error('live list:',e);return [];}
+}
+
+function wlActive(){return WL.lists.filter(function(l){return l.id===WL.active;})[0]||null;}
+
+function wlSymbols(list){
+ if(!list)return [];
+ if(list.kind==='live'){
+  var s=wlLiveSyms(list.playbook);
+  return s===null?null:s;                    // null = screener not loaded yet
+ }
+ return (WL.items[list.id]||[]).map(function(x){return x.symbol;});
+}
+
+function wlRender(){
+ var L=document.getElementById('wl-lists');
+ if(L)L.innerHTML=WL.lists.length?WL.lists.map(function(l){
+  var n=(l.kind==='live')?'live':((WL.items[l.id]||[]).length);
+  var on=(l.id===WL.active);
+  return '<div onclick="wlPickList('+l.id+')" style="display:flex;align-items:center;justify-content:space-between;'+
+   'gap:6px;padding:6px 8px;border-radius:6px;cursor:pointer;margin-bottom:3px;'+
+   (on?'background:var(--bg3);':'')+'">'+
+   '<span style="font-weight:'+(on?700:500)+';font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+   (l.kind==='live'?'\u26a1 ':'')+esc(l.name)+'</span>'+
+   '<span style="color:var(--muted);font-size:10.5px">'+n+'</span></div>';
+ }).join(''):'<div style="color:var(--muted);font-size:11.5px">No lists yet.</div>';
+
+ var C=document.getElementById('wl-colours');
+ if(C)C.innerHTML=Object.keys(WL_SWATCH).map(function(c){
+  return '<div style="display:flex;align-items:center;gap:6px;padding:2px 0">'+
+   '<span style="width:11px;height:11px;border-radius:50%;background:'+WL_SWATCH[c]+';flex:0 0 auto"></span>'+
+   '<span onclick="wlLabel(\''+c+'\')" style="font-size:11px;color:var(--text2);cursor:pointer" '+
+   'title="Click to rename this colour">'+esc(WL.colours[c]||c)+'</span></div>';
+ }).join('');
+
+ var list=wlActive();
+ var H=document.getElementById('wl-head');
+ var G=document.getElementById('wl-grid');
+ if(!list){
+  if(H)H.innerHTML='';
+  if(G)G.innerHTML='<div style="color:var(--muted);padding:18px">Create a list to begin.</div>';
+  return;
+ }
+ var syms=wlSymbols(list);
+ if(H)H.innerHTML='<b style="font-size:15px">'+esc(list.name)+'</b>'+
+  (list.kind==='live'
+   ?'<span class="scr-tool" style="cursor:default" title="This list is bound to a playbook and rebuilds itself from the latest scan. You cannot add or remove names by hand.">\u26a1 live \u00b7 '+esc(list.playbook||'')+'</span>'
+   :'<span class="scr-tool" style="cursor:default">'+(syms?syms.length:0)+' stocks</span>')+
+  '<button class="scr-tool" onclick="wlRename()">Rename</button>'+
+  '<button class="scr-tool" onclick="wlDelete()" style="color:var(--red)">Delete list</button>';
+
+ if(syms===null){
+  G.innerHTML='<div style="color:var(--amber);padding:18px">This is a live list. '+
+   'Open the Screener tab once so today\'s scan is loaded, then come back.</div>';
+  return;
+ }
+ if(!syms.length){
+  G.innerHTML='<div style="color:var(--muted);padding:18px">'+
+   (list.kind==='live'?'Nothing matches that playbook today.'
+    :'Empty. Tick rows on the Screener and use "Add to watchlist".')+'</div>';
+  return;
+ }
+ var cmap={};
+ (WL.items[list.id]||[]).forEach(function(it){cmap[it.symbol]=it.colour;});
+ G.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:7px">'+syms.map(function(sym){
+  var col=cmap[sym];
+  var dot=col?('<span style="width:9px;height:9px;border-radius:50%;background:'+
+    (WL_SWATCH[col]||col)+';display:inline-block;margin-right:5px" title="'+
+    esc(WL.colours[col]||col)+'"></span>'):'';
+  return '<div style="border:1px solid var(--bg3);border-radius:7px;padding:7px 9px;min-width:126px;background:var(--bg2)">'+
+   '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'+
+    '<span onclick="wlOpen(\''+esc(sym)+'\')" style="cursor:pointer;font-weight:700;font-size:12.5px" '+
+    'title="Open the chart. The chart arrows will walk this watchlist.">'+dot+esc(sym)+'</span>'+
+    (list.kind==='live'?'':'<span onclick="wlDrop(\''+esc(sym)+'\')" style="cursor:pointer;color:var(--red);font-size:11px" title="Remove from this list">\u2715</span>')+
+   '</div>'+
+   (list.kind==='live'?'':'<div style="margin-top:5px;display:flex;gap:4px">'+
+     Object.keys(WL_SWATCH).map(function(c){
+      return '<span onclick="wlSetColour(\''+esc(sym)+'\',\''+c+'\')" style="width:11px;height:11px;border-radius:50%;'+
+       'background:'+WL_SWATCH[c]+';cursor:pointer;opacity:'+(col===c?'1':'0.35')+'" title="'+
+       esc(WL.colours[c]||c)+'"></span>';
+     }).join('')+
+     '<span onclick="wlSetColour(\''+esc(sym)+'\',null)" style="font-size:10px;color:var(--muted);cursor:pointer;margin-left:2px" title="Clear the colour">\u2715</span>'+
+    '</div>')+
+   '</div>';
+ }).join('')+'</div>';
+}
+
+window.wlPickList=function(id){WL.active=id;wlRender();};
+
+window.wlOpen=function(sym){
+ try{
+  var syms=wlSymbols(wlActive())||[];
+  if(typeof SC!=='undefined'&&syms.length){SC.list=syms.slice();SC.idx=syms.indexOf(sym);}
+  if(typeof ceOpen==='function')ceOpen(sym);
+  else if(typeof scOpen==='function')scOpen(sym,syms);
+ }catch(e){console.error('open chart:',e);}
+};
+
+window.wlNew=function(){
+ var name=prompt('Name for the new watchlist:');
+ if(!name)return;
+ var live=confirm('Bind this list to a playbook so it refreshes itself?\n\nOK = live list\nCancel = a normal list you fill yourself');
+ var pid=null;
+ if(live){
+  var ids=(typeof SCR_PRESETS!=='undefined')?SCR_PRESETS.filter(function(p){return p.grp;}).map(function(p){return p.id+'  ('+p.label+')';}):[];
+  pid=prompt('Playbook id to follow:\n\n'+ids.join('\n'));
+  if(!pid)return;
+  pid=String(pid).trim().split(' ')[0];
+ }
+ wlApi('watchlists',{method:'POST',headers:wlHdr({Prefer:'return=representation'}),
+  body:JSON.stringify({name:name,kind:live?'live':'static',playbook:pid,market:'IN',
+                       sort_order:WL.lists.length})})
+ .then(function(r){if(r&&r[0])WL.active=r[0].id;wlToast('Created '+name);wlLoad();});
+};
+
+window.wlRename=function(){
+ var l=wlActive();if(!l)return;
+ var n=prompt('Rename this list:',l.name);
+ if(!n||n===l.name)return;
+ wlApi('watchlists?id=eq.'+l.id,{method:'PATCH',headers:wlHdr(),body:JSON.stringify({name:n})})
+  .then(function(){wlLoad();});
+};
+
+window.wlDelete=function(){
+ var l=wlActive();if(!l)return;
+ if(!confirm('Delete "'+l.name+'" and everything in it? This cannot be undone.'))return;
+ wlApi('watchlists?id=eq.'+l.id,{method:'DELETE',headers:wlHdr()})
+  .then(function(){WL.active=null;wlToast('Deleted '+l.name);wlLoad();});
+};
+
+window.wlDrop=function(sym){
+ var l=wlActive();if(!l||l.kind==='live')return;
+ wlApi('watchlist_items?wl_id=eq.'+l.id+'&symbol=eq.'+encodeURIComponent(sym),
+  {method:'DELETE',headers:wlHdr()}).then(function(){wlLoad();});
+};
+
+window.wlSetColour=function(sym,c){
+ var l=wlActive();if(!l||l.kind==='live')return;
+ wlApi('watchlist_items?wl_id=eq.'+l.id+'&symbol=eq.'+encodeURIComponent(sym),
+  {method:'PATCH',headers:wlHdr(),body:JSON.stringify({colour:c})}).then(function(){wlLoad();});
+};
+
+window.wlLabel=function(c){
+ var cur=WL.colours[c]||'';
+ var n=prompt('What does this colour mean to you?',cur);
+ if(n===null)return;
+ wlApi('watchlist_colours?colour=eq.'+c,
+  {method:'PATCH',headers:wlHdr(),body:JSON.stringify({label:n})}).then(function(){wlLoad();});
+};
+
+/* Called from the Screener's "Add to watchlist" button. Uses your ticked rows
+   when there are any, otherwise the whole filtered list. */
+window.wlAddFromScreener=function(){
+ var sel=(SCR.sel&&SCR.sel.size)?(SCR.last||[]).filter(function(d){return SCR.sel.has(d.sym);}):null;
+ var list=sel&&sel.length?sel:(SCR.last||[]);
+ if(!list.length){wlToast('Nothing to add');return;}
+ var go=function(){
+  var statics=WL.lists.filter(function(l){return l.kind!=='live';});
+  if(!statics.length){wlToast('Create a normal watchlist first (Charts tab)');return;}
+  var names=statics.map(function(l,i){return (i+1)+') '+l.name;}).join('\n');
+  var pick=prompt('Add '+list.length+' stock'+(list.length>1?'s':'')+' to which list?\n\n'+names,'1');
+  var idx=parseInt(pick,10)-1;
+  if(isNaN(idx)||idx<0||idx>=statics.length)return;
+  var wl=statics[idx];
+  var rows=list.map(function(d){return {wl_id:wl.id,symbol:d.sym};});
+  wlApi('watchlist_items',{method:'POST',
+    headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify(rows)})
+   .then(function(){wlToast('Added '+rows.length+' to '+wl.name);wlLoad();});
+ };
+ if(!WL.lists.length){wlLoad();setTimeout(go,900);} else go();
+};
+
 function tfStarBtn(sym,cls){
  if(!sym)return '';
  var on=false;
