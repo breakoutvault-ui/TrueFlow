@@ -17100,7 +17100,7 @@ function wlLoad(){
  if(el)el.innerHTML='<div style="color:var(--muted);padding:18px">Loading watchlists...</div>';
  Promise.all([
   wlApi('watchlists?market=eq.IN&order=sort_order.asc,id.asc'),
-  wlApi('watchlist_items?select=*'),
+  wlApi('watchlist_items?select=*&order=section.asc,sort_order.asc,symbol.asc'),
   wlApi('watchlist_colours?select=*')
  ]).then(function(r){
   WL.lists=r[0]||[];
@@ -17110,7 +17110,7 @@ function wlLoad(){
   (r[2]||[]).forEach(function(c){WL.colours[c.colour]=c.label||'';});
   if(!WL.active||!WL.lists.some(function(l){return l.id===WL.active;}))
    WL.active=WL.lists.length?WL.lists[0].id:null;
-  WL.loading=false;
+  WL.loading=false;WL._px=null;
   wlRender();
  }).catch(function(e){
   WL.loading=false;
@@ -17141,6 +17141,15 @@ function wlLiveSyms(pid){
  }catch(e){console.error('live list:',e);return [];}
 }
 
+/* Last and Chg% come from the screener rows already in memory - no extra
+   request. Blank when the Screener has not been opened this session. */
+function wlPx(sym){
+ try{
+  if(typeof SCR==='undefined'||!SCR.data)return null;
+  if(!WL._px){WL._px={};SCR.data.forEach(function(d){WL._px[d.sym]=d;});}
+  return WL._px[sym]||null;
+ }catch(e){return null;}
+}
 function wlActive(){return WL.lists.filter(function(l){return l.id===WL.active;})[0]||null;}
 
 function wlSymbols(list){
@@ -17161,7 +17170,8 @@ function wlRender(){
    'gap:6px;padding:6px 8px;border-radius:6px;cursor:pointer;margin-bottom:3px;'+
    (on?'background:var(--bg3);':'')+'">'+
    '<span style="font-weight:'+(on?700:500)+';font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
-   (l.kind==='live'?'\u26a1 ':'')+esc(l.name)+'</span>'+
+   (l.colour?'<span style="width:8px;height:8px;border-radius:2px;background:'+(WL_SWATCH[l.colour]||l.colour)+';display:inline-block;margin-right:5px"></span>':'')+
+   (l.starred?'\u2b50 ':'')+(l.kind==='live'?'\u26a1 ':'')+esc(l.name)+'</span>'+
    '<span style="color:var(--muted);font-size:10.5px">'+n+'</span></div>';
  }).join(''):'<div style="color:var(--muted);font-size:11.5px">No lists yet.</div>';
 
@@ -17186,7 +17196,14 @@ function wlRender(){
   (list.kind==='live'
    ?'<span class="scr-tool" style="cursor:default" title="This list is bound to a playbook and rebuilds itself from the latest scan. You cannot add or remove names by hand.">\u26a1 live \u00b7 '+esc(list.playbook||'')+'</span>'
    :'<span class="scr-tool" style="cursor:default">'+(syms?syms.length:0)+' stocks</span>')+
+  '<button class="scr-tool" onclick="wlStar()" title="Star this list">'+(list.starred?'\u2b50':'\u2606')+'</button>'+
+  '<button class="scr-tool" onclick="wlListColour()" title="Give the list a colour">\u25a0 Colour</button>'+
   '<button class="scr-tool" onclick="wlRename()">Rename</button>'+
+  '<button class="scr-tool" onclick="wlDuplicate()" title="Make a copy of this list">Copy list</button>'+
+  (list.kind==='live'?'':'<button class="scr-tool" onclick="wlImport()" title="Paste symbols in - NSE: prefixes are stripped">\u2b07 Import</button>')+
+  '<button class="scr-tool" onclick="wlCopyList()" title="Copy every symbol for pasting into TradingView">\ud83d\udccb Copy symbols</button>'+
+  (list.kind==='live'?'':'<button class="scr-tool" onclick="wlSection()" title="Group some symbols under a heading">\u2795 Section</button>')+
+  (list.kind==='live'?'':'<button class="scr-tool" onclick="wlClear()">Clear</button>')+
   '<button class="scr-tool" onclick="wlDelete()" style="color:var(--red)">Delete list</button>';
 
  if(syms===null){
@@ -17200,32 +17217,158 @@ function wlRender(){
     :'Empty. Tick rows on the Screener and use "Add to watchlist".')+'</div>';
   return;
  }
- var cmap={};
- (WL.items[list.id]||[]).forEach(function(it){cmap[it.symbol]=it.colour;});
- G.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:7px">'+syms.map(function(sym){
-  var col=cmap[sym];
-  var dot=col?('<span style="width:9px;height:9px;border-radius:50%;background:'+
-    (WL_SWATCH[col]||col)+';display:inline-block;margin-right:5px" title="'+
-    esc(WL.colours[col]||col)+'"></span>'):'';
-  return '<div style="border:1px solid var(--bg3);border-radius:7px;padding:7px 9px;min-width:126px;background:var(--bg2)">'+
-   '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'+
-    '<span onclick="wlOpen(\''+esc(sym)+'\')" style="cursor:pointer;font-weight:700;font-size:12.5px" '+
-    'title="Open the chart. The chart arrows will walk this watchlist.">'+dot+esc(sym)+'</span>'+
-    (list.kind==='live'?'':'<span onclick="wlDrop(\''+esc(sym)+'\')" style="cursor:pointer;color:var(--red);font-size:11px" title="Remove from this list">\u2715</span>')+
-   '</div>'+
-   (list.kind==='live'?'':'<div style="margin-top:5px;display:flex;gap:4px">'+
-     Object.keys(WL_SWATCH).map(function(c){
-      return '<span onclick="wlSetColour(\''+esc(sym)+'\',\''+c+'\')" style="width:11px;height:11px;border-radius:50%;'+
-       'background:'+WL_SWATCH[c]+';cursor:pointer;opacity:'+(col===c?'1':'0.35')+'" title="'+
-       esc(WL.colours[c]||c)+'"></span>';
-     }).join('')+
-     '<span onclick="wlSetColour(\''+esc(sym)+'\',null)" style="font-size:10px;color:var(--muted);cursor:pointer;margin-left:2px" title="Clear the colour">\u2715</span>'+
-    '</div>')+
-   '</div>';
- }).join('')+'</div>';
+ var meta={};
+ (WL.items[list.id]||[]).forEach(function(it){meta[it.symbol]=it;});
+
+ /* group into sections, keeping the order the list was saved in */
+ var secs=[],seen={};
+ syms.forEach(function(sym){
+  var sec=(meta[sym]&&meta[sym].section)||'';
+  if(!(sec in seen)){seen[sec]=secs.length;secs.push({name:sec,rows:[]});}
+  secs[seen[sec]].rows.push(sym);
+ });
+
+ var live=(list.kind==='live');
+ var html='<div style="border:1px solid var(--bg3);border-radius:8px;overflow:hidden">';
+ html+='<div style="display:flex;gap:8px;padding:5px 9px;background:var(--bg3);font-size:10.5px;'+
+  'color:var(--muted);font-weight:700;letter-spacing:.4px">'+
+  '<span style="flex:1 1 auto">SYMBOL</span><span style="width:78px;text-align:right">LAST</span>'+
+  '<span style="width:64px;text-align:right">CHG%</span><span style="width:96px"></span></div>';
+
+ secs.forEach(function(sc){
+  if(sc.name)html+='<div style="padding:5px 9px;background:var(--bg2);font-size:10.5px;font-weight:700;'+
+    'color:var(--cyan);letter-spacing:.4px;display:flex;justify-content:space-between">'+esc(sc.name)+
+    (live?'':'<span onclick="wlSecRename(\''+esc(sc.name)+'\')" style="cursor:pointer;color:var(--muted);font-weight:400" title="Rename or remove this section">edit</span>')+
+    '</div>';
+  sc.rows.forEach(function(sym){
+   var it=meta[sym]||{},col=it.colour,d=wlPx(sym);
+   var last=(d&&d.ltp!=null)?(+d.ltp).toFixed(2):'';
+   var ch=(d&&d.chg!=null)?+d.chg:((d&&d.dayChg!=null)?+d.dayChg:null);
+   var chs=(ch==null)?'':((ch>=0?'+':'')+ch.toFixed(2)+'%');
+   var chc=(ch==null)?'var(--muted)':(ch>=0?'var(--green)':'var(--red)');
+   var dot=col?('<span style="width:9px;height:9px;border-radius:50%;background:'+(WL_SWATCH[col]||col)+
+     ';display:inline-block;margin-right:6px;flex:0 0 auto" title="'+esc(WL.colours[col]||col)+'"></span>')
+    :'<span style="width:9px;margin-right:6px;display:inline-block;flex:0 0 auto"></span>';
+   html+='<div class="wl-row" style="display:flex;gap:8px;align-items:center;padding:5px 9px;'+
+    'border-top:1px solid var(--bg3);font-size:12px">'+
+    '<span onclick="wlOpen(\''+esc(sym)+'\')" style="flex:1 1 auto;cursor:pointer;font-weight:600;display:flex;align-items:center" '+
+    'title="Open the chart - the arrows will walk this list">'+dot+esc(sym)+'</span>'+
+    '<span class="scr-mono" style="width:78px;text-align:right">'+last+'</span>'+
+    '<span class="scr-mono" style="width:64px;text-align:right;color:'+chc+'">'+chs+'</span>'+
+    '<span style="width:96px;display:flex;gap:3px;justify-content:flex-end;align-items:center">'+
+     (live?'':Object.keys(WL_SWATCH).map(function(c){
+       return '<span onclick="wlSetColour(\''+esc(sym)+'\',\''+c+'\')" style="width:10px;height:10px;border-radius:50%;'+
+        'background:'+WL_SWATCH[c]+';cursor:pointer;opacity:'+(col===c?'1':'0.3')+'" title="'+
+        esc(WL.colours[c]||c)+'"></span>';
+      }).join('')+
+      '<span onclick="wlDrop(\''+esc(sym)+'\')" style="cursor:pointer;color:var(--red);margin-left:4px" title="Remove from this list">\u2715</span>')+
+    '</span></div>';
+  });
+ });
+ html+='</div>';
+ G.innerHTML=html;
 }
 
-window.wlPickList=function(id){WL.active=id;wlRender();};
+window.wlPickList=function(id){WL.active=id;WL._px=null;wlRender();};
+
+window.wlCopyList=function(){
+ var syms=wlSymbols(wlActive())||[];
+ if(!syms.length){wlToast('Nothing to copy');return;}
+ var t=syms.map(function(x){return 'NSE:'+x;}).join(',');
+ if(navigator.clipboard&&navigator.clipboard.writeText)
+  navigator.clipboard.writeText(t).then(function(){wlToast('Copied '+syms.length+' symbols');});
+};
+
+/* Paste a list in - one per line or comma separated. NSE: prefixes are
+   stripped, so a list copied out of TradingView pastes straight back. */
+window.wlImport=function(){
+ var l=wlActive();
+ if(!l||l.kind==='live'){wlToast('Pick a normal list first');return;}
+ var raw=prompt('Paste symbols - commas or new lines.\nNSE: prefixes are fine, they get stripped.');
+ if(!raw)return;
+ var sec=prompt('Put them under a section heading? Leave blank for none.','')||null;
+ var syms=raw.split(/[\s,;]+/).map(function(x){
+   return String(x).toUpperCase().replace(/^NSE:/,'').trim();
+  }).filter(Boolean);
+ var uniq=[],seen={};
+ syms.forEach(function(x){if(!seen[x]){seen[x]=1;uniq.push(x);}});
+ if(!uniq.length){wlToast('No symbols found in that');return;}
+ var rows=uniq.map(function(x,i){return {wl_id:l.id,symbol:x,section:sec,sort_order:i};});
+ wlApi('watchlist_items',{method:'POST',
+   headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+   body:JSON.stringify(rows)})
+  .then(function(){wlToast('Imported '+uniq.length+' symbols');wlLoad();});
+};
+
+window.wlClear=function(){
+ var l=wlActive();
+ if(!l||l.kind==='live')return;
+ if(!confirm('Remove every symbol from "'+l.name+'"? The list itself stays.'))return;
+ wlApi('watchlist_items?wl_id=eq.'+l.id,{method:'DELETE',headers:wlHdr()})
+  .then(function(){wlToast('Cleared '+l.name);wlLoad();});
+};
+
+window.wlDuplicate=function(){
+ var l=wlActive();if(!l)return;
+ var n=prompt('Name for the copy:',l.name+' copy');
+ if(!n)return;
+ wlApi('watchlists',{method:'POST',headers:wlHdr({Prefer:'return=representation'}),
+  body:JSON.stringify({name:n,kind:l.kind,playbook:l.playbook,market:'IN',
+                       colour:l.colour,sort_order:WL.lists.length})})
+ .then(function(r){
+  var nid=r&&r[0]&&r[0].id;
+  var src=WL.items[l.id]||[];
+  if(!nid||!src.length){wlLoad();return;}
+  var rows=src.map(function(it){
+    return {wl_id:nid,symbol:it.symbol,colour:it.colour,section:it.section,sort_order:it.sort_order};});
+  return wlApi('watchlist_items',{method:'POST',
+    headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify(rows)}).then(function(){WL.active=nid;wlLoad();});
+ });
+};
+
+window.wlStar=function(){
+ var l=wlActive();if(!l)return;
+ wlApi('watchlists?id=eq.'+l.id,{method:'PATCH',headers:wlHdr(),
+  body:JSON.stringify({starred:!l.starred})}).then(function(){wlLoad();});
+};
+
+window.wlListColour=function(){
+ var l=wlActive();if(!l)return;
+ var opts=Object.keys(WL_SWATCH);
+ var c=prompt('Colour for this list:\n\n'+opts.join(', ')+'\n\n(blank clears it)',l.colour||'');
+ if(c===null)return;
+ c=String(c).trim().toLowerCase()||null;
+ if(c&&opts.indexOf(c)<0){wlToast('Not one of the colours');return;}
+ wlApi('watchlists?id=eq.'+l.id,{method:'PATCH',headers:wlHdr(),
+  body:JSON.stringify({colour:c})}).then(function(){wlLoad();});
+};
+
+window.wlSecRename=function(old){
+ var l=wlActive();if(!l||l.kind==='live')return;
+ var n=prompt('Rename this section (blank removes the heading):',old);
+ if(n===null)return;
+ wlApi('watchlist_items?wl_id=eq.'+l.id+'&section=eq.'+encodeURIComponent(old),
+  {method:'PATCH',headers:wlHdr(),body:JSON.stringify({section:(n.trim()||null)})})
+  .then(function(){wlLoad();});
+};
+
+window.wlSection=function(){
+ var l=wlActive();if(!l||l.kind==='live')return;
+ var syms=(WL.items[l.id]||[]).map(function(x){return x.symbol;});
+ if(!syms.length){wlToast('List is empty');return;}
+ var which=prompt('Which symbols go under the new heading?\nCommas or new lines.\n\nIn this list:\n'+syms.join(', '));
+ if(!which)return;
+ var name=prompt('Section heading:');
+ if(!name)return;
+ var pick=which.split(/[\s,;]+/).map(function(x){return String(x).toUpperCase().replace(/^NSE:/,'').trim();}).filter(Boolean);
+ var todo=pick.filter(function(x){return syms.indexOf(x)>=0;});
+ if(!todo.length){wlToast('None of those are in this list');return;}
+ Promise.all(todo.map(function(sym){
+  return wlApi('watchlist_items?wl_id=eq.'+l.id+'&symbol=eq.'+encodeURIComponent(sym),
+   {method:'PATCH',headers:wlHdr(),body:JSON.stringify({section:name})});
+ })).then(function(){wlToast(todo.length+' moved under '+name);wlLoad();});
+};
 
 window.wlOpen=function(sym){
  try{
