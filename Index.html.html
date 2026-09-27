@@ -16546,6 +16546,14 @@ function ceRender(){
  /* Candles and closes are aligned by DATE, not by a blind slice from the end. */
  var useC=(CE.style==='candle'&&SER.ohlc&&SER.ohlc.length>=5);
  var prim=useC?SER.ohlc:bars;
+ /* Replay. The cut is stored as a DATE, not an index, so switching between
+    daily, weekly and monthly keeps you at the same point in history instead
+    of jumping somewhere arbitrary. */
+ if(CE.replayD){
+  var _ri=-1;
+  for(var _q=0;_q<prim.length;_q++){ if(prim[_q].d<=CE.replayD)_ri=_q; else break; }
+  if(_ri>=12)prim=prim.slice(0,_ri+1);
+ }
  var total=prim.length;
  if(!CE.view)CE.view={n:126,off:0};
  var n=Math.max(12,Math.min(CE.view.n||126,total));
@@ -16556,6 +16564,7 @@ function ceRender(){
   return {d:b.d,c:b.c,o:b.o,h:b.h,l:b.l,v:(vmap[b.d]!=null?vmap[b.d]:null)};
  });
  var cndl=useC?win:null;
+ CE._winDates=win.map(function(b){return b.d;});
  var e={};[9,20,50,200].forEach(function(p){
   e[p]=win.map(function(b){var ix=hmap[b.d];return (ix==null)?null:E[p][ix];});
  });
@@ -16646,6 +16655,7 @@ function ceRender(){
  CE.lastScale=S;CE.adr=num((o.scr||{}).adr);
  g+=ceAlertSvg(S);
  g+=ceAutoSvg(ceAuto(o,cndl),S);
+ if(CE.show.ern!==false)g+=ceErnMark(o,win,S);
  g+=ceMeasureSvg(S,win);
  if(CE.show.smart){
   var deals=(CACHE.sm[CE.sym]||[]),dmap={};
@@ -16704,6 +16714,19 @@ function ceRender(){
   var prev=win[CE.hoverIdx-1];
   if(prev)rows.push(((hb.c/prev.c-1)*100>=0?'+':'')+((hb.c/prev.c-1)*100).toFixed(2)+'% on the day');
   if(hb.v!=null)rows.push('RVOL '+hb.v.toFixed(2)+'\u00d7');
+  /* distance from each EMA you have switched on - the number you are really
+     asking for when you hover a bar near the 9 or the 20 */
+  try{
+   var _ed=[];
+   [9,20,50,200].forEach(function(pp){
+    if(!CE.ema[pp]||!e[pp])return;
+    var ev=e[pp][CE.hoverIdx];
+    if(ev==null||!hb.c)return;
+    var dd=(hb.c/ev-1)*100;
+    _ed.push(pp+'E '+(dd>=0?'+':'')+dd.toFixed(1)+'%');
+   });
+   while(_ed.length)rows.push(_ed.splice(0,2).join('   '));
+  }catch(e2){}
   g+='<g pointer-events="none"><rect x="'+bx.toFixed(1)+'" y="'+by.toFixed(1)+'" width="168" height="'+(14+rows.length*13)+
      '" rx="5" fill="var(--bg2)" stroke="var(--bg3)" opacity="0.97"/>'+
      '<text x="'+(bx+8).toFixed(1)+'" y="'+(by+14).toFixed(1)+'" font-size="10" font-weight="700" fill="var(--text)">'+esc(String(hb.d||''))+'</text>'+
@@ -16737,6 +16760,32 @@ function ceReadout(win,cndl,e,o){
  el.innerHTML=out;
 }
 
+
+/* An E flag on the session a result was announced, the way TradingView marks
+   earnings. The scan stores one result date per stock, so this marks that one
+   if it falls inside the window you are looking at - it is not a full history
+   of every past result. */
+function ceErnMark(o,win,S){
+ try{
+  var d=(o&&o.scr)||{},ds=d.ern||d.ernDate||null;
+  if(!ds)return '';
+  ds=String(ds).slice(0,10);
+  var ix=-1;
+  for(var i=0;i<win.length;i++){if(win[i].d===ds){ix=i;break;}}
+  if(ix<0){                       /* no session on that exact date - take the next one */
+   for(var j=0;j<win.length;j++){if(win[j].d>=ds){ix=j;break;}}
+   if(ix<0)return '';
+   if(win[ix].d>ds&&(new Date(win[ix].d)-new Date(ds))/864e5>6)return '';
+  }
+  var x=S.x(ix),y=CE_H-CE_PAD.b-4;
+  return '<g pointer-events="none">'+
+   '<line x1="'+x.toFixed(1)+'" y1="'+CE_PAD.t+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+
+   '" stroke="var(--purple,#a855f7)" stroke-width="0.7" stroke-dasharray="3 4" opacity="0.55"/>'+
+   '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="7" fill="var(--purple,#a855f7)" opacity="0.9"/>'+
+   '<text x="'+x.toFixed(1)+'" y="'+(y+3.5).toFixed(1)+'" font-size="9" font-weight="700" '+
+   'text-anchor="middle" fill="#fff">E</text><title>Result announced '+esc(ds)+'</title></g>';
+ }catch(e){return '';}
+}
 
 /* ── the setup drawn for you: pole, box and prior pivots ──────────
    Worked out from the candles plus the scan's own qm_* figures, so what
@@ -16903,6 +16952,15 @@ function ceBar(o){
  h+=btn(false,'ceUndo()','⌫','Undo - steps back through your last 40 changes');
  h+=btn(false,'ceRedo()','↷','Redo the change you just undid');
  h+=btn(false,'wlQuickAdd()','➕ List','Add this stock to a watchlist');
+ h+='<span class="ce-sep"></span>';
+ h+=btn(!!CE.replayD,'ceReplay()','⏪ Replay','Hide everything after a chosen session and step forward bar by bar. Starts at the bar under your cursor if you are hovering one, otherwise 60 bars back.');
+ if(CE.replayD){
+  h+=btn(false,'ceReplayStep(-1)','◀','Back one bar');
+  h+=btn(false,'ceReplayStep(1)','▶','Forward one bar');
+  h+=btn(ceReplayPlaying(),'ceReplayPlay()','⏯ Auto','Play forward automatically, about one bar a second. Click again to pause.');
+  h+=btn(false,'ceReplayLive()','⏩ Live','Leave replay and come back to the present');
+  h+='<span class="ce-b" style="cursor:default;color:var(--amber)">replaying '+esc(CE.replayD)+'</span>';
+ }
  h+=btn(false,'ceClear()','Clear','Remove every drawing on this stock');
  h+='<span style="margin-left:auto"></span>';
  h+='<a class="ce-b" style="text-decoration:none" href="https://in.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(CE.sym)+
@@ -16948,6 +17006,54 @@ window.ceToDraw=function(){
    The one that used to sit here only popped the last drawing and, being
    later in the file, silently replaced them. */
 window.ceClear=function(){ceSave([]);ceRender();};
+
+/* ── BAR REPLAY ─────────────────────────────────────
+   Hides everything after a chosen session so you can step forward one bar at
+   a time - for checking whether a level was actually obvious at the time, and
+   for practising entries with no money on them. The cut is a DATE, so
+   switching timeframe keeps your place. */
+function ceFullSeries(){
+ try{
+  var o=(typeof gather==='function')?gather(CE.sym):null;
+  var SER=ceSeries(o);
+  return (CE.style==='candle'&&SER.ohlc&&SER.ohlc.length>=5)?SER.ohlc:SER.bars;
+ }catch(e){return [];}
+}
+window.ceReplay=function(){
+ if(CE.replayD){ceReplayStop();CE.replayD=null;ceRender();return;}
+ var ser=ceFullSeries();
+ if(!ser.length)return;
+ var idx=null;
+ try{
+  if(CE.hoverIdx!=null&&CE._winDates&&CE._winDates[CE.hoverIdx]){
+   var hd=CE._winDates[CE.hoverIdx];
+   for(var i=0;i<ser.length;i++){if(ser[i].d===hd){idx=i;break;}}
+  }
+ }catch(e){}
+ if(idx==null)idx=Math.max(12,ser.length-61);
+ CE.replayD=ser[idx].d;
+ CE.view={n:Math.min(126,idx+1),off:0};
+ ceRender();
+};
+window.ceReplayStep=function(n){
+ if(!CE.replayD)return;
+ var ser=ceFullSeries(),at=-1;
+ for(var i=0;i<ser.length;i++){if(ser[i].d<=CE.replayD)at=i;else break;}
+ var nx=Math.max(12,Math.min(ser.length-1,at+n));
+ if(nx===at&&n>0){ceReplayStop();ceRender();return;}
+ CE.replayD=ser[nx].d;
+ ceRender();
+};
+var _ceRepT=null;
+window.ceReplayPlay=function(){
+ if(_ceRepT){ceReplayStop();ceRender();return;}
+ if(!CE.replayD)window.ceReplay();
+ _ceRepT=setInterval(function(){window.ceReplayStep(1);},700);
+ ceRender();
+};
+function ceReplayStop(){if(_ceRepT){clearInterval(_ceRepT);_ceRepT=null;}}
+window.ceReplayLive=function(){ceReplayStop();CE.replayD=null;ceRender();};
+window.ceReplayPlaying=function(){return !!_ceRepT;};
 function ceRefresh(){
  var b=document.getElementById('ce-bar');
  if(b&&CE.sym)b.innerHTML=ceBar(gather(CE.sym));
