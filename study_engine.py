@@ -156,11 +156,11 @@ def fetch_ohlc(symbols):
             if not c or c <= 0:
                 continue
             ema = c if ema is None else (c - ema) * k + ema
-            panel.append((b["d"], c, hi, c > ema, lo))
+            panel.append((b["d"], c, hi, c > ema, lo, f(b.get("o")) or c))
         if len(panel) < 30:
             continue
         px[sym] = panel
-        idx[sym] = {d: i for i, (d, _, _, _, _) in enumerate(panel)}
+        idx[sym] = {b[0]: i for i, b in enumerate(panel)}
         done += 1
         if done % 200 == 0:
             print("  %d/%d symbols loaded..." % (done, len(symbols)), flush=True)
@@ -184,7 +184,7 @@ def build(rows):
                                     r.get("above_ema9_daily"), f(r.get("day_low")) or c))
     for s in px:
         px[s].sort()
-    idx = {s: {d: i for i, (d, _, _, _, _) in enumerate(v)} for s, v in px.items()}
+    idx = {s: {b[0]: i for i, b in enumerate(v)} for s, v in px.items()}
     return px, idx
 
 
@@ -198,6 +198,21 @@ def fwd(px, idx, sym, date, n):
         return None
     a, b = v[i][1], v[i + n][1]
     return (b / a - 1) * 100 if a else None
+
+
+def fwd_tr(px, idx, sym, date, n):
+    """Forward return you could actually have captured: in at the next open,
+    out at the close n sessions later."""
+    v = px.get(sym)
+    if not v:
+        return None
+    i = idx[sym].get(date)
+    if i is None:
+        return None
+    entry, ei = entry_after(px, sym, i)
+    if entry is None or ei + n >= len(v):
+        return None
+    return (v[ei + n][1] / entry - 1) * 100 if entry else None
 
 
 def back(px, idx, sym, date, n):
@@ -249,12 +264,12 @@ def exit_9ema(px, idx, sym, start_i, entry_px, need=2, cap=120):
     """
     v = px[sym]
     run = 0
-    for j in range(start_i + 1, min(start_i + 1 + cap, len(v))):
+    for j in range(start_i, min(start_i + cap, len(v))):
         ab = v[j][3]
         if ab is False:
             run += 1
             if run >= need:
-                return (v[j][1] / entry_px - 1) * 100, j - start_i
+                return (v[j][1] / entry_px - 1) * 100, j - start_i + 1
         elif ab is True:
             run = 0
         # None (not recorded that day) neither confirms nor breaks the run
@@ -271,8 +286,63 @@ def entry_then_exit(px, idx, sym, date, pivot, wait, need):
         return None, None
     for j in range(i + 1, min(i + 1 + wait, len(v))):
         if v[j][2] >= pivot:
-            return exit_9ema(px, idx, sym, j, pivot, need)
+            # if it gapped straight past the pivot you fill at the open, not
+            # at your level - taking the pivot there would be fiction
+            fill = max(pivot, v[j][5] or pivot)
+            return exit_9ema(px, idx, sym, j, fill, need)
     return None, None
+
+
+def entry_after(px, sym, i):
+    """
+    The scan runs at night, so the signal-day close is a price that had already
+    happened before the signal existed. You could not have bought it. The first
+    fill you could actually get is the NEXT session's open.
+
+    Returns (entry_price, entry_index) or (None, None) at the end of the data.
+    """
+    v = px.get(sym)
+    if not v or i + 1 >= len(v):
+        return None, None
+    b = v[i + 1]
+    return (b[5] or b[1]), i + 1
+
+
+def market_regime(px, idx):
+    """
+    Was the market rising or falling when the signal fired?
+
+    NIFTY 50 against its own 50-day EMA. If the index is missing from
+    daily_ohlc, falls back to an equal-weighted index built from the median
+    daily move of every symbol - crude, but it never leaves the split blank.
+
+    Returns {date: 'UP'|'DOWN'} and the name of whatever was used.
+    """
+    src = None
+    for name in ("NIFTY 50", "NIFTY50", "NIFTY"):
+        if name in px and len(px[name]) > 60:
+            src = name
+            break
+    if src:
+        closes = [(b[0], b[1]) for b in px[src]]
+    else:
+        agg = defaultdict(list)
+        for sym, v in px.items():
+            for j in range(1, len(v)):
+                if v[j - 1][1]:
+                    agg[v[j][0]].append(v[j][1] / v[j - 1][1])
+        lvl, closes = 100.0, []
+        for d in sorted(agg):
+            lvl *= median(agg[d])
+            closes.append((d, lvl))
+        src = "equal-weighted universe (NIFTY 50 not in daily_ohlc)"
+
+    k = 2.0 / (50 + 1)
+    ema, out = None, {}
+    for d, c in closes:
+        ema = c if ema is None else (c - ema) * k + ema
+        out[d] = "UP" if c >= ema else "DOWN"
+    return out, src
 
 
 def run_trade(px, sym, i, entry, stop, basis, need=2, cap=120):
@@ -297,20 +367,20 @@ def run_trade(px, sym, i, entry, stop, basis, need=2, cap=120):
         return None
     run = 0
     wicks = 0
-    for j in range(i + 1, min(i + 1 + cap, len(v))):
+    for j in range(i, min(i + cap, len(v))):
         c, hi, ab, lo = v[j][1], v[j][2], v[j][3], v[j][4]
         if lo <= stop:
             if basis == "touch":
                 # filled at the stop; a gap through it would fill worse, and
                 # there is no open price stored, so reality is a bit worse
-                return (stop - entry) / risk, j - i, "stop", wicks
+                return (stop - entry) / risk, j - i + 1, "stop", wicks
             if c <= stop:
-                return (c - entry) / risk, j - i, "stop", wicks
+                return (c - entry) / risk, j - i + 1, "stop", wicks
             wicks += 1                      # pierced and recovered same day
         if ab is False:
             run += 1
             if run >= need:
-                return (c - entry) / risk, j - i, "ema", wicks
+                return (c - entry) / risk, j - i + 1, "ema", wicks
         elif ab is True:
             run = 0
     return None                              # still open when the data ran out
@@ -320,7 +390,7 @@ def excursions(px, sym, i, entry, hold):
     """How far it went against you, and for you, in % - before any exit rule."""
     v = px[sym]
     lo = hi = None
-    for j in range(i + 1, min(i + 1 + hold, len(v))):
+    for j in range(i, min(i + hold, len(v))):
         a = (v[j][4] / entry - 1) * 100
         b = (v[j][2] / entry - 1) * 100
         lo = a if lo is None else min(lo, a)
@@ -475,7 +545,7 @@ def main():
                 v = r.get(col)
                 if v is None or v == "":
                     continue
-                fv = fwd(px, idx, r["symbol"], date, a.horizon)
+                fv = fwd_tr(px, idx, r["symbol"], date, a.horizon)
                 if fv is not None:
                     buck[str(v)].append(fv)
         rowsout = [(k, v) for k, v in buck.items() if len(v) >= 50]
@@ -512,7 +582,7 @@ def main():
                     if g not in rk:
                         continue
                     pos, tot, _ = rk[g]
-                    v = fwd(px, idx, r["symbol"], date, h)
+                    v = fwd_tr(px, idx, r["symbol"], date, h)
                     if v is None:
                         continue
                     frac = (pos - 1) / max(1, tot - 1)
@@ -527,7 +597,7 @@ def main():
     base = defaultdict(list)
     for date, rws in by_date.items():
         for r in rws:
-            v = fwd(px, idx, r["symbol"], date, a.horizon)
+            v = fwd_tr(px, idx, r["symbol"], date, a.horizon)
             if v is not None:
                 base["ALL STOCKS (baseline)"].append(v)
     res = [("ALL STOCKS (baseline)", base["ALL STOCKS (baseline)"])]
@@ -540,7 +610,7 @@ def main():
                         continue
                 except Exception:
                     continue
-                v = fwd(px, idx, r["symbol"], date, a.horizon)
+                v = fwd_tr(px, idx, r["symbol"], date, a.horizon)
                 if v is not None:
                     vals.append(v)
         res.append((name, vals))
@@ -612,7 +682,10 @@ def main():
                             continue
                         ret, d = entry_then_exit(px, idx, sym, date, pv, a.wait, need)
                     else:
-                        ret, d = exit_9ema(px, idx, sym, i, px[sym][i][1], need)
+                        en, ei = entry_after(px, sym, i)
+                        if en is None:
+                            continue
+                        ret, d = exit_9ema(px, idx, sym, ei, en, need)
                     if ret is not None:
                         rets.append(ret); days.append(d)
             st = stats(rets)
@@ -639,18 +712,21 @@ def main():
             i = idx.get(sym, {}).get(date)
             if not adr or adr <= 0 or i is None:
                 continue
-            sigs.append((sym, i, px[sym][i][1], adr, r.get("qm_pattern")))
+            entry, ei = entry_after(px, sym, i)     # next session's open
+            if entry is None:
+                continue
+            sigs.append((sym, ei, entry, adr, r.get("qm_pattern"), date))
     print("\n%d setups with an ADR and a tradable entry.\n" % len(sigs))
 
     # ---- 5a. where the stop BELONGS, from the trades themselves ----
     print("MAXIMUM ADVERSE EXCURSION - how deep it dug before it worked")
     print("  (measured over %d sessions, in ADR units, no stop applied)\n" % a.horizon)
     win_mae, lose_mae, win_mfe = [], [], []
-    for sym, i, entry, adr, _p in sigs:
+    for sym, i, entry, adr, _p, _dt in sigs:
         lo, hi = excursions(px, sym, i, entry, a.horizon)
         if lo is None:
             continue
-        out = fwd(px, idx, sym, px[sym][i][0], a.horizon)
+        out = fwd_tr(px, idx, sym, px[sym][i][0], a.horizon)
         if out is None:
             continue
         (win_mae if out > 0 else lose_mae).append(-lo / adr)
@@ -682,7 +758,7 @@ def main():
     for mult in (0.5, 0.75, 1.0, 1.25, 1.5, 2.0):
         for basis in ("touch", "close"):
             Rs, days, stopped, wicks = [], [], 0, 0
-            for sym, i, entry, adr, _p in sigs:
+            for sym, i, entry, adr, _p, _dt in sigs:
                 stop = entry * (1 - mult * adr / 100.0)
                 res = run_trade(px, sym, i, entry, stop, basis)
                 if not res:
@@ -710,7 +786,7 @@ def main():
     print("    %-8s %10s %12s" % ("stop", "wick days", "per 100 trades"))
     for mult in (0.5, 0.75, 1.0, 1.5):
         tot, wk = 0, 0
-        for sym, i, entry, adr, _p in sigs:
+        for sym, i, entry, adr, _p, _dt in sigs:
             stop = entry * (1 - mult * adr / 100.0)
             res = run_trade(px, sym, i, entry, stop, "close")
             if not res:
@@ -719,10 +795,123 @@ def main():
         if tot:
             print("    %-8s %10d %12.1f" % ("%.2fx" % mult, wk, 100.0 * wk / tot))
 
+    # ---------------- 6. WAS IT THE METHOD, OR THE YEAR? -----------------
+    print("\n\n" + "=" * 74)
+    print("MARKET REGIME - the same setups, split by what the market was doing")
+    print("=" * 74)
+    reg, src = market_regime(px, idx)
+    up_d = sum(1 for v in reg.values() if v == "UP")
+    print("\n  Regime source: %s (above / below its own 50 EMA)" % src)
+    print("  %d sessions UP, %d sessions DOWN in the window.\n"
+          % (up_d, len(reg) - up_d))
+
+    def split(items, getval):
+        out = {"UP": [], "DOWN": []}
+        for it in items:
+            d = it[-1]
+            g = reg.get(d)
+            if g not in out:
+                continue
+            v = getval(it)
+            if v is not None:
+                out[g].append(v)
+        return out
+
+    # 6a. every playbook, by regime, fixed horizon
+    print("  PLAYBOOKS by regime - forward %d sessions, entered at the next open"
+          % a.horizon)
+    print("  %-34s %8s %8s %8s %8s"
+          % ("", "UP n", "UP med", "DOWN n", "DOWN med"))
+    pb_items = []
+    for date, rws in by_date.items():
+        for r in rws:
+            pb_items.append((r, date))
+    for name, test in [("ALL STOCKS (baseline)", lambda r: True)] + list(PLAYS.items()):
+        got = {"UP": [], "DOWN": []}
+        for r, date in pb_items:
+            g = reg.get(date)
+            if g not in got:
+                continue
+            try:
+                if not test(r):
+                    continue
+            except Exception:
+                continue
+            v = fwd_tr(px, idx, r["symbol"], date, a.horizon)
+            if v is not None:
+                got[g].append(v)
+        u, dn = stats(got["UP"]), stats(got["DOWN"])
+        print("  %-34s %8s %8s %8s %8s"
+              % (name,
+                 u["n"] if u else "-", ("%.2f%%" % u["med"]) if u else "-",
+                 dn["n"] if dn else "-", ("%.2f%%" % dn["med"]) if dn else "-"))
+
+    # 6b. the stop study, by regime - close basis only, touch vs close settled
+    print("\n  STOPS by regime - close basis, after %.2f%% costs, expectancy in R"
+          % COST_PCT)
+    print("  %-8s %8s %10s %9s %8s %10s %9s"
+          % ("stop", "UP n", "UP expect", "UP win%", "DOWN n", "DOWN expect", "DOWN win%"))
+    for mult in (0.75, 1.0, 1.25, 1.5, 2.0):
+        got = {"UP": [], "DOWN": []}
+        for sym, i, entry, adr, _p, dt in sigs:
+            g = reg.get(dt)
+            if g not in got:
+                continue
+            stop = entry * (1 - mult * adr / 100.0)
+            res = run_trade(px, sym, i, entry, stop, "close")
+            if not res:
+                continue
+            R = res[0] - (entry * COST_PCT / 100.0) / (entry - stop)
+            got[g].append(R)
+        u, dn = got["UP"], got["DOWN"]
+        if not u or not dn:
+            continue
+        print("  %-8s %8d %9.3fR %8.1f%% %8d %10.3fR %8.1f%%"
+              % ("%.2fx" % mult, len(u), sum(u) / len(u),
+                 100.0 * len([x for x in u if x > 0]) / len(u),
+                 len(dn), sum(dn) / len(dn),
+                 100.0 * len([x for x in dn if x > 0]) / len(dn)))
+
+    # 6c. tailwind, by regime
+    print("\n  TAILWIND by regime - industry quartile, forward 20 sessions")
+    print("  %-16s %8s %9s %8s %9s" % ("", "UP n", "UP med", "DOWN n", "DOWN med"))
+    qr = {}
+    for date, rws in by_date.items():
+        rk = ind_rank.get(date)
+        g = reg.get(date)
+        if not rk or g not in ("UP", "DOWN"):
+            continue
+        for r in rws:
+            if not is_setup(r):
+                continue
+            gr = (r.get("industry") or "").strip()
+            if gr not in rk:
+                continue
+            pos, tot, _ = rk[gr]
+            v = fwd_tr(px, idx, r["symbol"], date, 20)
+            if v is None:
+                continue
+            frac = (pos - 1) / max(1, tot - 1)
+            q = "Q1 (leading)" if frac <= .25 else ("Q4 (lagging)" if frac > .75 else "Q2-Q3")
+            qr.setdefault(q, {"UP": [], "DOWN": []})[g].append(v)
+    for q in ("Q1 (leading)", "Q2-Q3", "Q4 (lagging)"):
+        if q not in qr:
+            continue
+        u, dn = stats(qr[q]["UP"]), stats(qr[q]["DOWN"])
+        print("  %-16s %8s %9s %8s %9s"
+              % (q, u["n"] if u else "-", ("%.2f%%" % u["med"]) if u else "-",
+                 dn["n"] if dn else "-", ("%.2f%%" % dn["med"]) if dn else "-"))
+
+    print("\n  If the UP columns are positive and the DOWN columns negative, the")
+    print("  setups are fine and the missing rule is WHEN to trade them.")
+    print("  If UP is also negative, the problem is the setups themselves.")
+
     print("\nNot measurable from this table, so deliberately NOT shown:")
     for s in SKIPPED:
         print("  - " + s)
-    print("\nThe stop study deducts costs; the earlier tables do not.")
+    print("\nEntries are the NEXT session's open throughout - the signal-day")
+    print("close had already happened before the nightly scan produced the signal.")
+    print("The stop study deducts costs; the signal-quality tables do not.")
     print("Highs and lows are real (daily_ohlc). No slippage or gap modelling:")
     print("a gap through your stop fills worse than this assumes.")
     print("A playbook only earns its place if it beats the baseline row.")
