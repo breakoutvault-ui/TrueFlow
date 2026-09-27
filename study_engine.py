@@ -45,32 +45,57 @@ MIN_GROUP = 5          # a group needs this many members to be ranked
 PAGE = 1000
 
 
+def sessions_list(n):
+    """
+    Walk BACK one distinct date at a time. The obvious version - ask for
+    n*5 rows and dedupe - fails badly: one session is ~1,450 rows, so a
+    750-row page contains exactly one date.
+    """
+    dates, cur = [], None
+    while len(dates) < n:
+        q = "select=session_date&order=session_date.desc&limit=1"
+        if cur:
+            q += "&session_date=lt.%s" % cur
+        r = requests.get("%s/rest/v1/momentum_stocks?%s" % (SB_URL, q),
+                         headers=H, timeout=60)
+        r.raise_for_status()
+        j = r.json()
+        if not j:
+            break
+        cur = j[0]["session_date"]
+        dates.append(cur)
+    return dates
+
+
 def fetch(sessions):
-    """Pull the last N sessions. Paged, because PostgREST caps a page at 1000."""
-    r = requests.get("%s/rest/v1/momentum_stocks?select=session_date"
-                     "&order=session_date.desc&limit=%d" % (SB_URL, sessions * 5),
-                     headers=H, timeout=60)
-    r.raise_for_status()
-    dates = sorted({x["session_date"] for x in r.json()}, reverse=True)[:sessions]
+    """One session at a time - keeps every OFFSET small, which matters on a
+    267 MB table where a deep offset makes Postgres crawl."""
+    dates = sessions_list(sessions)
     if not dates:
         print("No rows found in momentum_stocks."); sys.exit(1)
-    start = dates[-1]
-    print("Pulling %d sessions, %s to %s ..." % (len(dates), start, dates[0]))
+    need = 63 + max(HORIZONS)
+    if len(dates) < need:
+        print("\n!! Only %d sessions available. The group ranking needs 63 sessions"
+              "\n   of history and the longest forward window is %d, so most rows"
+              "\n   will have nothing to measure. Want at least %d for a real answer.\n"
+              % (len(dates), max(HORIZONS), need))
+    print("Pulling %d sessions, %s to %s ..." % (len(dates), dates[-1], dates[0]))
 
-    rows, off = [], 0
-    while True:
-        u = ("%s/rest/v1/momentum_stocks?select=%s&session_date=gte.%s"
-             "&order=session_date.asc,symbol.asc&limit=%d&offset=%d"
-             % (SB_URL, COLS, start, PAGE, off))
-        rr = requests.get(u, headers=H, timeout=120)
-        rr.raise_for_status()
-        batch = rr.json()
-        rows.extend(batch)
-        if len(batch) < PAGE:
-            break
-        off += PAGE
-        if off % 20000 == 0:
-            print("  %d rows..." % off, flush=True)
+    rows = []
+    for i, d in enumerate(dates):
+        off = 0
+        while True:
+            u = ("%s/rest/v1/momentum_stocks?select=%s&session_date=eq.%s"
+                 "&order=symbol.asc&limit=%d&offset=%d" % (SB_URL, COLS, d, PAGE, off))
+            rr = requests.get(u, headers=H, timeout=120)
+            rr.raise_for_status()
+            b = rr.json()
+            rows.extend(b)
+            if len(b) < PAGE:
+                break
+            off += PAGE
+        if (i + 1) % 25 == 0:
+            print("  %d/%d sessions, %d rows..." % (i + 1, len(dates), len(rows)), flush=True)
     print("  %d rows total\n" % len(rows))
     return rows, dates
 
