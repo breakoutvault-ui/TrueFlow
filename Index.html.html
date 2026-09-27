@@ -17427,6 +17427,7 @@ function wlRender(){
   '<button class="scr-tool" onclick="wlRename()">Rename</button>'+
   '<button class="scr-tool" onclick="wlDuplicate()" title="Make a copy of this list">Copy list</button>'+
   (list.kind==='live'?'':'<button class="scr-tool" onclick="wlImport()" title="Paste symbols in - NSE: prefixes are stripped">\u2b07 Import</button>')+
+  (list.kind==='live'?'':'<button class="scr-tool" onclick="wlFromPlaybook()" title="Copy a playbook\'s current matches into this list, once">\u2b07 From playbook</button>')+
   '<button class="scr-tool" onclick="wlCopyList()" title="Copy every symbol for pasting into TradingView">\ud83d\udccb Copy symbols</button>'+
   (list.kind==='live'?'':'<button class="scr-tool" onclick="wlSection()" title="Group some symbols under a heading">\u2795 Section</button>')+
   (list.kind==='live'?'':'<button class="scr-tool" onclick="wlClear()">Clear</button>')+
@@ -17475,8 +17476,11 @@ function wlRender(){
    var dot=col?('<span style="width:9px;height:9px;border-radius:50%;background:'+(WL_SWATCH[col]||col)+
      ';display:inline-block;margin-right:6px;flex:0 0 auto" title="'+esc(WL.colours[col]||col)+'"></span>')
     :'<span style="width:9px;margin-right:6px;display:inline-block;flex:0 0 auto"></span>';
-   html+='<div class="wl-row" style="display:flex;gap:8px;align-items:center;padding:5px 9px;'+
-    'border-top:1px solid var(--bg3);font-size:12px">'+
+   html+='<div class="wl-row"'+(live?'':' draggable="true" data-sym="'+esc(sym)+'"'+
+    ' ondragstart="wlDragStart(event)" ondragover="wlDragOver(event)" ondrop="wlDrop2(event)"'+
+    ' ondragend="wlDragEnd(event)"')+
+    ' style="display:flex;gap:8px;align-items:center;padding:5px 9px;'+
+    'border-top:1px solid var(--bg3);font-size:12px'+(live?'':';cursor:grab')+'">'+
     '<span onclick="wlOpen(\''+esc(sym)+'\')" style="flex:1 1 auto;cursor:pointer;font-weight:600;display:flex;align-items:center" '+
     'title="Open the chart - the arrows will walk this list">'+dot+esc(sym)+'</span>'+
     '<span class="scr-mono" style="width:78px;text-align:right">'+last+'</span>'+
@@ -17517,6 +17521,70 @@ window.wlQuickAdd=function(sym){
    .then(function(){wlToast(sym+' added to '+wl.name);WL._px=null;wlLoad();});
  };
  if(!WL.lists.length){wlLoad();setTimeout(go,900);} else go();
+};
+
+/* Pull a playbook's current matches into this list, once. Different from a
+   LIVE list: this takes a copy you can then curate, rather than something
+   that rewrites itself every night. */
+window.wlFromPlaybook=function(){
+ var l=wlActive();
+ if(!l||l.kind==='live'){wlToast('Pick a normal list first');return;}
+ if(typeof SCR==='undefined'||!SCR.data||!SCR.data.length){
+  wlToast('Open the Screener once first, so today\'s scan is loaded');return;}
+ var ps=(typeof SCR_PRESETS!=='undefined')?SCR_PRESETS.filter(function(p){return p.grp;}):[];
+ if(!ps.length){wlToast('No playbooks found');return;}
+ var menu=ps.map(function(p,i){return (i+1)+') '+p.label+'  ['+p.grp+']';}).join('\n');
+ var pick=prompt('Which playbook? Its current matches get copied in.\n\n'+menu,'1');
+ var idx=parseInt(pick,10)-1;
+ if(isNaN(idx)||idx<0||idx>=ps.length)return;
+ var pb=ps[idx];
+ var syms=wlLiveSyms(pb.id)||[];
+ if(!syms.length){wlToast('Nothing matches '+pb.label+' today');return;}
+ var sec=prompt('Put them under a section heading? Blank for none.',pb.label)||null;
+ var rows=syms.map(function(x,i){return {wl_id:l.id,symbol:x,section:sec,sort_order:i};});
+ wlApi('watchlist_items',{method:'POST',
+   headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+   body:JSON.stringify(rows)})
+  .then(function(){wlToast('Added '+syms.length+' from '+pb.label);WL._px=null;wlLoad();});
+};
+
+/* Drag to reorder. sort_order was already in the table and populated - this
+   is just the interaction. Only the rows inside one section move; dropping
+   onto a row in another section moves the dragged stock into that section. */
+var _wlDrag=null;
+window.wlDragStart=function(ev){
+ _wlDrag=ev.target.getAttribute('data-sym');
+ ev.dataTransfer.effectAllowed='move';
+ try{ev.dataTransfer.setData('text/plain',_wlDrag);}catch(e){}
+ ev.target.style.opacity='0.4';
+};
+window.wlDragEnd=function(ev){ev.target.style.opacity='';};
+window.wlDragOver=function(ev){
+ ev.preventDefault();
+ ev.dataTransfer.dropEffect='move';
+};
+window.wlDrop2=function(ev){
+ ev.preventDefault();
+ var row=ev.target.closest?ev.target.closest('.wl-row'):null;
+ var onto=row&&row.getAttribute('data-sym');
+ if(!_wlDrag||!onto||onto===_wlDrag)return;
+ var l=wlActive();if(!l||l.kind==='live')return;
+ var items=(WL.items[l.id]||[]).slice();
+ var order=items.map(function(x){return x.symbol;});
+ var from=order.indexOf(_wlDrag),to=order.indexOf(onto);
+ if(from<0||to<0)return;
+ order.splice(to,0,order.splice(from,1)[0]);
+ /* the dragged row joins the section of the row it landed on */
+ var tgtSec=null;
+ items.forEach(function(x){if(x.symbol===onto)tgtSec=x.section||null;});
+ var writes=order.map(function(sym,i){
+  var body={sort_order:i};
+  if(sym===_wlDrag)body.section=tgtSec;
+  return wlApi('watchlist_items?wl_id=eq.'+l.id+'&symbol=eq.'+encodeURIComponent(sym),
+   {method:'PATCH',headers:wlHdr(),body:JSON.stringify(body)});
+ });
+ _wlDrag=null;
+ Promise.all(writes).then(function(){wlLoad();});
 };
 
 window.wlCopyList=function(){
