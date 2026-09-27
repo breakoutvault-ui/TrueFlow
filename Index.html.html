@@ -13002,7 +13002,9 @@ function scrFillPlaybooks(){
   var grps=[];pbs.forEach(function(p){if(grps.indexOf(p.grp)<0)grps.push(p.grp);});
   pl.innerHTML=grps.map(function(g){
     return '<div class="scr-pb-grp">'+g+'</div>'+pbs.filter(function(p){return p.grp===g;}).map(function(p){
-      return '<button class="scr-pb-item" data-p="'+p.id+'" title="'+(p.how||'').replace(/"/g,'&quot;')+'" onclick="scrApplyPreset(\''+p.id+'\')">'+p.label+'</button>';
+      var extra=(typeof TF_RE!=='undefined'&&TF_RE[p.id]&&TF_RE[p.id].n)
+                ? '\n\nHigher-timeframe rule: '+TF_RE[p.id].n : '';
+      return '<button class="scr-pb-item" data-p="'+p.id+'" title="'+((p.how||'')+extra).replace(/"/g,'&quot;')+'" onclick="scrApplyPreset(\''+p.id+'\')">'+p.label+'</button>';
     }).join('');
   }).join('');
   document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',b.dataset.p===SCR.activePreset);});
@@ -13299,8 +13301,8 @@ function scrToggleCtx(){
   const b=document.getElementById('scr-ctx-btn');
   if(b){b.style.color=SCR.ctxMode?'var(--cyan)':'';b.textContent=SCR.ctxMode?'\u25C9 Smart columns ON':'\u25CB Smart columns';}
 }
-function scrApplyPreset(id){if(id===SCR.activePreset&&id!=='all'){scrClearAll();return;}SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());SCR.activePreset=id;const p=SCR_PRESETS.find(x=>x.id===id);if(p.set)for(const k in p.set)SCR.state[k]=new Set(p.set[k]);if(p.dyn==='strongsector')SCR.state.sector=scrStrongSectorsPx();try{scrApplyCtxCols(p);}catch(e){}scrSyncChecks();scrSyncChips();scrRender();scrPlayInfo(p);}
-function scrClearAll(){SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());SCR.activePreset='all';const q=document.getElementById('scr-q');if(q)q.value='';scrSyncChecks();scrSyncChips();scrRender();scrPlayInfo(null);}
+function scrApplyPreset(id){if(id===SCR.activePreset&&id!=='all'){scrClearAll();return;}SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());SCR.state.aplus=new Set();SCR.activePreset=id;const p=SCR_PRESETS.find(x=>x.id===id);if(p.set)for(const k in p.set)SCR.state[k]=new Set(p.set[k]);if(p.dyn==='strongsector')SCR.state.sector=scrStrongSectorsPx();try{scrApplyCtxCols(p);}catch(e){}scrSyncChecks();scrSyncChips();scrRender();scrPlayInfo(p);}
+function scrClearAll(){SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set());SCR.state.aplus=new Set();SCR.activePreset='all';const q=document.getElementById('scr-q');if(q)q.value='';scrSyncChecks();scrSyncChips();scrRender();scrPlayInfo(null);}
 function scrHideCol(k){SCR.vis[k]=false;if(SCR.manualCols)SCR.manualCols.delete(k);scrSyncColMenu();scrRender();}
 function scrUnhideAll(){SCR.ctxMode=false;SCR_COLS.forEach(c=>SCR.vis[c.k]=true);scrSyncColMenu();scrRender();}
 function scrEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -13435,6 +13437,9 @@ function scrPasses(d){
  const q=(document.getElementById('scr-q').value||'').toUpperCase();if(q&&!(d.sym.includes(q)||(d.name||'').toUpperCase().includes(q)))return false;
  const S=SCR.state;
  if(SCR.activePreset==='aplus'&&!d.aplus)return false;
+ /* 'aplus' is not a chip in SCR_FILTERS, so nothing here used to read it:
+    the Full Alignment A+ playbook asked for it and was silently ignored. */
+ if(S.aplus&&S.aplus.size&&!d.aplus)return false;
  if(S.pattern.size){let ok=false;S.pattern.forEach(p=>{if(['EP','VCP','HTF','Reclaim'].includes(p)&&d.qm===p)ok=true;if(p==='BrokenOut'&&d.z52==='bo')ok=true;if(p==='NearPivot'&&(d.z52==='zone'||d.z52==='base'))ok=true;});if(!ok)return false;}
  if(S.entry&&S.entry.size){if(!d.entryMode||!S.entry.has(d.entryMode))return false;}
  if(S.align&&S.align.size){if(!S.align.has(d.alignState))return false;}
@@ -14128,8 +14133,12 @@ function tfRenderStrip(){
  function pill(lbl,st,p){return '<span class="tf-pill" style="color:'+(TF_LEGCOL[st]||'var(--muted)')+'" title="% of stocks above the '+lbl+'">'+lbl.split(' ')[0]+' '+(st||'—')+(p!=null?' · '+p+'%':'')+'</span>';}
  var ok=Object.keys(window.TF_MTF||{}).length>0;
  var h='<span>Market</span>'+pill('Daily 20 EMA',A.mktState,A.breadth)+pill('Weekly 20 EMA',L.mktW,L.mktWp)+pill('Monthly 9 EMA',L.mktM,L.mktMp);
- h+='<span style="margin-left:auto">Playbook rules</span><button class="tf-rbtn'+(SCR.rulesMode!=='orig'?' on':'')+'" onclick="tfSetRules(\'new\')">Reframed</button><button class="tf-rbtn'+(SCR.rulesMode==='orig'?' on':'')+'" onclick="tfSetRules(\'orig\')">Original</button>';
- if(!ok)h+='<span style="width:100%;color:var(--amber)">Trend data not loaded yet — the nightly MTF scan has not written it. Trend columns stay blank until it does.</span>';
+ /* The Original / Reframed switch is retired: one playbook returning two
+    different lists depending on a toggle was worse than either rule set.
+    The reframed rules are now the only rules. 'orig' survives purely as the
+    automatic fallback below, for when the nightly MTF scan has not written
+    the weekly/monthly fields the reframed rules depend on. */
+ if(!ok)h+='<span style="width:100%;color:var(--amber)">Trend data not loaded yet — the nightly MTF scan has not written it. Trend columns stay blank, and playbooks are running without their weekly/monthly conditions until it does.</span>';
  else h+='<span style="width:100%">Trend data: '+esc(window.TF_MTF_DATE||'—')+' · '+tfEvidence()+'</span>';
  el.innerHTML=h;
 }
