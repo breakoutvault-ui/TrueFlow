@@ -961,6 +961,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tab-screener .scr-s-hi{background:rgba(0,255,136,.14);color:var(--green)}#tab-screener .scr-s-mid{background:rgba(245,158,11,.14);color:var(--amber)}#tab-screener .scr-s-lo{background:var(--bg3);color:var(--muted)}
 #tab-screener .scr-pv{display:inline-block;vertical-align:middle;cursor:help}
 #tab-screener .scr-yes{color:var(--green);font-weight:700}
+.scr-pick{margin-right:6px;vertical-align:middle;cursor:pointer;accent-color:var(--cyan)}
 .scr-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--green);color:var(--green);padding:10px 18px;border-radius:10px;font-size:12px;font-weight:600;z-index:9999;opacity:0;transition:.3s;pointer-events:none}
 .scr-toast.show{opacity:1}
 </style>
@@ -2359,7 +2360,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <details class="scr-f"><summary class="scr-tool">⊞ Columns</summary><div class="scr-panel" id="scr-col-panel" style="min-width:230px"></div></details>
       <button class="scr-tool unhide" onclick="scrUnhideAll()">⟲ Unhide all columns</button>
       <details class="scr-f"><summary class="scr-tool">💾 Presets</summary><div class="scr-panel" style="min-width:230px"><div class="ph">Save current filters</div><div class="scr-psave"><input id="scr-pname" placeholder="Name this preset…"><button class="scr-tool" onclick="scrSavePreset()">Save</button><button class="scr-tool" id="scr-ctx-btn" style="color:var(--cyan)" onclick="scrToggleCtx()" title="Smart columns: show only the columns relevant to the active playbook and the filters you have applied. Columns you tick by hand stay visible. Turn it off to see everything.">◉ Smart columns ON</button></div><div class="ph" style="margin-top:6px">Saved</div><div id="scr-saved-list"></div></div></details>
-      <button class="scr-tool" onclick="scrCopyTV()">📋 TradingView</button>
+      <button class="scr-tool" id="scr-tvbtn" onclick="scrCopyTV()">📋 TradingView</button><button class="scr-tool" onclick="scrPickAll()" title="Tick every row currently showing">☑ Select all</button><span id="scr-picked" class="scr-tool" style="display:none;align-items:center;cursor:default"></span>
       <button class="scr-tool clear" onclick="scrClearAll()">✕ Clear all filters</button>
       <span style="flex:1"></span>
       <span class="scr-count"><b id="scr-cnt">0</b> of <span id="scr-tot">0</span> match · Updated <span id="scr-updated">—</span></span>
@@ -13513,7 +13514,46 @@ function scrGetSaved(){try{return JSON.parse(localStorage.getItem('tf_scr_preset
 function scrRenderSaved(){const all=scrGetSaved();const el=document.getElementById('scr-saved-list');if(!el)return;el.innerHTML=all.length?all.map((s,i)=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 7px"><span style="cursor:pointer;color:var(--cyan);font-weight:600" onclick="scrLoadPreset(${i})">${s.n}</span><span style="cursor:pointer;color:var(--red)" onclick="scrDelPreset(${i})">✕</span></div>`).join(''):'<div style="color:var(--muted);font-size:11px;padding:5px 7px">No saved presets yet</div>';}
 function scrLoadPreset(i){const all=scrGetSaved();const s=all[i];if(!s)return;SCR_FILTERS.forEach(f=>SCR.state[f.key]=new Set((s.state&&s.state[f.key])||[]));SCR.activePreset=null;scrSyncChecks();scrSyncChips();scrRender();}
 function scrDelPreset(i){const all=scrGetSaved();all.splice(i,1);localStorage.setItem('tf_scr_presets',JSON.stringify(all));scrRenderSaved();scrAppendUserPills();}
-function scrCopyTV(){const syms=SCR.last.map(d=>''+d.sym).join(',');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(syms).then(()=>scrToast('Copied '+SCR.last.length+' filtered symbols for TradingView'),()=>scrToast('Copy failed — copy manually'));}else scrToast('Clipboard not available');}
+/* Multi-select. The TradingView button copies your TICKED rows when any are
+   ticked, and falls back to the whole filtered list when none are - so the
+   old behaviour is unchanged until you actually select something. */
+function scrPick(sym,on){
+ if(!SCR.sel)SCR.sel=new Set();
+ if(on)SCR.sel.add(sym); else SCR.sel.delete(sym);
+ scrPickBar();
+}
+function scrPickAll(){
+ if(!SCR.sel)SCR.sel=new Set();
+ (SCR.last||[]).forEach(function(d){SCR.sel.add(d.sym);});
+ scrRender();scrPickBar();
+}
+function scrPickNone(){
+ SCR.sel=new Set();
+ scrRender();scrPickBar();
+}
+function scrPickBar(){
+ var n=(SCR.sel&&SCR.sel.size)||0;
+ var b=document.getElementById('scr-picked');
+ if(b){
+  b.style.display=n?'inline-flex':'none';
+  b.innerHTML='<b>'+n+' selected</b>'+
+   '<span onclick="scrPickNone()" style="cursor:pointer;color:var(--red);margin-left:8px" title="Clear the selection">clear</span>';
+ }
+ var t=document.getElementById('scr-tvbtn');
+ if(t)t.textContent=n?('\ud83d\udccb TradingView ('+n+')'):'\ud83d\udccb TradingView';
+}
+function scrCopyTV(){
+ var sel=(SCR.sel&&SCR.sel.size)?(SCR.last||[]).filter(function(d){return SCR.sel.has(d.sym);}):null;
+ var list=sel&&sel.length?sel:(SCR.last||[]);
+ var what=sel&&sel.length?'selected':'filtered';
+ var syms=list.map(function(d){return ''+d.sym;}).join(',');
+ if(!list.length){scrToast('Nothing to copy');return;}
+ if(navigator.clipboard&&navigator.clipboard.writeText){
+  navigator.clipboard.writeText(syms).then(
+   function(){scrToast('Copied '+list.length+' '+what+' symbols for TradingView');},
+   function(){scrToast('Copy failed - copy manually');});
+ } else scrToast('Clipboard not available');
+}
 function scrToast(m){let t=document.getElementById('scr-toast');if(!t){t=document.createElement('div');t.id='scr-toast';t.className='scr-toast';document.body.appendChild(t);}t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
 
 function scrPasses(d){
@@ -13617,10 +13657,12 @@ function scrRender(){
  document.getElementById('scr-thead').innerHTML=hd;
  document.getElementById('scr-body').innerHTML=rows.length?rows.map(d=>{
   const tv='https://www.tradingview.com/chart/?symbol='+d.sym;
-  let t=`<td class="c"><span class="scr-star" title="Add ${d.sym} to My Picks">☆</span></td><td><a class="scr-sym" href="${tv}" target="_blank" rel="noopener" title="${d.name?d.name+' - ':''}Open ${d.sym} chart in TradingView">${d.sym} ↗</a></td>`;
+  const _sel=SCR.sel&&SCR.sel.has(d.sym)?' checked':'';
+  let t=`<td class="c"><span class="scr-star" title="Add ${d.sym} to My Picks">☆</span></td><td><input type="checkbox" class="scr-pick"${_sel} onclick="event.stopPropagation();scrPick('${d.sym}',this.checked)" title="Select ${d.sym} - the TradingView button copies only your selection"><a class="scr-sym" href="${tv}" target="_blank" rel="noopener" title="${d.name?d.name+' - ':''}Open ${d.sym} chart in TradingView">${d.sym} ↗</a></td>`;
   t+=show.map(c=>`<td class="${c.a||''}">${c.cell(d)}</td>`).join('');
   return `<tr class="${d.aplus?'aplus-row':''}">${t}</tr>`;
  }).join(''):`<tr><td colspan="${show.length+2}" style="padding:24px;text-align:center;color:var(--muted)">No stocks match — clear a filter.</td></tr>`;
+ try{scrPickBar();}catch(e){}
 }
 </script>
 
