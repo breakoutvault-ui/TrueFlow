@@ -249,6 +249,22 @@ def main():
     for r in rows:
         by_date[r["session_date"]].append(r)
 
+    # ---------------- 0. WHAT IS ACTUALLY IN THE COLUMNS ----------------
+    # Three playbooks returned n=0 on the first run because the literal values
+    # were guessed from the dashboard code. Print the truth instead.
+    print("COLUMN VALUES actually present (so no filter is written on a guess):")
+    for col in ("qm_pattern", "nr_status", "rcl_grade", "breakout_type",
+                "category", "qm_vol_dryup", "vol_class"):
+        cnt = defaultdict(int)
+        for r in rows:
+            v = r.get(col)
+            cnt["(null)" if v is None or v == "" else str(v)] += 1
+        if len(cnt) <= 1 and "(null)" in cnt:
+            print("  %-14s ALL NULL" % col); continue
+        top = sorted(cnt.items(), key=lambda kv: -kv[1])[:8]
+        print("  %-14s %s" % (col, "  ".join("%s=%d" % (k, v) for k, v in top)))
+    print()
+
     print("Ranking groups by 3-month median member return (min %d members)..."
           % MIN_GROUP)
     sec_rank = group_ranks(by_date, px, idx, "sector")
