@@ -108,6 +108,72 @@ def f(x):
         return None
 
 
+COST_PCT = 0.35        # round-trip: STT both sides, stamp, exchange, GST, DP
+
+
+def fetch_ohlc(symbols):
+    """
+    The panel now comes from daily_ohlc - REAL highs and lows from Kite.
+    momentum_stocks.day_high / day_low are empty on all 264,077 rows, which is
+    why every earlier stop result was close-to-close and the wick count was 0.
+
+    The 9 EMA is computed here from these closes rather than read from
+    above_ema9_daily, because that column only exists for the ~260 scanned
+    sessions while this table holds three years. Exits can now run past the
+    last scan date instead of being cut short by it.
+
+    Shape is unchanged - (date, close, high, above9, low) - so nothing
+    downstream needs to know where the numbers came from.
+    """
+    px, idx = {}, {}
+    done = 0
+    for sym in symbols:
+        rows, cur = [], None
+        while True:
+            q = ("select=d,o,h,l,c&symbol=eq.%s&order=d.asc&limit=1000" % sym)
+            if cur:
+                q += "&d=gt.%s" % cur
+            r = requests.get("%s/rest/v1/daily_ohlc?%s" % (SB_URL, q),
+                             headers=H, timeout=60)
+            r.raise_for_status()
+            j = r.json()
+            if not j:
+                break
+            rows.extend(j)
+            cur = j[-1]["d"]
+            if len(j) < 1000:
+                break
+        if len(rows) < 30:
+            continue
+
+        k = 2.0 / (9 + 1)
+        ema = None
+        panel = []
+        for b in rows:
+            c = f(b.get("c"))
+            hi = f(b.get("h")) or c
+            lo = f(b.get("l")) or c
+            if not c or c <= 0:
+                continue
+            ema = c if ema is None else (c - ema) * k + ema
+            panel.append((b["d"], c, hi, c > ema, lo))
+        if len(panel) < 30:
+            continue
+        px[sym] = panel
+        idx[sym] = {d: i for i, (d, _, _, _, _) in enumerate(panel)}
+        done += 1
+        if done % 200 == 0:
+            print("  %d/%d symbols loaded..." % (done, len(symbols)), flush=True)
+    return px, idx
+
+
+def f(x):
+    try:
+        return None if x is None or x == "" else float(x)
+    except Exception:
+        return None
+
+
 def build(rows):
     """px[symbol] = [(date, close, high)] in date order, plus a date index."""
     px = defaultdict(list)
@@ -370,7 +436,12 @@ def main():
     a = ap.parse_args()
 
     rows, dates = fetch(a.sessions)
-    px, idx = build(rows)
+    syms = sorted({r["symbol"] for r in rows})
+    print("Loading real daily OHLC for %d symbols from daily_ohlc..." % len(syms))
+    px, idx = fetch_ohlc(syms)
+    print("  %d symbols have usable price history\n" % len(px))
+    if not px:
+        print("daily_ohlc is empty - run ohlc_backfill.py first."); sys.exit(1)
 
     by_date = defaultdict(list)
     for r in rows:
@@ -602,9 +673,12 @@ def main():
     print("\n\nTOUCH vs CLOSE - same stops, same trades, only the trigger differs")
     print("  Stop = N x ADR below entry. Exit otherwise on 2 closes under the 9 EMA.")
     print("  Expectancy is in R, so it already accounts for the wider stop costing more.\n")
-    print("  %-6s %-7s %7s %8s %9s %8s %8s %7s %7s"
-          % ("stop", "basis", "trades", "stopped%", "expectancy", "win%",
-             "avgWin", "avgLoss", "days"))
+    print("  Costs of %.2f%% round trip are deducted from every trade." % COST_PCT)
+    print("  medianR is shown next to expectancy: a big mean with a poor median")
+    print("  means a handful of outliers are carrying the whole result.\n")
+    print("  %-6s %-7s %7s %8s %9s %8s %8s %8s %7s %6s"
+          % ("stop", "basis", "trades", "stopped%", "expect", "medianR",
+             "win%", "avgWin", "avgLoss", "days"))
     for mult in (0.5, 0.75, 1.0, 1.25, 1.5, 2.0):
         for basis in ("touch", "close"):
             Rs, days, stopped, wicks = [], [], 0, 0
@@ -614,6 +688,7 @@ def main():
                 if not res:
                     continue
                 R, d, why, wk = res
+                R -= (entry * COST_PCT / 100.0) / (entry - stop)   # costs, in R
                 Rs.append(R); days.append(d); wicks += wk
                 if why == "stop":
                     stopped += 1
@@ -621,9 +696,9 @@ def main():
                 continue
             wins = [r for r in Rs if r > 0]
             loss = [r for r in Rs if r <= 0]
-            print("  %-6s %-7s %7d %7.1f%% %9.3fR %7.1f%% %7.2fR %7.2fR %6.0f"
+            print("  %-6s %-7s %7d %7.1f%% %8.3fR %7.2fR %7.1f%% %7.2fR %7.2fR %5.0f"
                   % ("%.2fx" % mult, basis, len(Rs), 100.0 * stopped / len(Rs),
-                     sum(Rs) / len(Rs), 100.0 * len(wins) / len(Rs),
+                     sum(Rs) / len(Rs), median(Rs), 100.0 * len(wins) / len(Rs),
                      (sum(wins) / len(wins)) if wins else 0,
                      (sum(loss) / len(loss)) if loss else 0, median(days)))
         if mult == 0.5:
@@ -647,7 +722,9 @@ def main():
     print("\nNot measurable from this table, so deliberately NOT shown:")
     for s in SKIPPED:
         print("  - " + s)
-    print("\nRead these as relative, not absolute. No stops, no costs, no slippage.")
+    print("\nThe stop study deducts costs; the earlier tables do not.")
+    print("Highs and lows are real (daily_ohlc). No slippage or gap modelling:")
+    print("a gap through your stop fills worse than this assumes.")
     print("A playbook only earns its place if it beats the baseline row.")
 
 
