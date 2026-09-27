@@ -111,7 +111,7 @@ def f(x):
 COST_PCT = 0.35        # round-trip: STT both sides, stamp, exchange, GST, DP
 
 
-def fetch_ohlc(symbols):
+def fetch_ohlc(symbols):   # returns (px, idx, breadth)
     """
     The panel now comes from daily_ohlc - REAL highs and lows from Kite.
     momentum_stocks.day_high / day_low are empty on all 264,077 rows, which is
@@ -126,6 +126,7 @@ def fetch_ohlc(symbols):
     downstream needs to know where the numbers came from.
     """
     px, idx = {}, {}
+    breadth = defaultdict(lambda: [0, 0])     # date -> [above 50 EMA, counted]
     done = 0
     for sym in symbols:
         rows, cur = [], None
@@ -146,17 +147,22 @@ def fetch_ohlc(symbols):
         if len(rows) < 30:
             continue
 
-        k = 2.0 / (9 + 1)
-        ema = None
+        k9, k50 = 2.0 / (9 + 1), 2.0 / (50 + 1)
+        e9 = e50 = None
         panel = []
-        for b in rows:
+        for n, b in enumerate(rows):
             c = f(b.get("c"))
             hi = f(b.get("h")) or c
             lo = f(b.get("l")) or c
             if not c or c <= 0:
                 continue
-            ema = c if ema is None else (c - ema) * k + ema
-            panel.append((b["d"], c, hi, c > ema, lo, f(b.get("o")) or c))
+            e9 = c if e9 is None else (c - e9) * k9 + e9
+            e50 = c if e50 is None else (c - e50) * k50 + e50
+            panel.append((b["d"], c, hi, c > e9, lo, f(b.get("o")) or c))
+            if n >= 50:                        # only once the 50 EMA is settled
+                breadth[b["d"]][1] += 1
+                if c > e50:
+                    breadth[b["d"]][0] += 1
         if len(panel) < 30:
             continue
         px[sym] = panel
@@ -164,7 +170,7 @@ def fetch_ohlc(symbols):
         done += 1
         if done % 200 == 0:
             print("  %d/%d symbols loaded..." % (done, len(symbols)), flush=True)
-    return px, idx
+    return px, idx, dict(breadth)
 
 
 def f(x):
@@ -185,7 +191,7 @@ def build(rows):
     for s in px:
         px[s].sort()
     idx = {s: {b[0]: i for i, b in enumerate(v)} for s, v in px.items()}
-    return px, idx
+    return px, idx, dict(breadth)
 
 
 def fwd(px, idx, sym, date, n):
@@ -308,41 +314,32 @@ def entry_after(px, sym, i):
     return (b[5] or b[1]), i + 1
 
 
-def market_regime(px, idx):
+def market_regime(breadth, universe=1000, thresh=50.0):
     """
     Was the market rising or falling when the signal fired?
 
-    NIFTY 50 against its own 50-day EMA. If the index is missing from
-    daily_ohlc, falls back to an equal-weighted index built from the median
-    daily move of every symbol - crude, but it never leaves the split blank.
+    BREADTH: the share of the universe trading above its own 50 EMA. Above
+    half the market is an up market.
 
-    Returns {date: 'UP'|'DOWN'} and the name of whatever was used.
+    The obvious alternative - an index - failed here: NIFTY 50 is not in
+    daily_ohlc, and the first fallback compounded the MEDIAN daily move of
+    every stock, which drifts down forever because the median stock
+    underperforms. That produced 660 DOWN sessions against 82 UP and made the
+    whole split meaningless. Breadth cannot fail that way: it is a ratio
+    recomputed each day, with nothing to accumulate.
     """
-    src = None
-    for name in ("NIFTY 50", "NIFTY50", "NIFTY"):
-        if name in px and len(px[name]) > 60:
-            src = name
-            break
-    if src:
-        closes = [(b[0], b[1]) for b in px[src]]
-    else:
-        agg = defaultdict(list)
-        for sym, v in px.items():
-            for j in range(1, len(v)):
-                if v[j - 1][1]:
-                    agg[v[j][0]].append(v[j][1] / v[j - 1][1])
-        lvl, closes = 100.0, []
-        for d in sorted(agg):
-            lvl *= median(agg[d])
-            closes.append((d, lvl))
-        src = "equal-weighted universe (NIFTY 50 not in daily_ohlc)"
-
-    k = 2.0 / (50 + 1)
-    ema, out = None, {}
-    for d, c in closes:
-        ema = c if ema is None else (c - ema) * k + ema
-        out[d] = "UP" if c >= ema else "DOWN"
-    return out, src
+    # a day needs a decent slice of the universe before its breadth means
+    # anything - scaled, so this does not silently blank out on a small run
+    floor = max(20, universe // 5)
+    out, series = {}, []
+    for d in sorted(breadth):
+        up, tot = breadth[d]
+        if tot < floor:
+            continue
+        pc = 100.0 * up / tot
+        out[d] = "UP" if pc >= thresh else "DOWN"
+        series.append((d, pc))
+    return out, series
 
 
 def run_trade(px, sym, i, entry, stop, basis, need=2, cap=120):
@@ -508,7 +505,7 @@ def main():
     rows, dates = fetch(a.sessions)
     syms = sorted({r["symbol"] for r in rows})
     print("Loading real daily OHLC for %d symbols from daily_ohlc..." % len(syms))
-    px, idx = fetch_ohlc(syms)
+    px, idx, breadth = fetch_ohlc(syms)
     print("  %d symbols have usable price history\n" % len(px))
     if not px:
         print("daily_ohlc is empty - run ohlc_backfill.py first."); sys.exit(1)
@@ -799,11 +796,19 @@ def main():
     print("\n\n" + "=" * 74)
     print("MARKET REGIME - the same setups, split by what the market was doing")
     print("=" * 74)
-    reg, src = market_regime(px, idx)
+    reg, series = market_regime(breadth, universe=len(px))
     up_d = sum(1 for v in reg.values() if v == "UP")
-    print("\n  Regime source: %s (above / below its own 50 EMA)" % src)
-    print("  %d sessions UP, %d sessions DOWN in the window.\n"
-          % (up_d, len(reg) - up_d))
+    print("\n  Regime: share of the universe above its own 50 EMA, 50% is the line.")
+    print("  %d sessions UP, %d sessions DOWN across %d dated sessions."
+          % (up_d, len(reg) - up_d, len(reg)))
+    if series:
+        pcs = [p for _d, p in series]
+        print("  breadth ranged %.0f%% to %.0f%%, median %.0f%%"
+              % (min(pcs), max(pcs), median(pcs)))
+        step = max(1, len(series) // 8)
+        print("  sample: " + "  ".join("%s %.0f%%" % (d[5:], p)
+                                       for d, p in series[::step][-8:]))
+    print()
 
     def split(items, getval):
         out = {"UP": [], "DOWN": []}
@@ -864,7 +869,14 @@ def main():
             R = res[0] - (entry * COST_PCT / 100.0) / (entry - stop)
             got[g].append(R)
         u, dn = got["UP"], got["DOWN"]
+        if not u and not dn:
+            print("  %-8s %8s" % ("%.2fx" % mult, "no trades in either regime"))
+            continue
         if not u or not dn:
+            side = "UP" if u else "DOWN"
+            vals = u or dn
+            print("  %-8s only %s has trades: n=%d expectancy %.3fR"
+                  % ("%.2fx" % mult, side, len(vals), sum(vals) / len(vals)))
             continue
         print("  %-8s %8d %9.3fR %8.1f%% %8d %10.3fR %8.1f%%"
               % ("%.2fx" % mult, len(u), sum(u) / len(u),
