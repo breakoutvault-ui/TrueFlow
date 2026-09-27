@@ -39,7 +39,7 @@ H = {"apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY}
 COLS = ("symbol,session_date,ltp,sector,industry,qm_pattern,category,adr_pct,"
         "vol_ratio,high_52w,qm_contraction,qm_base_days,qm_vol_dryup,is_nr7,"
         "nr_status,rcl_grade,breakout_type,momentum_score,day_high,day_low,"
-        "qm_pivot_level")
+        "qm_pivot_level,above_ema9_daily")
 
 HORIZONS = (5, 10, 20)
 MIN_GROUP = 5          # a group needs this many members to be ranked
@@ -114,10 +114,11 @@ def build(rows):
     for r in rows:
         c = f(r.get("ltp"))
         if c and c > 0:
-            px[r["symbol"]].append((r["session_date"], c, f(r.get("day_high")) or c))
+            px[r["symbol"]].append((r["session_date"], c, f(r.get("day_high")) or c,
+                                    r.get("above_ema9_daily")))
     for s in px:
         px[s].sort()
-    idx = {s: {d: i for i, (d, _, _) in enumerate(v)} for s, v in px.items()}
+    idx = {s: {d: i for i, (d, _, _, _) in enumerate(v)} for s, v in px.items()}
     return px, idx
 
 
@@ -166,6 +167,45 @@ def trigger_fwd(px, idx, sym, date, pivot, wait, h):
             if j + h >= len(v):
                 return None, None                  # not enough history after it
             return (v[j + h][1] / pivot - 1) * 100, j - i
+    return None, None
+
+
+def exit_9ema(px, idx, sym, start_i, entry_px, need=2, cap=120):
+    """
+    Mahesh's rule: hold until the stock closes below the daily 9 EMA on `need`
+    consecutive sessions, then exit at that close. No fixed horizon, so a slide
+    that is reclaimed does not get marked at the bottom of the hole - which is
+    exactly what a 10-day mark does to anything signalled before 15 Sep 2026.
+
+    above_ema9_daily is stored per session, so this is the real rule, not a
+    reconstruction of it. Returns (return_pct, days_held) or (None, None) if the
+    position was still open when the data ran out.
+    """
+    v = px[sym]
+    run = 0
+    for j in range(start_i + 1, min(start_i + 1 + cap, len(v))):
+        ab = v[j][3]
+        if ab is False:
+            run += 1
+            if run >= need:
+                return (v[j][1] / entry_px - 1) * 100, j - start_i
+        elif ab is True:
+            run = 0
+        # None (not recorded that day) neither confirms nor breaks the run
+    return None, None
+
+
+def entry_then_exit(px, idx, sym, date, pivot, wait, need):
+    """Wait for the pivot break, enter there, then exit on the 9 EMA rule."""
+    v = px.get(sym)
+    if not v or not pivot or pivot <= 0:
+        return None, None
+    i = idx[sym].get(date)
+    if i is None:
+        return None, None
+    for j in range(i + 1, min(i + 1 + wait, len(v))):
+        if v[j][2] >= pivot:
+            return exit_9ema(px, idx, sym, j, pivot, need)
     return None, None
 
 
@@ -411,6 +451,46 @@ def main():
               % (name, sig, 100.0 * len(hit) / sig, st["med"], st["avg"], st["win"]))
     print("  Signals with no stored pivot are skipped, so 'signals' can be")
     print("  lower than the count in the table above.")
+
+    # ---------------- 4. HELD TO YOUR ACTUAL EXIT RULE -------------------
+    print("\n\nHELD TO THE 9 EMA RULE - no fixed horizon, no mark-to-market")
+    print("  Pre-breakout setups enter at the pivot; the rest enter on the signal close.")
+    for need in (1, 2):
+        print("\n  Exit after %d consecutive close%s below the daily 9 EMA:"
+              % (need, "" if need == 1 else "s"))
+        print("    %-34s %7s %8s %8s %7s %7s"
+              % ("", "trades", "median", "mean", "win%", "days"))
+        rows_out = []
+        for name, test in PLAYS.items():
+            pre = "VCP" in name or "Contraction" in name or "Coil" in name or "NR7" in name
+            rets, days = [], []
+            for date, rws in by_date.items():
+                for r in rws:
+                    try:
+                        if not test(r):
+                            continue
+                    except Exception:
+                        continue
+                    sym = r["symbol"]
+                    i = idx.get(sym, {}).get(date)
+                    if i is None:
+                        continue
+                    if pre:
+                        pv = f(r.get("qm_pivot_level"))
+                        if not pv:
+                            continue
+                        ret, d = entry_then_exit(px, idx, sym, date, pv, a.wait, need)
+                    else:
+                        ret, d = exit_9ema(px, idx, sym, i, px[sym][i][1], need)
+                    if ret is not None:
+                        rets.append(ret); days.append(d)
+            st = stats(rets)
+            if st:
+                rows_out.append((st["med"], name, st, median(days)))
+        rows_out.sort(reverse=True)
+        for _m, name, st, d in rows_out:
+            print("    %-34s %7d %7.2f%% %7.2f%% %6.1f%% %6.0f"
+                  % (name, st["n"], st["med"], st["avg"], st["win"], d))
 
     print("\nNot measurable from this table, so deliberately NOT shown:")
     for s in SKIPPED:
