@@ -115,10 +115,10 @@ def build(rows):
         c = f(r.get("ltp"))
         if c and c > 0:
             px[r["symbol"]].append((r["session_date"], c, f(r.get("day_high")) or c,
-                                    r.get("above_ema9_daily")))
+                                    r.get("above_ema9_daily"), f(r.get("day_low")) or c))
     for s in px:
         px[s].sort()
-    idx = {s: {d: i for i, (d, _, _, _) in enumerate(v)} for s, v in px.items()}
+    idx = {s: {d: i for i, (d, _, _, _, _) in enumerate(v)} for s, v in px.items()}
     return px, idx
 
 
@@ -207,6 +207,66 @@ def entry_then_exit(px, idx, sym, date, pivot, wait, need):
         if v[j][2] >= pivot:
             return exit_9ema(px, idx, sym, j, pivot, need)
     return None, None
+
+
+def run_trade(px, sym, i, entry, stop, basis, need=2, cap=120):
+    """
+    One trade, start to finish.
+
+    basis='touch'  - the stop fires the moment the day's LOW reaches it.
+    basis='close'  - the stop only fires if the day CLOSES at or below it.
+
+    That single switch is the whole question: a touch stop takes you out on the
+    wick, a close stop rides through the wick but wears the whole down-day when
+    the break is real.
+
+    Exits either way on `need` consecutive closes below the daily 9 EMA.
+    Returns (R, days, reason, wicks) - wicks counts days the low pierced the
+    stop but the close recovered above it, i.e. times a touch stop would have
+    thrown you out and a close stop would not.
+    """
+    v = px[sym]
+    risk = entry - stop
+    if risk <= 0:
+        return None
+    run = 0
+    wicks = 0
+    for j in range(i + 1, min(i + 1 + cap, len(v))):
+        c, hi, ab, lo = v[j][1], v[j][2], v[j][3], v[j][4]
+        if lo <= stop:
+            if basis == "touch":
+                # filled at the stop; a gap through it would fill worse, and
+                # there is no open price stored, so reality is a bit worse
+                return (stop - entry) / risk, j - i, "stop", wicks
+            if c <= stop:
+                return (c - entry) / risk, j - i, "stop", wicks
+            wicks += 1                      # pierced and recovered same day
+        if ab is False:
+            run += 1
+            if run >= need:
+                return (c - entry) / risk, j - i, "ema", wicks
+        elif ab is True:
+            run = 0
+    return None                              # still open when the data ran out
+
+
+def excursions(px, sym, i, entry, hold):
+    """How far it went against you, and for you, in % - before any exit rule."""
+    v = px[sym]
+    lo = hi = None
+    for j in range(i + 1, min(i + 1 + hold, len(v))):
+        a = (v[j][4] / entry - 1) * 100
+        b = (v[j][2] / entry - 1) * 100
+        lo = a if lo is None else min(lo, a)
+        hi = b if hi is None else max(hi, b)
+    return lo, hi
+
+
+def pct_at(vals, p):
+    if not vals:
+        return None
+    v = sorted(vals)
+    return v[min(len(v) - 1, int(len(v) * p / 100.0))]
 
 
 def group_ranks(rows_by_date, px, idx, key, lookback=63):
@@ -491,6 +551,98 @@ def main():
         for _m, name, st, d in rows_out:
             print("    %-34s %7d %7.2f%% %7.2f%% %6.1f%% %6.0f"
                   % (name, st["n"], st["med"], st["avg"], st["win"], d))
+
+    # ---------------- 5. STOPS: TOUCH vs CLOSE ---------------------------
+    print("\n\n" + "=" * 74)
+    print("STOP STUDY - how far trades go against you, and touch vs close stops")
+    print("=" * 74)
+
+    # the population: every QM setup with an ADR, entered on the signal close
+    sigs = []
+    for date, rws in by_date.items():
+        for r in rws:
+            if not is_setup(r):
+                continue
+            adr = f(r.get("adr_pct"))
+            sym = r["symbol"]
+            i = idx.get(sym, {}).get(date)
+            if not adr or adr <= 0 or i is None:
+                continue
+            sigs.append((sym, i, px[sym][i][1], adr, r.get("qm_pattern")))
+    print("\n%d setups with an ADR and a tradable entry.\n" % len(sigs))
+
+    # ---- 5a. where the stop BELONGS, from the trades themselves ----
+    print("MAXIMUM ADVERSE EXCURSION - how deep it dug before it worked")
+    print("  (measured over %d sessions, in ADR units, no stop applied)\n" % a.horizon)
+    win_mae, lose_mae, win_mfe = [], [], []
+    for sym, i, entry, adr, _p in sigs:
+        lo, hi = excursions(px, sym, i, entry, a.horizon)
+        if lo is None:
+            continue
+        out = fwd(px, idx, sym, px[sym][i][0], a.horizon)
+        if out is None:
+            continue
+        (win_mae if out > 0 else lose_mae).append(-lo / adr)
+        if out > 0:
+            win_mfe.append(hi / adr)
+    print("    %-26s %8s %8s %8s %8s %8s" % ("", "50th", "70th", "80th", "90th", "95th"))
+    for lbl, vals in (("WINNERS went against you", win_mae),
+                      ("LOSERS went against you", lose_mae),
+                      ("WINNERS ran in your favour", win_mfe)):
+        if not vals:
+            continue
+        print("    %-26s %7.2f  %7.2f  %7.2f  %7.2f  %7.2f"
+              % (lbl, pct_at(vals, 50), pct_at(vals, 70), pct_at(vals, 80),
+                 pct_at(vals, 90), pct_at(vals, 95)))
+    print("\n    Read it like this: a stop placed just past the 80-90th percentile")
+    print("    of the WINNERS row keeps nearly every trade that was going to work.")
+    print("    Anything wider than that is room you are paying for and not using.")
+
+    # ---- 5b. the actual question: touch or close ----
+    print("\n\nTOUCH vs CLOSE - same stops, same trades, only the trigger differs")
+    print("  Stop = N x ADR below entry. Exit otherwise on 2 closes under the 9 EMA.")
+    print("  Expectancy is in R, so it already accounts for the wider stop costing more.\n")
+    print("  %-6s %-7s %7s %8s %9s %8s %8s %7s %7s"
+          % ("stop", "basis", "trades", "stopped%", "expectancy", "win%",
+             "avgWin", "avgLoss", "days"))
+    for mult in (0.5, 0.75, 1.0, 1.25, 1.5, 2.0):
+        for basis in ("touch", "close"):
+            Rs, days, stopped, wicks = [], [], 0, 0
+            for sym, i, entry, adr, _p in sigs:
+                stop = entry * (1 - mult * adr / 100.0)
+                res = run_trade(px, sym, i, entry, stop, basis)
+                if not res:
+                    continue
+                R, d, why, wk = res
+                Rs.append(R); days.append(d); wicks += wk
+                if why == "stop":
+                    stopped += 1
+            if not Rs:
+                continue
+            wins = [r for r in Rs if r > 0]
+            loss = [r for r in Rs if r <= 0]
+            print("  %-6s %-7s %7d %7.1f%% %9.3fR %7.1f%% %7.2fR %7.2fR %6.0f"
+                  % ("%.2fx" % mult, basis, len(Rs), 100.0 * stopped / len(Rs),
+                     sum(Rs) / len(Rs), 100.0 * len(wins) / len(Rs),
+                     (sum(wins) / len(wins)) if wins else 0,
+                     (sum(loss) / len(loss)) if loss else 0, median(days)))
+        if mult == 0.5:
+            print()
+
+    # ---- 5c. how often a touch stop was simply a wick ----
+    print("\n  WICK-OUTS - days the low pierced the stop but the close recovered")
+    print("  (every one of these is a trade a touch stop closed and a close stop kept)\n")
+    print("    %-8s %10s %12s" % ("stop", "wick days", "per 100 trades"))
+    for mult in (0.5, 0.75, 1.0, 1.5):
+        tot, wk = 0, 0
+        for sym, i, entry, adr, _p in sigs:
+            stop = entry * (1 - mult * adr / 100.0)
+            res = run_trade(px, sym, i, entry, stop, "close")
+            if not res:
+                continue
+            tot += 1; wk += res[3]
+        if tot:
+            print("    %-8s %10d %12.1f" % ("%.2fx" % mult, wk, 100.0 * wk / tot))
 
     print("\nNot measurable from this table, so deliberately NOT shown:")
     for s in SKIPPED:
