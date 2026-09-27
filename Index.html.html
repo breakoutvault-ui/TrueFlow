@@ -16692,6 +16692,26 @@ function ceRender(){
    g+='<g class="ce-dr" data-i="'+i+'"><line x1="'+S.x(DI(k.i1,k.d1)).toFixed(1)+'" y1="'+S.y(k.p1).toFixed(1)+'" x2="'+S.x(DI(k.i2,k.d2)).toFixed(1)+'" y2="'+S.y(k.p2).toFixed(1)+'" stroke="'+(k.c||'var(--text)')+'" stroke-width="1.5"/></g>';
   }else if(k.t==='x'){
    g+='<g class="ce-dr" data-i="'+i+'"><text x="'+S.x(DI(k.i,k.d)).toFixed(1)+'" y="'+S.y(k.p).toFixed(1)+'" font-size="12" fill="'+(k.c||'var(--text)')+'">'+esc(k.txt)+'</text></g>';
+  }else if(k.t==='b'){
+   /* Rectangle. Drawn from two clicks, so the corners can be in any order -
+      normalise them rather than trusting which came first. The top and bottom
+      prices are labelled because on a consolidation box those two numbers are
+      the whole point. */
+   var bx1=S.x(DI(k.i1,k.d1)),bx2=S.x(DI(k.i2,k.d2));
+   var by1=S.y(k.p1),by2=S.y(k.p2);
+   var rx=Math.min(bx1,bx2),ry=Math.min(by1,by2);
+   var rw=Math.abs(bx2-bx1),rh=Math.abs(by2-by1);
+   var hiP=Math.max(k.p1,k.p2),loP=Math.min(k.p1,k.p2);
+   var dep=hiP?((hiP-loP)/hiP*100):0;
+   g+='<g class="ce-dr" data-i="'+i+'">'+
+    '<rect x="'+rx.toFixed(1)+'" y="'+ry.toFixed(1)+'" width="'+rw.toFixed(1)+'" height="'+rh.toFixed(1)+
+    '" fill="'+(k.c||'var(--cyan)')+'" fill-opacity="0.07" stroke="'+(k.c||'var(--cyan)')+
+    '" stroke-width="1.1"/>'+
+    '<text x="'+(rx+3).toFixed(1)+'" y="'+(ry-3).toFixed(1)+'" font-size="9.5" fill="'+(k.c||'var(--cyan)')+'">'+
+    esc(hiP)+'</text>'+
+    '<text x="'+(rx+3).toFixed(1)+'" y="'+(ry+rh+10).toFixed(1)+'" font-size="9.5" fill="'+(k.c||'var(--cyan)')+'">'+
+    esc(loP)+'  \u00b7  '+dep.toFixed(1)+'% deep</text>'+
+    '<title>Box '+esc(loP)+' to '+esc(hiP)+' \u2014 '+dep.toFixed(1)+'% deep</title></g>';
   }
  });
  // crosshair
@@ -16935,6 +16955,7 @@ function ceBar(o){
  h+=btn(CE.tool==='cursor','ceTool(\'cursor\')','↖','Cursor — move over the chart to read each session');
  h+=btn(CE.tool==='h','ceTool(\'h\')','─','Horizontal line: click once at the price you want to mark');
  h+=btn(CE.tool==='l','ceTool(\'l\')','╱','Trendline: click the start, then the end');
+ h+=btn(CE.tool==='b','ceTool(\'b\')','▭','Box: click one corner, then the opposite one. Labels the top and bottom price and how deep the box is — the two numbers that matter on a consolidation.');
  h+=btn(CE.tool==='x','ceTool(\'x\')','T','Text: click where you want it, then type the note');
  h+=btn(CE.tool==='a',"ceTool('a')",'🔔','Alert: click a price and you get a Telegram message when it trades there. Checked every 2 minutes while the market is open.');
  h+='<span class="ce-sep"></span>';
@@ -17090,6 +17111,11 @@ function ceClick(ev){
  else if(CE.tool==='l'){
   if(!CE.pending){CE.pending={i:c.i,d:ceDateAt(c.i),p:c.p};}
   else{a.push({t:'l',i1:CE.pending.i,d1:CE.pending.d,p1:CE.pending.p,i2:c.i,d2:ceDateAt(c.i),p2:c.p,c:'var(--cyan)'});CE.pending=null;ceSave(a);ceRender();}
+ }else if(CE.tool==='b'){
+  if(!CE.pending){CE.pending={i:c.i,d:ceDateAt(c.i),p:c.p};}
+  else{a.push({t:'b',i1:CE.pending.i,d1:CE.pending.d,p1:CE.pending.p,
+               i2:c.i,d2:ceDateAt(c.i),p2:c.p,c:'var(--cyan)'});
+       CE.pending=null;ceSave(a);ceRender();}
  }else if(CE.tool==='m'){
   if(!CE.measure||CE.measure.i2!=null){CE.measure={i1:c.i,p1:c.p,i2:null,p2:null};}
   else{CE.measure.i2=c.i;CE.measure.p2=c.p;}
