@@ -16964,6 +16964,127 @@ function ceRender(){
    g+='<g class="ce-dr" data-i="'+i+'"><line x1="'+S.x(DI(k.i1,k.d1)).toFixed(1)+'" y1="'+S.y(k.p1).toFixed(1)+'" x2="'+S.x(DI(k.i2,k.d2)).toFixed(1)+'" y2="'+S.y(k.p2).toFixed(1)+'" stroke="'+(k.c||'var(--text)')+'" stroke-width="1.5"/></g>';
   }else if(k.t==='x'){
    g+='<g class="ce-dr" data-i="'+i+'"><text x="'+S.x(DI(k.i,k.d)).toFixed(1)+'" y="'+S.y(k.p).toFixed(1)+'" font-size="12" fill="'+(k.c||'var(--text)')+'">'+esc(k.txt)+'</text></g>';
+  }else if(k.t==='pr'){
+   /* PRICE RANGE - the points and the percentage between two levels, which is
+      the question you are really asking when you drag between them. */
+   var ax=S.x(DI(k.i1,k.d1)),bx=S.x(DI(k.i2,k.d2));
+   var ay=S.y(k.p1),by=S.y(k.p2);
+   var x0=Math.min(ax,bx),x1=Math.max(ax,bx),y0=Math.min(ay,by),y1=Math.max(ay,by);
+   var hi=Math.max(k.p1,k.p2),lo=Math.min(k.p1,k.p2);
+   var dif=hi-lo,pc=lo?(dif/lo*100):0;
+   var up=(k.p2>=k.p1);
+   var col=up?'var(--green)':'var(--red)';
+   var adr=num(CE.adr);
+   var inAdr=(adr&&lo)?(pc/adr):null;
+   g+='<g class="ce-dr" data-i="'+i+'">'+
+    '<rect x="'+x0.toFixed(1)+'" y="'+y0.toFixed(1)+'" width="'+Math.max(2,x1-x0).toFixed(1)+
+    '" height="'+Math.max(1,y1-y0).toFixed(1)+'" fill="'+col+'" fill-opacity="0.10" stroke="'+col+
+    '" stroke-width="1"/>'+
+    '<line x1="'+((x0+x1)/2).toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+((x0+x1)/2).toFixed(1)+
+    '" y2="'+y1.toFixed(1)+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3"/>'+
+    '<rect x="'+((x0+x1)/2-52).toFixed(1)+'" y="'+((y0+y1)/2-13).toFixed(1)+
+    '" width="104" height="26" rx="5" fill="var(--bg2)" stroke="'+col+'" opacity="0.97"/>'+
+    '<text x="'+((x0+x1)/2).toFixed(1)+'" y="'+((y0+y1)/2-2).toFixed(1)+
+    '" font-size="10.5" font-weight="700" text-anchor="middle" fill="'+col+'">'+
+    (up?'+':'-')+pc.toFixed(2)+'%</text>'+
+    '<text x="'+((x0+x1)/2).toFixed(1)+'" y="'+((y0+y1)/2+9).toFixed(1)+
+    '" font-size="9" text-anchor="middle" fill="var(--muted)">'+dif.toFixed(2)+
+    (inAdr?('  \u00b7  '+inAdr.toFixed(1)+' ADR'):'')+'</text>'+
+    '<title>'+lo.toFixed(2)+' to '+hi.toFixed(2)+' \u2014 '+pc.toFixed(2)+'%'+
+    (inAdr?(', '+inAdr.toFixed(1)+' ADR'):'')+'</title></g>';
+  }else if(k.t==='dr'){
+   /* DATE RANGE - sessions and calendar days between two points. */
+   var dx0=S.x(DI(k.i1,k.d1)),dx1=S.x(DI(k.i2,k.d2));
+   var xa=Math.min(dx0,dx1),xb=Math.max(dx0,dx1);
+   var bars=Math.abs((DI(k.i2,k.d2))-(DI(k.i1,k.d1)));
+   var cal=null;
+   try{var t1=new Date(k.d1),t2=new Date(k.d2);
+       var dd=Math.abs((t2-t1)/864e5);if(isFinite(dd))cal=Math.round(dd);}catch(e){}
+   g+='<g class="ce-dr" data-i="'+i+'">'+
+    '<rect x="'+xa.toFixed(1)+'" y="'+CE_PAD.t+'" width="'+Math.max(2,xb-xa).toFixed(1)+
+    '" height="'+(CE_H-CE_PAD.t-CE_PAD.b)+'" fill="var(--cyan)" fill-opacity="0.07" '+
+    'stroke="var(--cyan)" stroke-width="1"/>'+
+    '<rect x="'+((xa+xb)/2-46).toFixed(1)+'" y="'+(CE_PAD.t+6)+'" width="92" height="24" rx="5" '+
+    'fill="var(--bg2)" stroke="var(--cyan)" opacity="0.97"/>'+
+    '<text x="'+((xa+xb)/2).toFixed(1)+'" y="'+(CE_PAD.t+18)+'" font-size="10.5" font-weight="700" '+
+    'text-anchor="middle" fill="var(--cyan)">'+bars+' sessions</text>'+
+    '<text x="'+((xa+xb)/2).toFixed(1)+'" y="'+(CE_PAD.t+28)+'" font-size="9" text-anchor="middle" '+
+    'fill="var(--muted)">'+(cal!=null?cal+' calendar days':'')+'</text></g>';
+  }else if(k.t==='v'){
+   var vx=S.x(DI(k.i,k.d));
+   g+='<g class="ce-dr" data-i="'+i+'"><line x1="'+vx.toFixed(1)+'" y1="'+CE_PAD.t+
+    '" x2="'+vx.toFixed(1)+'" y2="'+(CE_H-CE_PAD.b)+'" stroke="'+(k.c||'var(--muted)')+
+    '" stroke-width="1" stroke-dasharray="4 4"/><title>'+esc(k.d||'')+'</title></g>';
+  }else if(k.t==='ar'){
+   var q1x=S.x(DI(k.i1,k.d1)),q1y=S.y(k.p1),q2x=S.x(DI(k.i2,k.d2)),q2y=S.y(k.p2);
+   var ang=Math.atan2(q2y-q1y,q2x-q1x),AL=9;
+   g+='<g class="ce-dr" data-i="'+i+'">'+
+    '<line x1="'+q1x.toFixed(1)+'" y1="'+q1y.toFixed(1)+'" x2="'+q2x.toFixed(1)+'" y2="'+
+    q2y.toFixed(1)+'" stroke="'+(k.c||'var(--cyan)')+'" stroke-width="1.6"/>'+
+    '<polygon points="'+q2x.toFixed(1)+','+q2y.toFixed(1)+' '+
+     (q2x-AL*Math.cos(ang-0.4)).toFixed(1)+','+(q2y-AL*Math.sin(ang-0.4)).toFixed(1)+' '+
+     (q2x-AL*Math.cos(ang+0.4)).toFixed(1)+','+(q2y-AL*Math.sin(ang+0.4)).toFixed(1)+
+     '" fill="'+(k.c||'var(--cyan)')+'"/></g>';
+  }else if(k.t==='pc'){
+   /* PARALLEL CHANNEL - the base line, plus a copy offset by your third click. */
+   var c1x=S.x(DI(k.i1,k.d1)),c1y=S.y(k.p1),c2x=S.x(DI(k.i2,k.d2)),c2y=S.y(k.p2);
+   var off=S.y(k.p3)-(c1y+(c2y-c1y)*((S.x(DI(k.i3,k.d3))-c1x)/((c2x-c1x)||1)));
+   g+='<g class="ce-dr" data-i="'+i+'">'+
+    '<polygon points="'+c1x.toFixed(1)+','+c1y.toFixed(1)+' '+c2x.toFixed(1)+','+c2y.toFixed(1)+' '+
+     c2x.toFixed(1)+','+(c2y+off).toFixed(1)+' '+c1x.toFixed(1)+','+(c1y+off).toFixed(1)+
+     '" fill="'+(k.c||'var(--cyan)')+'" fill-opacity="0.07"/>'+
+    '<line x1="'+c1x.toFixed(1)+'" y1="'+c1y.toFixed(1)+'" x2="'+c2x.toFixed(1)+'" y2="'+
+     c2y.toFixed(1)+'" stroke="'+(k.c||'var(--cyan)')+'" stroke-width="1.2"/>'+
+    '<line x1="'+c1x.toFixed(1)+'" y1="'+(c1y+off).toFixed(1)+'" x2="'+c2x.toFixed(1)+'" y2="'+
+     (c2y+off).toFixed(1)+'" stroke="'+(k.c||'var(--cyan)')+'" stroke-width="1.2"/></g>';
+  }else if(k.t==='lp'){
+   /* LONG POSITION - entry, stop and target, with the reward-to-risk worked
+      out, because that ratio is the decision, not the levels themselves. */
+   var lx=S.x(DI(k.i,k.d)),lx2=S.x(DI(k.i2,k.d2));
+   var xL=Math.min(lx,lx2),wL=Math.max(46,Math.abs(lx2-lx));
+   var ye=S.y(k.pe),ys=S.y(k.ps),yt=S.y(k.pt);
+   var risk=Math.abs(k.pe-k.ps),rew=Math.abs(k.pt-k.pe);
+   var rr=risk?(rew/risk):0;
+   var riskPc=k.pe?(risk/k.pe*100):0,rewPc=k.pe?(rew/k.pe*100):0;
+   g+='<g class="ce-dr" data-i="'+i+'">'+
+    '<rect x="'+xL.toFixed(1)+'" y="'+Math.min(ye,yt).toFixed(1)+'" width="'+wL.toFixed(1)+
+    '" height="'+Math.max(1,Math.abs(yt-ye)).toFixed(1)+'" fill="var(--green)" fill-opacity="0.13" '+
+    'stroke="var(--green)" stroke-width="0.8"/>'+
+    '<rect x="'+xL.toFixed(1)+'" y="'+Math.min(ye,ys).toFixed(1)+'" width="'+wL.toFixed(1)+
+    '" height="'+Math.max(1,Math.abs(ys-ye)).toFixed(1)+'" fill="var(--red)" fill-opacity="0.13" '+
+    'stroke="var(--red)" stroke-width="0.8"/>'+
+    '<line x1="'+xL.toFixed(1)+'" y1="'+ye.toFixed(1)+'" x2="'+(xL+wL).toFixed(1)+'" y2="'+
+     ye.toFixed(1)+'" stroke="var(--text)" stroke-width="1.2"/>'+
+    '<text x="'+(xL+3).toFixed(1)+'" y="'+(ye-3).toFixed(1)+'" font-size="9.5" fill="var(--text)">entry '+
+     esc(k.pe)+'</text>'+
+    '<text x="'+(xL+3).toFixed(1)+'" y="'+(ys+(ys>ye?10:-3)).toFixed(1)+'" font-size="9.5" fill="var(--red)">stop '+
+     esc(k.ps)+'  \u2212'+riskPc.toFixed(1)+'%</text>'+
+    '<text x="'+(xL+3).toFixed(1)+'" y="'+(yt+(yt>ye?10:-3)).toFixed(1)+'" font-size="9.5" fill="var(--green)">target '+
+     esc(k.pt)+'  +'+rewPc.toFixed(1)+'%</text>'+
+    '<rect x="'+(xL+wL-46).toFixed(1)+'" y="'+(ye-10).toFixed(1)+'" width="44" height="19" rx="5" '+
+    'fill="var(--bg2)" stroke="var(--cyan)" opacity="0.97"/>'+
+    '<text x="'+(xL+wL-24).toFixed(1)+'" y="'+(ye+3).toFixed(1)+'" font-size="10.5" font-weight="700" '+
+    'text-anchor="middle" fill="var(--cyan)">'+rr.toFixed(2)+'R</text>'+
+    '<title>Risk '+risk.toFixed(2)+' ('+riskPc.toFixed(1)+'%) \u2014 reward '+rew.toFixed(2)+
+    ' ('+rewPc.toFixed(1)+'%) \u2014 '+rr.toFixed(2)+' to 1</title></g>';
+  }else if(k.t==='nt'){
+   var nx=S.x(DI(k.i,k.d)),ny=S.y(k.p);
+   var w=Math.min(190,18+String(k.txt||'').length*5.4);
+   g+='<g class="ce-dr" data-i="'+i+'">'+
+    '<line x1="'+nx.toFixed(1)+'" y1="'+ny.toFixed(1)+'" x2="'+(nx+14).toFixed(1)+'" y2="'+
+     (ny-16).toFixed(1)+'" stroke="'+(k.c||'var(--amber)')+'" stroke-width="1"/>'+
+    '<circle cx="'+nx.toFixed(1)+'" cy="'+ny.toFixed(1)+'" r="2.6" fill="'+(k.c||'var(--amber)')+'"/>'+
+    '<rect x="'+(nx+14).toFixed(1)+'" y="'+(ny-27).toFixed(1)+'" width="'+w.toFixed(1)+
+    '" height="20" rx="5" fill="var(--bg2)" stroke="'+(k.c||'var(--amber)')+'" opacity="0.97"/>'+
+    '<text x="'+(nx+20).toFixed(1)+'" y="'+(ny-13).toFixed(1)+'" font-size="9.5" fill="var(--text)">'+
+    esc(k.txt||'')+'</text></g>';
+  }else if(k.t==='br'){
+   var d='';
+   (k.pts||[]).forEach(function(q,qi){
+    d+=(qi?'L':'M')+S.x(DI(q.i,q.d)).toFixed(1)+' '+S.y(q.p).toFixed(1)+' ';
+   });
+   if(d)g+='<g class="ce-dr" data-i="'+i+'"><path d="'+d.trim()+'" fill="none" stroke="'+
+     (k.c||'var(--amber)')+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></g>';
   }else if(k.t==='r'){
    var rx0=S.x(DI(k.i,k.d)),ry0=S.y(k.p);
    g+='<g class="ce-dr" data-i="'+i+'">'+
@@ -17255,7 +17376,8 @@ window.ceJump=function(sym){
 (function(){
  /* Matching TradingView where it has a default: Alt+T trendline,
     Alt+H horizontal line, Alt+J horizontal ray, Alt+A alert. */
- var MAP={t:'l',h:'h',j:'r',a:'a',b:'b',x:'x',m:'m',c:'cursor'};
+ var MAP={t:'l',h:'h',j:'r',a:'a',b:'b',x:'x',m:'m',c:'cursor',
+          v:'v',p:'pr',d:'dr',n:'nt',g:'ar',k:'br',q:'pc',o:'lp'};
  document.addEventListener('keydown',function(e){
   if(!CE||!CE.open)return;
   var t=e.target;
@@ -17374,8 +17496,17 @@ function ceToolsHtml(){
  h+=t(CE.tool==='h',"ceTool('h')",'\u2500','Horizontal line \u2014 one click at the price (Alt+H)');
  h+=t(CE.tool==='r',"ceTool('r')",'\u27a4','Horizontal ray \u2014 one click, extends right only (Alt+J)');
  h+=t(CE.tool==='b',"ceTool('b')",'\u25ad','Box \u2014 click one corner then the other. Labels the top, the bottom and how deep it is.');
+ h+=t(CE.tool==='v',"ceTool('v')",'\u2502','Vertical line \u2014 marks a session (Alt+V)');
+ h+=t(CE.tool==='pc',"ceTool('pc')",'\u2261','Parallel channel \u2014 two clicks for the line, a third sets the width');
+ h+='<div class="ce-tsep"></div>';
+ h+=t(CE.tool==='pr',"ceTool('pr')",'\u2195','Price range \u2014 two clicks. Points, percentage and how many ADRs it is. (Alt+P)');
+ h+=t(CE.tool==='dr',"ceTool('dr')",'\u2194','Date range \u2014 two clicks. Sessions and calendar days between them.');
+ h+=t(CE.tool==='lp',"ceTool('lp')",'\u2696','Long position \u2014 click entry, then stop, then target. Gives you the reward-to-risk.');
  h+='<div class="ce-tsep"></div>';
  h+=t(CE.tool==='x',"ceTool('x')",'T','Text \u2014 click, then type your note');
+ h+=t(CE.tool==='nt',"ceTool('nt')",'\ud83d\udcac','Note \u2014 a boxed comment with a pointer to the bar');
+ h+=t(CE.tool==='ar',"ceTool('ar')",'\u2197','Arrow \u2014 click the start, then the point');
+ h+=t(CE.tool==='br',"ceTool('br')",'\u270e','Brush \u2014 draw freehand by dragging');
  h+=t(CE.tool==='m',"ceTool('m')",'\u21c4','Measure \u2014 two clicks. Gives the move in %, sessions, % per session and ADR per session.');
  h+=t(CE.tool==='a',"ceTool('a')",'\ud83d\udd14','Alert \u2014 click a price to be told when it trades there');
  h+='<div class="ce-tsep"></div>';
@@ -17583,6 +17714,42 @@ function ceClick(ev){
  else if(CE.tool==='l'){
   if(!CE.pending){CE.pending={i:c.i,d:ceDateAt(c.i),p:c.p};}
   else{a.push({t:'l',i1:CE.pending.i,d1:CE.pending.d,p1:CE.pending.p,i2:c.i,d2:ceDateAt(c.i),p2:c.p,c:'var(--cyan)'});CE.pending=null;ceSave(a);ceRender();}
+ }else if(CE.tool==='v'){
+  a.push({t:'v',i:c.i,d:ceDateAt(c.i),c:'var(--muted)'});ceSave(a);ceRender();
+ }else if(CE.tool==='pr'||CE.tool==='dr'||CE.tool==='ar'||CE.tool==='pc'){
+  /* two-click tools share one pending slot; the parallel channel needs a
+     third click, handled below once its first two are in */
+  if(!CE.pending){CE.pending={i:c.i,d:ceDateAt(c.i),p:c.p};}
+  else if(CE.tool==='pc'&&!CE.pending.i2){
+   CE.pending.i2=c.i;CE.pending.d2=ceDateAt(c.i);CE.pending.p2=c.p;ceRender();
+  }else{
+   var base={i1:CE.pending.i,d1:CE.pending.d,p1:CE.pending.p,c:'var(--cyan)'};
+   if(CE.tool==='pc'){
+    a.push(Object.assign(base,{t:'pc',i2:CE.pending.i2,d2:CE.pending.d2,p2:CE.pending.p2,
+      i3:c.i,d3:ceDateAt(c.i),p3:c.p}));
+   }else{
+    a.push(Object.assign(base,{t:CE.tool,i2:c.i,d2:ceDateAt(c.i),p2:c.p}));
+   }
+   CE.pending=null;ceSave(a);ceRender();
+  }
+ }else if(CE.tool==='lp'){
+  /* long position: entry, then stop, then target */
+  if(!CE.pending){CE.pending={i:c.i,d:ceDateAt(c.i),pe:c.p};}
+  else if(CE.pending.ps==null){CE.pending.ps=c.p;ceRender();}
+  else{
+   a.push({t:'lp',i:CE.pending.i,d:CE.pending.d,pe:CE.pending.pe,ps:CE.pending.ps,
+           pt:c.p,i2:c.i,d2:ceDateAt(c.i)});
+   CE.pending=null;ceSave(a);ceRender();
+  }
+ }else if(CE.tool==='nt'){
+  var _c=c;
+  tfDlg({title:'Note',msg:'Shown in a box on the chart.',input:'text',
+    placeholder:'why this level matters',ok:'Place'},function(txt){
+   if(!txt)return;
+   var a2=ceLoad();
+   a2.push({t:'nt',i:_c.i,d:ceDateAt(_c.i),p:_c.p,txt:String(txt).slice(0,80),c:'var(--amber)'});
+   ceSave(a2);ceRender();
+  });
  }else if(CE.tool==='r'){
   /* Horizontal ray - marks a level from the bar you clicked FORWARDS only,
      so it reads as "from here on" rather than a level that was always there. */
@@ -17739,6 +17906,13 @@ window.ceOpen=function(sym){
      ev.preventDefault();return;
     }
    }
+   if(CE.tool==='br'){
+    /* Freehand. Collects points while you drag, so panning is suppressed for
+       this one tool - otherwise the chart would slide out from under the pen. */
+    var c0=ceCoords(ev);
+    CE._brush=c0?[{i:c0.i,d:ceDateAt(c0.i),p:c0.p}]:[];
+    return;
+   }
    /* Pan with any tool, horizontally AND vertically. Dragging up or down
       shifts the price window the way TradingView does - before this, only
       time moved and the chart felt stuck. */
@@ -17747,6 +17921,17 @@ window.ceOpen=function(sym){
             lo:(_S?_S.mn:null),hi:(_S?_S.mx:null),h:(cv0?cv0.getBoundingClientRect().height:1)};
   });
   window.addEventListener('mousemove',function(ev){
+   if(CE._brush){
+    var cb=ceCoords(ev);
+    if(cb){
+     var last=CE._brush[CE._brush.length-1];
+     if(!last||last.i!==cb.i||Math.abs(last.p-cb.p)>1e-9){
+      CE._brush.push({i:cb.i,d:ceDateAt(cb.i),p:cb.p});
+      CE._dragged=true;ceRender();
+     }
+    }
+    return;
+   }
    if(CE._ydrag){
     CE._dragged=true;
     ceYDragTo((ev.clientY-CE._ydrag.y)*(CE_H/CE._ydrag.h));
@@ -17775,6 +17960,14 @@ window.ceOpen=function(sym){
    ceRender();
   });
   window.addEventListener('mouseup',function(){
+   if(CE._brush){
+    if(CE._brush.length>2){
+     var ab=ceLoad();
+     ab.push({t:'br',pts:CE._brush.slice(),c:'var(--amber)'});
+     ceSave(ab);
+    }
+    CE._brush=null;ceRender();
+   }
    if(CE._pan&&!CE._pan.moved)CE._dragged=false;
    CE._pan=null;CE._ydrag=null;
   });
