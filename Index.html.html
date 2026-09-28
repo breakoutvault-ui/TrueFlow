@@ -970,10 +970,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tab-screener .scr-pv{display:inline-block;vertical-align:middle;cursor:help}
 #tab-screener .scr-yes{color:var(--green);font-weight:700}
 .ce-b:hover{background:var(--bg3);color:var(--text);border-color:var(--bg3)}
-/* An explicit dark ink, not var(--bg0): in the light theme that variable is
-   near-white, so every active button became a blue blob with no label. */
-.ce-b.on{background:var(--cyan);color:#062033;border-color:var(--cyan);font-weight:700}
-.ce-b.on:hover{background:var(--cyan);color:#062033}
+/* Active buttons are TINTED, not filled. A solid blue fill on every active
+   control turned the whole toolbar blue - fifteen tools, four timeframes and
+   four EMAs are on at once, so "selected" has to be quiet. */
+.ce-b.on{background:rgba(6,182,212,0.13);color:var(--cyan);border-color:rgba(6,182,212,0.45);
+ font-weight:700;box-shadow:inset 0 -2px 0 var(--cyan)}
+.ce-b.on:hover{background:rgba(6,182,212,0.2);color:var(--cyan)}
 .ce-sep{display:inline-block;width:1px;height:15px;background:var(--bg3);margin:0 5px;vertical-align:middle}
 /* Filter side panel - the 40-odd filters grouped under headings instead of a
    wall of dropdowns. Slides in from the right, applies as you tick. */
@@ -997,7 +999,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
  border:1px solid var(--bg3);border-radius:99px;padding:4px 10px;margin:2px 3px 2px 0;
  font-size:11px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
 .fp-o:hover{border-color:var(--muted)}
-.fp-o.on{background:var(--cyan);border-color:var(--cyan);color:#062033;font-weight:700}
+.fp-o.on{background:rgba(6,182,212,0.14);border-color:rgba(6,182,212,0.5);
+ color:var(--cyan);font-weight:700}
 .fp-clr{font-size:10px;color:var(--red);cursor:pointer;opacity:0;transition:opacity .12s}
 .fp-f:hover .fp-clr{opacity:1}
 /* Styled dialogs, replacing the browser's prompt() and confirm() boxes. */
@@ -1029,7 +1032,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .wl-li{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 9px;border-radius:7px;
  cursor:pointer;margin-bottom:3px;transition:background .12s}
 .wl-li:hover{background:var(--bg3)}
-.wl-li.on{background:var(--bg3);box-shadow:inset 2px 0 0 var(--cyan)}
+.wl-li.on{background:rgba(6,182,212,0.10);box-shadow:inset 2px 0 0 var(--cyan)}
 .wl-li b{font-size:12.5px;font-weight:600}
 .wl-n{color:var(--muted);font-size:10px;background:var(--bg1);border-radius:9px;padding:1px 6px}
 .wl-hd{font-size:10px;letter-spacing:1px;color:var(--muted);font-weight:700;margin-bottom:7px}
@@ -1040,7 +1043,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .wl-row:first-child{border-top:none}
 .wl-sym{flex:1 1 auto;cursor:pointer;font-weight:600;display:flex;align-items:center;letter-spacing:.2px}
 .wl-sym:hover{color:var(--cyan)}
-.wl-dots{width:104px;display:flex;gap:4px;justify-content:flex-end;align-items:center;opacity:.55;transition:opacity .12s}
+/* The six colour PICKERS only on hover - six pale dots on a thousand rows is
+   noise. The colour you have actually assigned sits before the symbol and is
+   always visible, which is the bit that carries meaning. */
+.wl-dots{width:104px;display:flex;gap:4px;justify-content:flex-end;align-items:center;
+ opacity:0;transition:opacity .12s}
 .wl-row:hover .wl-dots{opacity:1}
 .wl-dot{width:11px;height:11px;border-radius:50%;cursor:pointer;transition:transform .1s}
 .wl-dot:hover{transform:scale(1.35)}
@@ -15356,7 +15363,8 @@ setTimeout(function(){clearInterval(t);},40000);
  background:none;color:var(--text2);cursor:pointer;font-size:14px;display:flex;
  align-items:center;justify-content:center;transition:background .12s,color .12s}
 #ce-tools .ce-t:hover{background:var(--bg3);color:var(--text)}
-#ce-tools .ce-t.on{background:var(--cyan);color:#062033;border-color:var(--cyan)}
+#ce-tools .ce-t.on{background:rgba(6,182,212,0.15);color:var(--cyan);
+ border-color:rgba(6,182,212,0.5);box-shadow:inset 2px 0 0 var(--cyan)}
 #ce-tools .ce-tsep{width:22px;height:1px;background:var(--bg3);margin:4px 0}
 /* The watchlist docked beside the chart - click a name, the chart changes. */
 #ce-wl{flex:0 0 226px;background:var(--bg2);border-left:1px solid var(--bg3);
@@ -17836,7 +17844,16 @@ window.ceOpen=function(sym){
  if(!sym)return;
  CE.sym=sym;CE.open=true;CE.hoverIdx=null;CE.pending=null;CE.alerts=[];
  cePrefLoad();
- if(CE.view){CE.view.ylo=null;CE.view.yhi=null;}
+ /* Open on about six months of daily, price auto-fitted, cursor tool, and the
+    setup already drawn. Opening on three years of history meant every chart
+    started as an unreadable smear. */
+ CE.view={n:126,off:0,ylo:null,yhi:null};
+ CE.tf=CE.tf||'D';
+ CE.tool='cursor';
+ CE.replayD=null;
+ if(!CE.show)CE.show={};
+ if(CE.show.pole===undefined)CE.show.pole=true;
+ if(CE.show.box===undefined)CE.show.box=true;
  ceAlertsLoad(sym,function(){if(CE.open&&CE.sym===sym)ceRender();});
  if(!document.getElementById('ce-panel')){
   var p=document.createElement('div');p.id='ce-panel';
@@ -18194,6 +18211,20 @@ function wlRender(){
   return;
  }
  var syms=wlSymbols(list);
+ /* Prices come from the screener rows held in memory. Say so rather than
+    showing two blank columns and leaving it a mystery. */
+ var G0=document.getElementById('wl-grid');
+ if(G0&&(typeof SCR==='undefined'||!SCR.data||!SCR.data.length)){
+  var warn=document.getElementById('wl-nopx');
+  if(!warn&&H){
+   H.insertAdjacentHTML('beforebegin','<div id="wl-nopx" style="margin-bottom:9px;padding:8px 11px;'+
+    'background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.35);border-radius:8px;'+
+    'font-size:11.5px;color:var(--amber)">Last price and change are blank until the '+
+    '<b>Screener</b> tab has loaded once this session.</div>');
+  }
+ }else{
+  var w2=document.getElementById('wl-nopx');if(w2)w2.remove();
+ }
  if(H)H.innerHTML='<b style="font-size:15px">'+esc(list.name)+'</b>'+
   (list.kind==='live'
    ?'<span class="scr-tool" style="cursor:default" title="This list is bound to a playbook and rebuilds itself from the latest scan. You cannot add or remove names by hand.">\u26a1 live \u00b7 '+esc(list.playbook||'')+'</span>'
