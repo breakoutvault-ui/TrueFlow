@@ -969,6 +969,34 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tab-screener .scr-s-hi{background:rgba(0,255,136,.14);color:var(--green)}#tab-screener .scr-s-mid{background:rgba(245,158,11,.14);color:var(--amber)}#tab-screener .scr-s-lo{background:var(--bg3);color:var(--muted)}
 #tab-screener .scr-pv{display:inline-block;vertical-align:middle;cursor:help}
 #tab-screener .scr-yes{color:var(--green);font-weight:700}
+.wl-side{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;padding:10px}
+.wl-li{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 9px;border-radius:7px;
+ cursor:pointer;margin-bottom:3px;transition:background .12s}
+.wl-li:hover{background:var(--bg3)}
+.wl-li.on{background:var(--bg3);box-shadow:inset 2px 0 0 var(--cyan)}
+.wl-li b{font-size:12.5px;font-weight:600}
+.wl-n{color:var(--muted);font-size:10px;background:var(--bg1);border-radius:9px;padding:1px 6px}
+.wl-hd{font-size:10px;letter-spacing:1px;color:var(--muted);font-weight:700;margin-bottom:7px}
+.wl-box{border:1px solid var(--bg3);border-radius:10px;overflow:hidden;background:var(--bg2)}
+.wl-row{display:flex;gap:8px;align-items:center;padding:7px 11px;border-top:1px solid var(--bg3);
+ font-size:12px;transition:background .12s}
+.wl-row:hover{background:var(--bg3)}
+.wl-row:first-child{border-top:none}
+.wl-sym{flex:1 1 auto;cursor:pointer;font-weight:600;display:flex;align-items:center;letter-spacing:.2px}
+.wl-sym:hover{color:var(--cyan)}
+.wl-dots{width:104px;display:flex;gap:4px;justify-content:flex-end;align-items:center;opacity:0;transition:opacity .12s}
+.wl-row:hover .wl-dots{opacity:1}
+.wl-dot{width:11px;height:11px;border-radius:50%;cursor:pointer;transition:transform .1s}
+.wl-dot:hover{transform:scale(1.35)}
+.wl-sec{padding:7px 11px;background:var(--bg1);font-size:10px;font-weight:700;color:var(--cyan);
+ letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+.wl-srch{width:100%;background:var(--bg1);border:1px solid var(--bg3);border-radius:8px;color:var(--text);
+ padding:8px 11px;font-size:12.5px;outline:none;font-family:inherit}
+.wl-srch:focus{border-color:var(--cyan)}
+.wl-sug{position:absolute;z-index:60;background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;
+ margin-top:3px;max-height:250px;overflow:auto;min-width:240px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.wl-sug div{padding:7px 11px;cursor:pointer;font-size:12px;display:flex;justify-content:space-between;gap:10px}
+.wl-sug div:hover{background:var(--bg3)}
 .scr-pick{margin-right:6px;vertical-align:middle;cursor:pointer;accent-color:var(--cyan)}
 .scr-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--green);color:var(--green);padding:10px 18px;border-radius:10px;font-size:12px;font-weight:600;z-index:9999;opacity:0;transition:.3s;pointer-events:none}
 .scr-toast.show{opacity:1}
@@ -2869,20 +2897,26 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="momentum-panel">
       <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
 
-        <div style="flex:0 0 210px;min-width:190px">
+        <div class="wl-side" style="flex:0 0 215px;min-width:195px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <b style="font-size:12px;letter-spacing:.4px;color:var(--muted)">WATCHLISTS</b>
+            <div class="wl-hd" style="margin:0">WATCHLISTS</div>
             <button class="scr-tool" onclick="wlNew()" title="Create a new watchlist">+ New</button>
           </div>
           <div id="wl-lists"></div>
           <div style="margin-top:12px">
-            <b style="font-size:12px;letter-spacing:.4px;color:var(--muted)">COLOUR LABELS</b>
+            <div class="wl-hd" style="margin:0">COLOUR LABELS</div>
             <div id="wl-colours" style="margin-top:5px"></div>
           </div>
         </div>
 
         <div style="flex:1 1 520px;min-width:320px">
-          <div id="wl-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px"></div>
+          <div id="wl-head" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px"></div>
+          <div style="position:relative;margin-bottom:10px">
+            <input id="wl-srch" class="wl-srch" autocomplete="off" spellcheck="false"
+                   placeholder="➕  Type a symbol to add it to this list"
+                   oninput="wlSearch(this.value)" onkeydown="wlSearchKey(event)">
+            <div id="wl-sug" class="wl-sug" style="display:none"></div>
+          </div>
           <div id="wl-grid"></div>
         </div>
 
@@ -17392,13 +17426,11 @@ function wlRender(){
  if(L)L.innerHTML=WL.lists.length?WL.lists.map(function(l){
   var n=(l.kind==='live')?'live':((WL.items[l.id]||[]).length);
   var on=(l.id===WL.active);
-  return '<div onclick="wlPickList('+l.id+')" style="display:flex;align-items:center;justify-content:space-between;'+
-   'gap:6px;padding:6px 8px;border-radius:6px;cursor:pointer;margin-bottom:3px;'+
-   (on?'background:var(--bg3);':'')+'">'+
-   '<span style="font-weight:'+(on?700:500)+';font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+  return '<div class="wl-li'+(on?' on':'')+'" onclick="wlPickList('+l.id+')">'+
+   '<b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
    (l.colour?'<span style="width:8px;height:8px;border-radius:2px;background:'+(WL_SWATCH[l.colour]||l.colour)+';display:inline-block;margin-right:5px"></span>':'')+
-   (l.starred?'\u2b50 ':'')+(l.kind==='live'?'\u26a1 ':'')+esc(l.name)+'</span>'+
-   '<span style="color:var(--muted);font-size:10.5px">'+n+'</span></div>';
+   (l.starred?'\u2b50 ':'')+(l.kind==='live'?'\u26a1 ':'')+esc(l.name)+'</b>'+
+   '<span class="wl-n">'+n+'</span></div>';
  }).join(''):'<div style="color:var(--muted);font-size:11.5px">No lists yet.</div>';
 
  var C=document.getElementById('wl-colours');
@@ -17456,15 +17488,14 @@ function wlRender(){
  });
 
  var live=(list.kind==='live');
- var html='<div style="border:1px solid var(--bg3);border-radius:8px;overflow:hidden">';
- html+='<div style="display:flex;gap:8px;padding:5px 9px;background:var(--bg3);font-size:10.5px;'+
-  'color:var(--muted);font-weight:700;letter-spacing:.4px">'+
+ var html='<div class="wl-box">';
+ html+='<div style="display:flex;gap:8px;padding:7px 11px;background:var(--bg3);font-size:10px;'+
+  'color:var(--muted);font-weight:700;letter-spacing:1px">'+
   '<span style="flex:1 1 auto">SYMBOL</span><span style="width:78px;text-align:right">LAST</span>'+
-  '<span style="width:64px;text-align:right">CHG%</span><span style="width:96px"></span></div>';
+  '<span style="width:64px;text-align:right">CHG%</span><span style="width:104px"></span></div>';
 
  secs.forEach(function(sc){
-  if(sc.name)html+='<div style="padding:5px 9px;background:var(--bg2);font-size:10.5px;font-weight:700;'+
-    'color:var(--cyan);letter-spacing:.4px;display:flex;justify-content:space-between">'+esc(sc.name)+
+  if(sc.name)html+='<div class="wl-sec">'+esc(sc.name)+
     (live?'':'<span onclick="wlSecRename(\''+esc(sc.name)+'\')" style="cursor:pointer;color:var(--muted);font-weight:400" title="Rename or remove this section">edit</span>')+
     '</div>';
   sc.rows.forEach(function(sym){
@@ -17478,17 +17509,15 @@ function wlRender(){
     :'<span style="width:9px;margin-right:6px;display:inline-block;flex:0 0 auto"></span>';
    html+='<div class="wl-row"'+(live?'':' draggable="true" data-sym="'+esc(sym)+'"'+
     ' ondragstart="wlDragStart(event)" ondragover="wlDragOver(event)" ondrop="wlDrop2(event)"'+
-    ' ondragend="wlDragEnd(event)"')+
-    ' style="display:flex;gap:8px;align-items:center;padding:5px 9px;'+
-    'border-top:1px solid var(--bg3);font-size:12px'+(live?'':';cursor:grab')+'">'+
-    '<span onclick="wlOpen(\''+esc(sym)+'\')" style="flex:1 1 auto;cursor:pointer;font-weight:600;display:flex;align-items:center" '+
+    ' ondragend="wlDragEnd(event)"'+' style="cursor:grab"')+'>'+
+    '<span class="wl-sym" onclick="wlOpen(\''+esc(sym)+'\')" '+
     'title="Open the chart - the arrows will walk this list">'+dot+esc(sym)+'</span>'+
     '<span class="scr-mono" style="width:78px;text-align:right">'+last+'</span>'+
     '<span class="scr-mono" style="width:64px;text-align:right;color:'+chc+'">'+chs+'</span>'+
-    '<span style="width:96px;display:flex;gap:3px;justify-content:flex-end;align-items:center">'+
+    '<span class="wl-dots">'+
      (live?'':Object.keys(WL_SWATCH).map(function(c){
-       return '<span onclick="wlSetColour(\''+esc(sym)+'\',\''+c+'\')" style="width:10px;height:10px;border-radius:50%;'+
-        'background:'+WL_SWATCH[c]+';cursor:pointer;opacity:'+(col===c?'1':'0.3')+'" title="'+
+       return '<span class="wl-dot" onclick="wlSetColour(\''+esc(sym)+'\',\''+c+'\')" style="'+
+        'background:'+WL_SWATCH[c]+';opacity:'+(col===c?'1':'0.32')+'" title="'+
         esc(WL.colours[c]||c)+'"></span>';
       }).join('')+
       '<span onclick="wlDrop(\''+esc(sym)+'\')" style="cursor:pointer;color:var(--red);margin-left:4px" title="Remove from this list">\u2715</span>')+
@@ -17498,6 +17527,62 @@ function wlRender(){
  html+='</div>';
  G.innerHTML=html;
 }
+
+/* Type-to-add. Matches against the screener universe already in memory, so
+   there is no request and no waiting - and it will not let you add a symbol
+   the scan has never seen, which is how typos end up in a watchlist. */
+window.wlSearch=function(q){
+ var box=document.getElementById('wl-sug');
+ if(!box)return;
+ q=String(q||'').trim().toUpperCase();
+ if(q.length<1){box.style.display='none';return;}
+ var pool=(typeof SCR!=='undefined'&&SCR.data)?SCR.data:[];
+ if(!pool.length){
+  box.innerHTML='<div style="color:var(--muted);cursor:default">Open the Screener once so the stock list loads</div>';
+  box.style.display='block';return;
+ }
+ var l=wlActive();
+ var have={};
+ if(l)(WL.items[l.id]||[]).forEach(function(x){have[x.symbol]=1;});
+ var hits=pool.filter(function(d){
+   return d.sym&&d.sym.indexOf(q)===0;
+  }).slice(0,8);
+ if(hits.length<8){
+  pool.forEach(function(d){
+   if(hits.length>=8||!d.sym)return;
+   if(d.sym.indexOf(q)>0&&hits.indexOf(d)<0)hits.push(d);
+  });
+ }
+ if(!hits.length){box.innerHTML='<div style="color:var(--muted);cursor:default">No match for '+esc(q)+'</div>';box.style.display='block';return;}
+ box.innerHTML=hits.map(function(d){
+  var inList=have[d.sym];
+  return '<div onclick="wlSearchAdd(\''+esc(d.sym)+'\')">'+
+   '<span><b>'+esc(d.sym)+'</b>'+(d.name?' <span style="color:var(--muted)">'+esc(String(d.name).slice(0,26))+'</span>':'')+'</span>'+
+   '<span style="color:'+(inList?'var(--muted)':'var(--green)')+'">'+(inList?'already in':'add')+'</span></div>';
+ }).join('');
+ box.style.display='block';
+};
+window.wlSearchKey=function(ev){
+ if(ev.key==='Escape'){document.getElementById('wl-sug').style.display='none';ev.target.blur();}
+ if(ev.key==='Enter'){
+  var first=document.querySelector('#wl-sug div[onclick]');
+  if(first)first.click();
+ }
+};
+window.wlSearchAdd=function(sym){
+ var l=wlActive();
+ if(!l){wlToast('Pick a list first');return;}
+ if(l.kind==='live'){wlToast('A live list rebuilds itself - add to a normal one');return;}
+ wlApi('watchlist_items',{method:'POST',
+   headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+   body:JSON.stringify([{wl_id:l.id,symbol:sym}])})
+  .then(function(){
+   wlToast(sym+' added to '+l.name);
+   var i=document.getElementById('wl-srch');if(i)i.value='';
+   var b=document.getElementById('wl-sug');if(b)b.style.display='none';
+   WL._px=null;wlLoad();
+  });
+};
 
 window.wlPickList=function(id){WL.active=id;WL._px=null;wlRender();};
 
