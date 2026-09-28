@@ -1133,9 +1133,20 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div class="mode-toggle">
         <button class="mode-btn active" id="mode-fo" onclick="switchMode('fo')">⚡ F&O</button>
         <button class="mode-btn" id="mode-momentum" onclick="switchMode('momentum')">🚀 Momentum</button>
+        <button class="mode-btn" id="mode-tfcharts" onclick="tfChartsOpen()" title="TrueFlow Charts — watchlists and the full chart">📈 TrueFlow Charts</button>
         <button class="mode-btn" id="mode-banknifty" onclick="switchMode('banknifty')">🏦 BankNifty</button>
         <button class="mode-btn" id="mode-results" onclick="switchMode('results')">📋 Results</button>
         <button class="mode-btn" id="mode-rotation" onclick="switchMode('rotation')">🔄 Rotation</button>
+        <select id="tf-fontsz" onchange="tfFont(this.value)" title="Text size across the whole dashboard"
+          style="margin-left:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+          color:inherit;border-radius:7px;padding:4px 7px;font-size:11px;font-family:inherit;cursor:pointer">
+          <option value="0.85">A−− 85%</option>
+          <option value="0.92">A− 92%</option>
+          <option value="1" selected>A 100%</option>
+          <option value="1.1">A+ 110%</option>
+          <option value="1.2">A++ 120%</option>
+          <option value="1.35">A+++ 135%</option>
+        </select>
       </div>
       <div class="nav-tabs" id="fo-tabs">
         <button class="nav-tab active" onclick="switchTab('morning',this,'fo')">🌅 Morning Brief</button>
@@ -15526,7 +15537,7 @@ function loadStock(sym,then){
     the 1000-row page cap. ohlc_120 stays as the fallback. */
  if(!CACHE.dohlc)CACHE.dohlc={};
  if(!CACHE.dohlc[sym])need.push(sbGet('daily_ohlc?symbol=eq.'+encodeURIComponent(sym)+
-   '&select=d,o,h,l,c&order=d.asc&limit=1000').then(function(r){
+   '&select=d,o,h,l,c,v&order=d.asc&limit=1000').then(function(r){
     CACHE.dohlc[sym]=(r||[]).filter(function(x){return x.c!=null;});
    }).catch(function(){CACHE.dohlc[sym]=[];}));
  if(!CACHE.ema[sym])need.push(sbGet('ema_filter?symbol=eq.'+encodeURIComponent(sym)+
@@ -15575,7 +15586,8 @@ function gather(sym){
   var _dl=(CACHE.dohlc&&CACHE.dohlc[sym])||null;
   if(_dl&&_dl.length>200){
    var _vm={};(CACHE.hist[sym]||[]).forEach(function(x){_vm[x.d]=x.v;});
-   o.hist=_dl.map(function(b){return {d:b.d,c:+b.c,v:(_vm[b.d]!=null?_vm[b.d]:null)};});
+   o.hist=_dl.map(function(b){return {d:b.d,c:+b.c,v:(_vm[b.d]!=null?_vm[b.d]:null),
+                                      raw:(b.v!=null?+b.v:null)};});
    o.ohlc=_dl.map(function(b){return {d:b.d,o:+b.o,h:+b.h,l:+b.l,c:+b.c};});
    o.longHist=true;
   }
@@ -16845,6 +16857,7 @@ function ceRender(){
  });
  var cndl=useC?win:null;
  CE._winDates=win.map(function(b){return b.d;});
+ var _SV=CE.simpleVol?ceSimpleVol(win):null;
  var e={};[9,20,50,200].forEach(function(p){
   e[p]=win.map(function(b){var ix=hmap[b.d];return (ix==null)?null:E[p][ix];});
  });
@@ -16915,6 +16928,7 @@ function ceRender(){
    if(v==null)return;
    var bw=Math.max(1,S.pw/vols.length*0.6),x=S.x(i)-bw/2,hh=Math.max(0.6,(v/vmax)*vh);
    var up=i===0||win[i].c>=win[i-1].c,vc=volColour(v,up,OMc[(win[i]||{}).d]);
+   if(CE.simpleVol&&_SV&&_SV[i]){var _k=ceSimpleVolColour(_SV[i]);vc={c:_k.c,o:_k.o,lab:_k.lab};}
    g+='<rect x="'+x.toFixed(1)+'" y="'+(vtop+vh-hh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hh.toFixed(1)+'" fill="'+vc.c+'" opacity="'+vc.o+'"><title>'+esc((win[i].d||'')+' \u00b7 '+vc.lab)+'</title></rect>';
   });
   var vmaxI=-1;vols.forEach(function(v2,i2){if(v2!=null&&(vmaxI<0||v2>vols[vmaxI]))vmaxI=i2;});
@@ -17134,7 +17148,24 @@ function ceRender(){
       '<rect x="'+(CE_W-CE_PAD.r+1)+'" y="'+(hy-7).toFixed(1)+'" width="66" height="14" fill="var(--bg3)"/>'+
       '<text x="'+(CE_W-CE_PAD.r+5)+'" y="'+(hy+3.5).toFixed(1)+'" font-size="10" fill="var(--text)">'+S.yInv(hy).toFixed(2)+'</text>';
   }
-  g+='<rect x="'+(hx-32).toFixed(1)+'" y="'+(CE_H-CE_PAD.b+2)+'" width="64" height="13" fill="var(--bg3)"/>'+
+  /* A full dashed cross, both axes, the way a crosshair should read. */
+ if(CE.hoverY!=null){
+  g+='<line x1="'+CE_PAD.l+'" y1="'+CE.hoverY.toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+'" y2="'+
+     CE.hoverY.toFixed(1)+'" stroke="var(--muted)" stroke-width="0.6" stroke-dasharray="3 4" opacity="0.75"/>';
+  try{
+   var _S=CE.lastScale;
+   if(_S&&_S.yInv){
+    var _pv=_S.yInv(CE.hoverY);
+    if(_pv!=null&&isFinite(_pv)){
+     g+='<rect x="'+(CE_W-CE_PAD.r)+'" y="'+(CE.hoverY-7).toFixed(1)+'" width="'+(CE_PAD.r-4)+
+        '" height="14" rx="3" fill="var(--bg3)"/>'+
+        '<text x="'+(CE_W-CE_PAD.r+4)+'" y="'+(CE.hoverY+4).toFixed(1)+'" font-size="9.5" '+
+        'fill="var(--text)">'+_pv.toFixed(2)+'</text>';
+    }
+   }
+  }catch(e){}
+ }
+ g+='<rect x="'+(hx-32).toFixed(1)+'" y="'+(CE_H-CE_PAD.b+2)+'" width="64" height="13" fill="var(--bg3)"/>'+
      '<text x="'+hx.toFixed(1)+'" y="'+(CE_H-CE_PAD.b+12)+'" font-size="9.5" fill="var(--text)" text-anchor="middle">'+esc(String(hb.d||''))+'</text>';
   // a small box beside the cursor, so you never have to look away from the bar
   var bx=(hx>CE_W*0.6)?(hx-176):(hx+10),by=Math.max(CE_PAD.t+4,Math.min(hy-34,CE_PAD.t+S.ph-58));
@@ -17220,6 +17251,54 @@ function ceErnMark(o,win,S){
 /* ── the setup drawn for you: pole, box and prior pivots ──────────
    Worked out from the candles plus the scan's own qm_* figures, so what
    you see is the same structure the playbooks are scoring. */
+/* ── SIMPLE VOLUME, after finallynitin's indicator ─────────────────────────
+   Strips the volume panel down to the three bars that carry information and
+   greys the rest:
+
+     BLUE  Pocket Pivot - an UP day whose volume beats the biggest DOWN-day
+           volume of the last 10 down days. Buyers overwhelming the largest
+           recent supply, which is the accumulation signature.
+     GREEN up day above the 50-day volume average
+     RED   down day above it
+     grey  everything else - noise, by design
+
+   Reading it: recent red bars are unconsumed supply. Either the highs of
+   those days get taken out, or they need to be followed by pocket pivots or
+   bigger green bars before the base is clean.
+
+   Needs RAW volume, which is why daily_ohlc now carries v. Falls back to the
+   old RVOL colouring when raw volume is missing. */
+function ceSimpleVol(bars){
+ var out=[],mv=[],n=bars.length;
+ for(var i=0;i<n;i++){
+  var b=bars[i],vol=(b.raw!=null?+b.raw:null);
+  if(vol==null){out.push(null);continue;}
+  var from=Math.max(0,i-49),sum=0,cnt=0;
+  for(var j=from;j<=i;j++){var q=(bars[j].raw!=null?+bars[j].raw:null);if(q!=null){sum+=q;cnt++;}}
+  var avg=cnt?sum/cnt:null;
+  var up=(i>0)?(b.c>=bars[i-1].c):true;
+  /* the biggest down-day volume in the last 10 DOWN days, not the last 10 days */
+  var maxDown=0,seen=0;
+  for(var k=i-1;k>=0&&seen<10;k--){
+   var pv=(bars[k].raw!=null?+bars[k].raw:null);
+   if(pv==null||k===0)continue;
+   if(bars[k].c<bars[k-1].c){seen++;if(pv>maxDown)maxDown=pv;}
+  }
+  var kind='noise';
+  if(up&&maxDown>0&&vol>maxDown)kind='ppv';
+  else if(avg&&vol>avg)kind=up?'up':'down';
+  out.push({kind:kind,vol:vol,avg:avg,rv:(avg?vol/avg:null)});
+ }
+ return out;
+}
+function ceSimpleVolColour(k){
+ if(!k)return {c:'var(--muted)',o:0.35,lab:'no volume data'};
+ if(k.kind==='ppv') return {c:'#3b82f6',o:1,   lab:'POCKET PIVOT \u2014 up day beating the last 10 down days'};
+ if(k.kind==='up')  return {c:'var(--green)',o:0.95,lab:'up day, above the 50-day average'};
+ if(k.kind==='down')return {c:'var(--red)',  o:0.95,lab:'down day, above the 50-day average \u2014 unconsumed supply'};
+ return {c:'var(--muted)',o:0.3,lab:'below average \u2014 noise'};
+}
+
 function ceAuto(o,cndl){
  var d=o.scr||{},m=o.mtf||{},A={pole:null,box:null,pivots:[]};
  if(!cndl||cndl.length<15)return A;
@@ -17279,8 +17358,8 @@ function ceAutoSvg(A,S){
   g+='<g><title>'+esc('Consolidation box: '+A.box.days+' sessions, '+A.box.depth.toFixed(1)+
     '% deep, '+A.box.bot.toFixed(1)+' to '+A.box.top.toFixed(1)+'. A break of the top is the trigger; the bottom is where the base fails.')+'</title>'+
    '<rect x="'+x1.toFixed(1)+'" y="'+yt.toFixed(1)+'" width="'+Math.max(2,x2-x1).toFixed(1)+'" height="'+Math.max(2,yb-yt).toFixed(1)+
-    '" fill="var(--amber)" opacity="0.09" stroke="var(--amber)" stroke-width="1" stroke-dasharray="4 3"/>'+
-   '<text x="'+(x1+4).toFixed(1)+'" y="'+(yt-4).toFixed(1)+'" font-size="10" fill="var(--amber)">Box '+A.box.days+'d · '+A.box.depth.toFixed(1)+'% deep</text></g>';
+    '" fill="'+(CE.boxColour||'var(--amber)')+'" opacity="0.09" stroke="'+(CE.boxColour||'var(--amber)')+'" stroke-width="1" stroke-dasharray="4 3"/>'+
+   '<text x="'+(x1+4).toFixed(1)+'" y="'+(yt-4).toFixed(1)+'" font-size="10" fill="'+(CE.boxColour||'var(--amber)')+'">Box '+A.box.days+'d · '+A.box.depth.toFixed(1)+'% deep</text></g>';
  }
  if(CE.show.pole&&A.pole){
   var px1=S.x(A.pole.i1),py1=S.y(A.pole.p1),px2=S.x(A.pole.i2),py2=S.y(A.pole.p2);
@@ -17289,9 +17368,9 @@ function ceAutoSvg(A,S){
     (A.pole.scanPct!=null?' The scan records '+A.pole.scanPct.toFixed(1)+'% over '+A.pole.scanDays+' sessions; small differences are the scan measuring close-to-close.':'')+
     (A.pole.noBox?' No consolidation has formed yet, so the pole runs to the most recent high.':' The move that earns the base.'))+'</title>'+
    '<line x1="'+px1.toFixed(1)+'" y1="'+py1.toFixed(1)+'" x2="'+px2.toFixed(1)+'" y2="'+py2.toFixed(1)+
-    '" stroke="var(--green)" stroke-width="1.6" opacity="0.85"/>'+
-   '<circle cx="'+px1.toFixed(1)+'" cy="'+py1.toFixed(1)+'" r="2.5" fill="var(--green)"/>'+
-   '<text x="'+((px1+px2)/2).toFixed(1)+'" y="'+((py1+py2)/2-5).toFixed(1)+'" font-size="10" fill="var(--green)" text-anchor="middle">Pole +'+
+    '" stroke="'+(CE.poleColour||'var(--green)')+'" stroke-width="1.6" opacity="0.85"/>'+
+   '<circle cx="'+px1.toFixed(1)+'" cy="'+py1.toFixed(1)+'" r="2.5" fill="'+(CE.poleColour||'var(--green)')+'"/>'+
+   '<text x="'+((px1+px2)/2).toFixed(1)+'" y="'+((py1+py2)/2-5).toFixed(1)+'" font-size="10" fill="'+(CE.poleColour||'var(--green)')+'" text-anchor="middle">Pole +'+
     A.pole.pct.toFixed(0)+'% / '+A.pole.days+'d'+(A.pole.noBox?' (no box yet)':'')+'</text></g>';
  }
  if(CE.show.pivots){
@@ -17299,7 +17378,7 @@ function ceAutoSvg(A,S){
    var x=S.x(v.i),y=S.y(v.p);
    g+='<g><title>'+esc((v.up?'Swing high ':'Swing low ')+v.p+' — a level the market has already reacted to.')+'</title>'+
      '<path d="M'+(x-3.5).toFixed(1)+' '+(v.up?(y-4):(y+4)).toFixed(1)+' L'+(x+3.5).toFixed(1)+' '+(v.up?(y-4):(y+4)).toFixed(1)+
-     ' L'+x.toFixed(1)+' '+(v.up?(y-9):(y+9)).toFixed(1)+' Z" fill="'+(v.up?'var(--red)':'var(--green)')+'" opacity="0.7"/></g>';
+     ' L'+x.toFixed(1)+' '+(v.up?(y-9):(y+9)).toFixed(1)+' Z" fill="'+(v.up?'var(--red)':(CE.poleColour||'var(--green)'))+'" opacity="0.7"/></g>';
   });
  }
  return g;
@@ -17522,6 +17601,8 @@ function ceToolsHtml(){
  h+=t(false,'ceRedo()','\u21b7','Redo');
  h+=t(false,'ceClear()','\ud83d\uddd1','Clear every drawing on this stock');
  h+='<div class="ce-tsep"></div>';
+ h+=t(false,'ceFilters()','\u2699','All the screener filters, right here');
+ h+=t(false,'ceSetupColour()','\ud83c\udfa8','Colours for the automatic pole and box');
  h+=t(false,'ceAlertHist()','\ud83d\udcdc','Alert history \u2014 every alert you set on this stock');
  h+=t(false,'ceToggleWl()','\u25e7','Show or hide the watchlist panel');
  return h;
@@ -17560,7 +17641,7 @@ function ceBar(o){
 
 
  h+='<span class="ce-sep"></span>';
- h+=btn(CE.vol,'ceVol()','Vol','Show or hide the volume pane. Hidden gives the price the full height.');
+ h+=btn(!!CE.simpleVol,'ceSimpleToggle()','SimpleVol','Volume stripped to what matters \u2014 BLUE pocket pivot (an up day beating the biggest of the last 10 down days), GREEN up day above the 50-day average, RED down day above it, grey is noise. After finallynitin\'s indicator.')+btn(CE.vol,'ceVol()','Vol','Show or hide the volume pane. Hidden gives the price the full height.');
  h+=btn(CE.scale==='log','ceScale()','Log','Log scale: equal percentage moves take equal space. Worth using on a year of a stock that has doubled.');
  h+='<span class="ce-sep"></span>';
  h+=btn(CE.show.pole,'ceShow(\'pole\')','Pole','Draw the rally that precedes the base, with its % and length');
@@ -17626,6 +17707,42 @@ window.ceToDraw=function(){
 /* ceUndo / ceRedo are defined above with a proper 40-step history.
    The one that used to sit here only popped the last drawing and, being
    later in the file, silently replaced them. */
+window.ceSimpleToggle=function(){CE.simpleVol=!CE.simpleVol;ceRefresh();};
+
+/* The screener's filter panel, reachable from the chart. It lives inside the
+   Screener tab's markup, which is display:none while the chart is open - so
+   move it to <body> first, exactly as the dialogs needed. */
+window.ceFilters=function(){
+ var fp=document.getElementById('scr-fp'),bk=document.getElementById('scr-fpbk');
+ if(!fp){try{wlToast('Open the Screener tab once first');}catch(e){}return;}
+ if(fp.parentNode!==document.body)document.body.appendChild(fp);
+ if(bk&&bk.parentNode!==document.body)document.body.appendChild(bk);
+ fp.style.zIndex='10060';if(bk)bk.style.zIndex='10059';
+ scrFP(true);
+};
+
+/* Colours for the automatic pole and box - they are on by default now, and
+   one palette does not suit every chart. */
+window.ceSetupColour=function(){
+ var opts=[{v:'var(--cyan)',label:'Cyan'},{v:'var(--green)',label:'Green'},
+           {v:'var(--amber)',label:'Amber'},{v:'var(--red)',label:'Red'},
+           {v:'#a855f7',label:'Purple'},{v:'var(--muted)',label:'Grey'}];
+ tfDlg({title:'Colour for the BOX',choices:opts},function(bc){
+  CE.boxColour=bc;
+  tfDlg({title:'Colour for the POLE',choices:opts},function(pc){
+   CE.poleColour=pc;
+   try{localStorage.setItem('tf_setup_cols',JSON.stringify({b:bc,p:pc}));}catch(e){}
+   ceRefresh();
+  });
+ });
+};
+(function(){
+ try{
+  var c=JSON.parse(localStorage.getItem('tf_setup_cols')||'null');
+  if(c){CE.boxColour=c.b;CE.poleColour=c.p;}
+ }catch(e){}
+})();
+
 window.ceClear=function(){ceSave([]);ceRender();};
 
 /* ── BAR REPLAY ─────────────────────────────────────
@@ -17887,6 +18004,29 @@ window.ceOpen=function(sym){
   p.addEventListener('wheel',function(ev){
    if(!CE.open||!CE._total)return;
    ev.preventDefault();
+   /* A mouse wheel arrives as a big vertical jump with no horizontal part; a
+      trackpad sends small deltas in both directions. Treating both as "zoom"
+      is what made the trackpad unusable - two fingers should SCROLL, the way
+      it does in TradingView. */
+   var isPad=(Math.abs(ev.deltaX)>0.4)||(Math.abs(ev.deltaY)<18&&ev.deltaMode===0);
+   if(isPad&&!ev.ctrlKey){
+    var moved=false;
+    if(Math.abs(ev.deltaX)>Math.abs(ev.deltaY)){
+     var bp=(CE.view.n||126)/Math.max(1,(CE_W-CE_PAD.l-CE_PAD.r-CE_GAP));
+     var no=Math.round((CE.view.off||0)-ev.deltaX*bp*1.6);
+     no=Math.max(0,Math.min(CE._total-(CE.view.n||126),no));
+     if(no!==CE.view.off){CE.view.off=no;moved=true;}
+    }else{
+     var S0=CE.lastScale;
+     if(S0){
+      var rr=S0.mx-S0.mn,sh=(ev.deltaY/(S0.ph||400))*rr*1.1;
+      var nlo=S0.mn+sh,nhi=S0.mx+sh;
+      if(nlo>0&&nhi>nlo){CE.view.ylo=nlo;CE.view.yhi=nhi;moved=true;}
+     }
+    }
+    if(moved)ceRender();
+    return;
+   }
    var cv=document.getElementById('ce-canvas');if(!cv)return;
    var r=cv.getBoundingClientRect();
    var pw=CE_W-CE_PAD.l-CE_PAD.r-CE_GAP;
@@ -18032,6 +18172,35 @@ window.ceOpen=function(sym){
    cb receives the typed string, the chosen value, or true for a plain
    confirm. It receives nothing at all if you cancel - so a cancel never
    runs the action, which is the one thing that must not go wrong. */
+/* Text size for the whole dashboard. Uses browser zoom on the page rather
+   than rewriting 1,075 hard-coded pixel sizes - it scales spacing and charts
+   with the text, which is what you actually want when things are too small. */
+window.tfFont=function(v){
+ v=parseFloat(v)||1;
+ try{localStorage.setItem('tf_fontsz',String(v));}catch(e){}
+ document.body.style.zoom=(v===1?'':String(v));
+ var sel=document.getElementById('tf-fontsz');
+ if(sel)sel.value=String(v);
+};
+(function(){
+ try{
+  var v=parseFloat(localStorage.getItem('tf_fontsz')||'1');
+  if(v&&v!==1)setTimeout(function(){window.tfFont(v);},60);
+ }catch(e){}
+})();
+
+/* TrueFlow Charts from the top bar: jump to the Momentum mode and its Charts
+   tab in one click, instead of two. */
+window.tfChartsOpen=function(){
+ try{
+  switchMode('momentum');
+  setTimeout(function(){
+   var b=document.querySelector('#momentum-tabs .nav-tab[onclick*="charts"]');
+   if(b)b.click();
+  },60);
+ }catch(e){console.error('charts tab:',e);}
+};
+
 function tfDlg(o,cb){
  /* The dialog markup was written inside the Screener tab's panel, which is
     display:none whenever you are on another tab - so from the Charts tab the
