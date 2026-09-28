@@ -1028,6 +1028,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tf-dlg .bt:hover{background:var(--bg3);color:var(--text)}
 #tf-dlg .bt.go{background:var(--cyan);border-color:var(--cyan);color:#062033}
 #tf-dlg .bt.danger{background:var(--red);border-color:var(--red);color:#fff}
+/* .scr-tool was defined ONLY inside #tab-screener and #tab-volume, so every
+   button in the Charts tab fell back to the browser's grey rectangle. Defined
+   globally here; the scoped copies still win where they exist. */
+.scr-tool{background:var(--bg2);border:1px solid var(--bg3);color:var(--text2);
+ font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;cursor:pointer;
+ display:inline-flex;align-items:center;gap:5px;font-family:inherit;
+ transition:background .12s,color .12s,border-color .12s}
+.scr-tool:hover{background:var(--bg3);color:var(--text);border-color:var(--muted)}
+.scr-tool:active{transform:translateY(1px)}
 .wl-side{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;padding:10px}
 .wl-li{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 9px;border-radius:7px;
  cursor:pointer;margin-bottom:3px;transition:background .12s}
@@ -16556,7 +16565,7 @@ document.addEventListener('click',function(e){
  scOpen(sym,listFor(tr));
 },true);
 
-/* ═══ Enlarged chart — full screen, EMAs, levels, crosshair, drawing tools ═══
+/* ═══ TrueFlow Charts — full screen, EMAs, levels, crosshair, drawing tools ═══
    Everything here is drawn from data the card already holds: 250 daily closes,
    120 candles, RVOL per session and the levels the scan works out. Drawings are
    kept per symbol in this browser, in chart coordinates, so they stay put when
@@ -18301,7 +18310,7 @@ function wlLoad(){
   (r[2]||[]).forEach(function(c){WL.colours[c.colour]=c.label||'';});
   if(!WL.active||!WL.lists.some(function(l){return l.id===WL.active;}))
    WL.active=WL.lists.length?WL.lists[0].id:null;
-  WL.loading=false;WL._px=null;
+  WL.loading=false;WL._px=null;WL._cmap=null;
   wlRender();
  }).catch(function(e){
   WL.loading=false;
@@ -18558,6 +18567,31 @@ window.wlRender  = wlRender;
 window.wlActive  = wlActive;
 window.wlSymbols = wlSymbols;
 window.WL        = WL;
+
+/* The colour you tagged a stock with, wherever that stock appears. Built once
+   per render from the watchlists already in memory - no extra request. */
+window.wlColourOf=function(sym){
+ try{
+  if(!WL._cmap){
+   WL._cmap={};
+   for(var id in WL.items){
+    (WL.items[id]||[]).forEach(function(it){
+     if(it.colour&&!WL._cmap[it.symbol])WL._cmap[it.symbol]=it.colour;
+    });
+   }
+  }
+  return WL._cmap[sym]||null;
+ }catch(e){return null;}
+};
+window.wlColourDot=function(sym){
+ var c=window.wlColourOf&&window.wlColourOf(sym);
+ if(!c)return '';
+ var hex=(typeof WL_SWATCH!=='undefined'&&WL_SWATCH[c])||c;
+ var lab=(WL&&WL.colours&&WL.colours[c])||c;
+ return '<span style="width:7px;height:7px;border-radius:50%;background:'+hex+
+  ';display:inline-block;margin-right:5px;vertical-align:middle;flex:0 0 auto" title="'+
+  esc(lab)+'"></span>';
+};
 
 window.wlPickList=function(id){WL.active=id;WL._px=null;wlRender();};
 
@@ -18902,7 +18936,17 @@ window.wlAddFromScreener=function(){
  if(!WL.lists.length){wlLoad();setTimeout(go,900);} else go();
 };
 
+/* The star appears in every table on the dashboard, so hanging the watchlist
+   colour off it puts the tag everywhere at once - Screener, Scanner, EMA
+   Signals, Smart Money - without touching each table's own renderer. */
 function tfStarBtn(sym,cls){
+ if(!sym)return '';
+ var _dot='';
+ try{ if(typeof window.wlColourDot==='function')_dot=window.wlColourDot(sym); }catch(e){}
+ if(_dot)return _dot+tfStarBtn0(sym,cls);
+ return tfStarBtn0(sym,cls);
+}
+function tfStarBtn0(sym,cls){
  if(!sym)return '';
  var on=false;
  try{ on=(typeof window.tfIsStarred==='function')&&window.tfIsStarred(sym); }catch(e){}
