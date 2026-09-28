@@ -16964,6 +16964,15 @@ function ceRender(){
    g+='<g class="ce-dr" data-i="'+i+'"><line x1="'+S.x(DI(k.i1,k.d1)).toFixed(1)+'" y1="'+S.y(k.p1).toFixed(1)+'" x2="'+S.x(DI(k.i2,k.d2)).toFixed(1)+'" y2="'+S.y(k.p2).toFixed(1)+'" stroke="'+(k.c||'var(--text)')+'" stroke-width="1.5"/></g>';
   }else if(k.t==='x'){
    g+='<g class="ce-dr" data-i="'+i+'"><text x="'+S.x(DI(k.i,k.d)).toFixed(1)+'" y="'+S.y(k.p).toFixed(1)+'" font-size="12" fill="'+(k.c||'var(--text)')+'">'+esc(k.txt)+'</text></g>';
+  }else if(k.t==='r'){
+   var rx0=S.x(DI(k.i,k.d)),ry0=S.y(k.p);
+   g+='<g class="ce-dr" data-i="'+i+'">'+
+    '<line x1="'+rx0.toFixed(1)+'" y1="'+ry0.toFixed(1)+'" x2="'+(CE_W-CE_PAD.r)+
+    '" y2="'+ry0.toFixed(1)+'" stroke="'+(k.c||'var(--cyan)')+'" stroke-width="1.1"/>'+
+    '<circle cx="'+rx0.toFixed(1)+'" cy="'+ry0.toFixed(1)+'" r="2.6" fill="'+(k.c||'var(--cyan)')+'"/>'+
+    '<text x="'+(rx0+5).toFixed(1)+'" y="'+(ry0-4).toFixed(1)+'" font-size="9.5" fill="'+
+    (k.c||'var(--cyan)')+'">'+esc(k.p)+'</text>'+
+    '<title>Ray from '+esc(k.d||'')+' at '+esc(k.p)+'</title></g>';
   }else if(k.t==='b'){
    /* Rectangle. Drawn from two clicks, so the corners can be in any order -
       normalise them rather than trusting which came first. The top and bottom
@@ -17244,7 +17253,9 @@ window.ceJump=function(sym){
 /* Alt-key shortcuts, the way TradingView does them. Ignored while you are
    typing in a box, so Alt+A in the search field does not arm the alert tool. */
 (function(){
- var MAP={a:'a',h:'h',t:'l',r:'b',x:'x',m:'m',c:'cursor'};
+ /* Matching TradingView where it has a default: Alt+T trendline,
+    Alt+H horizontal line, Alt+J horizontal ray, Alt+A alert. */
+ var MAP={t:'l',h:'h',j:'r',a:'a',b:'b',x:'x',m:'m',c:'cursor'};
  document.addEventListener('keydown',function(e){
   if(!CE||!CE.open)return;
   var t=e.target;
@@ -17253,7 +17264,7 @@ window.ceJump=function(sym){
   var k=String(e.key||'').toLowerCase();
   if(e.altKey&&MAP[k]){e.preventDefault();ceTool(MAP[k]);return;}
   if(e.altKey&&k==='w'){e.preventDefault();ceToggleWl();return;}
-  if(e.altKey&&k==='j'){e.preventDefault();var i=document.getElementById('ce-sin');if(i)i.focus();return;}
+  if(e.altKey&&k==='s'){e.preventDefault();var i=document.getElementById('ce-sin');if(i)i.focus();return;}
   if(e.altKey&&k==='l'){e.preventDefault();wlQuickAdd();return;}
   if(!e.altKey){
    if(k==='escape'){ceTool('cursor');return;}
@@ -17360,7 +17371,8 @@ function ceToolsHtml(){
  h+=t(CE.tool==='cursor',"ceTool('cursor')",'\u2196','Cursor \u2014 hover the chart to read each session');
  h+='<div class="ce-tsep"></div>';
  h+=t(CE.tool==='l',"ceTool('l')",'\u2571','Trendline \u2014 click the start, then the end');
- h+=t(CE.tool==='h',"ceTool('h')",'\u2500','Horizontal line \u2014 one click at the price');
+ h+=t(CE.tool==='h',"ceTool('h')",'\u2500','Horizontal line \u2014 one click at the price (Alt+H)');
+ h+=t(CE.tool==='r',"ceTool('r')",'\u27a4','Horizontal ray \u2014 one click, extends right only (Alt+J)');
  h+=t(CE.tool==='b',"ceTool('b')",'\u25ad','Box \u2014 click one corner then the other. Labels the top, the bottom and how deep it is.');
  h+='<div class="ce-tsep"></div>';
  h+=t(CE.tool==='x',"ceTool('x')",'T','Text \u2014 click, then type your note');
@@ -17571,6 +17583,11 @@ function ceClick(ev){
  else if(CE.tool==='l'){
   if(!CE.pending){CE.pending={i:c.i,d:ceDateAt(c.i),p:c.p};}
   else{a.push({t:'l',i1:CE.pending.i,d1:CE.pending.d,p1:CE.pending.p,i2:c.i,d2:ceDateAt(c.i),p2:c.p,c:'var(--cyan)'});CE.pending=null;ceSave(a);ceRender();}
+ }else if(CE.tool==='r'){
+  /* Horizontal ray - marks a level from the bar you clicked FORWARDS only,
+     so it reads as "from here on" rather than a level that was always there. */
+  a.push({t:'r',i:c.i,d:ceDateAt(c.i),p:c.p,c:'var(--cyan)'});
+  ceSave(a);ceRender();
  }else if(CE.tool==='b'){
   if(!CE.pending){CE.pending={i:c.i,d:ceDateAt(c.i),p:c.p};}
   else{a.push({t:'b',i1:CE.pending.i,d1:CE.pending.d,p1:CE.pending.p,
