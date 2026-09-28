@@ -970,8 +970,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tab-screener .scr-pv{display:inline-block;vertical-align:middle;cursor:help}
 #tab-screener .scr-yes{color:var(--green);font-weight:700}
 .ce-b:hover{background:var(--bg3);color:var(--text);border-color:var(--bg3)}
-.ce-b.on{background:var(--cyan);color:var(--bg0);border-color:var(--cyan);font-weight:700}
-.ce-b.on:hover{background:var(--cyan);color:var(--bg0)}
+/* An explicit dark ink, not var(--bg0): in the light theme that variable is
+   near-white, so every active button became a blue blob with no label. */
+.ce-b.on{background:var(--cyan);color:#062033;border-color:var(--cyan);font-weight:700}
+.ce-b.on:hover{background:var(--cyan);color:#062033}
 .ce-sep{display:inline-block;width:1px;height:15px;background:var(--bg3);margin:0 5px;vertical-align:middle}
 /* Filter side panel - the 40-odd filters grouped under headings instead of a
    wall of dropdowns. Slides in from the right, applies as you tick. */
@@ -995,7 +997,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
  border:1px solid var(--bg3);border-radius:99px;padding:4px 10px;margin:2px 3px 2px 0;
  font-size:11px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
 .fp-o:hover{border-color:var(--muted)}
-.fp-o.on{background:var(--cyan);border-color:var(--cyan);color:var(--bg0);font-weight:700}
+.fp-o.on{background:var(--cyan);border-color:var(--cyan);color:#062033;font-weight:700}
 .fp-clr{font-size:10px;color:var(--red);cursor:pointer;opacity:0;transition:opacity .12s}
 .fp-f:hover .fp-clr{opacity:1}
 /* Styled dialogs, replacing the browser's prompt() and confirm() boxes. */
@@ -1021,7 +1023,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tf-dlg .bt{padding:8px 17px;border-radius:99px;border:1px solid var(--bg3);background:var(--bg2);
  color:var(--text2);cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit}
 #tf-dlg .bt:hover{background:var(--bg3);color:var(--text)}
-#tf-dlg .bt.go{background:var(--cyan);border-color:var(--cyan);color:var(--bg0)}
+#tf-dlg .bt.go{background:var(--cyan);border-color:var(--cyan);color:#062033}
 #tf-dlg .bt.danger{background:var(--red);border-color:var(--red);color:#fff}
 .wl-side{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;padding:10px}
 .wl-li{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 9px;border-radius:7px;
@@ -1038,7 +1040,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .wl-row:first-child{border-top:none}
 .wl-sym{flex:1 1 auto;cursor:pointer;font-weight:600;display:flex;align-items:center;letter-spacing:.2px}
 .wl-sym:hover{color:var(--cyan)}
-.wl-dots{width:104px;display:flex;gap:4px;justify-content:flex-end;align-items:center;opacity:0;transition:opacity .12s}
+.wl-dots{width:104px;display:flex;gap:4px;justify-content:flex-end;align-items:center;opacity:.55;transition:opacity .12s}
 .wl-row:hover .wl-dots{opacity:1}
 .wl-dot{width:11px;height:11px;border-radius:50%;cursor:pointer;transition:transform .1s}
 .wl-dot:hover{transform:scale(1.35)}
@@ -15354,7 +15356,7 @@ setTimeout(function(){clearInterval(t);},40000);
  background:none;color:var(--text2);cursor:pointer;font-size:14px;display:flex;
  align-items:center;justify-content:center;transition:background .12s,color .12s}
 #ce-tools .ce-t:hover{background:var(--bg3);color:var(--text)}
-#ce-tools .ce-t.on{background:var(--cyan);color:var(--bg0);border-color:var(--cyan)}
+#ce-tools .ce-t.on{background:var(--cyan);color:#062033;border-color:var(--cyan)}
 #ce-tools .ce-tsep{width:22px;height:1px;background:var(--bg3);margin:4px 0}
 /* The watchlist docked beside the chart - click a name, the chart changes. */
 #ce-wl{flex:0 0 226px;background:var(--bg2);border-left:1px solid var(--bg3);
@@ -17232,12 +17234,37 @@ window.ceSearchKey=function(ev){
    var m=f.getAttribute('onmousedown').match(/ceJump\('([^']+)'\)/);if(m)ceJump(m[1]);}}
 };
 window.ceJump=function(sym){
+ try{localStorage.setItem('tf_last_sym',sym);}catch(e){}
  ceSearchHide();
  var i=document.getElementById('ce-sin');if(i)i.value='';
  if(typeof ceOpen==='function')ceOpen(sym);
 };
 
 /* The watchlist, docked. Clicking a name changes the chart without closing it. */
+/* Alt-key shortcuts, the way TradingView does them. Ignored while you are
+   typing in a box, so Alt+A in the search field does not arm the alert tool. */
+(function(){
+ var MAP={a:'a',h:'h',t:'l',r:'b',x:'x',m:'m',c:'cursor'};
+ document.addEventListener('keydown',function(e){
+  if(!CE||!CE.open)return;
+  var t=e.target;
+  if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
+  if(e.ctrlKey||e.metaKey)return;
+  var k=String(e.key||'').toLowerCase();
+  if(e.altKey&&MAP[k]){e.preventDefault();ceTool(MAP[k]);return;}
+  if(e.altKey&&k==='w'){e.preventDefault();ceToggleWl();return;}
+  if(e.altKey&&k==='j'){e.preventDefault();var i=document.getElementById('ce-sin');if(i)i.focus();return;}
+  if(e.altKey&&k==='l'){e.preventDefault();wlQuickAdd();return;}
+  if(!e.altKey){
+   if(k==='escape'){ceTool('cursor');return;}
+   if(k==='arrowleft'){e.preventDefault();ceStep(-1);return;}
+   if(k==='arrowright'){e.preventDefault();ceStep(1);return;}
+   if(k==='z'&&e.shiftKey){e.preventDefault();ceRedo();return;}
+   if(k==='z'){e.preventDefault();ceUndo();return;}
+  }
+ });
+})();
+
 window.ceToggleWl=function(){
  var w=document.getElementById('ce-wl');
  if(w)w.classList.toggle('hide');
@@ -17253,7 +17280,9 @@ function ceWlHtml(){
    return '<option value="'+l.id+'"'+(l.id===cur.id?' selected':'')+'>'+
     esc((l.kind==='live'?'\u26a1 ':'')+l.name)+'</option>';
   }).join('')+'</select>'+
-  '<span style="color:var(--muted);font-size:10px" title="Hide this panel" '+
+  '<span style="color:var(--cyan);font-size:14px;cursor:pointer" title="New watchlist" '+
+  'onclick="wlNew()">+</span>'+
+  '<span style="color:var(--muted);font-size:10px;cursor:pointer" title="Hide this panel (Alt+W)" '+
   'onclick="ceToggleWl()">\u2715</span></div><div id="ce-wlbody">';
  var syms=(typeof wlSymbols==='function')?wlSymbols(cur):null;
  if(syms===null){h+='<div style="padding:14px;color:var(--amber);font-size:11.5px">Live list \u2014 open the Screener once.</div>';}
@@ -17693,9 +17722,12 @@ window.ceOpen=function(sym){
      ev.preventDefault();return;
     }
    }
-   /* Pan with any tool. Previously only the cursor tool could pan, so
-      selecting the box or trendline tool left the chart frozen. */
-   CE._pan={x:ev.clientX,n:CE.view.n,off:CE.view.off,moved:false};
+   /* Pan with any tool, horizontally AND vertically. Dragging up or down
+      shifts the price window the way TradingView does - before this, only
+      time moved and the chart felt stuck. */
+   var _S=CE.lastScale;
+   CE._pan={x:ev.clientX,y:ev.clientY,n:CE.view.n,off:CE.view.off,moved:false,
+            lo:(_S?_S.mn:null),hi:(_S?_S.mx:null),h:(cv0?cv0.getBoundingClientRect().height:1)};
   });
   window.addEventListener('mousemove',function(ev){
    if(CE._ydrag){
@@ -17704,6 +17736,15 @@ window.ceOpen=function(sym){
     return;
    }
    if(!CE._pan||!CE._total)return;
+   /* vertical drag = shift the price window, same distance the mouse moved */
+   if(CE._pan.lo!=null&&CE._pan.hi!=null){
+    var _dy=(ev.clientY-CE._pan.y)/(CE._pan.h||1);
+    if(Math.abs(ev.clientY-CE._pan.y)>2){
+     var _r=CE._pan.hi-CE._pan.lo,_sh=_dy*_r;
+     var _lo=CE._pan.lo+_sh,_hi=CE._pan.hi+_sh;
+     if(_lo>0&&_hi>_lo){CE.view.ylo=_lo;CE.view.yhi=_hi;CE._dragged=true;}
+    }
+   }
    var cv=document.getElementById('ce-canvas');if(!cv)return;
    var r=cv.getBoundingClientRect();
    var dx=ev.clientX-CE._pan.x;
@@ -17922,6 +17963,18 @@ function wlRender(){
    'title="Click to rename this colour">'+esc(WL.colours[c]||c)+'</span></div>';
  }).join('');
 
+ /* Reopening the Charts tab puts you back on the stock you were last looking
+    at, rather than a blank panel. */
+ try{
+  var _last=localStorage.getItem('tf_last_sym');
+  var _hd=document.getElementById('wl-head');
+  if(_last&&_hd&&!WL._resumed){
+   WL._resumed=true;
+   _hd.insertAdjacentHTML('afterend','<div id="wl-resume" style="margin:-4px 0 9px;font-size:11.5px;'+
+    'color:var(--muted)">Last viewed: <span style="color:var(--cyan);cursor:pointer;font-weight:600" '+
+    'onclick="wlOpen(\''+esc(_last)+'\')">'+esc(_last)+'</span> \u2014 click to reopen</div>');
+  }
+ }catch(e){}
  var list=wlActive();
  var H=document.getElementById('wl-head');
  var G=document.getElementById('wl-grid');
@@ -18329,6 +18382,7 @@ window.wlSection=function(){
 };
 
 window.wlOpen=function(sym){
+ try{localStorage.setItem('tf_last_sym',sym);}catch(e){}
  try{
   var syms=wlSymbols(wlActive())||[];
   if(typeof SC!=='undefined'&&syms.length){SC.list=syms.slice();SC.idx=syms.indexOf(sym);}

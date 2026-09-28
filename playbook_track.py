@@ -94,9 +94,10 @@ PLAYS = {
  "ATH Breakout":         lambda r: (r.get("breakout_type") or "") == "ATH",
  "High-ADR Breakout":    lambda r: bool(r.get("breakout_type")) and (f(r.get("vol_ratio")) or 0) >= 1.5
                                    and (f(r.get("adr_pct")) or 0) >= 5,
- "Reclaim":              lambda r: r.get("qm_pattern") == "Reclaim",
- "Reclaim A/B":          lambda r: r.get("qm_pattern") == "Reclaim"
-                                   and (r.get("rcl_grade") or "") in ("A", "B"),
+ # qm_pattern never holds "Reclaim" - reclaims are marked by rcl_grade, which
+ # is why both of these recorded zero picks on the first run.
+ "Reclaim":              lambda r: bool(r.get("rcl_grade")),
+ "Reclaim A/B":          lambda r: (r.get("rcl_grade") or "") in ("A", "B"),
  "NR7":                  lambda r: bool(r.get("is_nr7")),
  "NR7 + VCP":            lambda r: bool(r.get("is_nr7")) and r.get("qm_pattern") == "VCP",
  "HTF":                  lambda r: r.get("qm_pattern") == "HTF",
