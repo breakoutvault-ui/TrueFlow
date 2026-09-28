@@ -973,6 +973,31 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .ce-b.on{background:var(--cyan);color:var(--bg0);border-color:var(--cyan);font-weight:700}
 .ce-b.on:hover{background:var(--cyan);color:var(--bg0)}
 .ce-sep{display:inline-block;width:1px;height:15px;background:var(--bg3);margin:0 5px;vertical-align:middle}
+/* Filter side panel - the 40-odd filters grouped under headings instead of a
+   wall of dropdowns. Slides in from the right, applies as you tick. */
+#scr-fp{position:fixed;top:0;right:-420px;width:400px;height:100vh;z-index:10002;
+ background:var(--bg1);border-left:1px solid var(--bg3);display:flex;flex-direction:column;
+ transition:right .22s ease;box-shadow:-12px 0 36px rgba(0,0,0,.5)}
+#scr-fp.open{right:0}
+#scr-fpbk{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.45);display:none}
+#scr-fpbk.open{display:block}
+#scr-fphd{padding:13px 16px;border-bottom:1px solid var(--bg3);display:flex;
+ align-items:center;justify-content:space-between;gap:10px}
+#scr-fpbody{flex:1 1 auto;overflow-y:auto;padding:6px 0 30px}
+#scr-fpft{padding:11px 16px;border-top:1px solid var(--bg3);display:flex;gap:8px;align-items:center}
+.fp-g{padding:11px 16px 5px;font-size:10px;font-weight:700;letter-spacing:1.2px;
+ color:var(--muted);border-top:1px solid var(--bg3);margin-top:4px}
+.fp-g:first-child{border-top:none;margin-top:0}
+.fp-f{padding:5px 16px 9px}
+.fp-fl{font-size:11.5px;color:var(--text2);font-weight:600;margin-bottom:5px;display:flex;
+ justify-content:space-between;align-items:center}
+.fp-o{display:inline-flex;align-items:center;gap:5px;background:var(--bg2);
+ border:1px solid var(--bg3);border-radius:99px;padding:4px 10px;margin:2px 3px 2px 0;
+ font-size:11px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.fp-o:hover{border-color:var(--muted)}
+.fp-o.on{background:var(--cyan);border-color:var(--cyan);color:var(--bg0);font-weight:700}
+.fp-clr{font-size:10px;color:var(--red);cursor:pointer;opacity:0;transition:opacity .12s}
+.fp-f:hover .fp-clr{opacity:1}
 .wl-side{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;padding:10px}
 .wl-li{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 9px;border-radius:7px;
  cursor:pointer;margin-bottom:3px;transition:background .12s}
@@ -2419,7 +2444,20 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
     <div id="scr-play-info" class="scr-play-info" style="display:none"></div>
 
-    <div class="scr-fbar"><div class="scr-filters" id="scr-filters"></div></div>
+    <div class="scr-fbar"><button class="scr-tool" onclick="scrFP(true)" title="All the filters, grouped, in a side panel">⚙ Filters</button><div class="scr-filters" id="scr-filters"></div></div>
+    <div id="scr-fpbk" onclick="scrFP(false)"></div>
+    <div id="scr-fp">
+      <div id="scr-fphd">
+        <div><b style="font-size:14px">Filters</b>
+          <span id="scr-fpn" style="color:var(--muted);font-size:11.5px;margin-left:7px"></span></div>
+        <span style="cursor:pointer;color:var(--muted);font-size:17px" onclick="scrFP(false)">✕</span>
+      </div>
+      <div id="scr-fpbody"></div>
+      <div id="scr-fpft">
+        <button class="scr-tool" onclick="scrFPClear()">Clear all</button>
+        <span id="scr-fpres" style="margin-left:auto;font-size:11.5px;color:var(--text2)"></span>
+      </div>
+    </div>
 
     <div class="scr-bar2">
       <input class="scr-search" id="scr-q" placeholder="🔍 Search symbol or name…" oninput="scrRender()">
@@ -13071,6 +13109,110 @@ function scrBuildUI(){
  document.addEventListener('click',e=>{if(!e.target.closest('#tab-screener details.scr-f'))document.querySelectorAll('#tab-screener details.scr-f').forEach(d=>d.open=false);});
  scrRenderSaved();
 }
+/* ── FILTER SIDE PANEL ─────────────────────────────────────────────────────
+   Same 40-odd filters, grouped under headings and applied as you tick. The
+   old chip row stays - this is a second way in, not a replacement, so nothing
+   that already worked stops working.
+
+   SCR_FILTERS has no group field, so the grouping lives here. Any filter not
+   listed falls into "Other", which means a new filter still shows up rather
+   than silently disappearing. */
+var SCR_FGROUPS=[
+ ['Setup & Pattern',   ['pattern','entry','nr','contractmin','consolmin','basemin','polemin','polespeedmin']],
+ ['Trend & Alignment', ['align','mkt','sec','mtf','dtr','wtr','mtr','tfup','secw','secm','conv','hold']],
+ ['Price & Zone',      ['zone','zone5','wzone','z52','ebase','e50z','price']],
+ ['Volume & Range',    ['vsig','rvolmin','adrmin']],
+ ['Quality',           ['cat','signal','catalyst','newl']],
+ ['Results',           ['erstat','erwin','errv','erreact']],
+ ['Reclaim',           ['rclgrade','rclvol','rclriskmax','rcldaysmax']],
+ ['Smart Money',       ['smt']],
+ ['Sector',            ['sector']]
+];
+
+window.scrFP=function(open){
+ var p=document.getElementById('scr-fp'),b=document.getElementById('scr-fpbk');
+ if(!p)return;
+ if(open===false){p.classList.remove('open');b.classList.remove('open');return;}
+ scrFPBuild();
+ p.classList.add('open');b.classList.add('open');
+};
+
+function scrFPBuild(){
+ var body=document.getElementById('scr-fpbody');
+ if(!body||typeof SCR_FILTERS==='undefined')return;
+ var placed={},html='';
+ SCR_FGROUPS.forEach(function(g){
+  var keys=g[1].filter(function(k){return SCR_FILTERS.some(function(f){return f.key===k;});});
+  if(!keys.length)return;
+  html+='<div class="fp-g">'+esc(g[0])+'</div>';
+  keys.forEach(function(k){
+   placed[k]=1;
+   html+=scrFPField(SCR_FILTERS.filter(function(f){return f.key===k;})[0]);
+  });
+ });
+ var rest=SCR_FILTERS.filter(function(f){return !placed[f.key];});
+ if(rest.length){
+  html+='<div class="fp-g">Other</div>';
+  rest.forEach(function(f){html+=scrFPField(f);});
+ }
+ body.innerHTML=html;
+ scrFPCount();
+}
+
+function scrFPField(f){
+ if(!f)return '';
+ var sel=SCR.state[f.key]||new Set();
+ var h='<div class="fp-f"><div class="fp-fl"><span>'+esc(f.label)+
+   (sel.size?' <span style="color:var(--cyan)">\u00b7 '+sel.size+'</span>':'')+'</span>'+
+   (sel.size?'<span class="fp-clr" onclick="scrFPClearOne(\''+f.key+'\')">clear</span>':'')+
+   '</div>';
+ h+=(f.opts||[]).map(function(o){
+  var on=sel.has(o);
+  var lab=(f.disp&&f.disp[o])||o;
+  var tip=(f.tips&&f.tips[o])||'';
+  return '<span class="fp-o'+(on?' on':'')+'" onclick="scrFPTick(\''+f.key+'\',\''+
+   String(o).replace(/'/g,"\\'")+'\')"'+(tip?' title="'+esc(tip)+'"':'')+'>'+esc(lab)+'</span>';
+ }).join('');
+ return h+'</div>';
+}
+
+window.scrFPTick=function(key,opt){
+ if(!SCR.state[key])SCR.state[key]=new Set();
+ var st=SCR.state[key];
+ if(st.has(opt))st.delete(opt); else st.add(opt);
+ SCR.activePreset=null;
+ scrFPApply();
+};
+window.scrFPClearOne=function(key){
+ SCR.state[key]=new Set();
+ SCR.activePreset=null;
+ scrFPApply();
+};
+window.scrFPClear=function(){
+ SCR_FILTERS.forEach(function(f){SCR.state[f.key]=new Set();});
+ SCR.state.aplus=new Set();
+ SCR.activePreset='all';
+ scrFPApply();
+};
+function scrFPApply(){
+ try{scrSyncChecks();}catch(e){}
+ try{scrSyncChips();}catch(e){}
+ try{scrRender();}catch(e){}
+ scrFPBuild();
+}
+/* the header count, so you can see at a glance how much is switched on */
+function scrFPCount(){
+ var n=0,keys=0;
+ SCR_FILTERS.forEach(function(f){
+  var st=SCR.state[f.key];
+  if(st&&st.size){keys++;n+=st.size;}
+ });
+ var el=document.getElementById('scr-fpn');
+ if(el)el.textContent=keys?(keys+' filter'+(keys>1?'s':'')+' \u00b7 '+n+' option'+(n>1?'s':'')):'none set';
+ var r=document.getElementById('scr-fpres');
+ if(r)r.textContent=((SCR.last&&SCR.last.length)||0)+' of '+((SCR.data&&SCR.data.length)||0)+' stocks';
+}
+
 function scrSyncChips(){try{tfPresetFill('scr-pname',SCR,SCR_FILTERS);}catch(e){}
  SCR_FILTERS.forEach(f=>{const c=document.getElementById('scr-cnt-'+f.key);if(!c)return;const n=SCR.state[f.key].size;c.style.display=n?'inline-block':'none';c.textContent=n;const sm=c.closest('summary');if(sm)sm.classList.toggle('has',n>0);});document.querySelectorAll('#tab-screener .scr-pre').forEach(b=>b.classList.toggle('active',b.dataset.p===SCR.activePreset));}
 function scrSyncChecks(){document.querySelectorAll('#scr-filters input').forEach(cb=>{var k=cb.dataset.k;if(k&&SCR.state[k])cb.checked=SCR.state[k].has(cb.dataset.o);});}
