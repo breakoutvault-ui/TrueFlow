@@ -18033,7 +18033,20 @@ window.ceOpen=function(sym){
    confirm. It receives nothing at all if you cancel - so a cancel never
    runs the action, which is the one thing that must not go wrong. */
 function tfDlg(o,cb){
+ /* The dialog markup was written inside the Screener tab's panel, which is
+    display:none whenever you are on another tab - so from the Charts tab the
+    dialog opened and rendered nothing, and every button looked dead. Move it
+    to <body> on first use so no hidden ancestor can ever swallow it. */
  var bk=document.getElementById('tf-dlgbk'),d=document.getElementById('tf-dlg');
+ if(!bk){
+  bk=document.createElement('div');bk.id='tf-dlgbk';
+  bk.innerHTML='<div id="tf-dlg"></div>';
+  document.body.appendChild(bk);
+  d=document.getElementById('tf-dlg');
+ }else if(bk.parentNode!==document.body){
+  document.body.appendChild(bk);
+  d=document.getElementById('tf-dlg');
+ }
  if(!bk||!d){                                   /* fall back rather than fail */
   if(o.choices)return;
   var r=o.input?window.prompt(o.title,o.value||''):window.confirm(o.title);
