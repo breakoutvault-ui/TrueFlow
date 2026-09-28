@@ -6001,7 +6001,22 @@ function switchTab(tab, btn, mode) {
     if (el) el.classList.add('active');
     if (btn) btn.classList.add('active');
     if(!window.momLoaded)window.momLoaded=new Set();
-    var _momLd={charts:function(){try{wlLoad();}catch(e){console.error('charts tab:',e);}},scanner:loadMomScanner,emasignals:loadMomEMA,sharpmovers:loadMomSharp,mypicks:loadMomPicks,exited:loadMomExited,smartmoney:loadSmartMoney,volume:loadVolume,screener:scrLoad};
+    var _momLd={charts:function(){
+  try{
+   if(typeof window.wlLoad!=='function'){
+    var g=document.getElementById('wl-grid');
+    if(g)g.innerHTML='<div style="color:var(--red);padding:18px">Charts tab could not start '+
+      '(wlLoad missing). Tell Claude - this is a wiring fault, not your data.</div>';
+    return;
+   }
+   window.wlLoad();
+  }catch(e){
+   console.error('charts tab:',e);
+   var g2=document.getElementById('wl-grid');
+   if(g2)g2.innerHTML='<div style="color:var(--red);padding:18px">Charts tab error: '+
+     String(e).slice(0,120)+'</div>';
+  }
+ },scanner:loadMomScanner,emasignals:loadMomEMA,sharpmovers:loadMomSharp,mypicks:loadMomPicks,exited:loadMomExited,smartmoney:loadSmartMoney,volume:loadVolume,screener:scrLoad};
     if(_momLd[tab]&&!window.momLoaded.has(tab)){window.momLoaded.add(tab);_momLd[tab]();}
     return;
   }
@@ -17460,6 +17475,7 @@ function wlRender(){
   '<button class="scr-tool" onclick="wlDuplicate()" title="Make a copy of this list">Copy list</button>'+
   (list.kind==='live'?'':'<button class="scr-tool" onclick="wlImport()" title="Paste symbols in - NSE: prefixes are stripped">\u2b07 Import</button>')+
   (list.kind==='live'?'':'<button class="scr-tool" onclick="wlFromPlaybook()" title="Copy a playbook\'s current matches into this list, once">\u2b07 From playbook</button>')+
+  (list.kind==='live'?'':'<button class="scr-tool" onclick="wlFromFilter()" title="Add whatever the Screener is showing right now - your own filters, or just the rows you ticked">\u2b07 From filter</button>')+
   '<button class="scr-tool" onclick="wlCopyList()" title="Copy every symbol for pasting into TradingView">\ud83d\udccb Copy symbols</button>'+
   (list.kind==='live'?'':'<button class="scr-tool" onclick="wlSection()" title="Group some symbols under a heading">\u2795 Section</button>')+
   (list.kind==='live'?'':'<button class="scr-tool" onclick="wlClear()">Clear</button>')+
@@ -17584,6 +17600,15 @@ window.wlSearchAdd=function(sym){
   });
 };
 
+/* This module sits deep inside a closure while _momLd lives at the top level,
+   so the tab loader could not reach wlLoad and the whole tab stayed empty with
+   no visible error. Everything the outside needs is published here. */
+window.wlLoad    = wlLoad;
+window.wlRender  = wlRender;
+window.wlActive  = wlActive;
+window.wlSymbols = wlSymbols;
+window.WL        = WL;
+
 window.wlPickList=function(id){WL.active=id;WL._px=null;wlRender();};
 
 /* Add one stock to a list from wherever you happen to be - the stock card
@@ -17670,6 +17695,27 @@ window.wlDrop2=function(ev){
  });
  _wlDrag=null;
  Promise.all(writes).then(function(){wlLoad();});
+};
+
+/* Import whatever the Screener is showing right now - your own filter
+   combination, not a saved playbook. This is the one that covers "I filtered
+   something by hand and want to keep it". */
+window.wlFromFilter=function(){
+ var l=wlActive();
+ if(!l||l.kind==='live'){wlToast('Pick a normal list first');return;}
+ if(typeof SCR==='undefined'||!SCR.last||!SCR.last.length){
+  wlToast('Nothing on the Screener right now - filter something first');return;}
+ var sel=(SCR.sel&&SCR.sel.size)?SCR.last.filter(function(d){return SCR.sel.has(d.sym);}):null;
+ var rows=(sel&&sel.length)?sel:SCR.last;
+ var what=(sel&&sel.length)?'ticked':'filtered';
+ if(!confirm('Add the '+rows.length+' '+what+' stock'+(rows.length>1?'s':'')+
+             ' from the Screener into "'+l.name+'"?'))return;
+ var sec=prompt('Section heading for them? Blank for none.','')||null;
+ var body=rows.map(function(d,i){return {wl_id:l.id,symbol:d.sym,section:sec,sort_order:i};});
+ wlApi('watchlist_items',{method:'POST',
+   headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+   body:JSON.stringify(body)})
+  .then(function(){wlToast('Added '+rows.length+' from the Screener');WL._px=null;wlLoad();});
 };
 
 window.wlCopyList=function(){
