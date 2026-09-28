@@ -969,6 +969,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tab-screener .scr-s-hi{background:rgba(0,255,136,.14);color:var(--green)}#tab-screener .scr-s-mid{background:rgba(245,158,11,.14);color:var(--amber)}#tab-screener .scr-s-lo{background:var(--bg3);color:var(--muted)}
 #tab-screener .scr-pv{display:inline-block;vertical-align:middle;cursor:help}
 #tab-screener .scr-yes{color:var(--green);font-weight:700}
+.ce-b:hover{background:var(--bg3);color:var(--text);border-color:var(--bg3)}
+.ce-b.on{background:var(--cyan);color:var(--bg0);border-color:var(--cyan);font-weight:700}
+.ce-b.on:hover{background:var(--cyan);color:var(--bg0)}
+.ce-sep{display:inline-block;width:1px;height:15px;background:var(--bg3);margin:0 5px;vertical-align:middle}
 .wl-side{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;padding:10px}
 .wl-li{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 9px;border-radius:7px;
  cursor:pointer;margin-bottom:3px;transition:background .12s}
@@ -2914,7 +2918,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <div style="position:relative;margin-bottom:10px">
             <input id="wl-srch" class="wl-srch" autocomplete="off" spellcheck="false"
                    placeholder="➕  Type a symbol to add it to this list"
-                   oninput="wlSearch(this.value)" onkeydown="wlSearchKey(event)">
+                   oninput="wlSearch(this.value)" onkeydown="wlSearchKey(event)"
+                   onfocus="wlSearch(this.value)" onblur="setTimeout(wlSearchHide,180)">
             <div id="wl-sug" class="wl-sug" style="display:none"></div>
           </div>
           <div id="wl-grid"></div>
@@ -15159,13 +15164,54 @@ setTimeout(function(){clearInterval(t);},40000);
 .sc-pbtn{display:inline-block;margin:3px 4px 0 0;padding:3px 9px;border-radius:7px;border:1px solid var(--bg3);
  background:none;color:var(--text);cursor:pointer;font-size:11px}
 .sc-pbtn:hover{border-color:var(--cyan);color:var(--cyan)}
-#ce-panel{position:fixed;inset:0;z-index:10001;background:var(--bg1);display:none;flex-direction:column}
+#ce-panel{position:fixed;inset:0;z-index:10001;background:var(--bg1);display:none;flex-direction:column;user-select:none;-webkit-user-select:none;-moz-user-select:none}
+/* Without this, every drag on the chart highlights the page instead of
+   drawing or panning - the whole screen turns blue and nothing works. */
+#ce-panel svg,#ce-panel *{-webkit-user-drag:none}
 #ce-panel.open{display:flex}
+#ce-main{flex:1 1 auto;display:flex;min-height:0}
+#ce-svg{flex:1 1 auto;min-width:0;position:relative}
+/* Drawing tools stacked down the left, the way TradingView has them - so the
+   top bar is only about the symbol and the timeframe. */
+#ce-tools{flex:0 0 42px;background:var(--bg2);border-right:1px solid var(--bg3);
+ display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;overflow-y:auto}
+#ce-tools .ce-t{width:30px;height:30px;border-radius:8px;border:1px solid transparent;
+ background:none;color:var(--text2);cursor:pointer;font-size:14px;display:flex;
+ align-items:center;justify-content:center;transition:background .12s,color .12s}
+#ce-tools .ce-t:hover{background:var(--bg3);color:var(--text)}
+#ce-tools .ce-t.on{background:var(--cyan);color:var(--bg0);border-color:var(--cyan)}
+#ce-tools .ce-tsep{width:22px;height:1px;background:var(--bg3);margin:4px 0}
+/* The watchlist docked beside the chart - click a name, the chart changes. */
+#ce-wl{flex:0 0 226px;background:var(--bg2);border-left:1px solid var(--bg3);
+ display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#ce-wl.hide{display:none}
+#ce-wlhd{padding:8px 10px;border-bottom:1px solid var(--bg3);display:flex;
+ align-items:center;justify-content:space-between;gap:6px}
+#ce-wlhd select{background:var(--bg1);border:1px solid var(--bg3);color:var(--text);
+ border-radius:7px;padding:5px 7px;font-size:11.5px;font-family:inherit;max-width:150px;cursor:pointer}
+#ce-wlbody{flex:1 1 auto;overflow-y:auto}
+.ce-wlr{display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;
+ border-bottom:1px solid var(--bg3);font-size:11.5px;transition:background .12s}
+.ce-wlr:hover{background:var(--bg3)}
+.ce-wlr.on{background:var(--bg3);box-shadow:inset 2px 0 0 var(--cyan)}
+.ce-wlr b{flex:1 1 auto;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ce-wlsec{padding:5px 10px;background:var(--bg1);font-size:9.5px;font-weight:700;
+ color:var(--cyan);letter-spacing:1px}
+/* Symbol search in the top bar */
+#ce-sbox{position:relative;display:inline-block}
+#ce-sin{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;color:var(--text);
+ padding:5px 10px;font-size:12px;width:150px;outline:none;font-family:inherit}
+#ce-sin:focus{border-color:var(--cyan);width:190px}
+#ce-sug{position:absolute;top:100%;left:0;z-index:70;background:var(--bg2);
+ border:1px solid var(--bg3);border-radius:8px;margin-top:3px;min-width:230px;
+ max-height:280px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+#ce-sug div{padding:7px 11px;cursor:pointer;font-size:12px}
+#ce-sug div:hover{background:var(--bg3)}
 #ce-bar{flex:none;padding:7px 12px;border-bottom:1px solid var(--bg3);background:var(--bg2)}
 #ce-svg{flex:1;min-height:0;padding:4px 8px 0}
 .ce-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:4px}
 .ce-row:first-child{margin-top:0}
-.ce-b{padding:2px 9px;border-radius:6px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11px}
+.ce-b{padding:4px 11px;border-radius:99px;border:1px solid transparent;background:var(--bg2);color:var(--text2);cursor:pointer;font-size:11.5px;font-weight:600;letter-spacing:.2px;transition:background .12s,color .12s,border-color .12s}
 .ce-b:hover{border-color:var(--cyan);color:var(--cyan)}
 .ce-b.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
 .ce-sep{width:1px;height:15px;background:var(--bg3);margin:0 3px}
@@ -16977,13 +17023,166 @@ function ceMeasureStats(M,win){
    (ang!=null?' · '+ang.toFixed(0)+'° on screen':'')};
 }
 
-/* ── toolbar ──────────────────────────────────────────── */
+/* The drawing rail, down the left of the chart. Same tools as before, just
+   somewhere they do not crowd the symbol and timeframe controls. */
+/* Jump to any stock in the screener universe without leaving the chart. */
+window.ceSearch=function(q){
+ var box=document.getElementById('ce-sug');if(!box)return;
+ q=String(q||'').trim().toUpperCase();
+ var pool=(typeof SCR!=='undefined'&&SCR.data)?SCR.data:[];
+ if(!q){box.style.display='none';return;}
+ if(!pool.length){
+  box.innerHTML='<div style="color:var(--amber);cursor:default">Open the Screener tab once so the stock list loads</div>';
+  box.style.display='block';return;
+ }
+ var hits=pool.filter(function(d){return d.sym&&d.sym.indexOf(q)===0;}).slice(0,10);
+ pool.forEach(function(d){
+  if(hits.length>=10||!d.sym)return;
+  if(d.sym.indexOf(q)>0&&hits.indexOf(d)<0)hits.push(d);
+ });
+ if(!hits.length){
+  box.innerHTML='<div style="color:var(--muted);cursor:default">No match</div>';
+  box.style.display='block';return;
+ }
+ box.innerHTML=hits.map(function(d){
+  return '<div onmousedown="ceJump(\''+esc(d.sym)+'\')"><b>'+esc(d.sym)+'</b>'+
+   (d.name?' <span style="color:var(--muted)">'+esc(String(d.name).slice(0,24))+'</span>':'')+'</div>';
+ }).join('');
+ box.style.display='block';
+};
+window.ceSearchHide=function(){var b=document.getElementById('ce-sug');if(b)b.style.display='none';};
+window.ceSearchKey=function(ev){
+ if(ev.key==='Escape'){ceSearchHide();ev.target.blur();}
+ if(ev.key==='Enter'){var f=document.querySelector('#ce-sug div[onmousedown]');if(f){
+   var m=f.getAttribute('onmousedown').match(/ceJump\('([^']+)'\)/);if(m)ceJump(m[1]);}}
+};
+window.ceJump=function(sym){
+ ceSearchHide();
+ var i=document.getElementById('ce-sin');if(i)i.value='';
+ if(typeof ceOpen==='function')ceOpen(sym);
+};
+
+/* The watchlist, docked. Clicking a name changes the chart without closing it. */
+window.ceToggleWl=function(){
+ var w=document.getElementById('ce-wl');
+ if(w)w.classList.toggle('hide');
+};
+function ceWlHtml(){
+ if(typeof WL==='undefined'||!WL.lists||!WL.lists.length)
+  return '<div id="ce-wlhd"><b style="font-size:11px;color:var(--muted)">WATCHLIST</b></div>'+
+   '<div id="ce-wlbody"><div style="padding:14px;color:var(--muted);font-size:11.5px">'+
+   'No lists yet. Make one in the Charts tab.</div></div>';
+ var cur=WL.lists.filter(function(l){return l.id===WL.active;})[0]||WL.lists[0];
+ var h='<div id="ce-wlhd"><select onchange="ceWlPick(this.value)">'+
+  WL.lists.map(function(l){
+   return '<option value="'+l.id+'"'+(l.id===cur.id?' selected':'')+'>'+
+    esc((l.kind==='live'?'\u26a1 ':'')+l.name)+'</option>';
+  }).join('')+'</select>'+
+  '<span style="color:var(--muted);font-size:10px" title="Hide this panel" '+
+  'onclick="ceToggleWl()">\u2715</span></div><div id="ce-wlbody">';
+ var syms=(typeof wlSymbols==='function')?wlSymbols(cur):null;
+ if(syms===null){h+='<div style="padding:14px;color:var(--amber);font-size:11.5px">Live list \u2014 open the Screener once.</div>';}
+ else if(!syms||!syms.length){h+='<div style="padding:14px;color:var(--muted);font-size:11.5px">Empty list.</div>';}
+ else{
+  var meta={};(WL.items[cur.id]||[]).forEach(function(it){meta[it.symbol]=it;});
+  var lastSec=null;
+  syms.forEach(function(sym){
+   var it=meta[sym]||{},sec=it.section||'';
+   if(sec!==lastSec&&sec){h+='<div class="ce-wlsec">'+esc(sec)+'</div>';lastSec=sec;}
+   var col=it.colour;
+   var d=(typeof wlPx==='function')?wlPx(sym):null;
+   var ch=(d&&d.chg!=null)?+d.chg:null;
+   h+='<div class="ce-wlr'+(sym===CE.sym?' on':'')+'" onclick="ceJump(\''+esc(sym)+'\')">'+
+    (col?'<span style="width:8px;height:8px;border-radius:50%;background:'+
+      ((typeof WL_SWATCH!=='undefined'&&WL_SWATCH[col])||col)+';flex:0 0 auto"></span>':
+      '<span style="width:8px;flex:0 0 auto"></span>')+
+    '<b>'+esc(sym)+'</b>'+
+    (d&&d.ltp!=null?'<span class="scr-mono" style="color:var(--muted);font-size:10.5px">'+(+d.ltp).toFixed(1)+'</span>':'')+
+    (ch!=null?'<span class="scr-mono" style="font-size:10.5px;width:48px;text-align:right;color:'+
+      (ch>=0?'var(--green)':'var(--red)')+'">'+(ch>=0?'+':'')+ch.toFixed(2)+'%</span>':'')+
+    '</div>';
+  });
+ }
+ return h+'</div>';
+}
+window.ceWlPick=function(id){
+ if(typeof WL!=='undefined'){WL.active=+id;WL._px=null;}
+ var w=document.getElementById('ce-wl');if(w)w.innerHTML=ceWlHtml();
+};
+
+/* Every alert you have ever set on this stock, live or already fired. */
+window.ceAlertHist=function(){
+ var host=document.getElementById('ce-svg');if(!host)return;
+ var old=document.getElementById('ce-hist');
+ if(old){old.remove();return;}
+ var d=document.createElement('div');
+ d.id='ce-hist';
+ d.style.cssText='position:absolute;top:10px;right:10px;z-index:40;background:var(--bg2);'+
+  'border:1px solid var(--bg3);border-radius:10px;min-width:270px;max-height:70%;overflow:auto;'+
+  'box-shadow:0 10px 30px rgba(0,0,0,.5);font-size:11.5px';
+ d.innerHTML='<div style="padding:9px 11px;border-bottom:1px solid var(--bg3);display:flex;'+
+  'justify-content:space-between;align-items:center"><b>\ud83d\udcdc Alerts on '+esc(CE.sym)+'</b>'+
+  '<span style="cursor:pointer;color:var(--muted)" onclick="this.closest(\'#ce-hist\').remove()">\u2715</span></div>'+
+  '<div id="ce-histb" style="padding:10px;color:var(--muted)">Loading\u2026</div>';
+ host.appendChild(d);
+ fetch(CONFIG.supabaseUrl+'/rest/v1/price_alerts?symbol=eq.'+encodeURIComponent(CE.sym)+
+   '&select=*&order=id.desc&limit=60',
+   {headers:{'apikey':CONFIG.supabaseKey,'Authorization':'Bearer '+CONFIG.supabaseKey}})
+ .then(function(r){return r.json();})
+ .then(function(j){
+  var b=document.getElementById('ce-histb');if(!b)return;
+  if(!j||!j.length){b.innerHTML='No alerts set on '+esc(CE.sym)+' yet. Use the \ud83d\udd14 tool.';return;}
+  b.style.padding='0';
+  b.innerHTML=j.map(function(a){
+   var st=String(a.status||'active');
+   var col=st==='triggered'?'var(--green)':(st==='cancelled'?'var(--muted)':'var(--cyan)');
+   return '<div style="padding:7px 11px;border-bottom:1px solid var(--bg3);display:flex;'+
+    'justify-content:space-between;gap:10px;align-items:center">'+
+    '<span><b style="color:var(--text)">'+esc(a.level)+'</b>'+
+    (a.note?' <span style="color:var(--muted)">'+esc(String(a.note).slice(0,28))+'</span>':'')+'</span>'+
+    '<span style="color:'+col+';font-size:10px;text-transform:uppercase;letter-spacing:.5px">'+esc(st)+'</span></div>';
+  }).join('');
+ }).catch(function(e){
+  var b=document.getElementById('ce-histb');
+  if(b)b.innerHTML='Could not load: '+String(e).slice(0,80);
+ });
+};
+
+function ceToolsHtml(){
+ function t(on,fn,lab,tip){
+  return '<button class="ce-t'+(on?' on':'')+'" onclick="'+fn+'" title="'+esc(tip)+'">'+lab+'</button>';
+ }
+ var h='';
+ h+=t(CE.tool==='cursor',"ceTool('cursor')",'\u2196','Cursor \u2014 hover the chart to read each session');
+ h+='<div class="ce-tsep"></div>';
+ h+=t(CE.tool==='l',"ceTool('l')",'\u2571','Trendline \u2014 click the start, then the end');
+ h+=t(CE.tool==='h',"ceTool('h')",'\u2500','Horizontal line \u2014 one click at the price');
+ h+=t(CE.tool==='b',"ceTool('b')",'\u25ad','Box \u2014 click one corner then the other. Labels the top, the bottom and how deep it is.');
+ h+='<div class="ce-tsep"></div>';
+ h+=t(CE.tool==='x',"ceTool('x')",'T','Text \u2014 click, then type your note');
+ h+=t(CE.tool==='m',"ceTool('m')",'\u21c4','Measure \u2014 two clicks. Gives the move in %, sessions, % per session and ADR per session.');
+ h+=t(CE.tool==='a',"ceTool('a')",'\ud83d\udd14','Alert \u2014 click a price to be told when it trades there');
+ h+='<div class="ce-tsep"></div>';
+ h+=t(false,'ceUndo()','\u232b','Undo \u2014 steps back through your last 40 changes');
+ h+=t(false,'ceRedo()','\u21b7','Redo');
+ h+=t(false,'ceClear()','\ud83d\uddd1','Clear every drawing on this stock');
+ h+='<div class="ce-tsep"></div>';
+ h+=t(false,'ceAlertHist()','\ud83d\udcdc','Alert history \u2014 every alert you set on this stock');
+ h+=t(false,'ceToggleWl()','\u25e7','Show or hide the watchlist panel');
+ return h;
+}
+
+/* \u2500\u2500 toolbar \u2500\u2500────────────────────────────────────────── */
 function ceBar(o){
  var lv=ceLevels(o);
  function btn(on,fn,lab,tip){return '<button class="ce-b'+(on?' on':'')+'" onclick="'+fn+'" title="'+esc(tip)+'">'+lab+'</button>';}
  var h='<div class="ce-row">';
  h+=ceNavHtml();
  h+='<b style="font-size:14px">'+esc(CE.sym)+'</b>';
+ h+='<span id="ce-sbox"><input id="ce-sin" autocomplete="off" spellcheck="false" '+
+   'placeholder="\ud83d\udd0d Jump to\u2026" oninput="ceSearch(this.value)" '+
+   'onkeydown="ceSearchKey(event)" onblur="setTimeout(ceSearchHide,180)">'+
+   '<div id="ce-sug" style="display:none"></div></span>';
  h+=tfStarBtn(CE.sym,'ce-b');
  h+='<span class="ce-sep"></span>';
  h+=btn(CE.style==='candle'&&CE.tf==='D',"ceTf('D')",'Daily','Three years of daily candles - open, high, low and close from the nightly scan.');
@@ -17001,16 +17200,13 @@ function ceBar(o){
   h+=btn(CE.ema[p],'ceEma('+p+')',p+'E','Show or hide the '+p+' EMA');
  });
  h+='<span class="ce-sep"></span>';
- h+=btn(CE.tool==='cursor','ceTool(\'cursor\')','↖','Cursor — move over the chart to read each session');
- h+=btn(CE.tool==='h','ceTool(\'h\')','─','Horizontal line: click once at the price you want to mark');
- h+=btn(CE.tool==='l','ceTool(\'l\')','╱','Trendline: click the start, then the end');
- h+=btn(CE.tool==='b','ceTool(\'b\')','▭','Box: click one corner, then the opposite one. Labels the top and bottom price and how deep the box is — the two numbers that matter on a consolidation.');
- h+=btn(CE.tool==='x','ceTool(\'x\')','T','Text: click where you want it, then type the note');
- h+=btn(CE.tool==='a',"ceTool('a')",'🔔','Alert: click a price and you get a Telegram message when it trades there. Checked every 2 minutes while the market is open.');
+
+
+
+
  h+='<span class="ce-sep"></span>';
  h+=btn(CE.vol,'ceVol()','Vol','Show or hide the volume pane. Hidden gives the price the full height.');
  h+=btn(CE.scale==='log','ceScale()','Log','Log scale: equal percentage moves take equal space. Worth using on a year of a stock that has doubled.');
- h+=btn(CE.tool==='m','ceTool(\'m\')','⇄','Measure: click the first bar, then the second. Gives the move in %, sessions, % per session and ADR per session.');
  h+='<span class="ce-sep"></span>';
  h+=btn(CE.show.pole,'ceShow(\'pole\')','Pole','Draw the rally that precedes the base, with its % and length');
  h+=btn(CE.show.box,'ceShow(\'box\')','Box','Shade the consolidation and label its depth and length');
@@ -17127,6 +17323,17 @@ window.ceReplayPlaying=function(){return !!_ceRepT;};
 function ceRefresh(){
  var b=document.getElementById('ce-bar');
  if(b&&CE.sym)b.innerHTML=ceBar(gather(CE.sym));
+ var t=document.getElementById('ce-tools');
+ if(t)t.innerHTML=ceToolsHtml();
+ var w=document.getElementById('ce-wl');
+ if(w&&!w.classList.contains('hide')){
+  /* the watchlist may not have loaded yet if the Charts tab was never opened */
+  if(typeof WL!=='undefined'&&(!WL.lists||!WL.lists.length)&&typeof wlLoad==='function'&&!WL._tried){
+   WL._tried=true;
+   try{wlLoad();setTimeout(function(){var w2=document.getElementById('ce-wl');if(w2)w2.innerHTML=ceWlHtml();},700);}catch(e){}
+  }
+  w.innerHTML=ceWlHtml();
+ }
  ceRender();
 }
 
@@ -17234,7 +17441,12 @@ window.ceOpen=function(sym){
  ceAlertsLoad(sym,function(){if(CE.open&&CE.sym===sym)ceRender();});
  if(!document.getElementById('ce-panel')){
   var p=document.createElement('div');p.id='ce-panel';
-  p.innerHTML='<div id="ce-bar"></div><div id="ce-svg"></div>';
+  p.innerHTML='<div id="ce-bar"></div>'+
+   '<div id="ce-main">'+
+    '<div id="ce-tools"></div>'+
+    '<div id="ce-svg"></div>'+
+    '<div id="ce-wl"></div>'+
+   '</div>';
   document.body.appendChild(p);
   p.addEventListener('mousemove',function(ev){ceMove(ev);});   // always, whatever tool is active
   p.addEventListener('click',function(ev){
@@ -17280,6 +17492,10 @@ window.ceOpen=function(sym){
   },{passive:false});
   p.addEventListener('mousedown',function(ev){
    if(ev.target.closest&&ev.target.closest('button'))return;
+   if(ev.target.closest&&ev.target.closest('input,textarea,select'))return;
+   /* stop the browser starting a text selection - that is what turned the
+      whole screen blue and made drawing and panning impossible */
+   ev.preventDefault();
    var cv0=document.getElementById('ce-canvas');
    if(cv0&&CE.lastScale){
     var r0=cv0.getBoundingClientRect();
@@ -17289,7 +17505,8 @@ window.ceOpen=function(sym){
      ev.preventDefault();return;
     }
    }
-   if(CE.tool!=='cursor')return;
+   /* Pan with any tool. Previously only the cursor tool could pan, so
+      selecting the box or trendline tool left the chart frozen. */
    CE._pan={x:ev.clientX,n:CE.view.n,off:CE.view.off,moved:false};
   });
   window.addEventListener('mousemove',function(ev){
@@ -17551,10 +17768,15 @@ window.wlSearch=function(q){
  var box=document.getElementById('wl-sug');
  if(!box)return;
  q=String(q||'').trim().toUpperCase();
- if(q.length<1){box.style.display='none';return;}
+ if(q.length<1){
+  box.innerHTML='<div style="color:var(--muted);cursor:default">Start typing a symbol \u2014 '+
+   'CASTROL, SUZLON, TATA\u2026</div>';
+  box.style.display='block';return;
+ }
  var pool=(typeof SCR!=='undefined'&&SCR.data)?SCR.data:[];
  if(!pool.length){
-  box.innerHTML='<div style="color:var(--muted);cursor:default">Open the Screener once so the stock list loads</div>';
+  box.innerHTML='<div style="color:var(--amber);cursor:default">Open the <b>Screener</b> tab once, '+
+   'then come back \u2014 the stock list loads there.</div>';
   box.style.display='block';return;
  }
  var l=wlActive();
@@ -17577,6 +17799,9 @@ window.wlSearch=function(q){
    '<span style="color:'+(inList?'var(--muted)':'var(--green)')+'">'+(inList?'already in':'add')+'</span></div>';
  }).join('');
  box.style.display='block';
+};
+window.wlSearchHide=function(){
+ var b=document.getElementById('wl-sug');if(b)b.style.display='none';
 };
 window.wlSearchKey=function(ev){
  if(ev.key==='Escape'){document.getElementById('wl-sug').style.display='none';ev.target.blur();}
@@ -17708,9 +17933,15 @@ window.wlFromFilter=function(){
  var sel=(SCR.sel&&SCR.sel.size)?SCR.last.filter(function(d){return SCR.sel.has(d.sym);}):null;
  var rows=(sel&&sel.length)?sel:SCR.last;
  var what=(sel&&sel.length)?'ticked':'filtered';
- if(!confirm('Add the '+rows.length+' '+what+' stock'+(rows.length>1?'s':'')+
+ /* A whole unfiltered screener is 1000+ names. Adding that to a watchlist
+    is almost never what someone meant, so say the number out loud. */
+ if(rows.length>60&&!confirm('That is '+rows.length+' stocks - the Screener is barely '+
+    'filtered.\n\nA watchlist that size is not really a watchlist. Filter it down '+
+    'first, or tick the rows you want.\n\nAdd all '+rows.length+' anyway?'))return;
+ if(rows.length<=60&&!confirm('Add the '+rows.length+' '+what+' stock'+(rows.length>1?'s':'')+
              ' from the Screener into "'+l.name+'"?'))return;
- var sec=prompt('Section heading for them? Blank for none.','')||null;
+ var sec=prompt('Section heading for them? Leave blank for none.\n\n'+
+   '(This is a HEADING, not a search - it groups them under a title.)','')||null;
  var body=rows.map(function(d,i){return {wl_id:l.id,symbol:d.sym,section:sec,sort_order:i};});
  wlApi('watchlist_items',{method:'POST',
    headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
