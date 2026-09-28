@@ -998,6 +998,31 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .fp-o.on{background:var(--cyan);border-color:var(--cyan);color:var(--bg0);font-weight:700}
 .fp-clr{font-size:10px;color:var(--red);cursor:pointer;opacity:0;transition:opacity .12s}
 .fp-f:hover .fp-clr{opacity:1}
+/* Styled dialogs, replacing the browser's prompt() and confirm() boxes. */
+#tf-dlgbk{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.55);
+ display:none;align-items:center;justify-content:center;padding:20px}
+#tf-dlgbk.open{display:flex}
+#tf-dlg{background:var(--bg1);border:1px solid var(--bg3);border-radius:14px;
+ width:100%;max-width:430px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;
+ animation:tfdlgin .14s ease}
+@keyframes tfdlgin{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+#tf-dlg .h{padding:15px 18px 0;font-size:15px;font-weight:700}
+#tf-dlg .m{padding:7px 18px 0;font-size:12.5px;color:var(--text2);line-height:1.55;white-space:pre-line}
+#tf-dlg .bd{padding:14px 18px}
+#tf-dlg input,#tf-dlg textarea{width:100%;background:var(--bg2);border:1px solid var(--bg3);
+ border-radius:9px;color:var(--text);padding:9px 12px;font-size:13px;font-family:inherit;outline:none}
+#tf-dlg input:focus,#tf-dlg textarea:focus{border-color:var(--cyan)}
+#tf-dlg textarea{min-height:110px;resize:vertical}
+#tf-dlg .ch{max-height:260px;overflow-y:auto;margin:0 -4px}
+#tf-dlg .ch div{padding:9px 12px;border-radius:9px;cursor:pointer;font-size:12.5px;
+ display:flex;justify-content:space-between;gap:10px;transition:background .12s}
+#tf-dlg .ch div:hover{background:var(--bg3)}
+#tf-dlg .ft{padding:0 18px 16px;display:flex;gap:9px;justify-content:flex-end}
+#tf-dlg .bt{padding:8px 17px;border-radius:99px;border:1px solid var(--bg3);background:var(--bg2);
+ color:var(--text2);cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit}
+#tf-dlg .bt:hover{background:var(--bg3);color:var(--text)}
+#tf-dlg .bt.go{background:var(--cyan);border-color:var(--cyan);color:var(--bg0)}
+#tf-dlg .bt.danger{background:var(--red);border-color:var(--red);color:#fff}
 .wl-side{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;padding:10px}
 .wl-li{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 9px;border-radius:7px;
  cursor:pointer;margin-bottom:3px;transition:background .12s}
@@ -2446,6 +2471,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
     <div class="scr-fbar"><button class="scr-tool" onclick="scrFP(true)" title="All the filters, grouped, in a side panel">⚙ Filters</button><div class="scr-filters" id="scr-filters"></div></div>
     <div id="scr-fpbk" onclick="scrFP(false)"></div>
+    <div id="tf-dlgbk"><div id="tf-dlg"></div></div>
     <div id="scr-fp">
       <div id="scr-fphd">
         <div><b style="font-size:14px">Filters</b>
@@ -8875,32 +8901,39 @@ function selectFOWL(id) {
 }
 
 function addFOWatchlist() {
-  const name = prompt('Watchlist name:');
-  if (!name || !name.trim()) return;
-  const id = 'wl_' + Date.now();
-  foWatchlists.push({ id, name: name.trim(), symbols: [] });
-  saveFOWatchlists();
-  activeFOWL = id;
-  renderFOWLTabs();
-  showToast(`📌 Watchlist "${name.trim()}" created`, 'success');
+  tfDlg({title:'New F&O watchlist',input:'text',placeholder:'e.g. Monday gappers',ok:'Create'},
+   function(name){
+    if (!name || !name.trim()) return;
+    const id = 'wl_' + Date.now();
+    foWatchlists.push({ id, name: name.trim(), symbols: [] });
+    saveFOWatchlists();
+    activeFOWL = id;
+    renderFOWLTabs();
+    showToast('Watchlist "' + name.trim() + '" created', 'success');
+   });
 }
 
 function renameFOWatchlist() {
   const wl = foWatchlists.find(w => w.id === activeFOWL);
   if (!wl) return;
-  const name = prompt('New name:', wl.name);
-  if (!name || !name.trim()) return;
-  wl.name = name.trim();
-  saveFOWatchlists();
-  renderFOWLTabs();
-  showToast('Watchlist renamed', 'success');
+  tfDlg({title:'Rename watchlist',input:'text',value:wl.name,ok:'Rename'},function(name){
+    if (!name || !name.trim()) return;
+    wl.name = name.trim();
+    saveFOWatchlists();
+    renderFOWLTabs();
+    showToast('Watchlist renamed', 'success');
+  });
 }
 
 function deleteFOWatchlist() {
   if (foWatchlists.length <= 1) { showToast('Cannot delete the last watchlist', 'info'); return; }
   const wl = foWatchlists.find(w => w.id === activeFOWL);
   if (!wl) return;
-  if (!confirm(`Delete "${wl.name}" watchlist?`)) return;
+  tfAsk('Delete "' + wl.name + '"?','','Delete',function(){ deleteFOWatchlist2(); },true);
+}
+function deleteFOWatchlist2() {
+  const wl = foWatchlists.find(w => w.id === activeFOWL);
+  if (!wl) return;
   foWatchlists = foWatchlists.filter(w => w.id !== activeFOWL);
   saveFOWatchlists();
   activeFOWL = foWatchlists[0].id;
@@ -17519,16 +17552,27 @@ function ceClick(ev){
   else{CE.measure.i2=c.i;CE.measure.p2=c.p;}
   ceRender();
  }else if(CE.tool==='a'){
-  var lv=window.prompt('Alert me when the price reaches:',c.p);
-  if(lv==null||lv==='')return;
-  lv=parseFloat(lv);if(isNaN(lv))return;
-  var cur=num((gather(CE.sym).scr||{}).ltp);
-  var dir=(cur!=null&&lv<cur)?'below':'above';
-  var nt=window.prompt('A note for this alert (optional):','');
-  ceAlertAdd(lv,dir,nt||null);
+  tfDlg({title:'Alert on '+CE.sym,
+    msg:'You get a Telegram message in TrueFlow Chart Alerts when it trades there.\nChecked every 2 minutes while the market is open.',
+    input:'text',value:String(c.p),ok:'Set alert'},function(v){
+   var lv=parseFloat(v);
+   if(isNaN(lv))return;
+   var cur=num((gather(CE.sym).scr||{}).ltp);
+   var dir=(cur!=null&&lv<cur)?'below':'above';
+   tfDlg({title:'A note for this alert?',
+     msg:'Optional \u2014 it comes back with the Telegram message, so "pivot" or "stop" saves you working out why you set it.',
+     input:'text',placeholder:'pivot / stop / add here',ok:'Save alert'},function(nt){
+    ceAlertAdd(lv,dir,String(nt||'').trim()||null);
+   });
+  });
+  return;
  }else if(CE.tool==='x'){
-  var txt=window.prompt('Note to place on the chart:');
-  if(txt){a.push({t:'x',i:c.i,d:ceDateAt(c.i),p:c.p,txt:txt.slice(0,60),c:'var(--text)'});ceSave(a);ceRender();}
+  tfDlg({title:'Note on the chart',input:'text',placeholder:'up to 60 characters',ok:'Place'},function(txt){
+   if(!txt)return;
+   var a2=ceLoad();
+   a2.push({t:'x',i:c.i,d:ceDateAt(c.i),p:c.p,txt:String(txt).slice(0,60),c:'var(--text)'});
+   ceSave(a2);ceRender();
+  });
  }
 }
 
@@ -17597,8 +17641,10 @@ window.ceOpen=function(sym){
     var grp=ev.target.closest?ev.target.closest('.ce-dr'):null;
     if(grp){
      var idx=+grp.getAttribute('data-i');
-     if(!isNaN(idx)&&window.confirm('Delete this drawing?')){
-      var a=ceLoad();a.splice(idx,1);ceSave(a);ceRender();
+     if(!isNaN(idx)){
+      tfAsk('Delete this drawing?','',' Delete',function(){
+       var a=ceLoad();a.splice(idx,1);ceSave(a);ceRender();
+      },true);
      }
      return;
     }
@@ -17707,6 +17753,67 @@ window.ceOpen=function(sym){
    the chart, so the chart's back/forward arrows walk the list rather
    than whatever table you came from.
    ═══════════════════════════════════════════════════════════════════ */
+/* ── dialogs ───────────────────────────────────────────────────────────────
+   Replaces prompt() and confirm(), which are blocking, unstyled, and on some
+   browsers suppressible. Callback-based, so every caller had to change shape:
+   what used to be `var n=prompt(...)` is now `tfDlg({...},function(n){...})`.
+
+     tfDlg({title, msg, input:'text'|'textarea', value, placeholder,
+            choices:[{v,label,note}], ok, danger}, cb)
+
+   cb receives the typed string, the chosen value, or true for a plain
+   confirm. It receives nothing at all if you cancel - so a cancel never
+   runs the action, which is the one thing that must not go wrong. */
+function tfDlg(o,cb){
+ var bk=document.getElementById('tf-dlgbk'),d=document.getElementById('tf-dlg');
+ if(!bk||!d){                                   /* fall back rather than fail */
+  if(o.choices)return;
+  var r=o.input?window.prompt(o.title,o.value||''):window.confirm(o.title);
+  if(r!==null&&r!==false)cb&&cb(o.input?r:true);
+  return;
+ }
+ function close(){bk.classList.remove('open');d.innerHTML='';document.removeEventListener('keydown',key);}
+ function key(e){
+  if(e.key==='Escape'){close();}
+  if(e.key==='Enter'&&o.input==='text'){go();}
+ }
+ function go(){
+  var v=true;
+  if(o.input){
+   var el=document.getElementById('tf-dlgin');
+   v=el?el.value:'';
+   if(o.input==='text'&&!String(v).trim()){el&&el.focus();return;}
+  }
+  close();cb&&cb(v);
+ }
+ window._tfDlgGo=go;window._tfDlgClose=close;
+ window._tfDlgPick=function(v){close();cb&&cb(v);};
+ var h='<div class="h">'+esc(o.title||'')+'</div>';
+ if(o.msg)h+='<div class="m">'+esc(o.msg)+'</div>';
+ if(o.input==='text')
+  h+='<div class="bd"><input id="tf-dlgin" value="'+esc(o.value||'')+'" placeholder="'+
+     esc(o.placeholder||'')+'" autocomplete="off" spellcheck="false"></div>';
+ if(o.input==='textarea')
+  h+='<div class="bd"><textarea id="tf-dlgin" placeholder="'+esc(o.placeholder||'')+
+     '" spellcheck="false">'+esc(o.value||'')+'</textarea></div>';
+ if(o.choices&&o.choices.length)
+  h+='<div class="bd"><div class="ch">'+o.choices.map(function(c){
+    return '<div onclick="_tfDlgPick(\''+String(c.v).replace(/'/g,"\\'")+'\')">'+
+      '<span>'+esc(c.label)+'</span>'+
+      (c.note?'<span style="color:var(--muted)">'+esc(c.note)+'</span>':'')+'</div>';
+   }).join('')+'</div></div>';
+ h+='<div class="ft"><button class="bt" onclick="_tfDlgClose()">Cancel</button>';
+ if(!o.choices)h+='<button class="bt '+(o.danger?'danger':'go')+'" onclick="_tfDlgGo()">'+
+   esc(o.ok||'OK')+'</button>';
+ h+='</div>';
+ d.innerHTML=h;
+ bk.classList.add('open');
+ document.addEventListener('keydown',key);
+ var i=document.getElementById('tf-dlgin');
+ if(i){i.focus();if(i.select)i.select();}
+}
+function tfAsk(title,msg,ok,cb,danger){tfDlg({title:title,msg:msg,ok:ok||'Yes',danger:!!danger},cb);}
+
 var WL={lists:[],items:{},colours:{},active:null,loading:false};
 
 var WL_SWATCH={red:'#ef4444',amber:'#f59e0b',green:'#22c55e',
@@ -17987,15 +18094,17 @@ window.wlQuickAdd=function(sym){
  var go=function(){
   var statics=WL.lists.filter(function(l){return l.kind!=='live';});
   if(!statics.length){wlToast('Create a watchlist first, in the Charts tab');return;}
-  var names=statics.map(function(l,i){return (i+1)+') '+l.name;}).join('\n');
-  var pick=prompt('Add '+sym+' to which list?\n\n'+names,'1');
-  var idx=parseInt(pick,10)-1;
-  if(isNaN(idx)||idx<0||idx>=statics.length)return;
-  var wl=statics[idx];
-  wlApi('watchlist_items',{method:'POST',
-    headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
-    body:JSON.stringify([{wl_id:wl.id,symbol:sym}])})
-   .then(function(){wlToast(sym+' added to '+wl.name);WL._px=null;wlLoad();});
+  tfDlg({title:'Add '+sym+' to\u2026',
+    choices:statics.map(function(l){
+     return {v:String(l.id),label:l.name,note:((WL.items[l.id]||[]).length)+' stocks'};
+    })},function(id){
+   var wl=statics.filter(function(l){return String(l.id)===String(id);})[0];
+   if(!wl)return;
+   wlApi('watchlist_items',{method:'POST',
+     headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+     body:JSON.stringify([{wl_id:wl.id,symbol:sym}])})
+    .then(function(){wlToast(sym+' added to '+wl.name);WL._px=null;wlLoad();});
+  });
  };
  if(!WL.lists.length){wlLoad();setTimeout(go,900);} else go();
 };
@@ -18010,19 +18119,25 @@ window.wlFromPlaybook=function(){
   wlToast('Open the Screener once first, so today\'s scan is loaded');return;}
  var ps=(typeof SCR_PRESETS!=='undefined')?SCR_PRESETS.filter(function(p){return p.grp;}):[];
  if(!ps.length){wlToast('No playbooks found');return;}
- var menu=ps.map(function(p,i){return (i+1)+') '+p.label+'  ['+p.grp+']';}).join('\n');
- var pick=prompt('Which playbook? Its current matches get copied in.\n\n'+menu,'1');
- var idx=parseInt(pick,10)-1;
- if(isNaN(idx)||idx<0||idx>=ps.length)return;
- var pb=ps[idx];
- var syms=wlLiveSyms(pb.id)||[];
- if(!syms.length){wlToast('Nothing matches '+pb.label+' today');return;}
- var sec=prompt('Put them under a section heading? Blank for none.',pb.label)||null;
- var rows=syms.map(function(x,i){return {wl_id:l.id,symbol:x,section:sec,sort_order:i};});
- wlApi('watchlist_items',{method:'POST',
-   headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
-   body:JSON.stringify(rows)})
-  .then(function(){wlToast('Added '+syms.length+' from '+pb.label);WL._px=null;wlLoad();});
+ tfDlg({title:'Copy a playbook in',
+   msg:'Its matches as of today get copied. Unlike a live list, this is a copy you can then edit.',
+   choices:ps.map(function(p){
+    var k=(wlLiveSyms(p.id)||[]).length;
+    return {v:p.id,label:p.label,note:k?(k+' today'):'none today'};
+   })},function(pid){
+  var pb=ps.filter(function(x){return x.id===pid;})[0];
+  if(!pb)return;
+  var syms=wlLiveSyms(pb.id)||[];
+  if(!syms.length){wlToast('Nothing matches '+pb.label+' today');return;}
+  tfDlg({title:'Heading for them?',input:'text',value:pb.label,ok:'Add'},function(secIn){
+   var sec=String(secIn||'').trim()||null;
+   var rows=syms.map(function(x,i){return {wl_id:l.id,symbol:x,section:sec,sort_order:i};});
+   wlApi('watchlist_items',{method:'POST',
+     headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+     body:JSON.stringify(rows)})
+    .then(function(){wlToast('Added '+syms.length+' from '+pb.label);WL._px=null;wlLoad();});
+  });
+ });
 };
 
 /* Drag to reorder. sort_order was already in the table and populated - this
@@ -18077,18 +18192,21 @@ window.wlFromFilter=function(){
  var what=(sel&&sel.length)?'ticked':'filtered';
  /* A whole unfiltered screener is 1000+ names. Adding that to a watchlist
     is almost never what someone meant, so say the number out loud. */
- if(rows.length>60&&!confirm('That is '+rows.length+' stocks - the Screener is barely '+
-    'filtered.\n\nA watchlist that size is not really a watchlist. Filter it down '+
-    'first, or tick the rows you want.\n\nAdd all '+rows.length+' anyway?'))return;
- if(rows.length<=60&&!confirm('Add the '+rows.length+' '+what+' stock'+(rows.length>1?'s':'')+
-             ' from the Screener into "'+l.name+'"?'))return;
- var sec=prompt('Section heading for them? Leave blank for none.\n\n'+
-   '(This is a HEADING, not a search - it groups them under a title.)','')||null;
- var body=rows.map(function(d,i){return {wl_id:l.id,symbol:d.sym,section:sec,sort_order:i};});
- wlApi('watchlist_items',{method:'POST',
-   headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
-   body:JSON.stringify(body)})
-  .then(function(){wlToast('Added '+rows.length+' from the Screener');WL._px=null;wlLoad();});
+ var warn=(rows.length>60)
+  ? 'The Screener is barely filtered, so this is a lot. A list that size is not really a watchlist \u2014 filter it down first, or tick the rows you want.'
+  : 'They go into "'+l.name+'".';
+ tfAsk('Add '+rows.length+' '+what+' stock'+(rows.length>1?'s':'')+'?',warn,'Add',function(){
+  tfDlg({title:'Group them under a heading?',
+    msg:'A HEADING shown above them in the list \u2014 not a search.\nLeave blank for none.',
+    input:'text',placeholder:'e.g. TODAY\u2019S FILTER',ok:'Add'},function(secIn){
+   var sec=String(secIn||'').trim()||null;
+   var body=rows.map(function(d,i){return {wl_id:l.id,symbol:d.sym,section:sec,sort_order:i};});
+   wlApi('watchlist_items',{method:'POST',
+     headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+     body:JSON.stringify(body)})
+    .then(function(){wlToast('Added '+rows.length+' from the Screener');WL._px=null;wlLoad();});
+  });
+ },rows.length>60);
 };
 
 window.wlCopyList=function(){
@@ -18104,9 +18222,19 @@ window.wlCopyList=function(){
 window.wlImport=function(){
  var l=wlActive();
  if(!l||l.kind==='live'){wlToast('Pick a normal list first');return;}
- var raw=prompt('Paste symbols - commas or new lines.\nNSE: prefixes are fine, they get stripped.');
- if(!raw)return;
- var sec=prompt('Put them under a section heading? Leave blank for none.','')||null;
+ tfDlg({title:'Import symbols',
+   msg:'Paste them separated by commas, spaces or new lines.\nNSE: prefixes are stripped automatically.',
+   input:'textarea',placeholder:'NSE:SUZLON, NSE:IDEA\nTATAPOWER',ok:'Next'},function(raw){
+  if(!raw)return;
+  tfDlg({title:'Group them under a heading?',
+    msg:'This is a HEADING shown above them in the list \u2014 not a search.\nLeave it blank for no heading.',
+    input:'text',placeholder:'e.g. BIG BASES',ok:'Import'},function(secIn){
+   wlImport2(raw,String(secIn||'').trim()||null);
+  });
+ });
+};
+function wlImport2(raw,sec){
+ var l=wlActive();if(!l)return;
  var syms=raw.split(/[\s,;]+/).map(function(x){
    return String(x).toUpperCase().replace(/^NSE:/,'').trim();
   }).filter(Boolean);
@@ -18117,22 +18245,24 @@ window.wlImport=function(){
  wlApi('watchlist_items',{method:'POST',
    headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
    body:JSON.stringify(rows)})
-  .then(function(){wlToast('Imported '+uniq.length+' symbols');wlLoad();});
-};
+  .then(function(){wlToast('Imported '+uniq.length+' symbols');WL._px=null;wlLoad();});
+}
 
 window.wlClear=function(){
  var l=wlActive();
  if(!l||l.kind==='live')return;
- if(!confirm('Remove every symbol from "'+l.name+'"? The list itself stays.'))return;
- wlApi('watchlist_items?wl_id=eq.'+l.id,{method:'DELETE',headers:wlHdr()})
-  .then(function(){wlToast('Cleared '+l.name);wlLoad();});
+ tfAsk('Clear "'+l.name+'"?','Every symbol is removed. The list itself stays.',
+  'Clear',function(){
+   wlApi('watchlist_items?wl_id=eq.'+l.id,{method:'DELETE',headers:wlHdr()})
+    .then(function(){wlToast('Cleared '+l.name);wlLoad();});
+  },true);
 };
 
 window.wlDuplicate=function(){
  var l=wlActive();if(!l)return;
- var n=prompt('Name for the copy:',l.name+' copy');
- if(!n)return;
- wlApi('watchlists',{method:'POST',headers:wlHdr({Prefer:'return=representation'}),
+ tfDlg({title:'Copy list',input:'text',value:l.name+' copy',ok:'Copy'},function(n){
+  if(!n)return;
+  wlApi('watchlists',{method:'POST',headers:wlHdr({Prefer:'return=representation'}),
   body:JSON.stringify({name:n,kind:l.kind,playbook:l.playbook,market:'IN',
                        colour:l.colour,sort_order:WL.lists.length})})
  .then(function(r){
@@ -18145,6 +18275,7 @@ window.wlDuplicate=function(){
     headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
     body:JSON.stringify(rows)}).then(function(){WL.active=nid;wlLoad();});
  });
+ });
 };
 
 window.wlStar=function(){
@@ -18155,39 +18286,46 @@ window.wlStar=function(){
 
 window.wlListColour=function(){
  var l=wlActive();if(!l)return;
- var opts=Object.keys(WL_SWATCH);
- var c=prompt('Colour for this list:\n\n'+opts.join(', ')+'\n\n(blank clears it)',l.colour||'');
- if(c===null)return;
- c=String(c).trim().toLowerCase()||null;
- if(c&&opts.indexOf(c)<0){wlToast('Not one of the colours');return;}
- wlApi('watchlists?id=eq.'+l.id,{method:'PATCH',headers:wlHdr(),
-  body:JSON.stringify({colour:c})}).then(function(){wlLoad();});
+ var ch=Object.keys(WL_SWATCH).map(function(c){
+  return {v:c,label:(WL.colours[c]||c),note:(l.colour===c?'current':'')};
+ });
+ ch.push({v:'',label:'No colour'});
+ tfDlg({title:'Colour for "'+l.name+'"',choices:ch},function(c){
+  wlApi('watchlists?id=eq.'+l.id,{method:'PATCH',headers:wlHdr(),
+   body:JSON.stringify({colour:c||null})}).then(function(){wlLoad();});
+ });
 };
 
 window.wlSecRename=function(old){
  var l=wlActive();if(!l||l.kind==='live')return;
- var n=prompt('Rename this section (blank removes the heading):',old);
- if(n===null)return;
- wlApi('watchlist_items?wl_id=eq.'+l.id+'&section=eq.'+encodeURIComponent(old),
-  {method:'PATCH',headers:wlHdr(),body:JSON.stringify({section:(n.trim()||null)})})
-  .then(function(){wlLoad();});
+ tfDlg({title:'Rename section',msg:'Leave it blank to remove the heading entirely.',
+   input:'text',value:old,ok:'Save'},function(n){
+  wlApi('watchlist_items?wl_id=eq.'+l.id+'&section=eq.'+encodeURIComponent(old),
+   {method:'PATCH',headers:wlHdr(),body:JSON.stringify({section:(String(n).trim()||null)})})
+   .then(function(){wlLoad();});
+ });
 };
 
 window.wlSection=function(){
  var l=wlActive();if(!l||l.kind==='live')return;
  var syms=(WL.items[l.id]||[]).map(function(x){return x.symbol;});
  if(!syms.length){wlToast('List is empty');return;}
- var which=prompt('Which symbols go under the new heading?\nCommas or new lines.\n\nIn this list:\n'+syms.join(', '));
- if(!which)return;
- var name=prompt('Section heading:');
- if(!name)return;
- var pick=which.split(/[\s,;]+/).map(function(x){return String(x).toUpperCase().replace(/^NSE:/,'').trim();}).filter(Boolean);
- var todo=pick.filter(function(x){return syms.indexOf(x)>=0;});
- if(!todo.length){wlToast('None of those are in this list');return;}
- Promise.all(todo.map(function(sym){
-  return wlApi('watchlist_items?wl_id=eq.'+l.id+'&symbol=eq.'+encodeURIComponent(sym),
-   {method:'PATCH',headers:wlHdr(),body:JSON.stringify({section:name})});
- })).then(function(){wlToast(todo.length+' moved under '+name);wlLoad();});
+ tfDlg({title:'Which symbols go under the heading?',
+   msg:'Separated by commas or new lines.\n\nIn this list: '+syms.join(', '),
+   input:'textarea',placeholder:'SUZLON, IDEA',ok:'Next'},function(which){
+  var pick=String(which||'').split(/[\s,;]+/).map(function(x){
+    return String(x).toUpperCase().replace(/^NSE:/,'').trim();}).filter(Boolean);
+  var todo=pick.filter(function(x){return syms.indexOf(x)>=0;});
+  if(!todo.length){wlToast('None of those are in this list');return;}
+  tfDlg({title:'Heading for these '+todo.length+'?',input:'text',
+    placeholder:'e.g. ## 1 A+ SETUP',ok:'Create section'},function(name){
+   if(!name)return;
+   Promise.all(todo.map(function(sym){
+    return wlApi('watchlist_items?wl_id=eq.'+l.id+'&symbol=eq.'+encodeURIComponent(sym),
+     {method:'PATCH',headers:wlHdr(),body:JSON.stringify({section:name})});
+   })).then(function(){wlToast(todo.length+' moved under '+name);wlLoad();});
+  });
+ });
 };
 
 window.wlOpen=function(sym){
@@ -18200,35 +18338,45 @@ window.wlOpen=function(sym){
 };
 
 window.wlNew=function(){
- var name=prompt('Name for the new watchlist:');
- if(!name)return;
- var live=confirm('Bind this list to a playbook so it refreshes itself?\n\nOK = live list\nCancel = a normal list you fill yourself');
- var pid=null;
- if(live){
-  var ids=(typeof SCR_PRESETS!=='undefined')?SCR_PRESETS.filter(function(p){return p.grp;}).map(function(p){return p.id+'  ('+p.label+')';}):[];
-  pid=prompt('Playbook id to follow:\n\n'+ids.join('\n'));
-  if(!pid)return;
-  pid=String(pid).trim().split(' ')[0];
- }
+ tfDlg({title:'New watchlist',input:'text',placeholder:'e.g. IND QM SETUPS',ok:'Next'},function(name){
+  if(!name)return;
+  tfDlg({title:'What kind of list?',
+    msg:'A normal list holds whatever you put in it.\nA live list follows a playbook and rebuilds itself from each night\u2019s scan.',
+    choices:[{v:'static',label:'Normal list',note:'I fill it myself'},
+             {v:'live',label:'\u26a1 Live list',note:'follows a playbook'}]},function(kind){
+   if(kind!=='live'){wlNew2(name,'static',null);return;}
+   var ps=(typeof SCR_PRESETS!=='undefined')?SCR_PRESETS.filter(function(p){return p.grp;}):[];
+   if(!ps.length){wlToast('No playbooks found');return;}
+   tfDlg({title:'Which playbook should it follow?',
+     choices:ps.map(function(p){return {v:p.id,label:p.label,note:p.grp};})},function(pid){
+    wlNew2(name,'live',pid);
+   });
+  });
+ });
+};
+function wlNew2(name,kind,pid){
  wlApi('watchlists',{method:'POST',headers:wlHdr({Prefer:'return=representation'}),
-  body:JSON.stringify({name:name,kind:live?'live':'static',playbook:pid,market:'IN',
+  body:JSON.stringify({name:name,kind:kind,playbook:pid,market:'IN',
                        sort_order:WL.lists.length})})
  .then(function(r){if(r&&r[0])WL.active=r[0].id;wlToast('Created '+name);wlLoad();});
 };
 
 window.wlRename=function(){
  var l=wlActive();if(!l)return;
- var n=prompt('Rename this list:',l.name);
- if(!n||n===l.name)return;
- wlApi('watchlists?id=eq.'+l.id,{method:'PATCH',headers:wlHdr(),body:JSON.stringify({name:n})})
-  .then(function(){wlLoad();});
+ tfDlg({title:'Rename list',input:'text',value:l.name,ok:'Rename'},function(n){
+  if(!n||n===l.name)return;
+  wlApi('watchlists?id=eq.'+l.id,{method:'PATCH',headers:wlHdr(),body:JSON.stringify({name:n})})
+   .then(function(){wlLoad();});
+ });
 };
 
 window.wlDelete=function(){
  var l=wlActive();if(!l)return;
- if(!confirm('Delete "'+l.name+'" and everything in it? This cannot be undone.'))return;
- wlApi('watchlists?id=eq.'+l.id,{method:'DELETE',headers:wlHdr()})
-  .then(function(){WL.active=null;wlToast('Deleted '+l.name);wlLoad();});
+ tfAsk('Delete "'+l.name+'"?','Everything in it goes too. This cannot be undone.',
+  'Delete',function(){
+   wlApi('watchlists?id=eq.'+l.id,{method:'DELETE',headers:wlHdr()})
+    .then(function(){WL.active=null;wlToast('Deleted '+l.name);wlLoad();});
+  },true);
 };
 
 window.wlDrop=function(sym){
@@ -18244,11 +18392,12 @@ window.wlSetColour=function(sym,c){
 };
 
 window.wlLabel=function(c){
- var cur=WL.colours[c]||'';
- var n=prompt('What does this colour mean to you?',cur);
- if(n===null)return;
- wlApi('watchlist_colours?colour=eq.'+c,
-  {method:'PATCH',headers:wlHdr(),body:JSON.stringify({label:n})}).then(function(){wlLoad();});
+ tfDlg({title:'What does this colour mean?',
+   msg:'Your label, shown wherever the colour appears.',
+   input:'text',value:WL.colours[c]||'',ok:'Save'},function(n){
+  wlApi('watchlist_colours?colour=eq.'+c,
+   {method:'PATCH',headers:wlHdr(),body:JSON.stringify({label:n})}).then(function(){wlLoad();});
+ });
 };
 
 /* Called from the Screener's "Add to watchlist" button. Uses your ticked rows
@@ -18260,16 +18409,18 @@ window.wlAddFromScreener=function(){
  var go=function(){
   var statics=WL.lists.filter(function(l){return l.kind!=='live';});
   if(!statics.length){wlToast('Create a normal watchlist first (Charts tab)');return;}
-  var names=statics.map(function(l,i){return (i+1)+') '+l.name;}).join('\n');
-  var pick=prompt('Add '+list.length+' stock'+(list.length>1?'s':'')+' to which list?\n\n'+names,'1');
-  var idx=parseInt(pick,10)-1;
-  if(isNaN(idx)||idx<0||idx>=statics.length)return;
-  var wl=statics[idx];
-  var rows=list.map(function(d){return {wl_id:wl.id,symbol:d.sym};});
-  wlApi('watchlist_items',{method:'POST',
-    headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
-    body:JSON.stringify(rows)})
-   .then(function(){wlToast('Added '+rows.length+' to '+wl.name);wlLoad();});
+  tfDlg({title:'Add '+list.length+' stock'+(list.length>1?'s':'')+' to\u2026',
+    choices:statics.map(function(l){
+     return {v:String(l.id),label:l.name,note:((WL.items[l.id]||[]).length)+' stocks'};
+    })},function(id){
+   var wl=statics.filter(function(l){return String(l.id)===String(id);})[0];
+   if(!wl)return;
+   var rows=list.map(function(d){return {wl_id:wl.id,symbol:d.sym};});
+   wlApi('watchlist_items',{method:'POST',
+     headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+     body:JSON.stringify(rows)})
+    .then(function(){wlToast('Added '+rows.length+' to '+wl.name);WL._px=null;wlLoad();});
+  });
  };
  if(!WL.lists.length){wlLoad();setTimeout(go,900);} else go();
 };
