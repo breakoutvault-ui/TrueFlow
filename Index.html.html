@@ -4580,6 +4580,7 @@ function doLogin() {
   const pwd = document.getElementById('pwd-input').value.trim();
   const ak  = document.getElementById('api-input').value.trim();
   if (pwd === CONFIG.password) {
+    try{ localStorage.setItem('tf_auth_until', String(Date.now()+12*3600*1000)); }catch(e){}
     if (ak) { apiKey = ak; try{ localStorage.setItem('re-apikey', ak); }catch(e){} }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -13570,7 +13571,7 @@ function scrExplain(){
   el.innerHTML=parts.join('');
   el.style.display='block';
 }
-function scrPlayInfo(p){try{scrExplain();}catch(e){}var el=document.getElementById('scr-play-info');if(el){if(false){el.innerHTML='<div class="pi-h">\uD83D\uDCD3 '+(p.label||'')+'</div><div class="pi-b">'+p.how+'</div>';el.style.display='block';}else{el.style.display='none';el.innerHTML='';}}document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',!!(p&&b.dataset.p===p.id));});}
+function scrPlayInfo(p){try{scrExplain();}catch(e){}/* the explainer owns #scr-play-info now; hiding it here wiped it on every playbook click */document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',!!(p&&b.dataset.p===p.id));});}
 
 const SCR_FILTER_COL={rclgrade:'rclgrade',rclvol:'rclvol',rclriskmax:'rclrisk',rcldaysmax:'rcldays',polemin:'pole',polespeedmin:'pole',entry:'entry',align:'align',mkt:'dots',sec:'secrank',catalyst:'catalyst',nr:'nr',contractmin:'contract',rvol:'rvol',adr:'adr',pattern:'qm',cat:'cat',smt:'smt',consol:'consolDays'};
 function scrApplyCtxCols(preset){
@@ -15129,95 +15130,6 @@ var _t=setInterval(function(){
  if(typeof scrRender==='function'){scrHook();clearInterval(_t);}
 },400);
 setTimeout(function(){clearInterval(_t);},30000);
-})();
-</script>
-
-
-<!-- ═══ TrueFlow screener layout v1 — outlook on top, collapsible sections ═══ -->
-<style>
-.scl-head{display:flex;align-items:center;gap:8px;margin:8px 0 4px;font-size:11px;flex-wrap:wrap}
-.scl-tog{padding:2px 9px;border-radius:6px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11px}
-.scl-tog.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
-.scl-note{color:var(--muted);font-size:10px}
-</style>
-<script>
-(function(){
-'use strict';
-/* Pure layout. Nothing is removed: the same Quick Views, Playbooks and Filter
-   controls are simply moved into collapsible sections, with the market and
-   sector outlook lifted to the top where they are read first. */
-var SEC=[
- {id:'scr-presets',   label:'Quick views', open:false,
-  tip:'Saved one-click views. Same buttons as before, just folded away until you want them.'},
- {id:'scr-pbstrip',   label:'Playbooks',   open:false,
-  tip:'Your named strategy screens. Click one to apply its filters. Reframed or Original is chosen on the line above.'},
- {id:'scr-fbar',      label:'Filters',     open:false,
-  tip:'Every individual filter, click to multi-select. Open this when you want to build a screen by hand instead of using a playbook.'}
-];
-function el(id){return document.getElementById(id);}
-function wrap(sec){
- var node=el(sec.id)||document.querySelector('.'+sec.id);
- if(!node||node.dataset.scl)return false;
- node.dataset.scl='1';
- var head=document.createElement('div');
- head.className='scl-head';head.id='scl-h-'+sec.id;
- head.innerHTML='<button class="scl-tog'+(sec.open?' on':'')+'" onclick="sclToggle(\''+sec.id+'\')" title="'+sec.tip.replace(/"/g,'&quot;')+'">'+
-   (sec.open?'▾ ':'▸ ')+sec.label+'</button><span class="scl-note" id="scl-n-'+sec.id+'"></span>';
- node.parentNode.insertBefore(head,node);
- node.style.display=sec.open?'':'none';
- return true;
-}
-window.sclToggle=function(id){
- var node=el(id)||document.querySelector('.'+id),h=el('scl-h-'+id);
- if(!node)return;
- var hidden=node.style.display==='none';
- node.style.display=hidden?'':'none';
- var b=h&&h.querySelector('.scl-tog');
- if(b){b.textContent=(hidden?'▾ ':'▸ ')+b.textContent.slice(2);b.classList.toggle('on',hidden);}
-};
-function counts(){
- try{
-  var n=0;for(var k in SCR.state){if(SCR.state[k]&&SCR.state[k].size)n++;}
-  var f=el('scl-n-scr-fbar');
-  if(f)f.textContent=n?(n+' filter group'+(n>1?'s':'')+' active'):'';
-  var p=el('scl-n-scr-pbstrip'),ap=SCR.activePreset;
-  if(p)p.textContent=(ap&&ap!=='all')?('active: '+ap):'';
- }catch(e){}
-}
-function lift(){
- // market strip + sector strip to the top of the screener, above everything
- var reg=el('scr-regime'),host=el('scr-presets');
- if(!reg||!host||!host.parentNode)return;
- // sit above the "Quick views" toggle, not between it and its panel
- var anchor=el('scl-h-scr-presets')||host;
- if(reg.dataset.scl!=='1'){
-  host.parentNode.insertBefore(reg,anchor);
-  reg.dataset.scl='1';
- }
- var sec=el('scr-sec');
- if(sec&&sec.dataset.scl!=='1'){
-  reg.parentNode.insertBefore(sec,reg.nextSibling);
-  sec.dataset.scl='1';
- }
-}
-function apply(){
- SEC.forEach(wrap);
- lift();
- counts();
-}
-var tries=0,t=setInterval(function(){
- tries++;
- if(el('scr-presets')&&typeof scrRender==='function'){
-  apply();
-  if(!scrRender._scl){
-   var o=scrRender;
-   window.scrRender=scrRender=function(){var r=o.apply(this,arguments);try{apply();}catch(e){}return r;};
-   scrRender._scl=true;
-  }
-  clearInterval(t);
- }
- if(tries>80)clearInterval(t);
-},300);
 })();
 </script>
 
@@ -19006,5 +18918,21 @@ document.addEventListener('keydown',function(e){
 })();
 </script>
 
+
+<script>
+/* Shared login. Both dashboards live on the same site, so a successful login
+   on either one is remembered here for 12 hours and the other one opens
+   straight in. Log in once, switch IND <-> US freely. */
+window.addEventListener('load',function(){
+ try{
+  var until=+localStorage.getItem('tf_auth_until')||0;
+  var ls=document.getElementById('login-screen');
+  if(until>Date.now()&&ls&&ls.style.display!=='none'){
+   document.getElementById('pwd-input').value=CONFIG.password;
+   doLogin();
+  }
+ }catch(e){console.error('auto-login:',e);}
+});
+</script>
 </body>
 </html

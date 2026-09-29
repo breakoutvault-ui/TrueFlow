@@ -881,7 +881,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tab-screener .scr-pre-x:hover{opacity:1;color:var(--red)}
 #tab-screener .scr-pbstrip{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;margin-bottom:8px}
 #tab-screener .scr-pbhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-#tab-screener .scr-pbtoggle{background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer}
+#tab-screener .scr-pbtoggle{background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;margin-left:8px}
+#tab-screener .scr-pbmode{background:none;border:1px solid var(--border);color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;padding:3px 10px;border-radius:20px;margin-left:5px}
+#tab-screener .scr-pbmode.active{background:var(--cyan);color:#03121a;border-color:var(--cyan)}
 #tab-screener .scr-pbchips{display:flex;gap:5px;flex-wrap:wrap}
 #tab-screener .scr-pbstrip .scr-pbchips .scr-pb-grp{display:inline-flex!important;align-items:center;width:auto!important;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 2px 0 6px;padding:0;opacity:.75;border:none}
 #tab-screener .scr-pbstrip .scr-pbchips .scr-pb-item{display:inline-flex!important;width:auto!important;align-items:center;background:var(--bg);border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;text-align:center;line-height:1.4}
@@ -961,6 +963,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #tab-screener .scr-s-hi{background:rgba(0,255,136,.14);color:var(--green)}#tab-screener .scr-s-mid{background:rgba(245,158,11,.14);color:var(--amber)}#tab-screener .scr-s-lo{background:var(--bg3);color:var(--muted)}
 #tab-screener .scr-pv{display:inline-block;vertical-align:middle;cursor:help}
 #tab-screener .scr-yes{color:var(--green);font-weight:700}
+/* frozen screener columns */
+#scr-thead th.scr-frz{position:sticky;background:var(--bg1);z-index:5}
+.scr-tcard tbody td.scr-frz{position:sticky;background:var(--bg1);z-index:3}
+.scr-tcard th.scr-frz-edge, .scr-tcard td.scr-frz-edge{box-shadow:1px 0 0 var(--border)}
 .ce-b:hover{background:var(--bg3);color:var(--text);border-color:var(--bg3)}
 /* Active buttons are TINTED, not filled. A solid blue fill on every active
    control turned the whole toolbar blue - fifteen tools, four timeframes and
@@ -2460,7 +2466,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="scr-presets" id="scr-presets"><span class="scr-plabel">Quick views</span></div>
     <div id="scr-regime"></div>
     <div class="scr-pbstrip" id="scr-pbstrip">
-      <div class="scr-pbhead"><span class="scr-plabel">📓 Playbooks — one tap to apply</span><button class="scr-pbtoggle" id="scr-pbtoggle" onclick="scrTogglePB()">▾ hide</button></div>
+      <div class="scr-pbhead">
+        <span class="scr-plabel">&#128211; Playbooks &mdash; one tap to apply</span>
+        <span>
+          <button class="scr-pbmode active" id="scr-pbmode-eod" onclick="scrSetPbMode('eod')" title="Scans you run after the market closes, to act on tomorrow.">&#9788; End of Day</button>
+          <button class="scr-pbmode" id="scr-pbmode-wk" onclick="scrSetPbMode('weekend')" title="Deeper scans for Saturday and Sunday, when you have time to build next week's watchlist.">&#128197; Weekend</button>
+          <button class="scr-pbtoggle" id="scr-pbtoggle" onclick="scrTogglePB()">&#9662; hide</button>
+        </span>
+      </div>
       <div id="scr-pb-list" class="scr-pbchips"></div>
     </div>
     <div id="scr-play-info" class="scr-play-info" style="display:none"></div>
@@ -4843,6 +4856,7 @@ function doLogin() {
   const pwd = document.getElementById('pwd-input').value.trim();
   const ak  = document.getElementById('api-input').value.trim();
   if (pwd === CONFIG.password) {
+    try{ localStorage.setItem('tf_auth_until', String(Date.now()+12*3600*1000)); }catch(e){}
     if (ak) { apiKey = ak; try{ localStorage.setItem('re-apikey', ak); }catch(e){} }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -13785,17 +13799,31 @@ function scrSyncColMenu(){document.querySelectorAll('#scr-col-panel input').forE
 function scrToggleFilter(k,o,on){on?SCR.state[k].add(o):SCR.state[k].delete(o);SCR.activePreset=null;scrSyncChips();scrRender();}
 function scrStrongSectorsPx(){var out=new Set();try{if(typeof SP_SECS==='object'&&SP_SECS){for(var sec in SP_SECS){if(Object.prototype.hasOwnProperty.call(SP_SECS,sec)&&SP_SECS[sec]&&SP_SECS[sec].length&&typeof spSentiment==='function'&&spSentiment(SP_SECS[sec])==='bull')out.add(sec);}}}catch(e){console.warn('strongSectorsPx',e);}return out;}
 var SCR_PB_TINT={'Swing Entries':'#22C55E','Coil / Pre-Breakout':'#8B5CF6','Breakout / Leaders':'#F59E0B','Smart Money':'#EAB308','Sector-Driven':'#06B6D4','Weekend Scans':'#94A3B8','Earnings / EP':'#EC4899','Strength / RS':'#22D3EE','Alignment':'#A78BFA'};
+function scrPbWhen(p){return p.when||(p.grp==='Weekend Scans'?'weekend':'eod');}
 function scrFillPlaybooks(){
   var pl=document.getElementById('scr-pb-list');if(!pl)return;
-  var pbs=SCR_PRESETS.filter(function(p){return p.grp;});
+  if(!SCR.pbMode)SCR.pbMode=([0,6].indexOf(new Date().getDay())>=0)?'weekend':'eod';
+  var mode=SCR.pbMode;
+  var pbs=SCR_PRESETS.filter(function(p){return p.grp&&scrPbWhen(p)===mode;});
   var grps=[];pbs.forEach(function(p){if(grps.indexOf(p.grp)<0)grps.push(p.grp);});
+  /* exits belong at the top: you check what to sell before what to buy */
+  var pm=grps.indexOf('Position Management');
+  if(pm>0){grps.splice(pm,1);grps.unshift('Position Management');}
   pl.innerHTML=grps.map(function(g){
     var tint=SCR_PB_TINT[g]||'var(--border)';
     return '<div class="scr-pb-grp" style="color:'+tint+'">'+g+'</div>'+pbs.filter(function(p){return p.grp===g;}).map(function(p){
-      return '<button class="scr-pb-item" data-p="'+p.id+'" style="border-color:'+tint+'55" title="'+(p.how||'').replace(/"/g,'&quot;')+'" onclick="scrApplyPreset(\''+p.id+'\')">'+p.label+'</button>';
+      var extra=(typeof TF_RE!=='undefined'&&TF_RE[p.id]&&TF_RE[p.id].n)?'\n\nHigher-timeframe rule: '+TF_RE[p.id].n:'';
+      return '<button class="scr-pb-item" data-p="'+p.id+'" style="border-color:'+tint+'55" title="'+((p.how||'')+extra).replace(/"/g,'&quot;')+'" onclick="scrApplyPreset(\''+p.id+'\')">'+p.label+'</button>';
     }).join('');
   }).join('');
   document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',b.dataset.p===SCR.activePreset);});
+}
+function scrSetPbMode(m){
+  SCR.pbMode=m;
+  var a=document.getElementById('scr-pbmode-eod'),b=document.getElementById('scr-pbmode-wk');
+  if(a)a.classList.toggle('active',m==='eod');
+  if(b)b.classList.toggle('active',m==='weekend');
+  scrFillPlaybooks();
 }
 function scrTogglePB(){
   var l=document.getElementById('scr-pb-list'),b=document.getElementById('scr-pbtoggle');
@@ -13804,7 +13832,262 @@ function scrTogglePB(){
   l.style.display=hidden?'flex':'none';
   b.textContent=hidden?'\u25BE hide':'\u25B8 show';
 }
-function scrPlayInfo(p){var el=document.getElementById('scr-play-info');if(el){if(p&&p.how){el.innerHTML='<div class="pi-h">\uD83D\uDCD3 '+(p.label||'')+'</div><div class="pi-b">'+p.how+'</div>';el.style.display='block';}else{el.style.display='none';el.innerHTML='';}}document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',!!(p&&b.dataset.p===p.id));});}
+/* ===== Plain-English explainer: describes whatever is currently applied ===== */
+
+/* ===== Deep strategy explanations for setup-related filter values ===== */
+const SCR_DEEP={
+'pattern:EP':{t:'Episodic Pivot (EP)',
+ w:'A stock that has gapped up roughly 5% or more on about twice its normal volume. Something changed overnight \u2014 usually earnings, a big order win, a regulatory clearance, or a management change.',
+ y:'A gap on heavy volume means large buyers were willing to pay far above yesterday\u2019s close rather than wait for a better price. That urgency rarely resolves in a single day. Institutions cannot build a position in one session, so the buying that caused the gap often continues for days or weeks.',
+ h:'The strongest EPs never fill their gap. Use the first 1\u20135 days after the gap as your reference: mark the high of the gap day. Entries come either on the first shallow pullback that holds above the 9 EMA, or on a break of the gap-day high. Your stop belongs below the gap-day low \u2014 if the gap fills completely, the thesis is dead.',
+ c:'Strongest combined with: <b>Smart Money</b> (institutions accumulating confirms the buyer is real), <b>Alignment = Full or Sector-led</b> (the backdrop is not fighting you), and <b>Entry Mode</b> for the exact trigger price. The EP + Smart Money playbook is exactly this combination.'},
+
+'pattern:VCP':{t:'Volatility Contraction Pattern (VCP)',
+ w:'A strong advance, followed by a series of pullbacks that each get progressively smaller and quieter. Price swings tighten and volume dries up as the base matures.',
+ y:'Each successive pullback shakes out weaker holders. By the time the swings are tiny, almost everyone left holding wants to hold. Supply has been exhausted, so it takes very little new buying to push price out of the range \u2014 which is why VCP breakouts can move so fast.',
+ h:'The pivot is the high of the final, tightest contraction. Buy the break of that pivot on a clear volume expansion, not before \u2014 buying inside the base means sitting through more chop. Stop goes under the low of the last contraction, which should be tight enough to keep risk small. If volume does not expand on the break, be quick to cut it.',
+ c:'Strongest combined with: <b>Contraction \u2265 0.7</b> (proves the base is genuinely tight relative to the advance), <b>NR7</b> (maximum compression right at the end of the base \u2014 see the NR7 + VCP Combo playbook), and <b>Volume dry-up</b>. Check <b>Entry Mode</b>: if the base is short, the dashboard will tell you to buy the pullback instead of waiting.'},
+
+'pattern:HTF':{t:'High Tight Flag (HTF)',
+ w:'A violent advance \u2014 typically 80% or more in around two months \u2014 followed by a shallow, short sideways pause that gives back very little of the move.',
+ y:'This is one of the rarest and historically most powerful continuation patterns. A stock that runs that hard and then refuses to give back much is being held by people with strong conviction. The lack of a meaningful pullback after such an extended move signals that sellers have essentially disappeared.',
+ h:'Because the preceding move is so large, these are volatile and position size matters more than usual \u2014 size down, not up. Buy the break of the flag high. Stop under the flag low. Do not expect a comfortable ride; the same volatility that creates the pattern will test you.',
+ c:'Strongest combined with: <b>Contraction \u2265 0.7</b> and <b>Category A/AC</b>. Be cautious taking these when <b>Market Leg is weak</b> \u2014 extended names are the first to be sold when the tape turns.'},
+
+'pattern:Reclaim':{t:'EMA Reclaim',
+ w:'The stock dipped below its 9-day EMA and has now closed back above it. Measured on the last two daily closes.',
+ y:'An uptrend that loses its short-term moving average and immediately takes it back is showing that dip buyers are still active and in control. The brief loss of the average flushes out weak holders and often resets momentum without breaking the larger trend.',
+ h:'This is an entry timing signal rather than a setup in its own right \u2014 it tells you when to act on a stock you already like. Enter on the reclaim close. Stop below the low of the dip. It works best when the larger structure is intact: the stock should still be above its 20 EMA and in a recognised base or uptrend.',
+ c:'Strongest combined with: <b>Category A or A+C</b> (the higher-timeframe trend is still up), and <b>Alignment</b> \u2014 a reclaim while the sector is also strong is far more reliable than one against the tape.'},
+
+'pattern:NearPivot':{t:'Near Pivot',
+ w:'Price is currently within about 3% of its breakout pivot \u2014 coiled right underneath the level that would trigger a move.',
+ y:'This is a timing filter, not a pattern. It tells you which setups are close enough to matter now rather than in three weeks, which is what makes it useful for building a daily watchlist you will actually act on.',
+ h:'Set alerts at the pivot rather than watching. When it triggers, check that volume is expanding \u2014 a pivot break on quiet volume fails far more often than one on heavy volume.',
+ c:'Use it as a narrowing filter on top of a pattern: <b>VCP + Near Pivot</b> is the classic combination, and is exactly what the VCP at Pivot playbook does.'},
+
+'pattern:BrokenOut':{t:'Broken Out',
+ w:'The stock has already closed above its breakout pivot as of the most recent session.',
+ y:'The move has begun. The question is no longer whether it will break out, but whether the breakout will hold. Breakouts that hold above the pivot on strong volume tend to continue; those that immediately fall back below it often trap buyers.',
+ h:'If you missed the initial break, do not chase far above the pivot \u2014 wait for the first pullback that holds the pivot from above, which turns old resistance into support. Stop goes just below the pivot. If price closes back under the pivot decisively, the breakout has failed.',
+ c:'Strongest combined with: <b>RVOL \u2265 1.5</b> (real volume behind the break \u2014 the Breakout + Volume playbook), and <b>Alignment = Full</b>. A breakout against a weak market and weak sector is the most likely kind to fail.'},
+
+'entry:pullback':{t:'Entry Mode: Buy the pullback',
+ w:'The dashboard has judged that this stock should be bought on a dip rather than on a breakout. It applies when the base is short \u2014 under about 10 days \u2014 <i>and</i> genuinely tight relative to that stock\u2019s own normal daily range.',
+ y:'When a stock has only been consolidating for a few days and the range is tight, supply has not had time to build. Sellers who wanted out are not queuing at the range high. In that situation dips get bought quickly and waiting for a clean breakout usually means missing the move or paying much more for it.',
+ h:'The <b>Trigger</b> column gives you the level \u2014 normally the 9 EMA. Buy into weakness as price approaches it, rather than waiting for strength. Stop just under the base low. Because the base is short, keep expectations for the pullback shallow: if price falls far below the 9 EMA, the premise has changed.',
+ c:'Strongest combined with: <b>Alignment = Full or Sector-led</b> (the Buy-the-Dip, Aligned playbook), and <b>Category A/AC</b>. The tightness test uses each stock\u2019s own ADR%, so a 5% range is judged very differently for a steady largecap than for a volatile smallcap.'},
+
+'entry:breakout':{t:'Entry Mode: Buy the breakout',
+ w:'The dashboard has judged that this stock should be bought on a break of the box high. It applies when the base has run 10 days or longer.',
+ y:'The longer a stock sits in a range, the more holders accumulate who are waiting to sell at the top of that range. Buying inside a mature base means paying now for the privilege of sitting through more chop, and possibly weeks of it. The break of the range high is the point at which that overhead supply has been cleared.',
+ h:'The <b>Trigger</b> column gives the exact level \u2014 the box high plus a small 0.2% buffer to avoid being triggered by noise. Set an alert there rather than watching the screen. Enter on the break, ideally with volume expanding. Stop below the most recent contraction low, not the whole base low, to keep risk sensible.',
+ c:'Strongest combined with: <b>RVOL \u2265 1.5</b> and <b>Alignment</b> (the Breakout Ready, Aligned playbook). Also check the <b>Pole</b> column \u2014 a large advance into the base means more potential energy behind the eventual break.'},
+
+'entry:wait':{t:'Entry Mode: Wait',
+ w:'Either no base has been measured yet, or the base is short but too loose to trust \u2014 for example a 6-day consolidation that is 18% deep.',
+ y:'A short base is only bullish when it is also tight. A short, wide base is not a flag; it is volatility with no structure, and there is no reliable place to put a stop. This state exists specifically to stop you from forcing a trade where the data does not support one.',
+ h:'Do nothing yet. Either the base tightens \u2014 in which case the mode will change to buy the pullback \u2014 or it extends past 10 days and becomes a breakout setup. Both are worth waiting for; neither is worth pre-empting.',
+ c:'If you want only actionable names, filter <b>Entry Mode</b> to pullback and breakout and leave Wait unticked.'},
+
+'align:full':{t:'Full Alignment',
+ w:'The broader market, the stock\u2019s sector, and the stock itself are all strong at the same time.',
+ y:'Three forces determine whether a trade works: the tape, the sector, and the stock. When all three push the same way, you are not fighting anything. This is the highest base-rate condition available on this dashboard \u2014 not because the setups are better, but because nothing is working against them.',
+ h:'This is where to size normally or slightly up. Take the entry the Entry Mode column suggests. The main risk in full alignment is complacency \u2014 broad strength can mask a weak individual setup, so still check that the stock itself has a real base and a sensible stop.',
+ c:'The Full Alignment A+ playbook combines this with the A+ quality screen. Also strong with <b>NR7</b> (Coiled + Aligned) and with either Entry Mode.'},
+
+'align:sectorled':{t:'Sector-Led',
+ w:'The sector and the stock are strong while the broader market is not.',
+ y:'Money is rotating into this pocket of the market despite an unhelpful tape. This is historically where new leadership emerges \u2014 the groups that lead the next advance usually start moving while the index is still weak or sideways, because capital leaves elsewhere and concentrates here first.',
+ h:'Very tradable, but respect that the market is not helping. Keep stops tighter than usual and do not oversize. Check <b>Rank in Sector</b> \u2014 in a sector-led move you want the leading names, not the laggards being dragged along. If the market turns supportive later, these often become the biggest winners.',
+ c:'The Sector-Led Leaders playbook. Combine with <b>Sector Rank</b> and <b>Rank in Sector</b> to identify the true leaders rather than the followers.'},
+
+'align:lone':{t:'Lone Leader',
+ w:'The stock is strong while both its market and its sector are weak.',
+ y:'This is the highest-variance state on the dashboard \u2014 where the best and worst outcomes both live. A stock rising against both its market and its sector is doing so for a company-specific reason. The entire question is whether that reason is real and visible, or unexplained.',
+ h:'Check the <b>Catalyst</b> column before anything else. If there is a visible catalyst \u2014 an episodic pivot, near-term results, institutional accumulation, or an unusual volume signature \u2014 this can be the highest-reward setup available, because nothing else in the market is competing for attention. If there is no catalyst, the move is unexplained and fails far more often. Treat the catalyst as the thesis: if it breaks, exit.',
+ c:'Two playbooks deliberately split this: <b>Catalyst-Backed Lone Movers</b> (tradable) and <b>Unexplained Movers</b> (a caution list, not a buy list).'},
+
+'align:carried':{t:'Carried',
+ w:'The market and the sector are both strong, but the stock itself is lagging.',
+ y:'The stock is being carried by conditions rather than leading. It is either an early laggard that has not moved yet, or a broken name that cannot rally even with everything in its favour. The second is far more common. A stock that will not go up when its whole sector is going up is telling you something.',
+ h:'Usually avoid. If a stock cannot perform in the best possible conditions, it is unlikely to perform when those conditions turn. The exception is a name with a genuine base that simply has not triggered yet \u2014 but that will show up as a proper setup elsewhere, so you do not need this state to find it.',
+ c:'Mostly useful as an exclusion. If you hold something showing Carried while its sector runs, that is worth a second look.'},
+
+'align:against':{t:'Against the Tape',
+ w:'The market, the sector and the stock are all weak.',
+ y:'Nothing is supporting the position. There is no tailwind from the tape, no rotation into the sector, and no strength in the stock itself.',
+ h:'Skip. This state exists mainly so you can filter these names out, and so you can spot them in your own holdings.',
+ c:'Use as an exclusion filter when scanning.'},
+
+'align:neutral':{t:'Neutral',
+ w:'A mixed combination that does not match one of the five named states \u2014 for example a strong market with a weak sector but a strong stock.',
+ y:'Rather than force every combination into a named bucket and risk mislabelling it, anything that does not clearly fit is shown as Neutral. It means no strong alignment read either way, not that the stock is bad.',
+ h:'Judge these on the setup itself rather than on alignment. Use the <b>M\u00b7S\u00b7K dots</b> column to see exactly which of the three legs is strong and which is not.',
+ c:'Check the three dots and decide from the individual legs.'},
+
+'mkt:strong':{t:'Market Leg: Strong',
+ w:'More than 55% of the stocks in your tracked universe are trading above their own 20-day EMA.',
+ y:'This is measured as breadth across your own roughly 1,400-stock universe rather than from an index. That matters, because a cap-weighted index can be held up by a handful of heavyweights while most stocks quietly fall. Breadth tells you what is happening to the average stock \u2014 which is what you actually trade \u2014 and it typically turns before the index does.',
+ h:'A strong reading is a size-normally environment. Breakouts follow through more often and pullbacks get bought. It is not a reason to skip your setup criteria, but it does mean the tape is not the thing working against you.',
+ c:'Combine with <b>Sector Leg</b> and the stock\u2019s own state to get the full alignment picture.'},
+
+'mkt:neutral':{t:'Market Leg: Neutral',
+ w:'Breadth is between 45% and 55% \u2014 roughly half the market is above its 20 EMA and half below.',
+ y:'The neutral band exists deliberately. Without it, a reading hovering around the halfway mark would flip between strong and weak day after day and the signal would become noise. Anything genuinely borderline is called neutral instead.',
+ h:'Treat as a stock-picker\u2019s market. Sector rotation matters more than direction here \u2014 look for Sector-Led names rather than expecting the whole market to carry you.',
+ c:'Sector Leg becomes the more important read in this environment.'},
+
+'mkt:weak':{t:'Market Leg: Weak',
+ w:'Fewer than 45% of your tracked stocks are above their own 20-day EMA.',
+ y:'Most stocks are below their short-term trend line, so the average position is losing money. Breakouts fail more often in this environment regardless of how good the individual chart looks.',
+ h:'Reduce size and be more selective. This is not automatically a stop-trading signal \u2014 Sector-Led and catalyst-backed Lone Leader setups can work well precisely because capital concentrates into fewer names when the broad tape is poor. But the margin for error is smaller.',
+ c:'Focus on <b>Sector-Led</b> and <b>Catalyst-Backed Lone Movers</b> rather than broad breakout screens.'},
+
+'sec:strong':{t:'Sector Leg: Strong',
+ w:'This stock\u2019s sector ranks in the top third of all sectors today, scored on EMA strength, breakout activity, momentum and institutional flow.',
+ y:'Sectors are ranked rather than measured against a fixed threshold. That is deliberate: in a broad selloff no sector would clear an absolute bar, so everything would read weak exactly when rotation matters most. Ranking always identifies where money is going, relative to everywhere else.',
+ h:'Sector strength is a tailwind, not a setup. Use it to choose between two otherwise similar charts. Check <b>Rank in Sector</b> to make sure you are taking the leader of a strong group rather than its weakest member.',
+ c:'The Strong-Sector Leaders playbook now uses this exact reading, so sector strength means the same thing everywhere on the dashboard.'},
+
+'sec:neutral':{t:'Sector Leg: Neutral',
+ w:'The sector ranks in the middle third of all sectors.',
+ y:'Neither a tailwind nor a headwind. The stock will have to do the work on its own merits.',
+ h:'Judge the setup independently. A strong chart in a middling sector is perfectly tradable \u2014 it simply does not get the extra help.',
+ c:'Lean more on stock-level quality (Category, A+ setups, Contraction) here.'},
+
+'sec:weak':{t:'Sector Leg: Weak',
+ w:'The sector ranks in the bottom third of all sectors.',
+ y:'Capital is leaving this group. Individual names can still work, but they are swimming against the flow of money out of their own sector.',
+ h:'Requires a stock-specific reason. This is exactly the situation the <b>Catalyst</b> column is designed for \u2014 if a stock is strong while its sector is weak, you want to see a visible reason in the data before trusting it.',
+ c:'Pair with <b>Catalyst = Has catalyst</b>. Without one, a strong stock in a weak sector is the classic unexplained move.'},
+
+'nr:nr7':{t:'NR7 \u2014 Narrowest Range in 7 Days',
+ w:'Today\u2019s high-to-low range is the smallest of the last seven sessions, today included. The standard definition, from Toby Crabel\u2019s work on short-term price patterns.',
+ y:'Volatility is cyclical. Periods of extreme quiet are followed by periods of movement, because a very narrow range means buyers and sellers have reached temporary agreement \u2014 and that balance does not last. The tighter the coil, the more energy is stored for the eventual expansion.',
+ h:'An NR7 day is not a trade by itself and it does not tell you direction. Mark the day\u2019s high and low \u2014 both are in the Range column tooltip. Trade the break of either level, ideally with volume expanding. The dashboard then tracks what happens next automatically: the badge becomes Broken \u2191, Broken \u2193, or stays Coiling.',
+ c:'Direction comes from context. <b>NR7 + VCP</b> means maximum compression at the end of a mature base. <b>NR7 + Alignment</b> (Coiled + Aligned) tells you which way the backdrop favours the break. NR7 always implies NR4, since 4 days are a subset of 7.'},
+
+'nr:nr4':{t:'NR4 \u2014 Narrowest Range in 4 Days',
+ w:'Today\u2019s range is the smallest of the last four sessions, today included. A looser version of the same idea as NR7.',
+ y:'Same volatility-contraction logic, but with a shorter lookback it fires more often and is therefore a weaker signal individually. Useful for catching compression earlier, at the cost of more false starts.',
+ h:'Treat as an early warning rather than a trigger. If an NR4 is followed by an NR7, the compression is intensifying and the setup is worth more attention.',
+ c:'Best used as a wider net. If you want fewer, higher-quality signals, filter on NR7 instead.'},
+
+'nr:brokenUp':{t:'NR Broken \u2191',
+ w:'The stock has closed above the high of its narrow-range day. The compression has resolved upward.',
+ y:'The coil has released in the bullish direction. Because the narrow-range day itself gives a very tight reference level, the resulting risk on the trade is unusually small relative to the potential move.',
+ h:'Catches the move as it happens rather than after. Enter on strength or the first tight pullback; stop under the narrow-range day\u2019s low, which should be a small distance away. Check volume yourself \u2014 a break on real volume holds far better than one on a quiet session, and the live alert engine cannot confirm volume for this signal.',
+ c:'The NR Breakout Confirmed playbook. Strongest when <b>Alignment</b> also supports the direction.'},
+
+'nr:brokenDown':{t:'NR Broken \u2193',
+ w:'The stock has closed below the low of its narrow-range day. The compression resolved downward.',
+ y:'The same coil, released the other way. For a long-only swing trader this is primarily a warning rather than an opportunity.',
+ h:'If you hold the stock, this is a signal that the consolidation broke against you. If you were watching it as a coil setup, remove it \u2014 the setup has resolved and not in your favour.',
+ c:'Useful as an exclusion, and as a way to clean your watchlist of coils that have already failed.'},
+
+'nr:coiling':{t:'Coiling',
+ w:'The stock posted a narrow-range day earlier and is still trading inside that day\u2019s high and low.',
+ y:'The compression has not resolved yet. The longer a stock stays inside a narrow-range day, the more meaningful the eventual break tends to be, because the balance between buyers and sellers is persisting rather than breaking immediately.',
+ h:'This is your live watchlist. Set alerts at both the high and the low from the Range tooltip and let the market choose the direction. Do not pre-empt the break by guessing.',
+ c:'Combine with <b>Alignment</b> to form a directional bias while you wait, and with <b>VCP</b> to find coils inside mature bases.'},
+
+'contractmin:0.7':{t:'Contraction \u2265 0.7 (tight)',
+ w:'The Contraction Ratio compares how tight the current base is against the size of the advance that led into it. 0.7 or higher means the base is very small relative to that move.',
+ y:'A stock that ran up 40% and now consolidates in an 8% range is behaving very differently from one that ran 40% and is chopping in a 25% range. In the first case holders are refusing to sell after a large gain \u2014 strong hands. In the second, the base is nearly as large as the move, which means the advance is being given back and the pattern is far more likely to fail.',
+ h:'Use it as a quality gate on top of a pattern rather than as a screen on its own. A VCP with a 0.7+ contraction is meaningfully better than a VCP without one. Because the base is tight, your stop is close, which keeps risk small and lets you size sensibly.',
+ c:'The Tight Contraction and Tightest Bases in Market playbooks. Strongest combined with <b>VCP</b> or <b>HTF</b> and <b>Category A/AC</b>.'},
+
+'contractmin:0.5':{t:'Contraction \u2265 0.5',
+ w:'The base is reasonably tight relative to the advance before it.',
+ y:'A middle setting. It filters out clearly loose, sloppy bases without being as restrictive as the 0.7 threshold, which can return very few names on some days.',
+ h:'A sensible default when the 0.7 screen comes back nearly empty. Still prefer the tightest available names within the result.',
+ c:'Pair with a pattern filter \u2014 contraction on its own does not tell you the stock is set up.'},
+
+'contractmin:0.3':{t:'Contraction \u2265 0.3',
+ w:'A loose filter that only removes the worst-structured bases.',
+ y:'Useful mainly for widening the net when you want to see more candidates and judge structure yourself from the chart.',
+ h:'Expect to do more manual filtering. At this level the ratio is excluding failures rather than identifying quality.',
+ c:'Better used alongside stricter filters elsewhere, such as Category A/AC or an A+ setup.'},
+
+'catalyst:yes':{t:'Has Catalyst',
+ w:'There is a visible reason in the data for the stock\u2019s move: an episodic pivot, results within the next 10 days, institutional accumulation, or relative volume at 2x or more.',
+ y:'A move with an identifiable driver behaves differently from one without. This check matters most when a stock is diverging from its market and sector \u2014 in that situation the catalyst is effectively the whole thesis for the trade.',
+ h:'Treat the catalyst as the reason you are in the trade. If it fails \u2014 the gap fills, the results disappoint, the institutional buying stops \u2014 exit, regardless of what the chart looks like.',
+ c:'Essential with <b>Alignment = Lone leader</b>. That combination is the Catalyst-Backed Lone Movers playbook.'},
+
+'catalyst:no':{t:'No Catalyst',
+ w:'None of the tracked catalysts are present \u2014 no episodic pivot, no near-term results, no institutional accumulation, no unusual volume.',
+ y:'Absence of evidence is not proof of nothing happening; the data does not capture everything. But when a stock is strong while its market and sector are weak and nothing in the data explains it, historically that resolves badly more often than not.',
+ h:'Use as a caution flag rather than an automatic exclusion. In full alignment, no catalyst is unremarkable \u2014 the whole market is up. In a Lone Leader, no catalyst is a genuine warning.',
+ c:'The Unexplained Movers playbook pairs this with Lone Leader deliberately, as a do-not-chase list.'}
+};
+
+const SCR_FILTER_WHY={
+ pattern:'The chart pattern the stock is forming right now.',
+ entry:'How to enter this trade \u2014 whether to buy a dip or wait for a breakout.',
+ align:'Whether the market, the sector and the stock are all pointing the same way.',
+ mkt:'What the overall market is doing, measured by how many stocks are above their 20-day average line.',
+ sec:'How this stock\u2019s sector is performing compared with every other sector today.',
+ catalyst:'Whether there is a visible reason in the data for the stock moving \u2014 results, big-money buying, or unusual volume.',
+ nr:'Narrow Range \u2014 days where the stock barely moved, which often come just before a big move.',
+ contractmin:'How tight the sideways base is compared with the run-up before it. Tighter is better.',
+ cat:'The stock\u2019s trend quality, based on where price sits against its moving averages.',
+ rvol:'Relative Volume \u2014 how much more the stock traded today versus its normal day.',
+ adr:'Average Daily Range \u2014 how much this stock typically moves in a day. Higher means faster moves.',
+ smt:'What large institutional investors have been doing in this stock recently.',
+ sector:'Limits the list to the sectors you pick.',
+ industry:'Limits the list to the industries you pick.',
+ symbol:'Limits the list to specific stocks you name.',
+ price:'Limits the list by share price.',
+ signal:'The current buy/sell signal state from the moving averages.',
+ vol:'How heavy today\u2019s trading volume was compared with normal.',
+ consol:'How many days the stock has been moving sideways.',
+ base:'How many days the current base has been forming.',
+ z52:'Where the stock is trading relative to its 52-week high.',
+ verdict:'The overall read on the stock after results.',
+ reaction:'How the stock reacted to its most recent results.'
+};
+function scrExplain(){
+  const el=document.getElementById('scr-play-info'); if(!el)return;
+  const parts=[];
+  const p=SCR_PRESETS.find(x=>x.id===SCR.activePreset);
+  if(p&&p.how){
+    parts.push('<div class="pi-h">\uD83D\uDCD3 '+(p.label||'')+'</div><div class="pi-b">'+p.how+'</div>');
+  }
+  const deep=[], brief=[];
+  SCR_FILTERS.forEach(f=>{
+    const st=SCR.state[f.key];
+    if(!st||!st.size)return;
+    [...st].forEach(v=>{
+      const d=SCR_DEEP[f.key+':'+v];
+      if(d)deep.push(d);
+    });
+    const noDeep=[...st].filter(v=>!SCR_DEEP[f.key+':'+v]);
+    if(noDeep.length){
+      const vals=noDeep.map(v=>(f.disp&&f.disp[v])?f.disp[v]:v);
+      const why=SCR_FILTER_WHY[f.key]||'';
+      brief.push('<div style="margin:3px 0"><b>'+f.label+':</b> '+vals.join(', ')
+        +(why?' <span style="opacity:.75">\u2014 '+why+'</span>':'')+'</div>');
+    }
+  });
+  deep.forEach(d=>{
+    parts.push('<div class="pi-h" style="margin-top:10px">\uD83D\uDCA1 '+d.t+'</div>'
+     +'<div class="pi-b" style="line-height:1.55">'
+     +'<div style="margin:4px 0"><b>What it is.</b> '+d.w+'</div>'
+     +'<div style="margin:4px 0"><b>Why it works.</b> '+d.y+'</div>'
+     +'<div style="margin:4px 0"><b>How to trade it.</b> '+d.h+'</div>'
+     +'<div style="margin:4px 0;opacity:.9"><b>Best combined with.</b> '+d.c+'</div>'
+     +'</div>');
+  });
+  if(brief.length){
+    parts.push('<div class="pi-h" style="margin-top:10px">\uD83D\uDD0E Other filters applied</div><div class="pi-b">'+brief.join('')+'</div>');
+  }
+  if(!parts.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.innerHTML=parts.join('');
+  el.style.display='block';
+}
+function scrPlayInfo(p){try{scrExplain();}catch(e){}/* the explainer owns #scr-play-info now; hiding it here wiped it on every playbook click */document.querySelectorAll('#scr-pb-list .scr-pb-item').forEach(function(b){b.classList.toggle('active',!!(p&&b.dataset.p===p.id));});}
 const SCR_FILTER_COL={cgbuyersmin:'cgbuyers',cgrecent:'cgbuy30',cgconf:'cgconf',cgconv:'cgconv',cgparty:'cgparty',cgretmin:'cgret',rclgrade:'rclgrade',rclvol:'rclvol',rclriskmax:'rclrisk',rcldaysmax:'rcldays',polemin:'pole',polespeedmin:'pole',pole:'pole',entry:'entry',align:'align',mkt:'dots',sec:'secrank',catalyst:'catalyst',nr:'nr',contractmin:'contract',rvolmin:'rvol',adrmin:'adr',consolmin:'consolDays',basemin:'baseDays',pattern:'qm',cat:'cat',smt:'smt',vsig:'vsig',z52:'z52',rsr:'rsrank',rshi:'rshigh',clust:'clust',stake:'stake',erstage:'erstage',erverd:'erverdict',ersurp:'ersurp',errv:'errvol',signal:'setup',trend:'trend'};
 function scrApplyCtxCols(preset){
   if(!SCR.ctxMode)return;
@@ -14092,6 +14375,7 @@ function scrErWindows(ds){if(!ds)return [];var d=new Date(ds+'T00:00:00');if(isN
 function scrFilterOpts(inp){const q=(inp.value||'').toLowerCase();const p=inp.closest('.scr-panel');if(!p)return;p.querySelectorAll('label').forEach(l=>{l.style.display=(l.textContent||'').toLowerCase().includes(q)?'flex':'none';});}
 function scrSelAll(key,on){const f=SCR_FILTERS.find(x=>x.key===key);if(!f)return;SCR.state[key]=on?new Set(f.opts):new Set();SCR.activePreset=null;scrSyncChecks();scrSyncChips();scrRender();}
 function scrRender(){
+ try{scrExplain();}catch(e){}
  if(SCR.ctxMode&&!SCR._ctxInit){SCR._ctxInit=true;try{scrApplyCtxCols(SCR_PRESETS.find(x=>x.id===SCR.activePreset));}catch(e){}}
 
  if(!SCR.loaded)return;
@@ -14099,14 +14383,14 @@ function scrRender(){
  const rows=SCR.data.filter(scrPasses);if(SCR.sortKey)rows.sort(scrCmp);else rows.sort((a,b)=>(b.score||0)-(a.score||0));SCR.last=rows;
  document.getElementById('scr-cnt').textContent=rows.length;
  const show=SCR_COLS.filter(c=>SCR.vis[c.k]);
- let hd=`<th class="c"><span class="lab" title="Star to My Picks">⭐</span></th><th><span class="lab" title="Sort by symbol" onclick="scrSort('sym')" style="cursor:pointer">SYMBOL${SCR.sortKey==='sym'?(SCR.sortDir<0?' ▼':' ▲'):''}</span></th>`;
+ let hd=`<th class="c scr-frz" style="left:0"><span class="lab" title="Star to My Picks">⭐</span></th><th class="scr-frz scr-frz-edge" style="left:38px"><span class="lab" title="Sort by symbol" onclick="scrSort('sym')" style="cursor:pointer">SYMBOL${SCR.sortKey==='sym'?(SCR.sortDir<0?' ▼':' ▲'):''}</span></th>`;
  hd+=show.map(c=>{if(c.k==='vssec'){var ar0=(SCR.sortKey==='vssec')?(SCR.sortDir<0?' \u25BC':' \u25B2'):'';var tf=SCR.vsTF||'d';var tb=function(v,l){return '<span onclick="event.stopPropagation();scrSetVsTF(\''+v+'\')" style="cursor:pointer;padding:0 3px;border-radius:3px;'+(tf===v?'background:var(--cyan);color:#000':'color:var(--muted)')+'">'+l+'</span>';};return '<th class="'+(c.a||'')+'"><span class="lab"'+SCR_T(c.tip)+' onclick="scrSort(\'vssec\')" style="cursor:pointer">vs Sec'+ar0+'</span> <span style="font-size:9px">'+tb('d','1D')+tb('w','1W')+tb('m','1M')+'</span><span class="hide-x" title="Hide this column" onclick="scrHideCol(\'vssec\')">\u2212</span></th>';}const sb=!SCR_NOSORT.has(c.k);const ar=(SCR.sortKey===c.k)?(SCR.sortDir<0?' ▼':' ▲'):'';return `<th class="${c.a||''}"><span class="lab"${SCR_T(c.tip)}${sb?` onclick="scrSort('${c.k}')" style="cursor:pointer"`:''}>${c.lbl}${ar}</span><span class="hide-x" title="Hide this column" onclick="scrHideCol('${c.k}')">−</span></th>`;}).join('');
  try{scrRegimeBanner();}catch(e){}
  document.getElementById('scr-thead').innerHTML=hd;
  document.getElementById('scr-body').innerHTML=rows.length?rows.map(d=>{
   const tv='https://www.tradingview.com/chart/?symbol='+d.sym;
   const _sel=SCR.sel&&SCR.sel.has(d.sym)?' checked':'';
-  let t=`<td class="c"><span class="scr-star" title="Add ${d.sym} to My Picks">☆</span></td><td><input type="checkbox" class="scr-pick"${_sel} onclick="event.stopPropagation();scrPick('${d.sym}',this.checked)" title="Select ${d.sym} - the TradingView button copies only your selection"><a class="scr-sym" href="${tv}" target="_blank" rel="noopener" title="${d.name?d.name+' - ':''}Open ${d.sym} chart in TradingView">${d.sym} ↗</a></td>`;
+  let t=`<td class="c scr-frz" style="left:0"><span class="scr-star" title="Add ${d.sym} to My Picks">☆</span></td><td class="scr-frz scr-frz-edge" style="left:38px"><input type="checkbox" class="scr-pick"${_sel} onclick="event.stopPropagation();scrPick('${d.sym}',this.checked)" title="Select ${d.sym} - the TradingView button copies only your selection"><a class="scr-sym" href="${tv}" target="_blank" rel="noopener" title="${d.name?d.name+' - ':''}Open ${d.sym} chart in TradingView">${d.sym} ↗</a></td>`;
   t+=show.map(c=>`<td class="${c.a||''}">${c.cell(d)}</td>`).join('');
   return `<tr class="${d.aplus?'aplus-row':''}">${t}</tr>`;
  }).join(''):`<tr><td colspan="${show.length+2}" style="padding:24px;text-align:center;color:var(--muted)">No stocks match — clear a filter.</td></tr>`;
@@ -14114,6 +14398,225 @@ function scrRender(){
 }
 </script>
 
+
+<!-- ═══ TrueFlow layout v1 — clickable trending sectors (Screener) ═══ -->
+<style>
+#mb2-filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+#mb2-filters > div{flex-direction:row!important;align-items:center!important;gap:6px!important;padding:3px 8px!important;margin:0!important;border-radius:8px!important}
+#mb2-filters > div > span:first-child{font-size:9px!important;white-space:nowrap;opacity:.75}
+#mb2-filters .sort-btn{padding:2px 7px!important;font-size:11px!important}
+#mb2-filters select{max-width:150px}
+.sec-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;border:1px solid var(--bg3);background:none;cursor:pointer;font-size:11px;white-space:nowrap}
+.sec-chip:hover{border-color:var(--cyan)}
+.sec-chip.on{border-color:var(--cyan);font-weight:700}
+.sec-per{padding:1px 7px;border-radius:5px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:10px}
+.sec-per.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+.sec-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px 0;padding:6px 10px;border:1px solid var(--bg3);border-radius:10px;font-size:11px}
+</style>
+<script>
+(function(){
+'use strict';
+var PER=[['d','1D','Average change of that sector\u2019s stocks today. One day is mostly noise \u2014 use it for what is moving right now, not for rotation.'],
+         ['w','1W','Average change over the last 5 sessions. The most useful period for spotting rotation that is actually underway.'],
+         ['m','1M','Average change over roughly 22 sessions. Slowest and steadiest \u2014 shows where money has been moving for weeks.']];
+var TIPSEC='Sectors ranked by the average change of their stocks over the chosen period, from your full tracked universe. Green = leading, red = lagging. Click any sector to filter the table to it; click again to clear. Hover a sector for all three periods and how many stocks it holds. Thin sectors move on very few names, so check the count before reading much into a one-day jump.';
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function pc(x){return x==null?'—':((x>0?'+':'')+x.toFixed(1)+'%');}
+function col(x){return x==null?'var(--muted)':(x>0.3?'#22C55E':(x<-0.3?'#EF4444':'var(--muted)'));}
+
+/* ── sector maths, shared by both tabs ─────────────────── */
+function sectorStats(rows,get){
+ var acc={};
+ rows.forEach(function(r){
+  var s=get.sector(r);if(!s||s==='—')return;
+  var a=acc[s]||(acc[s]={n:0,d:0,w:0,m:0,nd:0,nw:0,nm:0});
+  a.n++;
+  var d=get.d(r),w=get.w(r),m=get.m(r);
+  if(d!=null){a.d+=d;a.nd++;}if(w!=null){a.w+=w;a.nw++;}if(m!=null){a.m+=m;a.nm++;}
+ });
+ var out=[];
+ for(var s in acc){var a=acc[s];if(a.n<2)continue;
+  out.push({sector:s,n:a.n,d:a.nd?a.d/a.nd:null,w:a.nw?a.w/a.nw:null,m:a.nm?a.m/a.nm:null});}
+ return out;
+}
+function secTip(x){
+ return x.sector+' — '+x.n+' stocks\n1 day: '+pc(x.d)+'\n1 week: '+pc(x.w)+'\n1 month: '+pc(x.m)+
+   (x.n<5?'\nOnly '+x.n+' stocks, so this average moves on very little.':'');
+}
+function secStrip(id,stats,per,active,onPick,onPer){
+ var key=per,sorted=stats.filter(function(x){return x[key]!=null;})
+   .sort(function(a,b){return b[key]-a[key];});
+ if(!sorted.length)return '<span style="color:var(--muted)">No sector data loaded yet.</span>';
+ var lead=sorted.slice(0,5),seen={};
+ lead.forEach(function(x){seen[x.sector]=1;});
+ var lag=sorted.slice().reverse().filter(function(x){return !seen[x.sector];}).slice(0,5);
+ function chip(x){
+  return '<button class="sec-chip'+(active===x.sector?' on':'')+'" style="color:'+col(x[key])+'"'+
+   ' onclick="'+onPick+'(\''+esc(x.sector).replace(/'/g,"\\'")+'\')" title="'+esc(secTip(x))+'">'+
+   esc(x.sector)+' <b>'+pc(x[key])+'</b></button>';
+ }
+ return '<span style="color:var(--muted);cursor:help" title="'+esc(TIPSEC)+'">Sectors</span>'+
+  PER.map(function(p){return '<button class="sec-per'+(per===p[0]?' on':'')+'" onclick="'+onPer+'(\''+p[0]+'\')" title="'+esc(p[2])+'">'+p[1]+'</button>';}).join('')+
+  '<span style="color:#22C55E;margin-left:6px">Leading</span>'+lead.map(chip).join('')+
+  '<span style="color:#EF4444;margin-left:6px">Lagging</span>'+lag.map(chip).join('')+
+  (active?'<button class="sec-per" style="margin-left:auto" onclick="'+onPick+'(\''+esc(active).replace(/'/g,"\\'")+'\')" title="Clear the sector filter">✕ '+esc(active)+'</button>':'');
+}
+
+/* ═══ 2. SCREENER — clickable leading / lagging sectors ═══ */
+var SCSEC={per:'w'};
+window.scrPickSector=function(s){
+ try{
+  // one sector at a time: clicking a different chip switches to it rather than
+  // adding to a growing set, which is what the multi-select filter chips do.
+  var st=SCR.state.sector;
+  var only=st&&st.size===1&&st.has(s);
+  SCR.state.sector=new Set(only?[]:[s]);
+  if(typeof scrBuildUI==='function')scrBuildUI();
+  scrRender();
+ }catch(e){console.error(e);}
+};
+window.scrSecPer=function(p){SCSEC.per=p;try{scrRender();}catch(e){}};
+function scrSectors(){
+ var host=document.getElementById('scr-regime');if(!host)return;
+ var el=document.getElementById('scr-sec');
+ if(!el){el=document.createElement('div');el.id='scr-sec';el.className='sec-row';
+  host.parentNode.insertBefore(el,host.nextSibling);}
+ var stats=sectorStats(SCR.data||[],{sector:function(r){return r.sector;},
+  d:function(r){return r.day==null?null:+r.day;},
+  w:function(r){return r.week==null?null:+r.week;},
+  m:function(r){return r.month==null?null:+r.month;}});
+ var act=null,st=SCR.state&&SCR.state.sector;
+ if(st&&st.size===1)st.forEach(function(x){act=x;});
+ el.innerHTML=secStrip('scr',stats,SCSEC.per,act,'scrPickSector','scrSecPer');
+}
+function scrHook(){
+ if(typeof scrRender!=='function'||scrRender._lay)return;
+ var orig=scrRender;
+ window.scrRender=scrRender=function(){
+  var r=orig.apply(this,arguments);
+  try{scrSectors();}catch(e){console.error('sec strip:',e);}
+  return r;
+ };
+ scrRender._lay=true;
+ try{if(typeof SCR!=='undefined'&&SCR.loaded)scrSectors();}catch(e){}
+}
+var _t=setInterval(function(){
+ if(typeof scrRender==='function'){scrHook();clearInterval(_t);}
+},400);
+setTimeout(function(){clearInterval(_t);},30000);
+})();
+</script>
+
+<!-- ═══ TrueFlow screener layout v1 — outlook on top, collapsible sections ═══ -->
+<style>
+.scr-sec-h{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 10px;margin:6px 0 0 0;border:1px solid var(--bg3);border-radius:9px;font-size:11px;color:var(--muted);user-select:none}
+.scr-sec-h:hover{border-color:var(--cyan)}
+.scr-sec-h b{color:var(--text);font-size:11px;letter-spacing:.4px}
+.scr-sec-h .cnt{margin-left:auto;font-size:10px}
+.scr-sec-wrap.closed{display:none}
+</style>
+<script>
+(function(){
+'use strict';
+var KEY='tfScrOpen',OPEN={quick:false,pb:false,filt:false};
+try{var v=JSON.parse(localStorage.getItem(KEY)||'null');if(v)OPEN=v;}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(OPEN));}catch(e){}}
+
+function wrap(id,key,label,tip,countFn){
+ var el=document.getElementById(id);
+ if(!el||el.dataset.scrWrapped)return;
+ var host=(id==='scr-filters')?el.closest('.scr-fbar')||el:el;
+ if(host.dataset.scrWrapped)return;
+ host.dataset.scrWrapped='1';el.dataset.scrWrapped='1';
+ var w=document.createElement('div');
+ w.className='scr-sec-wrap'+(OPEN[key]?'':' closed');w.id='scrw-'+key;
+ host.parentNode.insertBefore(w,host);w.appendChild(host);
+ var h=document.createElement('div');
+ h.className='scr-sec-h';h.id='scrh-'+key;h.title=tip;
+ h.innerHTML='<span id="scra-'+key+'">'+(OPEN[key]?'▾':'▸')+'</span><b>'+label+'</b><span class="cnt" id="scrc-'+key+'"></span>';
+ h.onclick=function(){scrSecToggle(key);};
+ w.parentNode.insertBefore(h,w);
+ if(countFn)scrSecCount(key,countFn);
+}
+window.scrSecToggle=function(k){
+ OPEN[k]=!OPEN[k];save();
+ var w=document.getElementById('scrw-'+k),a=document.getElementById('scra-'+k);
+ if(w)w.classList.toggle('closed',!OPEN[k]);
+ if(a)a.textContent=OPEN[k]?'▾':'▸';
+};
+function scrSecCount(k,fn){
+ var el=document.getElementById('scrc-'+k);if(!el)return;
+ try{el.textContent=fn()||'';}catch(e){}
+}
+
+function syncPbMode(){
+ try{
+  if(typeof SCR==='undefined'||!SCR||!SCR.pbMode)return;
+  if(typeof scrSetPbMode!=='function')return;
+  var a=document.getElementById('scr-pbmode-eod');
+  if(!a||a.dataset.tfSynced)return;
+  a.dataset.tfSynced='1';
+  scrSetPbMode(SCR.pbMode);      // make the highlighted pill match the list
+ }catch(e){}
+}
+function hideInnerTitles(){
+ // the collapsible header already names the section; drop the duplicate label
+ ['scr-pbstrip','scr-filters'].forEach(function(id){
+  var el=document.getElementById(id);if(!el)return;
+  var all=el.querySelectorAll('div,span,h3,h4');
+  for(var i=0;i<all.length;i++){
+   var t=(all[i].textContent||'').trim();
+   if(/^(PLAYBOOKS — ONE TAP TO APPLY|FILTERS — CLICK ANY TO MULTI-SELECT)$/i.test(t)){
+    all[i].style.display='none';
+   }
+  }
+ });
+}
+function moveOutlookUp(){
+ var reg=document.getElementById('scr-regime'),pre=document.getElementById('scr-presets');
+ if(!reg||!pre||reg.dataset.moved)return;
+ reg.dataset.moved='1';
+ var sec=document.getElementById('scr-sec');
+ var anchor=document.getElementById('scrh-quick')||pre;
+ var parent=anchor.parentNode;
+ parent.insertBefore(reg,anchor);
+ if(sec)parent.insertBefore(sec,anchor);
+}
+
+function activeFilterCount(){
+ var n=0;
+ try{for(var k in SCR.state){if(SCR.state[k]&&SCR.state[k].size)n++;}}catch(e){}
+ return n?(n+' active'):'';
+}
+function build(){
+ if(!document.getElementById('scr-presets'))return false;
+ wrap('scr-presets','quick','QUICK VIEWS','Saved one-click views. Collapsed by default so the table starts higher up — click to open.',
+  function(){var e=document.getElementById('scr-presets');return e?(e.querySelectorAll('.scr-chip,.scr-preset,button').length-0)+' views':'';});
+ wrap('scr-pbstrip','pb','PLAYBOOKS','Every named setup, one tap to apply. The Reframed / Original switch lives inside.',
+  function(){var e=document.getElementById('scr-pb-list');return e?e.children.length+' playbooks':'';});
+ wrap('scr-filters','filt','FILTERS','Every filter, click any to multi-select.',activeFilterCount);
+ moveOutlookUp();syncPbMode();hideInnerTitles();
+ return true;
+}
+function refresh(){
+ try{
+  build();
+  var e=document.getElementById('scrc-filt');
+  if(e)e.textContent=activeFilterCount();
+  var p=document.getElementById('scrc-pb'),l=document.getElementById('scr-pb-list');
+  if(p&&l)p.textContent=l.children.length+' playbooks';
+ }catch(err){console.error('scr layout:',err);}
+}
+function hook(){
+ if(typeof scrRender!=='function'||scrRender._uiw)return false;
+ var orig=scrRender;
+ window.scrRender=scrRender=function(){var r=orig.apply(this,arguments);refresh();return r;};
+ scrRender._uiw=true;return true;
+}
+var t=setInterval(function(){if(hook()){refresh();clearInterval(t);}},400);
+setTimeout(function(){clearInterval(t);},40000);
+})();
+</script>
 
 <!-- ═══ TrueFlow MTF v1 — multi-timeframe, 50/200 EMA, EMA bases, new listings ═══ -->
 <style>
@@ -18250,6 +18753,22 @@ document.addEventListener('keydown',function(e){
 });
 
 })();
+</script>
+
+<script>
+/* Shared login. Both dashboards live on the same site, so a successful login
+   on either one is remembered here for 12 hours and the other one opens
+   straight in. Log in once, switch IND <-> US freely. */
+window.addEventListener('load',function(){
+ try{
+  var until=+localStorage.getItem('tf_auth_until')||0;
+  var ls=document.getElementById('login-screen');
+  if(until>Date.now()&&ls&&ls.style.display!=='none'){
+   document.getElementById('pwd-input').value=CONFIG.password;
+   doLogin();
+  }
+ }catch(e){console.error('auto-login:',e);}
+});
 </script>
 </body>
 </html
