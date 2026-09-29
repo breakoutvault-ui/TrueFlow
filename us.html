@@ -14567,9 +14567,6 @@ setTimeout(function(){clearInterval(_t);},30000);
 #tab-screener .scr-bar2 .sx-go{border-color:rgba(6,182,212,.55);color:var(--cyan);font-weight:700}
 #tab-screener .scr-bar2 .sx-go .n{background:var(--cyan);color:#03121a;border-radius:9px;padding:0 6px;font-size:10px;margin-left:2px}
 /* the playbook explanation: short by default, full text one click away */
-#tab-screener #scr-play-info.sx-clip{max-height:118px;overflow:hidden;position:relative}
-#tab-screener #scr-play-info.sx-clip:after{content:'';position:absolute;left:0;right:0;bottom:0;height:38px;
- background:linear-gradient(transparent,var(--bg1))}
 .sx-more{font-size:11px;color:var(--cyan);cursor:pointer;margin:-4px 0 8px 4px;display:inline-block}
 /* one-line top bar: panes + active pills */
 .sx-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:-2px 0 8px}
@@ -14613,6 +14610,35 @@ setTimeout(function(){clearInterval(_t);},30000);
 #mk .mix{display:flex;height:9px;border-radius:5px;overflow:hidden;flex:1 1 220px;min-width:160px;cursor:help}
 #mk .ft{margin-top:6px;font-size:10px;color:var(--muted);display:flex;gap:10px;align-items:center}
 #mk .ft a{color:var(--cyan);cursor:pointer}
+/* Quick views: a dropdown in the tools row instead of two full rows */
+#tab-screener .sx-qvw{position:relative;display:inline-flex}
+#tab-screener #sx-qv{position:absolute;top:calc(100% + 6px);left:0;z-index:60;width:min(640px,86vw);display:none;
+ background:var(--bg1);border:1px solid var(--bg3);border-radius:12px;padding:10px 12px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
+#tab-screener #sx-qv.open{display:block}
+#tab-screener #sx-qv .scr-presets{margin:0!important;gap:6px}
+#tab-screener #sx-qv .scr-plabel{display:none}
+/* heat tiles for sectors / industries */
+#mk .heat{display:flex;flex-wrap:wrap;gap:4px;flex:1 1 auto}
+#mk .ht{display:flex;flex-direction:column;justify-content:center;min-width:92px;flex:1 1 92px;max-width:170px;padding:4px 8px;border-radius:7px;
+ border:1px solid transparent;cursor:pointer;font-family:inherit;text-align:left;background:none;color:var(--text)}
+#mk .ht:hover{border-color:var(--cyan)}
+#mk .ht.on{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
+#mk .ht .nm{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mk .ht .vl{font-size:12px;font-weight:700}
+#mk .hcard{background:var(--bg1);border:1px solid var(--bg3);border-radius:9px;padding:6px 8px}
+#mk .hcard .lb{font-size:9.5px;letter-spacing:1px;color:var(--muted);display:flex;justify-content:space-between;margin:0 2px 5px}
+/* explanation: text left, picture right, full width */
+#tab-screener #scr-play-info.sx-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(300px,440px);gap:18px;max-width:none;align-items:start}
+@media(max-width:1100px){#tab-screener #scr-play-info.sx-grid{grid-template-columns:1fr}}
+#tab-screener #scr-play-info .sx-txt.sx-clip{max-height:236px;overflow:hidden;position:relative}
+#tab-screener #scr-play-info .sx-txt.sx-clip:after{content:'';position:absolute;left:0;right:0;bottom:0;height:40px;
+ background:linear-gradient(transparent,var(--bg1))}
+#tab-screener #scr-play-info .sx-figs{display:flex;flex-direction:column;gap:10px}
+.sx-fig{border:1px solid var(--bg3);border-radius:10px;background:var(--bg1);padding:6px 8px 4px}
+.sx-fig .ft{font-size:10px;letter-spacing:1px;color:var(--muted);margin:0 0 2px 2px;font-weight:700}
+.sx-fig svg{width:100%;height:auto;display:block}
+.sx-fig svg text.lbl{paint-order:stroke;stroke:var(--bg1);stroke-width:3px;stroke-linejoin:round}
+.sx-fig .cap{font-size:10.5px;color:var(--muted);margin:2px 2px 2px;line-height:1.35}
 /* filter pane: type-to-find for long lists */
 .fp-find{width:100%;margin:2px 0 5px;background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;color:var(--text);
  padding:6px 10px;font-size:11.5px;font-family:inherit;outline:none}
@@ -14634,7 +14660,7 @@ function build(){
  var tab=$('tab-screener'),pb=$('scr-pbstrip'),bar2=tab&&tab.querySelector('.scr-bar2'),pre=$('scr-presets');
  if(!tab||!pb||!bar2||!pre||tab.dataset.ui2)return !!(tab&&tab.dataset.ui2);
  tab.dataset.ui2='1';
- // Market panel goes first, above Quick Views
+ // Market panel goes first, above the tools
  var mk=document.createElement('div');mk.id='mk';if(!ST.open)mk.className='closed';
  pre.parentNode.insertBefore(mk,pre);
  // Playbooks pane: the existing strip is MOVED in, so every playbook and the
@@ -14649,6 +14675,12 @@ function build(){
  // the one-line bar: Playbooks, Filters, then whatever is applied
  var btns=document.createElement('span');btns.id='sx-btns';btns.style.display='contents';
  bar2.insertBefore(btns,bar2.firstChild);
+ // Quick views: the same buttons, moved into a dropdown beside Playbooks and Filters
+ var qw=document.createElement('span');qw.className='sx-qvw';
+ qw.innerHTML='<button class="scr-tool sx-go" id="sx-qvb" onclick="sxQV()" title="One-click views - the same list as before">⚡ Quick views ▾</button><div id="sx-qv"></div>';
+ bar2.insertBefore(qw,btns.nextSibling);
+ $('sx-qv').appendChild(pre);
+ pre.addEventListener('click',function(e){if(e.target.closest('.scr-pre')&&!e.target.closest('.scr-pre-x'))setTimeout(function(){sxQV(false);},80);});
  var sx=document.createElement('div');sx.className='sx-bar';sx.id='sx-bar';
  bar2.parentNode.insertBefore(sx,bar2.nextSibling);
  // playbook explanation sits under the pills, just above the table
@@ -14658,6 +14690,8 @@ function build(){
  pi.parentNode.insertBefore(mo,pi.nextSibling);
  return true;
 }
+window.sxQV=function(open){var q=$('sx-qv');if(!q)return;var on=(open===undefined)?!q.classList.contains('open'):open;q.classList.toggle('open',on);};
+document.addEventListener('click',function(e){var q=$('sx-qv');if(q&&q.classList.contains('open')&&!e.target.closest('.sx-qvw'))q.classList.remove('open');});
 window.scrPB=function(open){
  var p=$('scr-pbp'),b=$('scr-pbpbk');if(!p)return;
  if(open===false){p.classList.remove('open');b.classList.remove('open');return;}
@@ -14668,7 +14702,7 @@ window.scrPB=function(open){
 document.addEventListener('click',function(e){
  var t=e.target;if(t&&t.closest&&t.closest('#scr-pbp .scr-pb-item'))setTimeout(function(){scrPB(false);},120);
 },true);
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){scrPB(false);try{scrFP(false);}catch(x){}}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){scrPB(false);try{sxQV(false);}catch(x){}try{scrFP(false);}catch(x){}}});
 
 /* ── top bar: buttons + removable pills ──────────────── */
 function lab(f,o){return (f.disp&&f.disp[o])||o;}
@@ -14689,7 +14723,7 @@ function bar(){
  if(bt)bt.innerHTML='<button class="scr-tool sx-go" onclick="scrPB(true)" title="Every playbook, grouped - End of Day and Weekend">📓 Playbooks</button>'+
   '<button class="scr-tool sx-go" onclick="scrFP(true)" title="Every filter, grouped">⚙ Filters'+(n?' <span class="n">'+n+'</span>':'')+'</button>';
  var h='';
- if(p)h+='<span class="sx-pill pb" title="Active playbook">📓 '+esc(String(p.label).replace(/<[^>]+>/g,''))+'<i onclick="sxDropPb()" title="Clear">✕</i></span>';
+ if(p)h+='<span class="sx-pill pb" title="'+(p.grp?'Active playbook':'Active quick view')+'">'+(p.grp?'📓 ':'⚡ ')+''+esc(String(p.label).replace(/<[^>]+>/g,''))+'<i onclick="sxDropPb()" title="Clear">✕</i></span>';
  h+=pills.join('');
  if(n||p)h+='<span class="sx-clear" onclick="scrClearAll()">Clear all</span>';
  el.innerHTML=h;
@@ -14774,8 +14808,18 @@ function market(){
    esc(x.g)+' <b style="color:'+colr(x.v)+'">'+pc(x.v)+'</b></button>';}
   return '<span class="lb" style="color:#22C55E">▲</span>'+lead.map(c).join('')+'<span class="lb" style="color:#EF4444;margin-left:6px">▼</span>'+lag.map(c).join('');
  }
- var rS='<div class="strip"><span class="lb">SECTORS</span>'+(secs.length?chips(secs,aS,'scrPickSector',4):'<span style="color:var(--muted)">—</span>')+'</div>';
- var rI='<div class="strip"><span class="lb">INDUSTRIES</span>'+(inds.length?chips(inds,aI,'mkInd',5):'<span style="color:var(--muted)">—</span>')+'</div>';
+ function heat(list,act,fn,cap){
+  if(!list.length)return '<span style="color:var(--muted)">—</span>';
+  var show=list.length<=cap*2?list:list.slice(0,cap).concat(list.slice(-cap));
+  var mx=Math.max.apply(null,show.map(function(x){return Math.abs(x.v);}))||1;
+  return show.map(function(x){
+   var a=0.07+0.33*Math.min(1,Math.abs(x.v)/mx),bg=x.v>=0?'rgba(34,197,94,'+a.toFixed(2)+')':'rgba(239,68,68,'+a.toFixed(2)+')';
+   return '<button class="ht'+(act===x.g?' on':'')+'" style="background:'+bg+'" onclick="'+fn+'(\''+esc(x.g).replace(/'/g,"\\'")+'\')" title="'+
+    esc(x.g+' · '+x.n+' stocks · average '+pc(x.v)+' ('+PER[per][2].toLowerCase()+'). Click to filter the table; click again to clear.')+'">'+
+    '<span class="nm">'+esc(x.g)+'</span><span class="vl" style="color:'+(x.v>=0?'#16A34A':'#DC2626')+'">'+pc(x.v)+'</span></button>';}).join('');
+ }
+ var rS='<div class="hcard"><div class="lb"><span>SECTORS · strongest → weakest</span><span>'+secs.length+' ranked</span></div><div class="heat">'+heat(secs,aS,'scrPickSector',7)+'</div></div>';
+ var rI='<div class="hcard"><div class="lb"><span>INDUSTRIES · top 6 · bottom 6</span><span>'+inds.length+' ranked</span></div><div class="heat">'+heat(inds,aI,'mkInd',6)+'</div></div>';
  /* trend-state mix */
  var cnt={},tn=0;rows.forEach(function(d){if(!d.mtf)return;cnt[d.mtf]=(cnt[d.mtf]||0)+1;tn++;});
  var mix=tn?TFS.filter(function(s){return cnt[s[0]];}).map(function(s){
@@ -14791,12 +14835,122 @@ function market(){
  var ev=$('tf-mtf-strip');if(ev&&ev.parentNode&&ev.previousSibling!==el)el.parentNode.insertBefore(ev,el.nextSibling);
 }
 
+/* ── pictures for the explanation ──────────────────────
+   Schematic charts, drawn here as SVG: the same shape every time for a given
+   setup, labelled with where the pivot, entry and stop sit. They illustrate the
+   rule - they are not a stock's real chart. */
+function emaArr(c,n){var k=2/(n+1),o=[],e=c[0];for(var i=0;i<c.length;i++){e=i?c[i]*k+e*(1-k):c[i];o.push(e);}return o;}
+function fig(title,cap,d){
+ var W=460,H=205,VH=34,T=14,B=H-VH-6,L=8,R=W-8,n=d.c.length,cw=(R-L)/n;
+ var c=d.c,o=[],hi=[],lo=[];
+ for(var i=0;i<n;i++){var op=i?c[i-1]:c[0]*0.995;if(d.gap&&d.gap.indexOf(i)>=0)op=c[i]*0.985;
+  var r=(d.r&&d.r[i]!=null)?d.r[i]:Math.max(0.6,Math.abs(c[i]-op)*0.6+c[i]*0.008);
+  o.push(op);hi.push(Math.max(op,c[i])+r*0.5);lo.push(Math.min(op,c[i])-r*0.5);}
+ var mn=Math.min.apply(null,lo),mx=Math.max.apply(null,hi);(d.lines||[]).forEach(function(l){mn=Math.min(mn,l.y);mx=Math.max(mx,l.y);});
+ var pad=(mx-mn)*0.08;mn-=pad;mx+=pad;
+ function Y(v){return T+(1-(v-mn)/(mx-mn))*(B-T);}function X(i){return L+cw*(i+0.5);}
+ var g='';
+ (d.zones||[]).forEach(function(z){g+='<rect x="'+(X(z.a)-cw/2)+'" y="'+T+'" width="'+(cw*(z.b-z.a+1))+'" height="'+(B-T)+'" fill="'+z.col+'" opacity=".10" rx="4"/>'+
+   (z.t?'<text class="lbl" x="'+(X(z.a)-cw/2+4)+'" y="'+(T+10)+'" font-size="9.5" fill="'+z.col+'" font-weight="700">'+z.t+'</text>':'');});
+ if(d.box)g+='<rect x="'+(X(d.box.a)-cw/2)+'" y="'+Y(d.box.hi)+'" width="'+(cw*(d.box.b-d.box.a+1))+'" height="'+(Y(d.box.lo)-Y(d.box.hi))+'" fill="none" stroke="#3B82F6" stroke-width="1.2" stroke-dasharray="4 3" rx="3"/>';
+ if(d.ema){var e=emaArr(c,d.ema);g+='<polyline fill="none" stroke="#F59E0B" stroke-width="1.6" points="'+e.map(function(v,i){return X(i).toFixed(1)+','+Y(v).toFixed(1);}).join(' ')+'"/>'+
+   '<text x="'+(X(n-1)-2)+'" y="'+(Y(e[n-1])+12)+'" font-size="9" fill="#F59E0B" text-anchor="end">'+d.ema+' EMA</text>';}
+ for(var j=0;j<n;j++){var up=c[j]>=o[j],col=up?'#22C55E':'#EF4444',hl=(d.hl&&d.hl.indexOf(j)>=0);
+  g+='<line x1="'+X(j)+'" x2="'+X(j)+'" y1="'+Y(hi[j])+'" y2="'+Y(lo[j])+'" stroke="'+col+'" stroke-width="1"/>'+
+     '<rect x="'+(X(j)-cw*0.32)+'" y="'+Y(Math.max(o[j],c[j]))+'" width="'+(cw*0.64)+'" height="'+Math.max(1.2,Math.abs(Y(o[j])-Y(c[j])))+'" fill="'+col+'"'+(hl?' stroke="#0EA5E9" stroke-width="1.5"':'')+' rx="1"/>';}
+ var vmax=Math.max.apply(null,d.v||[1]);
+ (d.v||[]).forEach(function(v,i){var h=(VH-4)*v/vmax;g+='<rect x="'+(X(i)-cw*0.32)+'" y="'+(H-2-h)+'" width="'+(cw*0.64)+'" height="'+h+'" fill="'+(c[i]>=o[i]?'#22C55E':'#EF4444')+'" opacity=".45"/>';});
+ (d.lines||[]).forEach(function(l){g+='<line x1="'+(l.a!=null?X(l.a)-cw/2:L)+'" x2="'+(l.b!=null?X(l.b)+cw/2:R)+'" y1="'+Y(l.y)+'" y2="'+Y(l.y)+'" stroke="'+l.col+'" stroke-width="1.2" stroke-dasharray="5 3"/>'+
+   '<text x="'+((l.b!=null?X(l.b)+cw/2:R)-2)+'" y="'+(Y(l.y)+(l.below?11:-3))+'" class="lbl" font-size="9.5" fill="'+l.col+'" text-anchor="end" font-weight="700">'+l.t+'</text>';});
+ (d.notes||[]).forEach(function(m){var yy=m.y!=null?Y(m.y):(m.up?Y(hi[m.i])-8:Y(lo[m.i])+14);
+  g+='<text x="'+X(m.i)+'" y="'+yy+'" class="lbl" font-size="9.5" fill="'+(m.col||'currentColor')+'" text-anchor="'+(m.anchor||'middle')+'" font-weight="600">'+m.t+'</text>';});
+ return '<div class="sx-fig"><div class="ft">'+title+'</div><svg viewBox="0 0 '+W+' '+H+'" style="color:var(--text2)">'+
+  '<line x1="'+L+'" x2="'+R+'" y1="'+(H-VH-2)+'" y2="'+(H-VH-2)+'" stroke="var(--bg3)"/>'+g+
+  '<text x="'+L+'" y="'+(H-VH+9)+'" font-size="8.5" fill="var(--muted)">volume</text></svg><div class="cap">'+cap+'</div></div>';
+}
+function seq(a,b,n){var o=[];for(var i=0;i<n;i++)o.push(a+(b-a)*i/(n-1));return o;}
+var FIGS={
+ vcp:function(){var c=seq(60,99,14).concat([96,92,88,86,90,94,97,95,92,90.5,93,96,96.8,95.2,94.4,95.6,96.4,95.9,100.5,104]);
+  var v=[8,8,9,9,10,10,11,11,12,12,13,13,14,14,11,10,10,9,8,8,7,7,6,6,5,5,4.5,4,4,3.5,3.2,3,12,14];
+  return fig('VCP — VOLATILITY CONTRACTION','Each pullback is shallower than the last and volume dries up. Buy the break of the pivot on expanding volume; the stop goes under the last, tightest contraction.',
+   {c:c,v:v,lines:[{y:97.4,t:'Pivot — buy the break',col:'#16A34A',a:14,b:30},{y:93.9,t:'Stop',col:'#DC2626',a:24,b:30,below:1}],
+    notes:[{i:17,t:'−13%',col:'#DC2626'},{i:22,t:'−7%',col:'#DC2626'},{i:27,t:'−3%',col:'#DC2626'},{i:6,t:'prior move',up:1}],hl:[32]});},
+ htf:function(){var c=[50,50.6,49.8,50.4,50.2,50.8].concat(seq(53,96,8)).concat([94,92.5,93.8,92,93.2,94.4,93.6,94.8,99.5,103]);
+  var v=[3,3,3,3,3,3,9,11,12,14,13,12,11,10,6,5,4,4,3.5,3.5,3,3,12,13];
+  return fig('HIGH TIGHT FLAG','A near-vertical pole (roughly doubling in a few weeks), then a flag that drifts no more than ~20–25% off the high on quiet volume. Buy the break of the flag high.',
+   {c:c,v:v,lines:[{y:95.4,t:'Flag high — buy the break',col:'#16A34A',a:13}],zones:[{a:6,b:13,col:'#22C55E',t:'POLE'},{a:14,b:21,col:'#3B82F6',t:'FLAG'}],hl:[22]});},
+ ep:function(){var c=[61,62,60.5,61.5,62.2,61,60.4,61.8,62.5,61.6,62,61.2,62.4,61.8,73.5,76,75,77.5,79,78.4,80.5];
+  var v=[3,3,3,3,3,3,3,3,3,3,3,3,3,3,16,9,6,6,5,4,4];
+  return fig('EPISODIC PIVOT','A surprise catalyst gaps the stock out of a quiet range on several times normal volume. Enter on the gap day or the first tight hold above it; the gap-day low is the line in the sand.',
+   {c:c,v:v,gap:[14],lines:[{y:71.2,t:'Gap-day low = stop',col:'#DC2626',a:14,below:1}],notes:[{i:14,t:'Gap on 5× volume',up:1,col:'#16A34A'}],zones:[{a:0,b:13,col:'#94A3B8',t:'QUIET RANGE'}],hl:[14]});},
+ reclaim:function(){var c=seq(80,92,14).concat([92.8,93.2,89.9,89.6,89.2,92.6,94,95.2,96.4]);
+  var v=[6,6,7,7,7,8,8,8,8,9,9,9,9,10,8,7,6,5,4.5,4,9,7,6];
+  return fig('SHAKEOUT & RECLAIM','A strong stock loses its 9 EMA for a few sessions — weak holders sell — then closes back above it. Enter on the reclaim close; the stop is the shakeout low.',
+   {c:c,v:v,ema:9,lines:[{y:88.4,t:'Stop — shakeout low',col:'#DC2626',a:15,below:1}],zones:[{a:16,b:18,col:'#EF4444',t:'BELOW 9E'}],notes:[{i:19,t:'Reclaim close',up:1,col:'#16A34A'}],hl:[19]});},
+ nr7:function(){var c=[80,82,79,83,81.5,84,82,83.4,82.6,83.1,82.8,83.2,83,83.1];
+  var r=[3.2,3.4,3.6,3.3,3.0,2.8,2.4,2.0,1.7,1.4,1.1,0.9,0.7,0.35];
+  var v=[7,7,6,6,6,5,5,4,4,4,3,3,3,2.5];
+  return fig('NR7 — NARROWEST RANGE IN 7 DAYS','Each day\u2019s range shrinks until today is the tightest of the last seven. It says a move is coming, not which way — trade the break of today\u2019s high or low.',
+   {c:c,v:v,r:r,lines:[{y:83.38,t:'NR7 high — long above',col:'#16A34A',a:9},{y:82.86,t:'NR7 low — avoid below',col:'#DC2626',a:9,below:1}],hl:[13],notes:[{i:13,t:'NR7',up:1,col:'#0EA5E9'}]});},
+ pullback:function(){var c=seq(76,90,12).concat([91.2,92,91,90.2,89.6,90.6,92.5,94]);
+  var v=[6,6,7,7,7,8,8,8,9,9,9,9,8,8,5,4,4,6,8,8];
+  return fig('BUY THE PULLBACK','Short, tight base in a hot stock: supply has not had time to build. Buy into the dip as price comes back to the rising 9 EMA; stop just under the base low.',
+   {c:c,v:v,ema:9,lines:[{y:88.3,t:'Stop — under base low',col:'#DC2626',a:13,below:1}],notes:[{i:16,t:'Buy near 9 EMA',y:87.6,col:'#16A34A'}],hl:[16]});},
+ breakout:function(){var c=seq(58,80,8).concat([79,77.5,78.6,76.8,78.2,79.4,77.6,78.8,79.6,78.4,79.2,83.5,85.2]);
+  var v=[8,8,9,9,10,10,11,11,7,6,6,5,5,5,4,4,4,4,4,13,11];
+  return fig('BASE BREAKOUT','A longer base lets supply build at the highs; the break has to prove itself with volume. Set the trigger just above the box high (about +0.2%); stop inside the box.',
+   {c:c,v:v,box:{a:8,b:18,hi:80.3,lo:76.2},lines:[{y:80.45,t:'Box high +0.2% — trigger',col:'#16A34A',a:8},{y:77.6,t:'Stop',col:'#DC2626',a:15,b:20,below:1}],hl:[19]});},
+ ebase:function(){var c=seq(50,82,12).concat([80.5,78.6,77,78.2,79.4,77.8,76.9,78.6,80,78.4,77.6,79.2,80.6,79.8]);
+  var v=[8,8,9,9,9,10,10,10,10,11,11,11,6,5,5,4,4,4,4,4,4,4,4,4,4,4];
+  return fig('EMA BASE','After a 30%+ rally the stock builds a box that sits on its rising 20 (or 50) EMA. The EMA catches every dip; five closes in a row under the box low means the base has failed.',
+   {c:c,v:v,ema:20,box:{a:12,b:25,hi:81.2,lo:76.4},notes:[{i:18,t:'box on the EMA',y:83.3,col:'#3B82F6'}]});},
+ exit:function(){var c=seq(80,96,10).concat([97,96.2,94.8,93.1,91.6,90.4]);
+  var v=[6,6,6,6,7,7,7,7,7,7,6,6,8,9,9,9];
+  return fig('EXIT WATCH','One close under the daily 9 EMA is a warning. The second close in a row under it is the exit — the trend that justified holding is gone.',
+   {c:c,v:v,ema:9,notes:[{i:14,t:'1st close below — warning',y:88.9,col:'#D97706',anchor:'end'},{i:15,t:'2nd — exit',y:87.8,col:'#DC2626',anchor:'end'}],hl:[14,15]});},
+ mtf:function(){
+  function mini(x,t,c,cl){var n=c.length,mn=Math.min.apply(null,c),mx=Math.max.apply(null,c),w=138,h=110;
+   var e=emaArr(c,5);function P(a){return a.map(function(v,i){return (x+6+i*(w-12)/(n-1)).toFixed(1)+','+(34+(1-(v-mn)/(mx-mn||1))*(h-50)).toFixed(1);}).join(' ');}
+   return '<rect x="'+x+'" y="6" width="'+w+'" height="'+h+'" rx="8" fill="none" stroke="var(--bg3)"/>'+
+    '<text x="'+(x+8)+'" y="22" font-size="10" font-weight="700" fill="currentColor">'+t+'</text>'+
+    '<polyline fill="none" stroke="'+cl+'" stroke-width="2" points="'+P(c)+'"/><polyline fill="none" stroke="#F59E0B" stroke-width="1.3" stroke-dasharray="3 2" points="'+P(e)+'"/>';}
+  var svg='<svg viewBox="0 0 460 128" style="color:var(--text2)">'+mini(8,'MONTHLY ▲',[10,12,13,15,17,18,21,23,26,28],'#22C55E')+
+   mini(160,'WEEKLY ▲',[40,43,45,48,47,51,54,56,58,60],'#22C55E')+mini(312,'DAILY ↘ resting',[70,74,78,81,84,82,80.5,79.6,80.2,79.8],'#F59E0B')+'</svg>';
+  return '<div class="sx-fig"><div class="ft">MULTI-TIMEFRAME — HTF PULLBACK</div>'+svg+
+   '<div class="cap">The bigger timeframes carry the trend; the daily is only resting. Entries taken when weekly and monthly both point up have the wind behind them — the daily dip is the entry, not the warning.</div></div>';}
+};
+function figKeys(){
+ var S=SCRx();if(!S)return [];var st=S.state||{},k=[];
+ function has(key,v){return st[key]&&st[key].size&&(v===undefined||st[key].has(v));}
+ var ap=S.activePreset||'';
+ if(ap==='exitwatch')k.push('exit');
+ if(has('pattern','VCP'))k.push('vcp');
+ if(has('pattern','HTF'))k.push('htf');
+ if(has('pattern','EP')||/ep/i.test(ap)&&/pb_ep|earningsep|delayedep|epcoil|epresumed|epinsider/.test(ap))k.push('ep');
+ if(has('rclgrade')||has('pattern','Reclaim')||/rcl_|reclaim|shakeout/.test(ap))k.push('reclaim');
+ if(has('nr'))k.push('nr7');
+ if(has('entry','pullback')||/9epull|dip_aligned/.test(ap))k.push('pullback');
+ if(has('entry','breakout')||has('pattern','BrokenOut')||has('pattern','NearPivot')||has('z52','bo')||/bovol|bo_aligned|highadrbo|nr_confirmed/.test(ap))k.push('breakout');
+ if(has('ebase')||/base_20|base_50/.test(ap))k.push('ebase');
+ if(has('mtf')||has('wtr')||has('mtr')||/^mtf_|mtfcoil/.test(ap))k.push('mtf');
+ if(!k.length&&(has('contractmin')||/coil/.test(ap)))k.push('vcp');
+ var out=[];k.forEach(function(x){if(out.indexOf(x)<0)out.push(x);});
+ return out.slice(0,2);
+}
 function clip(){
  var pi=$('scr-play-info'),mo=$('sx-more');if(!pi||!mo)return;
  var shown=pi.style.display!=='none'&&pi.innerHTML;
- pi.classList.remove('sx-clip');
- var tall=shown&&pi.scrollHeight>150;
- if(tall&&!ST.full)pi.classList.add('sx-clip');
+ if(shown&&!pi.querySelector('.sx-txt')){
+  var keys=figKeys(),figs='';
+  keys.forEach(function(k){try{figs+=FIGS[k]();}catch(e){console.error('fig',k,e);}});
+  pi.innerHTML='<div class="sx-txt">'+pi.innerHTML+'</div>'+(figs?'<div class="sx-figs">'+figs+'</div>':'');
+  pi.classList.toggle('sx-grid',!!figs);
+  if(!figs)pi.style.maxWidth='none';
+ }
+ var tx=pi.querySelector('.sx-txt');
+ if(tx)tx.classList.remove('sx-clip');
+ var tall=shown&&tx&&tx.scrollHeight>270;
+ if(tall&&!ST.full)tx.classList.add('sx-clip');
  mo.style.display=tall?'inline-block':'none';
  mo.textContent=ST.full?'▴ Show less':'▾ Show the full explanation';
 }
@@ -14892,8 +15046,14 @@ window.tfLoadMtf=function(){
     var r=await fetch(CONFIG.supabaseUrl+'/rest/v1/us_momentum_mtf?select='+cols+'&order=symbol.asc&limit=1000&offset='+o,{headers:h});
     if(!r.ok)break;var p=await r.json();if(!Array.isArray(p)||!p.length)break;all=all.concat(p);if(p.length<1000)break;
    }
-   var mx='';all.forEach(function(x){if(x.session_date>mx)mx=x.session_date;});
-   var M={};all.forEach(function(x){if(x.session_date===mx)M[x.symbol]=x;});
+   /* The trend date is the date MOST rows carry, not the newest one: a handful
+      of symbols with a later bar used to become "the" date and every other
+      stock was dropped (US showed 3 of 1,710). Rows up to 7 days older than
+      that date still count; anything staler is left out. */
+   var cnt={},mx='';all.forEach(function(x){cnt[x.session_date]=(cnt[x.session_date]||0)+1;});
+   for(var dd in cnt){if(!mx||cnt[dd]>cnt[mx])mx=dd;}
+   var cut=mx?new Date(new Date(mx).getTime()-7*864e5).toISOString().slice(0,10):'';
+   var M={};all.forEach(function(x){if(x.session_date>=cut){var p=M[x.symbol];if(!p||x.session_date>p.session_date)M[x.symbol]=x;}});
    window.TF_MTF=M;window.TF_MTF_DATE=mx;
    var e=await fetch(CONFIG.supabaseUrl+'/rest/v1/us_mtf_evidence?select=*',{headers:h});
    window.TF_MTF_EV=e.ok?await e.json():[];
