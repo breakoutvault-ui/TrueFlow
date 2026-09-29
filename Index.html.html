@@ -13190,9 +13190,10 @@ var SCR_FGROUPS=[
  ['Quality',           ['cat','signal','catalyst','newl']],
  ['Results',           ['erstat','erwin','errv','erreact']],
  ['Reclaim',           ['rclgrade','rclvol','rclriskmax','rcldaysmax']],
- ['Smart Money',       ['smt']],
- ['Sector',            ['sector']]
+ ['Smart Money',       ['smt']]
 ];
+/* always last, after Other: the long lists */
+var SCR_FLAST=['sector','industry','symbol'];
 
 window.scrFP=function(open){
  var p=document.getElementById('scr-fp'),b=document.getElementById('scr-fpbk');
@@ -13211,19 +13212,45 @@ function scrFPBuild(){
   if(!keys.length)return;
   html+='<div class="fp-g">'+esc(g[0])+'</div>';
   keys.forEach(function(k){
+   if(SCR_FLAST.indexOf(k)>=0)return;
    placed[k]=1;
    html+=scrFPField(SCR_FILTERS.filter(function(f){return f.key===k;})[0]);
   });
  });
+ SCR_FLAST.forEach(function(k){placed[k]=1;});
  var rest=SCR_FILTERS.filter(function(f){return !placed[f.key];});
  if(rest.length){
   html+='<div class="fp-g">Other</div>';
   rest.forEach(function(f){html+=scrFPField(f);});
  }
+ var last=SCR_FLAST.map(function(k){return SCR_FILTERS.filter(function(f){return f.key===k;})[0];}).filter(Boolean);
+ if(last.length){
+  html+='<div class="fp-g">Sector · Industry · Symbol</div>';
+  last.forEach(function(f){html+=scrFPField(f);});
+ }
  body.innerHTML=html;
  scrFPCount();
 }
 
+var SCR_FPQ={};
+window.scrFPFind=function(k,v){SCR_FPQ[k]=v;var el=document.getElementById('fpo-'+k);
+ var f=SCR_FILTERS.filter(function(x){return x.key===k;})[0];if(el&&f)el.innerHTML=scrFPOpts(f);};
+function scrFPOpts(f){
+ var sel=SCR.state[f.key]||new Set(),opts=f.opts||[];
+ var long=opts.length>30,q=(SCR_FPQ[f.key]||'').trim().toLowerCase(),more=0;
+ if(long){
+  var hit=opts.filter(function(o){return !sel.has(o)&&(!q||String((f.disp&&f.disp[o])||o).toLowerCase().indexOf(q)>=0);});
+  more=Math.max(0,hit.length-24);
+  opts=Array.from(sel).concat(hit.slice(0,24));
+ }
+ return opts.map(function(o){
+  var on=sel.has(o);
+  var lab=(f.disp&&f.disp[o])||o;
+  var tip=(f.tips&&f.tips[o])||'';
+  return '<span class="fp-o'+(on?' on':'')+'" onclick="scrFPTick(\''+f.key+'\',\''+
+   String(o).replace(/'/g,"\\'")+'\')"'+(tip?' title="'+esc(tip)+'"':'')+'>'+esc(lab)+'</span>';
+ }).join('')+(more?'<div class="fp-more">+'+more+' more — type to narrow</div>':'');
+}
 function scrFPField(f){
  if(!f)return '';
  var sel=SCR.state[f.key]||new Set();
@@ -13231,13 +13258,9 @@ function scrFPField(f){
    (sel.size?' <span style="color:var(--cyan)">\u00b7 '+sel.size+'</span>':'')+'</span>'+
    (sel.size?'<span class="fp-clr" onclick="scrFPClearOne(\''+f.key+'\')">clear</span>':'')+
    '</div>';
- h+=(f.opts||[]).map(function(o){
-  var on=sel.has(o);
-  var lab=(f.disp&&f.disp[o])||o;
-  var tip=(f.tips&&f.tips[o])||'';
-  return '<span class="fp-o'+(on?' on':'')+'" onclick="scrFPTick(\''+f.key+'\',\''+
-   String(o).replace(/'/g,"\\'")+'\')"'+(tip?' title="'+esc(tip)+'"':'')+'>'+esc(lab)+'</span>';
- }).join('');
+ if((f.opts||[]).length>30)h+='<input class="fp-find" placeholder="Type to find ('+(f.opts||[]).length+')" value="'+esc(SCR_FPQ[f.key]||'')+
+   '" oninput="scrFPFind(\''+f.key+'\',this.value)">';
+ h+='<div id="fpo-'+f.key+'">'+scrFPOpts(f)+'</div>';
  return h+'</div>';
 }
 
@@ -14136,6 +14159,303 @@ async function loadWLVersus(){
   } catch(e){ el.innerHTML = 'Versus error: ' + e; }
 }
 
+</script>
+
+
+<!-- ═══ TrueFlow Screener UI v2 — Playbooks & Filters in side panes, Market panel ═══ -->
+<style>
+/* old strips replaced by the Market panel and the panes (their code still runs) */
+#tab-screener #scr-regime,#tab-screener #scr-sec,#tab-screener #tf-mtf-strip:not(.mk-show),
+#tab-screener .scr-fbar,#tab-screener #scr-pbtoggle{display:none!important}
+#tab-screener .scr-presets{margin-bottom:6px}
+/* Playbooks pane - same look as the Filters pane */
+#scr-pbp{position:fixed;top:0;right:-440px;width:420px;max-width:94vw;height:100vh;z-index:10002;
+ background:var(--bg1);border-left:1px solid var(--bg3);display:flex;flex-direction:column;
+ transition:right .22s ease;box-shadow:-12px 0 36px rgba(0,0,0,.35)}
+#scr-pbp.open{right:0}
+#scr-pbpbk{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.4);display:none}
+#scr-pbpbk.open{display:block}
+#scr-pbphd{padding:13px 16px;border-bottom:1px solid var(--bg3);display:flex;align-items:center;gap:10px}
+#scr-pbpbody{flex:1 1 auto;overflow-y:auto;padding:4px 16px 30px}
+#scr-pbp .scr-pbstrip{background:none!important;border:none!important;padding:0!important;margin:0!important}
+#scr-pbp .scr-pbhead{display:flex;justify-content:flex-start;margin:10px 0 4px}
+#scr-pbp .scr-pbhead .scr-plabel{display:none}
+#scr-pbp .scr-pbchips{display:block!important}
+#scr-pbp .scr-pbchips .scr-pb-grp{display:block!important;padding:12px 0 5px;margin:0!important;font-size:10px!important;
+ letter-spacing:1.2px;border-top:1px solid var(--bg3)}
+#scr-pbp .scr-pbchips .scr-pb-grp:first-child{border-top:none}
+#scr-pbtoggle{display:none!important}
+#scr-pbp .scr-pbmode{background:none;border:1px solid var(--bg3);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;
+ padding:4px 12px;border-radius:99px;margin-right:6px;font-family:inherit}
+#scr-pbp .scr-pbmode.active{background:var(--cyan);color:#03121a;border-color:var(--cyan)}
+#scr-pbp .scr-pb-item{display:flex!important;flex-direction:column;align-items:flex-start!important;width:100%!important;text-align:left;
+ background:var(--bg2)!important;border:1px solid var(--bg3)!important;border-radius:9px!important;padding:7px 11px!important;margin:0 0 5px!important;
+ color:var(--text)!important;font-size:12px!important;font-weight:600;cursor:pointer;font-family:inherit;transition:border-color .12s}
+#scr-pbp .scr-pb-item:hover{border-color:var(--cyan)!important}
+#scr-pbp .scr-pb-item.active{border-color:var(--cyan)!important;background:rgba(6,182,212,.12)!important;box-shadow:inset 3px 0 0 var(--cyan)}
+#scr-pbp .sx-sub{display:block;font-size:10.5px;font-weight:400;color:var(--muted);margin-top:2px;line-height:1.35}
+#tab-screener .scr-bar2 .sx-go{border-color:rgba(6,182,212,.55);color:var(--cyan);font-weight:700}
+#tab-screener .scr-bar2 .sx-go .n{background:var(--cyan);color:#03121a;border-radius:9px;padding:0 6px;font-size:10px;margin-left:2px}
+/* the playbook explanation: short by default, full text one click away */
+#tab-screener #scr-play-info.sx-clip{max-height:118px;overflow:hidden;position:relative}
+#tab-screener #scr-play-info.sx-clip:after{content:'';position:absolute;left:0;right:0;bottom:0;height:38px;
+ background:linear-gradient(transparent,var(--bg1))}
+.sx-more{font-size:11px;color:var(--cyan);cursor:pointer;margin:-4px 0 8px 4px;display:inline-block}
+/* one-line top bar: panes + active pills */
+.sx-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:-2px 0 8px}
+.sx-bar:empty{display:none}
+.sx-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid var(--bg3);
+ background:var(--bg2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.sx-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.sx-btn .n{background:var(--cyan);color:#03121a;border-radius:9px;padding:0 6px;font-size:10px;font-weight:700}
+.sx-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 6px 3px 10px;border-radius:99px;font-size:11px;
+ background:rgba(6,182,212,.10);border:1px solid rgba(6,182,212,.35);color:var(--text)}
+.sx-pill.pb{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.45)}
+.sx-pill i{font-style:normal;cursor:pointer;opacity:.6;padding:0 3px}
+.sx-pill i:hover{opacity:1;color:#EF4444}
+.sx-clear{font-size:11px;color:var(--muted);cursor:pointer;margin-left:2px}
+.sx-clear:hover{color:#EF4444}
+/* Market panel */
+#mk{border:1px solid var(--bg3);border-radius:12px;background:var(--bg2);margin:0 0 8px;font-size:11.5px}
+#mk .hd{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:default}
+#mk .hd b{letter-spacing:1.2px;font-size:10.5px;color:var(--muted)}
+#mk .st{font-weight:700;font-size:11px;padding:1px 8px;border-radius:6px}
+#mk .per{padding:1px 8px;border-radius:6px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:10.5px;font-family:inherit}
+#mk .per.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+#mk .tg{margin-left:auto;cursor:pointer;color:var(--muted);font-size:11px;user-select:none}
+#mk .bd{padding:0 12px 10px}
+#mk.closed .bd{display:none}
+#mk .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:1000px){#mk .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#mk .tile{background:var(--bg1);border:1px solid var(--bg3);border-radius:9px;padding:7px 10px;cursor:help}
+#mk .tl{font-size:9.5px;letter-spacing:1px;color:var(--muted);margin-bottom:3px}
+#mk .tv{font-size:13px;font-weight:700;color:var(--text);display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
+#mk .tv small{font-size:10px;font-weight:500;color:var(--muted)}
+#mk .bar{height:5px;border-radius:3px;background:var(--bg3);overflow:hidden;display:flex;margin-top:5px}
+#mk .rows{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+@media(max-width:1000px){#mk .rows{grid-template-columns:1fr}}
+#mk .strip{display:flex;flex-wrap:wrap;gap:5px;align-items:center;background:var(--bg1);border:1px solid var(--bg3);border-radius:9px;padding:6px 10px}
+#mk .strip .lb{font-size:9.5px;letter-spacing:1px;color:var(--muted);margin-right:3px}
+#mk .chip{display:inline-flex;gap:4px;align-items:center;padding:1px 8px;border-radius:6px;border:1px solid var(--bg3);background:none;
+ cursor:pointer;font-size:11px;font-family:inherit;color:var(--text);white-space:nowrap}
+#mk .chip:hover{border-color:var(--cyan)}
+#mk .chip.on{border-color:var(--cyan);font-weight:700}
+#mk .mix{display:flex;height:9px;border-radius:5px;overflow:hidden;flex:1 1 220px;min-width:160px;cursor:help}
+#mk .ft{margin-top:6px;font-size:10px;color:var(--muted);display:flex;gap:10px;align-items:center}
+#mk .ft a{color:var(--cyan);cursor:pointer}
+/* filter pane: type-to-find for long lists */
+.fp-find{width:100%;margin:2px 0 5px;background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;color:var(--text);
+ padding:6px 10px;font-size:11.5px;font-family:inherit;outline:none}
+.fp-find:focus{border-color:var(--cyan)}
+.fp-more{font-size:10.5px;color:var(--muted);padding:3px 2px}
+</style>
+<script>
+(function(){
+'use strict';
+function $(id){return document.getElementById(id);}
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function SCRx(){try{return (typeof SCR!=='undefined')?SCR:null;}catch(e){return null;}}
+var LS='tfScrUi2';var ST={per:'d',open:true};
+try{var v=JSON.parse(localStorage.getItem(LS)||'null');if(v)ST=Object.assign(ST,v);}catch(e){}
+function save(){try{localStorage.setItem(LS,JSON.stringify(ST));}catch(e){}}
+
+/* ── build the frame once ─────────────────────────────── */
+function build(){
+ var tab=$('tab-screener'),pb=$('scr-pbstrip'),bar2=tab&&tab.querySelector('.scr-bar2'),pre=$('scr-presets');
+ if(!tab||!pb||!bar2||!pre||tab.dataset.ui2)return !!(tab&&tab.dataset.ui2);
+ tab.dataset.ui2='1';
+ // Market panel goes first, above Quick Views
+ var mk=document.createElement('div');mk.id='mk';if(!ST.open)mk.className='closed';
+ pre.parentNode.insertBefore(mk,pre);
+ // Playbooks pane: the existing strip is MOVED in, so every playbook and the
+ // End of Day / Weekend switch keep working exactly as before
+ var bk=document.createElement('div');bk.id='scr-pbpbk';bk.onclick=function(){scrPB(false);};
+ var pane=document.createElement('div');pane.id='scr-pbp';
+ pane.innerHTML='<div id="scr-pbphd"><b style="font-size:14px">Playbooks</b><span style="color:var(--muted);font-size:11.5px">one tap to apply</span>'+
+  '<span style="margin-left:auto;cursor:pointer;color:var(--muted);font-size:17px" onclick="scrPB(false)">✕</span></div><div id="scr-pbpbody"></div>';
+ document.body.appendChild(bk);document.body.appendChild(pane);
+ $('scr-pbpbody').appendChild(pb);pb.style.display='';
+ var pl=$('scr-pb-list');if(pl)pl.style.display='';
+ // the one-line bar: Playbooks, Filters, then whatever is applied
+ var btns=document.createElement('span');btns.id='sx-btns';btns.style.display='contents';
+ bar2.insertBefore(btns,bar2.firstChild);
+ var sx=document.createElement('div');sx.className='sx-bar';sx.id='sx-bar';
+ bar2.parentNode.insertBefore(sx,bar2.nextSibling);
+ // playbook explanation sits under the pills, just above the table
+ var pi=$('scr-play-info');if(pi)sx.parentNode.insertBefore(pi,sx.nextSibling);
+ var mo=document.createElement('span');mo.className='sx-more';mo.id='sx-more';mo.style.display='none';
+ mo.onclick=function(){ST.full=!ST.full;save();clip();};
+ pi.parentNode.insertBefore(mo,pi.nextSibling);
+ return true;
+}
+window.scrPB=function(open){
+ var p=$('scr-pbp'),b=$('scr-pbpbk');if(!p)return;
+ if(open===false){p.classList.remove('open');b.classList.remove('open');return;}
+ try{scrSetPbMode(SCRx().pbMode||'eod');}catch(e){}
+ p.classList.add('open');b.classList.add('open');
+};
+// close the pane after a playbook is chosen so the result is in view
+document.addEventListener('click',function(e){
+ var t=e.target;if(t&&t.closest&&t.closest('#scr-pbp .scr-pb-item'))setTimeout(function(){scrPB(false);},120);
+},true);
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){scrPB(false);try{scrFP(false);}catch(x){}}});
+
+/* ── top bar: buttons + removable pills ──────────────── */
+function lab(f,o){return (f.disp&&f.disp[o])||o;}
+window.sxDrop=function(k,o){var S=SCRx();if(!S||!S.state[k])return;S.state[k].delete(o);S.activePreset=null;
+ try{scrSyncChecks();}catch(e){}try{scrSyncChips();}catch(e){}scrRender();};
+window.sxDropPb=function(){try{scrClearAll();}catch(e){}};
+function bar(){
+ var el=$('sx-bar'),S=SCRx();if(!el||!S)return;
+ var n=0,pills=[];
+ (typeof SCR_FILTERS!=='undefined'?SCR_FILTERS:[]).forEach(function(f){
+  var st=S.state[f.key];if(!st||!st.size)return;
+  st.forEach(function(o){n++;pills.push('<span class="sx-pill" title="'+esc(f.label)+'">'+esc(f.label)+': '+esc(lab(f,o))+
+   '<i onclick="sxDrop(\''+f.key+'\',\''+String(o).replace(/'/g,"\\'")+'\')" title="Remove">✕</i></span>');});
+ });
+ var ap=S.activePreset,p=null;
+ if(ap&&ap!=='all'&&typeof SCR_PRESETS!=='undefined')p=SCR_PRESETS.filter(function(x){return x.id===ap;})[0];
+ var bt=$('sx-btns');
+ if(bt)bt.innerHTML='<button class="scr-tool sx-go" onclick="scrPB(true)" title="Every playbook, grouped - End of Day and Weekend">📓 Playbooks</button>'+
+  '<button class="scr-tool sx-go" onclick="scrFP(true)" title="Every filter, grouped">⚙ Filters'+(n?' <span class="n">'+n+'</span>':'')+'</button>';
+ var h='';
+ if(p)h+='<span class="sx-pill pb" title="Active playbook">📓 '+esc(String(p.label).replace(/<[^>]+>/g,''))+'<i onclick="sxDropPb()" title="Clear">✕</i></span>';
+ h+=pills.join('');
+ if(n||p)h+='<span class="sx-clear" onclick="scrClearAll()">Clear all</span>';
+ el.innerHTML=h;
+}
+
+/* ── Market panel ────────────────────────────────────── */
+var TFS=[['allup','All TF Up','#22C55E'],['htfpb','HTF Pullback','#3B82F6'],['wkturn','Weekly Turn','#8B5CF6'],['earlyturn','Early Turnaround','#10B981'],
+ ['stretched','HTF Stretched','#F97316'],['ctbounce','Counter-Trend','#EAB308'],['rolling','Rolling Over','#F59E0B'],['alldown','All TF Down','#EF4444'],['mixed','Mixed','#94A3B8']];
+var PER={d:['1D','day','Today'],w:['1W','week','Last 5 sessions'],m:['1M','month','Last ~22 sessions']};
+window.mkPer=function(p){ST.per=p;save();market();};
+window.mkTog=function(){ST.open=!ST.open;save();var m=$('mk');if(m)m.classList.toggle('closed',!ST.open);market();};
+window.mkEv=function(){var s=$('tf-mtf-strip');if(s)s.classList.toggle('mk-show');};
+window.mkInd=function(g){var S=SCRx();if(!S)return;var st=S.state.industry;
+ S.state.industry=new Set(st&&st.size===1&&st.has(g)?[]:[g]);S.activePreset=null;
+ try{scrSyncChecks();}catch(e){}try{scrSyncChips();}catch(e){}scrRender();};
+function pc(x,d){return x==null?'—':((x>0?'+':'')+x.toFixed(d==null?1:d)+'%');}
+function colr(x){return x==null?'var(--muted)':(x>0.2?'#22C55E':(x<-0.2?'#EF4444':'var(--muted)'));}
+function pctOf(a,b){return b?Math.round(100*a/b):null;}
+function market(){
+ var el=$('mk'),S=SCRx();if(!el||!S)return;
+ var rows=(S.data||[]).filter(function(d){return !d._ipoRow;});
+ var per=ST.per,key=PER[per][1],M=window.TF_MTF||{};
+ var A=(typeof ALIGN!=='undefined')?ALIGN:{};
+ var stc={strong:['Market strong','#22C55E'],neutral:['Market neutral','#F59E0B'],weak:['Market weak','#EF4444']}[A.mktState]||null;
+ var h='<div class="hd"><b>MARKET</b>'+
+  (stc?'<span class="st" style="color:'+stc[1]+';background:'+stc[1]+'1f" title="From the share of your universe above its daily 20 EMA">'+stc[0]+'</span>':'')+
+  ['d','w','m'].map(function(p){return '<button class="per'+(per===p?' on':'')+'" onclick="mkPer(\''+p+'\')" title="'+PER[p][2]+'">'+PER[p][0]+'</button>';}).join('')+
+  '<span class="tg" onclick="mkTog()">'+(ST.open?'▾ hide':'▸ show')+'</span></div>';
+ if(!rows.length){el.innerHTML=h+'<div class="bd" style="color:var(--muted)">Loading…</div>';return;}
+ var N=rows.length;
+ /* breadth: daily 9/20/50 · weekly 9/20 · monthly 9/20 */
+ var br=[],btip='';
+ if(per==='d'){
+  var a9=0,a20=0,a50=0,n50=0;
+  rows.forEach(function(d){if(d.ab9d)a9++;if(d.ab20d)a20++;if(d.p50!=null){n50++;if(d.p50>0)a50++;}});
+  br=[['9E',pctOf(a9,N)],['20E',pctOf(a20,N)],['50E',n50?pctOf(a50,n50):null]];
+  btip='Share of the universe closing above its daily 9, 20 and 50 EMA. Below 50% on the 50 EMA has been the worst backdrop for new longs in your own data.';
+ }else{
+  var e9='ema9_'+per,e20='ema20_'+per,x9=0,x20=0,m=0;
+  rows.forEach(function(d){var r=M[d.sym];if(!r||r.ltp==null||r[e9]==null)return;m++;
+   if(+r.ltp>+r[e9])x9++;if(r[e20]!=null&&+r.ltp>+r[e20])x20++;});
+  br=[['9E',m?pctOf(x9,m):null],['20E',m?pctOf(x20,m):null]];
+  btip='Share of the universe above its '+(per==='w'?'weekly':'monthly')+' 9 and 20 EMA (completed candles).';
+ }
+ function brc(v){return v==null?'var(--muted)':(v>=55?'#22C55E':(v<45?'#EF4444':'#F59E0B'));}
+ var tBr='<div class="tile" title="'+esc(btip)+'"><div class="tl">BREADTH · '+(per==='d'?'DAILY':(per==='w'?'WEEKLY':'MONTHLY'))+'</div><div class="tv">'+
+  br.map(function(x){return '<span style="color:'+brc(x[1])+'">'+(x[1]==null?'—':x[1]+'%')+' <small>'+x[0]+'</small></span>';}).join('')+'</div></div>';
+ /* advancers / decliners */
+ var up=0,dn=0,sum=0,k=0;
+ rows.forEach(function(d){var v=d[key];if(v==null||isNaN(v))return;k++;sum+=+v;if(v>0)up++;else if(v<0)dn++;});
+ var avg=k?sum/k:null,tot=up+dn;
+ var tAd='<div class="tile" title="'+esc(PER[per][2]+': stocks up vs down, and the average move of all '+k+'.')+'"><div class="tl">ADVANCERS / DECLINERS</div>'+
+  '<div class="tv"><span style="color:#22C55E">'+up+'</span><span style="color:#EF4444">'+dn+'</span><small>avg <b style="color:'+colr(avg)+'">'+pc(avg,2)+'</b></small></div>'+
+  '<div class="bar"><span style="width:'+(tot?100*up/tot:50)+'%;background:#22C55E"></span><span style="flex:1;background:#EF4444"></span></div></div>';
+ /* 52-week extremes (today's close) */
+ var hi=0,lo=0;
+ rows.forEach(function(d){if(d.ltp==null)return;if(d.hi52&&d.ltp>=d.hi52*0.99)hi++;if(d.low52&&d.ltp<=d.low52*1.01)lo++;});
+ var tHl='<div class="tile" title="Stocks closing within 1% of their 52-week high, and within 1% of their 52-week low. Latest session only - the toggle does not change this tile."><div class="tl">52W HIGHS / LOWS</div>'+
+  '<div class="tv"><span style="color:#22C55E">'+hi+' <small>at highs</small></span><span style="color:#EF4444">'+lo+' <small>at lows</small></span></div>'+
+  '<div class="bar"><span style="width:'+((hi+lo)?100*hi/(hi+lo):50)+'%;background:#22C55E"></span><span style="flex:1;background:#EF4444"></span></div></div>';
+ /* setups today */
+ var sc={VCP:0,HTF:0,EP:0,R:0};
+ rows.forEach(function(d){if(d.qm&&sc[d.qm]!=null)sc[d.qm]++;if(d.rclGrade&&'ABD'.indexOf(d.rclGrade)>=0)sc.R++;});
+ var tSu='<div class="tile" title="Setups the nightly scan found on the latest session: VCP and HTF bases, episodic pivots, and shakeout reclaims graded A, B or D. Latest session only."><div class="tl">SETUPS TODAY</div>'+
+  '<div class="tv"><span>'+sc.VCP+' <small>VCP</small></span><span>'+sc.HTF+' <small>HTF</small></span><span>'+sc.EP+' <small>EP</small></span><span>'+sc.R+' <small>Reclaim</small></span></div></div>';
+ /* sectors + industries, ranked on the chosen period */
+ function rank(get){
+  var acc={};rows.forEach(function(d){var g=get(d);if(!g||g==='—')return;var v=d[key];if(v==null||isNaN(v))return;
+   var a=acc[g]||(acc[g]={s:0,n:0});a.s+=+v;a.n++;});
+  var out=[];for(var g in acc){if(acc[g].n>=3)out.push({g:g,v:acc[g].s/acc[g].n,n:acc[g].n});}
+  out.sort(function(a,b){return b.v-a.v;});return out;
+ }
+ var secs=rank(function(d){return d.sector;}),inds=rank(function(d){return d.industry;});
+ var aS=null,aI=null;
+ if(S.state.sector&&S.state.sector.size===1)S.state.sector.forEach(function(x){aS=x;});
+ if(S.state.industry&&S.state.industry.size===1)S.state.industry.forEach(function(x){aI=x;});
+ function chips(list,act,fn,n){
+  var lead=list.slice(0,n),seen={};lead.forEach(function(x){seen[x.g]=1;});
+  var lag=list.slice().reverse().filter(function(x){return !seen[x.g];}).slice(0,n);
+  function c(x){return '<button class="chip'+(act===x.g?' on':'')+'" onclick="'+fn+'(\''+esc(x.g).replace(/'/g,"\\'")+'\')" title="'+
+   esc(x.g+' · '+x.n+' stocks · average '+pc(x.v)+' ('+PER[per][2].toLowerCase()+'). Click to filter the table; click again to clear.')+'">'+
+   esc(x.g)+' <b style="color:'+colr(x.v)+'">'+pc(x.v)+'</b></button>';}
+  return '<span class="lb" style="color:#22C55E">▲</span>'+lead.map(c).join('')+'<span class="lb" style="color:#EF4444;margin-left:6px">▼</span>'+lag.map(c).join('');
+ }
+ var rS='<div class="strip"><span class="lb">SECTORS</span>'+(secs.length?chips(secs,aS,'scrPickSector',4):'<span style="color:var(--muted)">—</span>')+'</div>';
+ var rI='<div class="strip"><span class="lb">INDUSTRIES</span>'+(inds.length?chips(inds,aI,'mkInd',5):'<span style="color:var(--muted)">—</span>')+'</div>';
+ /* trend-state mix */
+ var cnt={},tn=0;rows.forEach(function(d){if(!d.mtf)return;cnt[d.mtf]=(cnt[d.mtf]||0)+1;tn++;});
+ var mix=tn?TFS.filter(function(s){return cnt[s[0]];}).map(function(s){
+   return '<span style="width:'+(100*cnt[s[0]]/tn)+'%;background:'+s[2]+'" title="'+esc(s[1]+': '+cnt[s[0]]+' stocks ('+Math.round(100*cnt[s[0]]/tn)+'%)')+'"></span>';}).join(''):'';
+ var legend=tn?TFS.filter(function(s){return cnt[s[0]]&&s[0]!=='mixed';}).slice(0,4).map(function(s){
+   return '<span style="white-space:nowrap"><span style="color:'+s[2]+'">●</span> '+s[1]+' '+cnt[s[0]]+'</span>';}).join(' '):'';
+ var rT='<div class="strip" title="How the whole universe splits across the multi-timeframe states. Hover a segment for its count."><span class="lb">TREND MIX</span>'+
+  (tn?'<span class="mix">'+mix+'</span><span style="font-size:10.5px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap">'+legend+'</span>':'<span style="color:var(--muted)">trend data not loaded yet</span>')+'</div>';
+ var ft='<div class="ft"><span>'+N+' stocks · data '+esc(S.updated||'—')+(window.TF_MTF_DATE?' · trend '+esc(window.TF_MTF_DATE):'')+'</span>'+
+  ($('tf-mtf-strip')?'<a onclick="mkEv()" title="The evidence table: forward returns for each trend state, from your own data">Does it work? Evidence ▸</a>':'')+'</div>';
+ el.innerHTML=h+'<div class="bd"><div class="tiles">'+tBr+tAd+tHl+tSu+'</div><div class="rows">'+rS+rI+'</div><div class="rows" style="grid-template-columns:1fr">'+rT+'</div>'+ft+'</div>';
+ // the evidence table lives in the old strip; keep it just under the panel
+ var ev=$('tf-mtf-strip');if(ev&&ev.parentNode&&ev.previousSibling!==el)el.parentNode.insertBefore(ev,el.nextSibling);
+}
+
+function clip(){
+ var pi=$('scr-play-info'),mo=$('sx-more');if(!pi||!mo)return;
+ var shown=pi.style.display!=='none'&&pi.innerHTML;
+ pi.classList.remove('sx-clip');
+ var tall=shown&&pi.scrollHeight>150;
+ if(tall&&!ST.full)pi.classList.add('sx-clip');
+ mo.style.display=tall?'inline-block':'none';
+ mo.textContent=ST.full?'▴ Show less':'▾ Show the full explanation';
+}
+function subs(){
+ if(typeof SCR_PRESETS==='undefined')return;
+ document.querySelectorAll('#scr-pbp .scr-pb-item').forEach(function(b){
+  if(b.querySelector('.sx-sub'))return;
+  var p=SCR_PRESETS.filter(function(x){return x.id===b.dataset.p;})[0];if(!p)return;
+  var t=String(p.how||p.desc||'').split('\u{1F9ED}')[0].split('🧭')[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+  var cut=t.search(/[.!?](\s|$)/);if(cut>20)t=t.slice(0,cut+1);
+  if(t.length>120)t=t.slice(0,117).replace(/\s+\S*$/,'')+'…';
+  if(t){var s=document.createElement('span');s.className='sx-sub';s.textContent=t;b.appendChild(s);}
+ });
+ document.querySelectorAll('#scr-pbp .scr-pb-grp').forEach(function(g){
+  var c=g.style.color||'';if(!c||/border/.test(c))g.style.color='var(--muted)';});
+}
+function refresh(){try{if(build()){bar();market();subs();clip();}}catch(e){console.error('screener ui v2:',e);}}
+function hook(){
+ if(typeof scrRender!=='function')return false;
+ if(!scrRender._ui2){var o=scrRender;window.scrRender=scrRender=function(){var r=o.apply(this,arguments);refresh();return r;};scrRender._ui2=true;}
+ if(typeof scrFillPlaybooks==='function'&&!scrFillPlaybooks._ui2){var q=scrFillPlaybooks;
+  window.scrFillPlaybooks=scrFillPlaybooks=function(){var r=q.apply(this,arguments);try{subs();}catch(e){}return r;};scrFillPlaybooks._ui2=true;}
+ if(typeof scrPlayInfo==='function'&&!scrPlayInfo._ui2){var q2=scrPlayInfo;
+  window.scrPlayInfo=scrPlayInfo=function(){var r=q2.apply(this,arguments);try{clip();}catch(e){}return r;};scrPlayInfo._ui2=true;}
+ refresh();return true;
+}
+var t=setInterval(function(){if(hook())clearInterval(t);},300);
+setTimeout(function(){clearInterval(t);},60000);
+})();
 </script>
 
 
@@ -15134,116 +15454,7 @@ setTimeout(function(){clearInterval(_t);},30000);
 </script>
 
 
-<!-- ═══ TrueFlow screener layout v1 — outlook on top, collapsible sections ═══ -->
-<style>
-.scr-sec-h{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 10px;margin:6px 0 0 0;border:1px solid var(--bg3);border-radius:9px;font-size:11px;color:var(--muted);user-select:none}
-.scr-sec-h:hover{border-color:var(--cyan)}
-.scr-sec-h b{color:var(--text);font-size:11px;letter-spacing:.4px}
-.scr-sec-h .cnt{margin-left:auto;font-size:10px}
-.scr-sec-wrap.closed{display:none}
-</style>
-<script>
-(function(){
-'use strict';
-var KEY='tfScrOpen',OPEN={quick:false,pb:false,filt:false};
-try{var v=JSON.parse(localStorage.getItem(KEY)||'null');if(v)OPEN=v;}catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(OPEN));}catch(e){}}
 
-function wrap(id,key,label,tip,countFn){
- var el=document.getElementById(id);
- if(!el||el.dataset.scrWrapped)return;
- var host=(id==='scr-filters')?el.closest('.scr-fbar')||el:el;
- if(host.dataset.scrWrapped)return;
- host.dataset.scrWrapped='1';el.dataset.scrWrapped='1';
- var w=document.createElement('div');
- w.className='scr-sec-wrap'+(OPEN[key]?'':' closed');w.id='scrw-'+key;
- host.parentNode.insertBefore(w,host);w.appendChild(host);
- var h=document.createElement('div');
- h.className='scr-sec-h';h.id='scrh-'+key;h.title=tip;
- h.innerHTML='<span id="scra-'+key+'">'+(OPEN[key]?'▾':'▸')+'</span><b>'+label+'</b><span class="cnt" id="scrc-'+key+'"></span>';
- h.onclick=function(){scrSecToggle(key);};
- w.parentNode.insertBefore(h,w);
- if(countFn)scrSecCount(key,countFn);
-}
-window.scrSecToggle=function(k){
- OPEN[k]=!OPEN[k];save();
- var w=document.getElementById('scrw-'+k),a=document.getElementById('scra-'+k);
- if(w)w.classList.toggle('closed',!OPEN[k]);
- if(a)a.textContent=OPEN[k]?'▾':'▸';
-};
-function scrSecCount(k,fn){
- var el=document.getElementById('scrc-'+k);if(!el)return;
- try{el.textContent=fn()||'';}catch(e){}
-}
-
-function syncPbMode(){
- try{
-  if(typeof SCR==='undefined'||!SCR||!SCR.pbMode)return;
-  if(typeof scrSetPbMode!=='function')return;
-  var a=document.getElementById('scr-pbmode-eod');
-  if(!a||a.dataset.tfSynced)return;
-  a.dataset.tfSynced='1';
-  scrSetPbMode(SCR.pbMode);      // make the highlighted pill match the list
- }catch(e){}
-}
-function hideInnerTitles(){
- // the collapsible header already names the section; drop the duplicate label
- ['scr-pbstrip','scr-filters'].forEach(function(id){
-  var el=document.getElementById(id);if(!el)return;
-  var all=el.querySelectorAll('div,span,h3,h4');
-  for(var i=0;i<all.length;i++){
-   var t=(all[i].textContent||'').trim();
-   if(/^(PLAYBOOKS — ONE TAP TO APPLY|FILTERS — CLICK ANY TO MULTI-SELECT)$/i.test(t)){
-    all[i].style.display='none';
-   }
-  }
- });
-}
-function moveOutlookUp(){
- var reg=document.getElementById('scr-regime'),pre=document.getElementById('scr-presets');
- if(!reg||!pre||reg.dataset.moved)return;
- reg.dataset.moved='1';
- var sec=document.getElementById('scr-sec');
- var anchor=document.getElementById('scrh-quick')||pre;
- var parent=anchor.parentNode;
- parent.insertBefore(reg,anchor);
- if(sec)parent.insertBefore(sec,anchor);
-}
-
-function activeFilterCount(){
- var n=0;
- try{for(var k in SCR.state){if(SCR.state[k]&&SCR.state[k].size)n++;}}catch(e){}
- return n?(n+' active'):'';
-}
-function build(){
- if(!document.getElementById('scr-presets'))return false;
- wrap('scr-presets','quick','QUICK VIEWS','Saved one-click views. Collapsed by default so the table starts higher up — click to open.',
-  function(){var e=document.getElementById('scr-presets');return e?(e.querySelectorAll('.scr-chip,.scr-preset,button').length-0)+' views':'';});
- wrap('scr-pbstrip','pb','PLAYBOOKS','Every named setup, one tap to apply. The Reframed / Original switch lives inside.',
-  function(){var e=document.getElementById('scr-pb-list');return e?e.children.length+' playbooks':'';});
- wrap('scr-filters','filt','FILTERS','Every filter, click any to multi-select.',activeFilterCount);
- moveOutlookUp();syncPbMode();hideInnerTitles();
- return true;
-}
-function refresh(){
- try{
-  build();
-  var e=document.getElementById('scrc-filt');
-  if(e)e.textContent=activeFilterCount();
-  var p=document.getElementById('scrc-pb'),l=document.getElementById('scr-pb-list');
-  if(p&&l)p.textContent=l.children.length+' playbooks';
- }catch(err){console.error('scr layout:',err);}
-}
-function hook(){
- if(typeof scrRender!=='function'||scrRender._uiw)return false;
- var orig=scrRender;
- window.scrRender=scrRender=function(){var r=orig.apply(this,arguments);refresh();return r;};
- scrRender._uiw=true;return true;
-}
-var t=setInterval(function(){if(hook()){refresh();clearInterval(t);}},400);
-setTimeout(function(){clearInterval(t);},40000);
-})();
-</script>
 
 
 <!-- ═══ TrueFlow Stock Card v1 — one stock, every data point, slide-over ═══ -->
