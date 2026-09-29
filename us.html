@@ -14861,7 +14861,7 @@ function fig(title,cap,d){
  var vmax=Math.max.apply(null,d.v||[1]);
  (d.v||[]).forEach(function(v,i){var h=(VH-4)*v/vmax;g+='<rect x="'+(X(i)-cw*0.32)+'" y="'+(H-2-h)+'" width="'+(cw*0.64)+'" height="'+h+'" fill="'+(c[i]>=o[i]?'#22C55E':'#EF4444')+'" opacity=".45"/>';});
  (d.lines||[]).forEach(function(l){g+='<line x1="'+(l.a!=null?X(l.a)-cw/2:L)+'" x2="'+(l.b!=null?X(l.b)+cw/2:R)+'" y1="'+Y(l.y)+'" y2="'+Y(l.y)+'" stroke="'+l.col+'" stroke-width="1.2" stroke-dasharray="5 3"/>'+
-   '<text x="'+((l.b!=null?X(l.b)+cw/2:R)-2)+'" y="'+(Y(l.y)+(l.below?11:-3))+'" class="lbl" font-size="9.5" fill="'+l.col+'" text-anchor="end" font-weight="700">'+l.t+'</text>';});
+   '<text x="'+(l.left?((l.a!=null?X(l.a)-cw/2:L)+3):((l.b!=null?X(l.b)+cw/2:R)-2))+'" y="'+(Y(l.y)+(l.below?11:-3))+'" class="lbl" font-size="9.5" fill="'+l.col+'" text-anchor="'+(l.left?'start':'end')+'" font-weight="700">'+l.t+'</text>';});
  (d.notes||[]).forEach(function(m){var yy=m.y!=null?Y(m.y):(m.up?Y(hi[m.i])-8:Y(lo[m.i])+14);
   g+='<text x="'+X(m.i)+'" y="'+yy+'" class="lbl" font-size="9.5" fill="'+(m.col||'currentColor')+'" text-anchor="'+(m.anchor||'middle')+'" font-weight="600">'+m.t+'</text>';});
  return '<div class="sx-fig"><div class="ft">'+title+'</div><svg viewBox="0 0 '+W+' '+H+'" style="color:var(--text2)">'+
@@ -14908,6 +14908,26 @@ var FIGS={
   var v=[6,6,6,6,7,7,7,7,7,7,6,6,8,9,9,9];
   return fig('EXIT WATCH','One close under the daily 9 EMA is a warning. The second close in a row under it is the exit — the trend that justified holding is gone.',
    {c:c,v:v,ema:9,notes:[{i:14,t:'1st close below — warning',y:88.9,col:'#D97706',anchor:'end'},{i:15,t:'2nd — exit',y:87.8,col:'#DC2626',anchor:'end'}],hl:[14,15]});},
+ box_ur:function(){var c=seq(75,83,5).concat([84,85.6,83,81,82.4,85.2,84,81.4,80.9,83,85.5,84,82,81.2,83.5,84.6,79.7,82.2,83.8,85.3]);
+  var v=[9,9,10,10,10,6,6,5,5,5,5,5,4,4,5,5,4,4,4,4,4,7,9,7,6];
+  return fig('BOX UNDERCUT & RALLY','Price dips under the box low where the stops sit, then closes back inside within 1\u20133 sessions. Sellers and shorts get trapped. Enter on the reclaim; stop under the undercut low.',
+   {c:c,v:v,box:{a:5,b:20,hi:86.1,lo:80.4},r:(function(){var r=[];r[21]=4.2;return r;})(),lines:[{y:80.4,t:'Box low',col:'#D97706',a:5,b:24,left:1,below:1},{y:77.4,t:'Stop — undercut low',col:'#DC2626',a:19,below:1}],
+    notes:[{i:22,t:'Reclaim → entry',up:1,col:'#16A34A',anchor:'end'}],hl:[22]});},
+ spring:function(){var c=seq(75,83,5).concat([84,85.6,83,81,82.4,85.2,84,81.4,80.9,83,85.5,84,82,81.2,83.5,84.6,81.6,83.2,84.4,85.6]);
+  var r=[];r[21]=5.2;var v=[9,9,10,10,10,6,6,5,5,5,5,5,4,4,5,5,4,4,4,4,4,14,7,6,6];
+  return fig('SPRING','The undercut day trades heavy volume yet closes in the upper half of its range \u2014 big buyers absorbed the selling at the stops. Enter on the reclaim; stop under the spring low.',
+   {c:c,v:v,r:r,gap:[21],box:{a:5,b:20,hi:86.1,lo:80.4},lines:[{y:80.4,t:'Box low',col:'#D97706',a:5,b:24,left:1,below:1},{y:78.4,t:'Stop — spring low',col:'#DC2626',a:19,below:1}],
+    notes:[{i:21,t:'Heavy volume, strong close',up:1,col:'#16A34A',anchor:'end'}],hl:[21]});},
+ top:function(){var c=seq(75,83,5).concat([84,85.6,83,81,82.4,85.2,84,81.4,80.9,83,85.5,84,82,81.2,83.5,85.4,87.8,86,84.6,83.9,85.2,87.6,89.8]);
+  var v=[9,9,10,10,10,6,6,5,5,5,5,5,4,4,5,5,4,4,4,4,5,11,6,5,4,6,11,10];
+  return fig('TOP SHAKEOUT \u2014 RE-BREAK','It breaks out, gets pulled back inside (the eager buyers are shaken out), then breaks out again. Enter on the re-break; stop under the pullback low.',
+   {c:c,v:v,box:{a:5,b:20,hi:86.1,lo:80.4},lines:[{y:86.1,t:'Box high',col:'#D97706',a:5,left:1},{y:83.2,t:'Stop — pullback low',col:'#DC2626',a:22,b:27,below:1}],
+    notes:[{i:26,t:'Re-break → entry',up:1,col:'#16A34A',anchor:'end'}],hl:[26]});},
+ shkbo:function(){var c=seq(75,83,5).concat([84,85.6,83,81,82.4,85.2,84,81.4,80.9,83,85.5,84,82,81.2,79.8,82.4,83.6,84.8,85.6,85.2,85.9,88.6,90.4]);
+  var v=[9,9,10,10,10,6,6,5,5,5,5,5,4,4,5,5,4,4,6,8,6,5,4,4,4,4,12,10];
+  return fig('SHAKEOUT \u2192 BOX BREAKOUT','First the shakeout (here an undercut of the box low), then within ~15 sessions a close above the box high. The shakeout cleared the weak holders, so the break has less supply overhead. Enter on the breakout; stop under the shakeout low.',
+   {c:c,v:v,box:{a:5,b:17,hi:86.1,lo:80.4},lines:[{y:86.1,t:'Box high — breakout',col:'#16A34A',a:5,left:1},{y:78.9,t:'Stop — shakeout low',col:'#DC2626',a:17,below:1,left:1}],
+    notes:[{i:19,t:'Shakeout',y:77.8,col:'#DC2626'},{i:26,t:'Breakout → entry',up:1,col:'#16A34A',anchor:'end'}],hl:[26]});},
  mtf:function(){
   function mini(x,t,c,cl){var n=c.length,mn=Math.min.apply(null,c),mx=Math.max.apply(null,c),w=138,h=110;
    var e=emaArr(c,5);function P(a){return a.map(function(v,i){return (x+6+i*(w-12)/(n-1)).toFixed(1)+','+(34+(1-(v-mn)/(mx-mn||1))*(h-50)).toFixed(1);}).join(' ');}
@@ -14924,6 +14944,12 @@ function figKeys(){
  function has(key,v){return st[key]&&st[key].size&&(v===undefined||st[key].has(v));}
  var ap=S.activePreset||'';
  if(ap==='exitwatch')k.push('exit');
+ /* shakeouts first: the most specific picture wins */
+ if(/^pb_shk_/.test(ap)||has('bstate','nearhi')||has('bstate','broke'))k.push('shkbo');
+ if(ap==='pb_top_shk'||has('shk','top'))k.push('top');
+ if(ap==='pb_spring'||has('shk','spring'))k.push('spring');
+ if(ap==='pb_box_ur'||ap==='pb_uc_now'||has('shk','ur')||has('bstate','undercut')||has('bstate','reclaimed'))k.push('box_ur');
+ if(has('shk','ema9')||has('shk','ema20')||(has('shk','any')&&!k.length))k.push('reclaim');
  if(has('pattern','VCP'))k.push('vcp');
  if(has('pattern','HTF'))k.push('htf');
  if(has('pattern','EP')||/ep/i.test(ap)&&/pb_ep|earningsep|delayedep|epcoil|epresumed|epinsider/.test(ap))k.push('ep');
@@ -15473,6 +15499,206 @@ if(typeof renderPicks==='function'){
 }
 })();
 </script>
+
+<!-- ═══ TrueFlow Shakeouts v1 — EMA + box shakeouts, box states, shakeout→breakout ═══ -->
+<script>
+(function(){
+'use strict';
+var TBL='us_shakeout_state',EVT='us_shakeout_evidence';
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+var SK_NAME={ema9:'9 EMA shakeout',ema20:'20 EMA shakeout',ur:'Box U&R',spring:'Spring',top:'Top shakeout',fbbo:'Failed breakdown → breakout',shkbo:'Shakeout → box breakout'};
+var SK_ICON={ema9:'〰️',ema20:'〰️',ur:'📦',spring:'🌱',top:'🔁'};
+var BX_NAME={inbox:'In box',undercut:'Undercut — below box low',reclaimed:'Reclaimed box low',nearhi:'Near box high',broke:'Broke out',breakdown:'Broke down'};
+window.SK={rows:{},ev:{},date:null,loaded:false};
+
+/* ── data ─────────────────────────────────────────── */
+function sbGet(path){
+ return fetch(CONFIG.supabaseUrl+'/rest/v1/'+path,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}})
+  .then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
+}
+var _p=null;
+window.skLoad=function(){
+ if(_p)return _p;
+ _p=(async function(){
+  var all=[],off=0;
+  for(var g=0;g<8;g++){var b=await sbGet(TBL+'?select=*&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}
+  // the date most rows carry; rows older than 7 days are left out (stocks that left the universe)
+  var cnt={},mx='';all.forEach(function(x){cnt[x.session_date]=(cnt[x.session_date]||0)+1;});
+  for(var d in cnt){if(!mx||cnt[d]>cnt[mx])mx=d;}
+  var cut=mx?new Date(new Date(mx).getTime()-7*864e5).toISOString().slice(0,10):'';
+  all.forEach(function(x){if(x.session_date>=cut)SK.rows[x.symbol]=x;});
+  SK.date=mx||null;
+  var ev=await sbGet(EVT+'?select=*');(ev||[]).forEach(function(r){SK.ev[r.type+'|'+r.horizon]=r;});
+  SK.loaded=true;
+ })();
+ return _p;
+};
+function n(x){return x==null?null:+x;}
+function apply(d){
+ var r=SK.rows[d.sym];
+ d.skType=r?r.shake_type:null;d.skAge=r?n(r.shake_age):null;d.skage=d.skAge;d.skLow=r?n(r.shake_low):null;
+ d.skBoxHi=r?n(r.box_hi):null;d.skBoxLo=r?n(r.box_lo):null;d.skBoxDays=r?n(r.box_days):null;
+ d.skState=r?r.box_state:null;d.skUc=r?n(r.uc_depth_adr):null;d.skRvol=r?n(r.reclaim_rvol):null;
+ d.skBo=!!(r&&r.shk_bo);d.skNear=!!(r&&r.shk_near);d.skTrend=!!(r&&r.trend_ok);
+}
+
+/* ── filters ──────────────────────────────────────── */
+var SK_FILTERS=[
+ {key:'shk',label:'Shakeout Type',opts:['any','ema9','ema20','ur','spring','top'],
+  disp:{any:'Any shakeout',ema9:'〰️ 9 EMA',ema20:'〰️ 20 EMA',ur:'📦 Box U&R',spring:'🌱 Spring',top:'🔁 Top shakeout'},
+  tips:{any:'Any of the shakeouts below.',ema9:'Lost the daily 9 EMA for 1–3 closes, then closed back above it.',ema20:'The same against the 20 EMA.',
+   ur:'Undercut the box low, then closed back inside within 1–3 sessions.',spring:'A U&R whose undercut day had heavy volume and closed in the upper half of its range.',
+   top:'Broke out of the box, fell back inside, then broke out again.'}},
+ {key:'shkage',label:'Shakeout Age',opts:['3','10','20'],disp:{'3':'≤ 3 sessions','10':'≤ 10 sessions','20':'≤ 20 sessions'},tips:{}},
+ {key:'bstate',label:'Box State',opts:['inbox','undercut','reclaimed','nearhi','broke','breakdown'],
+  disp:{inbox:'■ In box',undercut:'⬇ Undercut now',reclaimed:'↩ Reclaimed low',nearhi:'⬆ Near box high',broke:'🚀 Broke out',breakdown:'✕ Broke down'},
+  tips:{inbox:'Trading inside a sideways box.',undercut:'Today it closed below the box low — watch for the reclaim.',reclaimed:'Undercut the box low and got back inside in the last 5 sessions.',
+   nearhi:'Within 3% of the box high.',broke:'Closed above the box high today.',breakdown:'Went too far below the box, or stayed below too long — not a shakeout any more.'}},
+ {key:'ucd',label:'Undercut Depth',opts:['0.5','1','1.5'],disp:{'0.5':'≤ 0.5 × ADR','1':'≤ 1 × ADR','1.5':'≤ 1.5 × ADR'},
+  tips:{'0.5':'How far below the box low it went, in multiples of the stock\u2019s own average daily range.'}},
+ {key:'rclv',label:'Reclaim Volume',opts:['1.5','2'],disp:{'1.5':'≥ 1.5× avg','2':'≥ 2× avg'},tips:{'1.5':'Volume on the reclaim day vs the 20-day average.'}}
+];
+function passes(d){
+ var S=SCR.state;
+ if(S.shk&&S.shk.size){if(!d.skType)return false;if(!S.shk.has('any')&&!S.shk.has(d.skType))return false;}
+ if(S.shkage&&S.shkage.size){var m=0;S.shkage.forEach(function(v){m=Math.max(m,+v);});if(d.skAge==null||d.skAge>m)return false;}
+ if(S.bstate&&S.bstate.size&&!S.bstate.has(d.skState))return false;
+ if(S.ucd&&S.ucd.size){var u=0;S.ucd.forEach(function(v){u=Math.max(u,+v);});if(d.skUc==null||d.skUc>u)return false;}
+ if(S.rclv&&S.rclv.size){var r=1e9;S.rclv.forEach(function(v){r=Math.min(r,+v);});if(d.skRvol==null||d.skRvol<r)return false;}
+ return true;
+}
+
+/* ── playbooks ────────────────────────────────────── */
+function evLine(type){
+ var r=SK.ev[type+'_trend|10']||SK.ev[type+'|10'];
+ if(!r)return '';
+ return ' <span class="sk-ev">📊 In your own data (last ~2 years, uptrend cases): '+r.n+' signals · median '+(r.median_pct>0?'+':'')+r.median_pct+
+  '% after 10 sessions · higher after 10 sessions '+r.win_pct+'% of the time. A guide, not a promise — no costs, overlapping trades.</span>';
+}
+var SK_PRESETS=[
+ {id:'pb_shk_bo',grp:'Shakeouts',when:'eod',label:'⭐ Shakeout → Box Breakout',set:{shk:['any'],shkage:['20'],bstate:['broke']},
+  req:function(d){return d.skBo&&d.skTrend;},evt:'shkbo',
+  how:'The pattern this group is built around: a stock shakes out — loses its 9 or 20 EMA, or undercuts its box low — then recovers, and within 15 sessions closes above the box high. The shakeout cleared the weak holders, so the break has less supply above it. Plan: buy the breakout close or the next session\u2019s strength; the stop goes under the shakeout low (drawn on the chart). Uptrend only (above a rising 50 EMA).'},
+ {id:'pb_shk_near',grp:'Shakeouts',when:'eod',label:'Shakeout, near box high',set:{shk:['any'],shkage:['20'],bstate:['nearhi']},
+  req:function(d){return d.skNear&&d.skTrend;},evt:'shkbo',
+  how:'The watchlist BEFORE the break: a shakeout in the last 15 sessions and price now within 3% of the box high. Set an alert just above the box high; stop under the shakeout low. The history line shows how the eventual breakouts did.'},
+ {id:'pb_box_ur',grp:'Shakeouts',when:'eod',label:'Box U&R (undercut & rally)',set:{shk:['ur','spring'],shkage:['3']},
+  req:function(d){return d.skTrend&&d.skState!=='breakdown';},evt:'ur',
+  how:'Price dipped below the box low — tripping stops and inviting shorts — then closed back inside within 1–3 sessions. The trapped shorts become buyers. Plan: enter on the reclaim or the first tight day after it; the stop goes under the undercut low. Best when the undercut is shallow (≤ 1× ADR) and the reclaim comes on rising volume.'},
+ {id:'pb_spring',grp:'Shakeouts',when:'eod',label:'Spring (volume undercut)',set:{shk:['spring'],shkage:['3']},
+  req:function(d){return d.skTrend;},evt:'spring',
+  how:'A U&R where the undercut day itself traded heavy volume (1.5× average or more) and still closed in the upper half of its range: large buyers absorbed everything that was sold into the break. Plan: enter on the reclaim or next day; stop under the spring low.'},
+ {id:'pb_uc_now',grp:'Shakeouts',when:'eod',label:'Undercut today — watch the reclaim',set:{bstate:['undercut']},
+  req:function(d){return d.skTrend;},evt:'ur',
+  how:'Closed below its box low today, in an uptrend. Not a trade yet — it becomes a U&R only if it closes back inside the box within 1–3 sessions, and a failure if it keeps falling. Put an alert at the box low.'},
+ {id:'pb_top_shk',grp:'Shakeouts',when:'eod',label:'Top shakeout: re-break',set:{shk:['top'],shkage:['3']},
+  req:function(d){return d.skTrend;},evt:'top',
+  how:'Broke out of the box, got dragged back inside (breakout buyers shaken out), then broke out again. The second break has already beaten the sellers once. Plan: enter on the re-break; stop under the pullback low.'}
+];
+
+/* ── explanations for the new filters ─────────────── */
+function explain(){
+ try{
+  SCR_FILTER_WHY.shk='The kind of shakeout the stock went through most recently \u2014 a quick loss and recovery of an EMA or of its box low.';
+  SCR_FILTER_WHY.shkage='How many sessions ago the shakeout happened.';
+  SCR_FILTER_WHY.bstate='Where price is relative to its sideways box (range) right now.';
+  SCR_FILTER_WHY.ucd='How deep the undercut went below the box low, in units of the stock\u2019s own average daily range.';
+  SCR_FILTER_WHY.rclv='Volume on the day it got back inside the box, compared with its 20-day average.';
+  function D(k,t,w,y,h,c){SCR_DEEP[k]={t:t,w:w,y:y,h:h,c:c};}
+  D('shk:ur','Box Undercut & Rally (U&R)',
+   'The stock has built a sideways box. Price dips below the box low \u2014 where everyone\u2019s stops sit \u2014 then closes back inside within one to three sessions.',
+   'Stops trigger, short sellers pile in and nervous holders sell, all at the same obvious level. When price gets straight back inside, that selling is used up and the shorts are trapped: they have to buy back, which is fuel for the next leg.',
+   'Enter on the reclaim close or the first tight day after it. The stop goes just under the undercut low \u2014 it is drawn on the chart. If it closes back below that low, the idea has failed; exit.',
+   'Strongest with: a shallow undercut (<b>Undercut Depth \u2264 1\u00d7 ADR</b>), a quick reclaim, rising <b>Reclaim Volume</b>, and an uptrend on the weekly. Then watch for <b>Shakeout \u2192 Box Breakout</b>.');
+  D('shk:spring','Spring',
+   'A U&R where the undercut day itself traded heavy volume \u2014 1.5\u00d7 average or more \u2014 and still closed in the upper half of its range.',
+   'Heavy volume on the break, yet the close held up: someone large bought everything that was sold into the stops. That is supply changing hands from weak to strong.',
+   'Enter on the reclaim, or the next session if it holds; stop under the spring low. Springs often lead straight to the box high.',
+   'Strongest with: an uptrend, a box that has been tested several times, and then a close above the box high.');
+  D('shk:top','Top shakeout (break, fail, re-break)',
+   'The stock breaks above its box, falls back inside within a few sessions, then breaks above again.',
+   'The first breakout pulls in eager buyers; the dip back shakes them out and fools the sellers into thinking the move failed. The second break has already absorbed that supply.',
+   'Buy the re-break; the stop goes under the low of the pullback inside the box.',
+   'Strongest with: the pullback staying in the upper half of the box, and volume drying up during it.');
+  D('shk:ema9','9 EMA shakeout',
+   'A stock in an uptrend closes below its daily 9 EMA for one to three sessions, then closes back above it.',
+   'The 9 EMA is where short-term traders place stops. A brief loss flushes them; a fast recovery shows the trend buyers are still in control.',
+   'Enter on the reclaim close; the stop goes under the shakeout low.',
+   'Strongest with: the 9 still above the 20 EMA, a weekly uptrend, and a box nearby for the follow-through.');
+  D('shk:ema20','20 EMA shakeout',
+   'A stock that had been holding above its daily 20 EMA closes below it for one to three sessions, then closes back above it.',
+   'A deeper test than the 9: medium-term holders get shaken out. Recovering the 20 quickly says the bigger trend is intact.',
+   'Enter on the reclaim close; the stop goes under the shakeout low. Give it a little more room than a 9 EMA shakeout.',
+   'Strongest with: a rising 50 EMA underneath and a weekly uptrend.');
+  D('shk:any','Any shakeout',
+   'Any of the shakeouts: 9 or 20 EMA, box undercut & rally, spring, or top shakeout.',
+   'Each one is the same idea on a different level: price takes out an obvious level where stops sit, then recovers. The recovery is what matters.',
+   'Use the shakeout low as the stop. The best trades come when the shakeout is followed by a close above the box high.',
+   'Combine with <b>Box State: Near box high</b> for the watchlist, or <b>Broke out</b> for the trigger.');
+ }catch(e){console.error('shakeout explain',e);}
+}
+
+/* ── column ───────────────────────────────────────── */
+var SK_COL={k:'skage',g:'Setup',lbl:'Shakeout',a:'l',def:1,tip:'Most recent shakeout, how many sessions ago, and where price sits in its box. Stop = the shakeout low.',
+ cell:function(d){
+  if(!d.skType&&!d.skState)return (typeof DASH!=='undefined')?DASH:'—';
+  var t=d.skType?(SK_ICON[d.skType]||'')+' '+(SK_NAME[d.skType]||d.skType)+(d.skAge!=null?' · '+d.skAge+'d':''):'';
+  var b=d.skState?BX_NAME[d.skState]:'';
+  var col=d.skState==='broke'?'#16A34A':(d.skState==='undercut'||d.skState==='breakdown'?'#DC2626':(d.skState==='nearhi'?'#D97706':'var(--text2)'));
+  var tip=(d.skBoxHi?'Box '+d.skBoxLo+' – '+d.skBoxHi+' ('+(d.skBoxDays||'?')+' sessions)':'')+(d.skLow?' · stop (shakeout low) '+d.skLow:'');
+  return '<span title="'+esc(tip)+'" style="white-space:nowrap">'+(d.skBo?'⭐ ':'')+esc(t)+(t&&b?' · ':'')+'<b style="color:'+col+'">'+esc(b)+'</b></span>';}};
+
+/* ── install into the screener ────────────────────── */
+function install(){
+ if(typeof SCR_FILTERS==='undefined'||typeof SCR_PRESETS==='undefined'||typeof SCR_COLS==='undefined'||!window._tfInstalled)return false;
+ if(window._skInstalled)return true;window._skInstalled=true;
+ var at=SCR_FILTERS.findIndex(function(f){return f.key==='newl';});at=at<0?SCR_FILTERS.length:at+1;
+ Array.prototype.splice.apply(SCR_FILTERS,[at,0].concat(SK_FILTERS));
+ SK_FILTERS.forEach(function(f){SCR.state[f.key]=new Set();});
+ try{if(typeof SCR_FGROUPS!=='undefined'){var o=SCR_FGROUPS.findIndex(function(g){return /^Other/.test(g[0]);});
+  var g=['Shakeouts & Boxes',['shk','shkage','bstate','ucd','rclv']];if(o<0)SCR_FGROUPS.push(g);else SCR_FGROUPS.splice(o,0,g);}}catch(e){}
+ try{SCR_FILTER_COL.shk='skage';SCR_FILTER_COL.shkage='skage';SCR_FILTER_COL.bstate='skage';SCR_FILTER_COL.ucd='skage';SCR_FILTER_COL.rclv='skage';}catch(e){}
+ SCR_COLS.push(SK_COL);SCR.vis[SK_COL.k]=true;
+ var ex=SCR_PRESETS.filter(function(p){return p.id==='pb_shakeout';})[0];
+ if(ex){ex.grp='Shakeouts';ex.label='EMA Shakeout & Reclaim';}
+ SK_PRESETS.forEach(function(p){p._sk=true;p._how0=p.how;SCR_PRESETS.push(p);});
+ explain();
+ var orig=scrPasses;
+ scrPasses=function(d){
+  if(!orig(d))return false;
+  if(!passes(d))return false;
+  var p=null;for(var i=0;i<SCR_PRESETS.length;i++){if(SCR_PRESETS[i].id===SCR.activePreset){p=SCR_PRESETS[i];break;}}
+  if(p&&p._sk&&p.req&&!p.req(d))return false;
+  return true;
+ };
+ try{scrFillPlaybooks();}catch(e){}
+ return true;
+}
+function addEvidence(){
+ SK_PRESETS.forEach(function(p){p.how=p._how0+(p.evt?evLine(p.evt):'');});
+ var ex=SCR_PRESETS.filter(function(x){return x.id==='pb_shakeout';})[0];
+ if(ex&&!ex._skEv&&(SK.ev['ema9_trend|10']||SK.ev['ema20_trend|10'])){ex._skEv=true;ex.how=(ex.how||'')+evLine('ema9');}
+}
+var t=setInterval(function(){
+ if(install()){
+  clearInterval(t);
+  var m=window.tfMtfMerge;
+  if(typeof m==='function'&&!m._sk){
+   window.tfMtfMerge=async function(){
+    var r=await m.apply(this,arguments);
+    try{await skLoad();(SCR.data||[]).forEach(apply);addEvidence();}catch(e){console.error('shakeout merge',e);}
+    return r;};
+   window.tfMtfMerge._sk=true;
+  }
+  // screener already loaded before this ran: merge now
+  if(typeof SCR!=='undefined'&&SCR.loaded){skLoad().then(function(){(SCR.data||[]).forEach(apply);addEvidence();try{scrRender();}catch(e){}});}
+ }
+},300);
+setTimeout(function(){clearInterval(t);},60000);
+})();
+</script>
+<style>.sk-ev{display:block;margin-top:6px;font-size:11.5px;color:var(--text2)}</style>
+
 
 <!-- ═══ TrueFlow Stock Card v1 — one stock, every data point, slide-over ═══ -->
 <style>
@@ -16885,6 +17111,9 @@ function ceLevels(o){
  add('cew',oi.max_ce_strike,'Call OI wall','var(--red)','Strike with the most call open interest. Upside often stalls here.');
  add('pew',oi.max_pe_strike,'Put OI wall','var(--green)','Strike with the most put open interest. Often acts as a floor.');
  add('stop',d.rclStop,'Reclaim stop','var(--red)','Where the reclaim setup fails.');
+ add('rngh',d.skBoxHi,'Range high','var(--amber)','Top of the sideways box the shakeout scan found — the breakout level.');
+ add('rngl',d.skBoxLo,'Range low','var(--amber)','Bottom of the box — the level shakeouts undercut.');
+ add('shkl',d.skLow,'Shakeout low','var(--red)','Low of the latest shakeout — where the setup fails (the stop).');
  return L;
 }
 

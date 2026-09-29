@@ -102,6 +102,7 @@ def run(dry):
             ("MTF scan", "momentum_mtf", "session_date", False),
             ("Playbook tracker", "playbook_picks", "session_date", False),
             ("F&O bhav OI", "fo_bhav_oi", "session_date", True),
+            ("Shakeout scan", "shakeout_state", "session_date", False),
         ]:
             got, err = latest(table, col)
             if err:
@@ -133,6 +134,7 @@ def run(dry):
         ("US OHLC top-up", "us_daily_ohlc", "d"),
         ("US MTF scan", "us_momentum_mtf", "session_date"),
         ("US playbook tracker", "us_playbook_picks", "session_date"),
+        ("US shakeout scan", "us_shakeout_state", "session_date"),
     ]:
         got, err = latest(table, col)
         if err:
