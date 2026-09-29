@@ -205,14 +205,22 @@ _warned_at = 0
 
 def kite_ok():
     """Is the Kite session usable right now? A dead token is TEMPORARY -
-    it must never cause a live trigger to be thrown away."""
+    it must never cause a live trigger to be thrown away.
+    Returns (ok, error_text, is_login_problem). Only a rejected token or key
+    counts as a login problem; a dropped connection or timeout is a network
+    blip and is retried quietly."""
     try:
         kite().profile()
-        return True, None
+        return True, None, False
     except Exception as e:
         global _kite
         _kite = None                      # force a re-read of access_token.txt
-        return False, str(e)[:200]
+        name = type(e).__name__
+        txt = str(e)
+        login = (name in ("TokenException", "PermissionException")
+                 or "token" in txt.lower() or "api_key" in txt.lower()
+                 or isinstance(e, (IOError,)) and "access_token" in txt)
+        return False, txt[:200], login
 
 
 def warn_once(msg, every=1800):
@@ -564,8 +572,10 @@ def handle_taps():
 
 def expire_old():
     cutoff = (now_ist() - timedelta(seconds=CONFIRM_WINDOW_SEC)).isoformat()
+    # quote(): a raw "+05:30" in a web address is read as " 05:30" and
+    # Supabase rejects the request (400) - this broke expiry from day one.
     for t in sb_get("swing_triggers",
-                    "status=eq.offered&offered_at=lt.%s" % cutoff):
+                    "status=eq.offered&offered_at=lt.%s" % requests.utils.quote(cutoff, safe="")):
         sb_patch("swing_triggers", "id=eq.%s" % t["id"],
                  {"status": "expired", "decided_at": now_ist().isoformat()})
         tg_edit(t.get("tg_message_id"),
@@ -590,35 +600,56 @@ def main():
 
     log("swing_bot up  DRY_RUN=%s  risk=Rs%d  cap=%d positions"
         % (DRY_RUN, RISK_RUPEES, MAX_OPEN_POSITIONS))
-    ok, err = kite_ok()
+    ok, err, _login = kite_ok()
     tg_send("\U0001f916 Swing bot started%s\n%s" % (
         " <b>[DRY RUN]</b>" if DRY_RUN else "",
         "Zerodha: connected" if ok else
         "\U0001f534 <b>Zerodha: NOT connected - log in now</b> (%s)" % err))
 
     tick = 0
-    while in_session():
+    net_fail = 0                      # consecutive network failures talking to Kite
+    last_err = {}                     # step -> (text, time): log a repeated error once per 30 min
+
+    def step(name, fn):
+        """Run one part of the round on its own, so one failure cannot skip the rest."""
         try:
-            handle_taps()
-            if tick % max(1, TRIGGER_POLL_SEC // 5) == 0:
-                ok, err = kite_ok()
-                if not ok:
-                    warn_once("\U0001f534 <b>Kite login needed.</b> The bot cannot "
-                              "read prices or place orders until you log in. "
-                              "Triggers are being held, not lost. (%s)" % err)
-                    tick += 1
-                    time.sleep(5)
-                    continue
-                for t in sb_get("swing_triggers",
-                                "status=eq.new&order=created_at.asc&limit=5"):
-                    offer(t)
-                expire_old()
+            fn()
+            last_err.pop(name, None)
         except Exception:
-            log("loop error:\n" + traceback.format_exc())
+            tb = traceback.format_exc()
+            key = tb.strip().splitlines()[-1]
+            prev = last_err.get(name)
+            if not prev or prev[0] != key or time.time() - prev[1] > 1800:
+                log("%s error:\n%s" % (name, tb))
+                last_err[name] = (key, time.time())
+
+    def poll_new():
+        for t in sb_get("swing_triggers",
+                        "status=eq.new&order=created_at.asc&limit=5"):
+            offer(t)
+
+    while in_session():
+        step("taps", handle_taps)
+        if tick % max(1, TRIGGER_POLL_SEC // 5) == 0:
+            ok, err, login = kite_ok()
+            if not ok and login:
+                warn_once("\U0001f534 <b>Kite login needed.</b> The bot cannot "
+                          "read prices or place orders until you log in. "
+                          "Triggers are being held, not lost. (%s)" % err)
+            elif not ok:
+                net_fail += 1
+                log("Kite unreachable (%d in a row) - retrying: %s" % (net_fail, err))
+                if net_fail >= 6:     # about half an hour at the default poll
+                    warn_once("\u26a0\ufe0f <b>Kite not reachable</b> for a while "
+                              "(network, not your login). Still retrying; triggers are held. (%s)" % err)
+            else:
+                net_fail = 0
+                step("new triggers", poll_new)
+                step("expiry", expire_old)
         tick += 1
         time.sleep(5)
 
-    expire_old()
+    step("expiry", expire_old)
     # anything still waiting at the close is done - it must not resurface tomorrow
     stale = sb_get("swing_triggers", "status=eq.new&select=id,symbol")
     for t in stale:
