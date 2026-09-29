@@ -161,13 +161,27 @@ def analyse(bars, P):
         return {"s": s, "e": end, "hi": hi, "lo": lo, "th": th, "tl": tl}
 
     events = []                  # (i, type, extra)
-    last_shake = [None]          # day of the latest shakeout of any kind
+    last_shake = [None, None]    # day and low of the latest shakeout of any kind
 
     def add(i, typ, extra):
         extra["trend"] = bool(trend_ok(i))
+        # context for the rule study (ignored by the nightly state)
+        extra["rv"] = (v[i] / v20[i]) if v20[i] else None
+        extra["d"] = bars[i]["d"]
+        bx = box
+        if bx:
+            a0 = adr[bx["e"]] or 1
+            s0 = bx["s"]
+            pre_lo = min(l[max(0, s0 - 60):s0 + 1])
+            extra.update(box_len=bx["e"] - bx["s"] + 1, box_th=bx["th"], box_tl=bx["tl"],
+                         box_depth_adr=(bx["hi"] - bx["lo"]) / bx["lo"] * 100 / a0,
+                         rally=(bx["hi"] / pre_lo - 1) * 100 if pre_lo > 0 else None)
+        if typ in ("shkbo",) and last_shake[1] is not None:
+            extra["low"] = last_shake[1]
         events.append((i, typ, extra))
         if typ in ("ema9", "ema20", "ur", "spring", "top"):
             last_shake[0] = i
+            last_shake[1] = extra.get("low")
     box = None                   # the box as it stood before anything broke it
     uc = None                    # active undercut: {start, low}
     brk = None                   # active top breakout: {day}
