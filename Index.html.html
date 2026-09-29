@@ -4580,7 +4580,7 @@ function doLogin() {
   const pwd = document.getElementById('pwd-input').value.trim();
   const ak  = document.getElementById('api-input').value.trim();
   if (pwd === CONFIG.password) {
-    try{ localStorage.setItem('tf_auth_until', String(Date.now()+12*3600*1000)); }catch(e){}
+    try{ localStorage.setItem('tf_auth_until', String(Date.now()+30*24*3600*1000)); }catch(e){}
     if (ak) { apiKey = ak; try{ localStorage.setItem('re-apikey', ak); }catch(e){} }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -18686,7 +18686,13 @@ function wlRender(){
  var G=document.getElementById('wl-grid');
  if(!list){
   if(H)H.innerHTML='';
-  if(G)G.innerHTML='<div style="color:var(--muted);padding:18px">Create a list to begin.</div>';
+  if(G)G.innerHTML='<div style="padding:22px 18px;max-width:640px;line-height:1.6">'+
+   '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">No watchlists yet</div>'+
+   '<div style="color:var(--text2);font-size:12.5px">Create one and the list tools appear: type a symbol to add it, '+
+   '<b>⬇ From playbook</b> and <b>⬇ From filter</b> to pull in whatever a playbook or the Screener is showing, '+
+   '<b>⬇ Import</b> to paste a list, and sections and colour tags to organise it. '+
+   'Or make it a <b>⚡ Live list</b> - it follows a playbook and rebuilds itself from each night\u2019s scan.</div>'+
+   '<button class="scr-tool" style="margin-top:12px;border-color:var(--cyan);color:var(--cyan)" onclick="wlNew()">+ Create a watchlist</button></div>';
   return;
  }
  var syms=wlSymbols(list);
@@ -19292,7 +19298,7 @@ document.addEventListener('keydown',function(e){
 
 <script>
 /* Shared login. Both dashboards live on the same site, so a successful login
-   on either one is remembered here for 12 hours and the other one opens
+   on either one is remembered here for 30 days and the other one opens
    straight in. Log in once, switch IND <-> US freely. */
 window.addEventListener('load',function(){
  try{

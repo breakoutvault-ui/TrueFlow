@@ -4856,7 +4856,7 @@ function doLogin() {
   const pwd = document.getElementById('pwd-input').value.trim();
   const ak  = document.getElementById('api-input').value.trim();
   if (pwd === CONFIG.password) {
-    try{ localStorage.setItem('tf_auth_until', String(Date.now()+12*3600*1000)); }catch(e){}
+    try{ localStorage.setItem('tf_auth_until', String(Date.now()+30*24*3600*1000)); }catch(e){}
     if (ak) { apiKey = ak; try{ localStorage.setItem('re-apikey', ak); }catch(e){} }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -16757,7 +16757,7 @@ window.tfCardLtp=function(sym){
  }catch(e){}
  return null;
 };
-function ceKey(){return 'tfDraw:'+CE.sym;}
+function ceKey(){return 'tfDrawUS:'+CE.sym;}
 /* Toolbar choices are yours, so they persist. Drawings are stored per stock;
    these settings are global, because you want the same chart every time. */
 function cePrefSave(){
@@ -16784,7 +16784,7 @@ function cePrefLoad(){
 var CE_DRAW={};      /* symbol -> array, the live copy */
 var CE_UNDO={};      /* symbol -> {back:[],fwd:[]} */
 
-function ceDrawKey(){return 'tfDraw:'+CE.sym;}
+function ceDrawKey(){return 'tfDrawUS:'+CE.sym;}
 
 function ceLoad(){
  var sym=CE.sym;
@@ -16813,7 +16813,7 @@ function ceDrawPull(sym){
       something drawn offline would be silently thrown away */
    if(!cur.length){
     CE_DRAW[sym]=srv;
-    try{localStorage.setItem('tfDraw:'+sym,JSON.stringify(srv));}catch(e){}
+    try{localStorage.setItem('tfDrawUS:'+sym,JSON.stringify(srv));}catch(e){}
     if(CE.open&&CE.sym===sym&&typeof ceRender==='function')ceRender();
    }
   }).catch(function(){});
@@ -16829,7 +16829,7 @@ function ceSave(a,noUndo){
   u.fwd=[];
  }
  CE_DRAW[sym]=a;
- try{localStorage.setItem('tfDraw:'+sym,JSON.stringify(a));}catch(e){}
+ try{localStorage.setItem('tfDrawUS:'+sym,JSON.stringify(a));}catch(e){}
  ceDrawPush(sym,a);
 }
 
@@ -17582,7 +17582,7 @@ window.ceSearchKey=function(ev){
    var m=f.getAttribute('onmousedown').match(/ceJump\('([^']+)'\)/);if(m)ceJump(m[1]);}}
 };
 window.ceJump=function(sym){
- try{localStorage.setItem('tf_last_sym',sym);}catch(e){}
+ try{localStorage.setItem('tf_last_sym_us',sym);}catch(e){}
  ceSearchHide();
  var i=document.getElementById('ce-sin');if(i)i.value='';
  if(typeof ceOpen==='function')ceOpen(sym);
@@ -18509,7 +18509,7 @@ function wlRender(){
  /* Reopening the Charts tab puts you back on the stock you were last looking
     at, rather than a blank panel. */
  try{
-  var _last=localStorage.getItem('tf_last_sym');
+  var _last=localStorage.getItem('tf_last_sym_us');
   var _hd=document.getElementById('wl-head');
   if(_last&&_hd&&!WL._resumed){
    WL._resumed=true;
@@ -18523,7 +18523,13 @@ function wlRender(){
  var G=document.getElementById('wl-grid');
  if(!list){
   if(H)H.innerHTML='';
-  if(G)G.innerHTML='<div style="color:var(--muted);padding:18px">Create a list to begin.</div>';
+  if(G)G.innerHTML='<div style="padding:22px 18px;max-width:640px;line-height:1.6">'+
+   '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">No watchlists yet</div>'+
+   '<div style="color:var(--text2);font-size:12.5px">Create one and the list tools appear: type a symbol to add it, '+
+   '<b>⬇ From playbook</b> and <b>⬇ From filter</b> to pull in whatever a playbook or the Screener is showing, '+
+   '<b>⬇ Import</b> to paste a list, and sections and colour tags to organise it. '+
+   'Or make it a <b>⚡ Live list</b> - it follows a playbook and rebuilds itself from each night\u2019s scan.</div>'+
+   '<button class="scr-tool" style="margin-top:12px;border-color:var(--cyan);color:var(--cyan)" onclick="wlNew()">+ Create a watchlist</button></div>';
   return;
  }
  var syms=wlSymbols(list);
@@ -18964,7 +18970,7 @@ window.wlSection=function(){
 };
 
 window.wlOpen=function(sym){
- try{localStorage.setItem('tf_last_sym',sym);}catch(e){}
+ try{localStorage.setItem('tf_last_sym_us',sym);}catch(e){}
  try{
   var syms=wlSymbols(wlActive())||[];
   if(typeof SC!=='undefined'&&syms.length){SC.list=syms.slice();SC.idx=syms.indexOf(sym);}
@@ -19128,7 +19134,7 @@ document.addEventListener('keydown',function(e){
 
 <script>
 /* Shared login. Both dashboards live on the same site, so a successful login
-   on either one is remembered here for 12 hours and the other one opens
+   on either one is remembered here for 30 days and the other one opens
    straight in. Log in once, switch IND <-> US freely. */
 window.addEventListener('load',function(){
  try{
