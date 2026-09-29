@@ -14573,6 +14573,8 @@ function figKeys(){
  var S=SCRx();if(!S)return [];var st=S.state||{},k=[];
  function has(key,v){return st[key]&&st[key].size&&(v===undefined||st[key].has(v));}
  var ap=S.activePreset||'';
+ var P0=(typeof SCR_PRESETS!=='undefined')?SCR_PRESETS.filter(function(x){return x.id===ap;})[0]:null;
+ if(P0&&P0.fig)k.push(P0.fig);
  if(ap==='exitwatch')k.push('exit');
  /* shakeouts first: the most specific picture wins */
  if(/^pb_shk_/.test(ap)||has('bstate','nearhi')||has('bstate','broke'))k.push('shkbo');
@@ -15683,6 +15685,7 @@ function apply(d){
  d.skBoxHi=r?n(r.box_hi):null;d.skBoxLo=r?n(r.box_lo):null;d.skBoxDays=r?n(r.box_days):null;
  d.skState=r?r.box_state:null;d.skUc=r?n(r.uc_depth_adr):null;d.skRvol=r?n(r.reclaim_rvol):null;
  d.skBo=!!(r&&r.shk_bo);d.skNear=!!(r&&r.shk_near);d.skTrend=!!(r&&r.trend_ok);
+ d.skHits=(r&&r.pb_hits)?String(r.pb_hits).split(','):[];d.skRs=!!(r&&r.rs_top30);
 }
 
 /* ── filters ──────────────────────────────────────── */
@@ -15718,26 +15721,47 @@ function evLine(type){
  return ' <span class="sk-ev">📊 In your own data (last ~2 years, uptrend cases): '+r.n+' signals · median '+(r.median_pct>0?'+':'')+r.median_pct+
   '% after 10 sessions · higher after 10 sessions '+r.win_pct+'% of the time. A guide, not a promise — no costs, overlapping trades.</span>';
 }
-var SK_PRESETS=[
- {id:'pb_shk_bo',grp:'Shakeouts',when:'eod',label:'⭐ Shakeout → Box Breakout',set:{shk:['any'],shkage:['20'],bstate:['broke']},
-  req:function(d){return d.skBo&&d.skTrend;},evt:'shkbo',
-  how:'The pattern this group is built around: a stock shakes out — loses its 9 or 20 EMA, or undercuts its box low — then recovers, and within 15 sessions closes above the box high. The shakeout cleared the weak holders, so the break has less supply above it. Plan: buy the breakout close or the next session\u2019s strength; the stop goes under the shakeout low (drawn on the chart). Uptrend only (above a rising 50 EMA).'},
- {id:'pb_shk_near',grp:'Shakeouts',when:'eod',label:'Shakeout, near box high',set:{shk:['any'],shkage:['20'],bstate:['nearhi']},
-  req:function(d){return d.skNear&&d.skTrend;},evt:'shkbo',
-  how:'The watchlist BEFORE the break: a shakeout in the last 15 sessions and price now within 3% of the box high. Set an alert just above the box high; stop under the shakeout low. The history line shows how the eventual breakouts did.'},
- {id:'pb_box_ur',grp:'Shakeouts',when:'eod',label:'Box U&R (undercut & rally)',set:{shk:['ur','spring'],shkage:['3']},
-  req:function(d){return d.skTrend&&d.skState!=='breakdown';},evt:'ur',
-  how:'Price dipped below the box low — tripping stops and inviting shorts — then closed back inside within 1–3 sessions. The trapped shorts become buyers. Plan: enter on the reclaim or the first tight day after it; the stop goes under the undercut low. Best when the undercut is shallow (≤ 1× ADR) and the reclaim comes on rising volume.'},
- {id:'pb_spring',grp:'Shakeouts',when:'eod',label:'Spring (volume undercut)',set:{shk:['spring'],shkage:['3']},
-  req:function(d){return d.skTrend;},evt:'spring',
-  how:'A U&R where the undercut day itself traded heavy volume (1.5× average or more) and still closed in the upper half of its range: large buyers absorbed everything that was sold into the break. Plan: enter on the reclaim or next day; stop under the spring low.'},
- {id:'pb_uc_now',grp:'Shakeouts',when:'eod',label:'Undercut today — watch the reclaim',set:{bstate:['undercut']},
-  req:function(d){return d.skTrend;},evt:'ur',
-  how:'Closed below its box low today, in an uptrend. Not a trade yet — it becomes a U&R only if it closes back inside the box within 1–3 sessions, and a failure if it keeps falling. Put an alert at the box low.'},
- {id:'pb_top_shk',grp:'Shakeouts',when:'eod',label:'Top shakeout: re-break',set:{shk:['top'],shkage:['3']},
-  req:function(d){return d.skTrend;},evt:'top',
-  how:'Broke out of the box, got dragged back inside (breakout buyers shaken out), then broke out again. The second break has already beaten the sellers once. Plan: enter on the re-break; stop under the pullback low.'}
-];
+/* The playbooks that PASSED the 29 Sep 2026 study, one list per market.
+   Rules that showed no edge in a market are not offered there at all. The
+   scan decides who qualifies (pb_hits); these only describe and select. */
+var STUDY=' <span class="sk-ev">📊 Study, 29 Sep 2026 (your data, ~2.5 years): ';
+var SK_PB={
+ IN:[
+  {id:'in_ema20v',label:'20 EMA Shakeout + Volume',fig:'reclaim',
+   how:'Uptrend stock closes below its daily 20 EMA for 1\u20133 sessions, then closes back above it on at least 1.5\u00d7 its average volume. The volume is what made this work in India: without it, the same reclaim showed no edge. Plan: enter next session; stop under the shakeout low (drawn on the chart). Signals are valid today and for 2 sessions after.'+
+    STUDY+'1,018 trades · +0.81% per trade better than a plain uptrend entry · held in both halves of the history. Win rate ~42%, the stop gets hit ~42% of the time \u2014 the edge comes from the winners being bigger.</span>'},
+  {id:'in_ema20v_rs',label:'⭐ 20 EMA Shakeout + Volume, strong stock',fig:'reclaim',
+   how:'The same 20 EMA shakeout with volume, but only in stocks in the top 30% of the market by 3-month return. Leaders that shake out and recover did best. Plan as above.'+
+    STUDY+'544 trades · +1.20% per trade vs baseline · held in both halves. Win rate ~44%.</span>'},
+  {id:'in_box_ur',label:'Box U&R (tight)',fig:'box_ur',
+   how:'A stock that rallied 20%+ into a sideways box dips below the box low by no more than half its usual daily range and closes back inside THE SAME DAY, on at least average volume. Only this tight version worked in India \u2014 slower or deeper undercuts showed no edge. Plan: enter next session; stop under the undercut low.'+
+    STUDY+'665 trades · +0.88% per trade vs baseline · very steady across both halves (+0.92 / +0.85). Win rate ~31%: many small stops, fewer larger winners.</span>'}
+ ],
+ US:[
+  {id:'us_ema9v',label:'9 EMA Shakeout + Volume',fig:'reclaim',
+   how:'Uptrend stock closes below its daily 9 EMA for 1\u20133 sessions, then closes back above it on at least 1.5\u00d7 average volume. In the US the 9 EMA version worked and the 20 EMA did not \u2014 the reverse of India. Plan: enter next session; stop under the shakeout low.'+
+    STUDY+'1,974 trades · +0.67% per trade vs baseline · held in both halves. Win rate ~43%.</span>'},
+  {id:'us_ema9v_rs',label:'⭐ 9 EMA Shakeout + Volume, strong stock',fig:'reclaim',
+   how:'The same, only in stocks in the top 30% of the US universe by 3-month return.'+
+    STUDY+'946 trades · +1.03% per trade vs baseline · held in both halves. Win rate ~44%.</span>'},
+  {id:'us_fbbo',label:'Failed Breakdown → Breakout',fig:'shkbo',
+   how:'A stock that rallied 30%+ into its box undercuts the box low, gets back inside, then closes above the box high within 10 sessions. Plan: buy the breakout (next session); stop under the box low.'+
+    STUDY+'983 trades · +0.70% per trade vs baseline · held in both halves. Win rate ~51%, stopped only ~26%.</span>'},
+  {id:'us_shkbo',label:'Shakeout → Box Breakout (tight)',fig:'shkbo',
+   how:'Your pattern, in the version that held up in the US: 30%+ rally into a box of 15+ sessions, any shakeout, then a close above the box high on at least average volume. The loose version (any box, any rally) showed no edge. Plan: buy the breakout; stop under the shakeout low.'+
+    STUDY+'962 trades · +0.69% per trade vs baseline. Weaker in the older half (+0.34) than the recent one (+0.91) \u2014 treat as a lighter-conviction setup.</span>'},
+  {id:'us_box_ur',label:'Box U&R (tight)',fig:'box_ur',
+   how:'30%+ rally into a box of 15+ sessions with at least 3 touches of each edge; undercut no deeper than 1\u00d7 ADR; back inside within a day. Plan: enter next session; stop under the undercut low.'+
+    STUDY+'365 trades · +0.80% per trade vs baseline · steady across both halves.</span>'},
+  {id:'us_spring',label:'Spring',fig:'spring',
+   how:'Undercut day on 1.5\u00d7+ volume that still closes in the upper half of its range. Plan: enter next session; stop under the spring low.'+
+    STUDY+'583 trades · +0.86% per trade vs baseline, but uneven: +0.36 in the older half, +1.43 in the recent one. Smaller size until it proves itself.</span>'}
+ ]
+};
+var SK_PRESETS=(SK_PB['IN']||[]).map(function(p){
+ return {id:p.id,grp:'Shakeouts',when:'eod',label:p.label,set:{},fig:p.fig,how:p.how,
+  req:function(d){return !!(d.skHits&&d.skHits.indexOf(p.id)>=0);}};
+});
 
 /* ── explanations for the new filters ─────────────── */
 function explain(){
@@ -15789,7 +15813,7 @@ var SK_COL={k:'skage',g:'Setup',lbl:'Shakeout',a:'l',def:1,tip:'Most recent shak
   var b=d.skState?BX_NAME[d.skState]:'';
   var col=d.skState==='broke'?'#16A34A':(d.skState==='undercut'||d.skState==='breakdown'?'#DC2626':(d.skState==='nearhi'?'#D97706':'var(--text2)'));
   var tip=(d.skBoxHi?'Box '+d.skBoxLo+' – '+d.skBoxHi+' ('+(d.skBoxDays||'?')+' sessions)':'')+(d.skLow?' · stop (shakeout low) '+d.skLow:'');
-  return '<span title="'+esc(tip)+'" style="white-space:nowrap">'+(d.skBo?'⭐ ':'')+esc(t)+(t&&b?' · ':'')+'<b style="color:'+col+'">'+esc(b)+'</b></span>';}};
+  return '<span title="'+esc(tip+(d.skHits&&d.skHits.length?' · qualifies for: '+d.skHits.map(function(h){var p=SK_PRESETS.filter(function(x){return x.id===h;})[0];return p?p.label.replace('⭐ ',''):h;}).join(', '):''))+'" style="white-space:nowrap">'+(d.skHits&&d.skHits.length?'⭐ ':'')+esc(t)+(t&&b?' · ':'')+'<b style="color:'+col+'">'+esc(b)+'</b></span>';}};
 
 /* ── install into the screener ────────────────────── */
 function install(){
@@ -15802,9 +15826,7 @@ function install(){
   var g=['Shakeouts & Boxes',['shk','shkage','bstate','ucd','rclv']];if(o<0)SCR_FGROUPS.push(g);else SCR_FGROUPS.splice(o,0,g);}}catch(e){}
  try{SCR_FILTER_COL.shk='skage';SCR_FILTER_COL.shkage='skage';SCR_FILTER_COL.bstate='skage';SCR_FILTER_COL.ucd='skage';SCR_FILTER_COL.rclv='skage';}catch(e){}
  SCR_COLS.push(SK_COL);SCR.vis[SK_COL.k]=true;
- var ex=SCR_PRESETS.filter(function(p){return p.id==='pb_shakeout';})[0];
- if(ex){ex.grp='Shakeouts';ex.label='EMA Shakeout & Reclaim';}
- SK_PRESETS.forEach(function(p){p._sk=true;p._how0=p.how;SCR_PRESETS.push(p);});
+ SK_PRESETS.forEach(function(p){p._sk=true;SCR_PRESETS.push(p);});
  explain();
  var orig=scrPasses;
  scrPasses=function(d){
@@ -15817,11 +15839,7 @@ function install(){
  try{scrFillPlaybooks();}catch(e){}
  return true;
 }
-function addEvidence(){
- SK_PRESETS.forEach(function(p){p.how=p._how0+(p.evt?evLine(p.evt):'');});
- var ex=SCR_PRESETS.filter(function(x){return x.id==='pb_shakeout';})[0];
- if(ex&&!ex._skEv&&(SK.ev['ema9_trend|10']||SK.ev['ema20_trend|10'])){ex._skEv=true;ex.how=(ex.how||'')+evLine('ema9');}
-}
+function addEvidence(){}
 var t=setInterval(function(){
  if(install()){
   clearInterval(t);

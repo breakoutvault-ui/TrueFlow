@@ -106,13 +106,10 @@ PLAYS = {
                                    and (f(r.get("adr_pct")) or 0) >= 3
                                    and (r.get("qm_base_days") or 0) >= 5,
  "Cat A only":           lambda r: r.get("category") == "A",
- # shakeouts - read from the nightly shakeout scan (merged in by record())
- "Shakeout -> Box Breakout": lambda r: bool(r.get("shk_bo")) and bool(r.get("trend_ok")),
- "Shakeout near box high":   lambda r: bool(r.get("shk_near")) and bool(r.get("trend_ok")),
- "Box U&R":                  lambda r: r.get("shake_type") in ("ur", "spring") and (r.get("shake_age") or 99) <= 3
-                                       and r.get("box_state") in ("reclaimed", "nearhi", "inbox") and bool(r.get("trend_ok")),
- "Spring":                   lambda r: r.get("shake_type") == "spring" and (r.get("shake_age") or 99) <= 3 and bool(r.get("trend_ok")),
- "Top shakeout re-break":    lambda r: r.get("shake_type") == "top" and (r.get("shake_age") or 99) <= 1 and bool(r.get("trend_ok")),
+ # shakeouts - the rules that passed the 29 Sep study for this market (from the nightly shakeout scan)
+ "20 EMA Shakeout + Volume":          lambda r: "in_ema20v" in (r.get("pb_hits") or "").split(","),
+ "20 EMA Shakeout + Volume, strong":  lambda r: "in_ema20v_rs" in (r.get("pb_hits") or "").split(","),
+ "Box U&R (tight)":                   lambda r: "in_box_ur" in (r.get("pb_hits") or "").split(","),
  "ALL SETUPS (baseline)":lambda r: (r.get("qm_pattern") or "") in ("VCP", "HTF", "EP", "Reclaim"),
 }
 
@@ -140,7 +137,7 @@ def record(day):
     try:
         sk, off2 = {}, 0
         while True:
-            b = get("shakeout_state?select=symbol,session_date,trend_ok,box_state,shake_type,shake_age,shk_bo,shk_near"
+            b = get("shakeout_state?select=symbol,session_date,trend_ok,box_state,shake_type,shake_age,shk_bo,shk_near,pb_hits"
                     "&limit=1000&offset=%d" % off2)
             for x in b:
                 if str(x.get("session_date")) == str(day):
@@ -151,7 +148,7 @@ def record(day):
         for r in rows:
             x = sk.get(r["symbol"])
             if x:
-                r.update({k: x[k] for k in ("trend_ok", "box_state", "shake_type", "shake_age", "shk_bo", "shk_near")})
+                r.update({k: x.get(k) for k in ("trend_ok", "box_state", "shake_type", "shake_age", "shk_bo", "shk_near", "pb_hits")})
         log("shakeout rows merged: %d" % len(sk))
     except Exception as e:
         log("shakeout rows not available (%s) - shakeout plays skipped tonight" % str(e)[:80])

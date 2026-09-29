@@ -61,6 +61,56 @@ BASE = dict(
     evidence_days=500,             # evidence uses roughly the last two years
 )
 PARAMS = {"IN": dict(BASE), "US": dict(BASE)}
+
+# ── the playbooks that passed the study (29 Sep 2026), one list per market ──
+# Each rule: event type, conditions on that event, and whether the stock must be
+# in the top 30% of its market by 3-month return. A stock qualifies if such an
+# event happened today or in the last SIGNAL_AGE sessions. Rules that showed no
+# edge are simply not listed for that market.
+SIGNAL_AGE = 2
+PLAYBOOKS = {
+    "IN": [
+        dict(id="in_ema20v", type="ema20", rv=1.5),
+        dict(id="in_ema20v_rs", type="ema20", rv=1.5, rs=True),
+        dict(id="in_box_ur", type="ur", rally=20, uc=0.5, days=0, rv=1.0),
+    ],
+    "US": [
+        dict(id="us_ema9v", type="ema9", rv=1.5),
+        dict(id="us_ema9v_rs", type="ema9", rv=1.5, rs=True),
+        dict(id="us_fbbo", type="fbbo", rally=30),
+        dict(id="us_shkbo", type="shkbo", rally=30, box_len=15, rv=1.0),
+        dict(id="us_box_ur", type="ur", rally=30, box_len=15, touches=3, uc=1.0, days=1),
+        dict(id="us_spring", type="spring"),
+    ],
+}
+
+
+def rule_hits(market, events, n, rs_top):
+    """Which of this market's playbooks the stock qualifies for today."""
+    hits = []
+    for rule in PLAYBOOKS[market]:
+        for i, typ, ex in reversed(events):
+            if n - 1 - i > SIGNAL_AGE:
+                break
+            if typ != rule["type"] or not ex.get("trend"):
+                continue
+            if rule.get("rv") and (ex.get("rv") or 0) < rule["rv"]:
+                continue
+            if rule.get("rally") and (ex.get("rally") or 0) < rule["rally"]:
+                continue
+            if rule.get("box_len") and (ex.get("box_len") or 0) < rule["box_len"]:
+                continue
+            if rule.get("touches") and min(ex.get("box_th") or 0, ex.get("box_tl") or 0) < rule["touches"]:
+                continue
+            if rule.get("uc") is not None and (ex.get("depth") is None or ex["depth"] > rule["uc"]):
+                continue
+            if rule.get("days") is not None and (ex.get("days") is None or ex["days"] > rule["days"]):
+                continue
+            if rule.get("rs") and not rs_top:
+                continue
+            hits.append(rule["id"])
+            break
+    return hits
 TABLES = {"IN": ("momentum_stocks", "daily_ohlc", "shakeout_state", "shakeout_evidence"),
           "US": ("us_momentum_stocks", "us_daily_ohlc", "us_shakeout_state", "us_shakeout_evidence")}
 
@@ -364,6 +414,15 @@ def main():
         data = dict(zip(syms, ex.map(load, syms)))
     log("prices loaded in %.0fs" % (time.time() - t0))
 
+    # stock strength today: top 30% of the market by 3-month (63-session) return
+    r63 = []
+    for sym in syms:
+        b = data.get(sym) or []
+        if len(b) > 63 and b[-64]["c"]:
+            r63.append((b[-1]["c"] / b[-64]["c"] - 1, sym))
+    r63.sort(reverse=True)
+    rs_top = set(s for _, s in r63[:max(1, int(len(r63) * 0.3))])
+
     rows, acc, cnt = [], {}, {}
     for sym in syms:
         bars = data.get(sym) or []
@@ -376,6 +435,11 @@ def main():
             continue
         st["symbol"] = sym
         st["computed_at"] = datetime.now(timezone.utc).isoformat()
+        st["rs_top30"] = sym in rs_top
+        hits = rule_hits(a.market, events, len(bars), sym in rs_top)
+        st["pb_hits"] = ",".join(hits) if hits else None
+        for h in hits:
+            cnt[("playbook", h)] = cnt.get(("playbook", h), 0) + 1
         rows.append(st)
         evidence(bars, events, P, acc)
         for k in ("box_state", "shake_type"):
