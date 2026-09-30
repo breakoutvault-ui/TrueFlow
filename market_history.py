@@ -190,6 +190,21 @@ def main():
         log("latest %s: above 20E %s%% · A/D %d/%d · highs %s lows %s · turnover x%s · bursts %d/%d · big %s/%s · index %s"
             % (r["d"], r["pct20"], r["adv"], r["dec"], r["hi52"], r["lo52"], r["turn_ratio"], r["burst_up"], r["burst_dn"],
                r["big_up"], r["big_dn"], r["idx_close"]))
+    # each stock's move over 6 periods + how far below its 1-year high (for Big movers)
+    mv = []
+    for sym, bars in data.items():
+        if len(bars) < 2:
+            continue
+        c = [b["c"] for b in bars]; h = [b["h"] for b in bars]; n = len(c)
+        def ret(k):
+            return round((c[-1] / c[-1 - k] - 1) * 100, 2) if n > k and c[-1 - k] else None
+        hi = max(h[-252:])
+        mv.append(dict(market=a.market, symbol=sym, d=bars[-1]["d"], sector=uni.get(sym), close=round(c[-1], 4),
+                       r1d=ret(1), r1w=ret(5), r1m=ret(21), r3m=ret(63), r6m=ret(126), r1y=ret(252),
+                       below_high=round((hi - c[-1]) / hi * 100, 2) if hi else None))
+    if mv:
+        best = sorted([m for m in mv if m["r3m"] is not None], key=lambda m: -m["r3m"])[:3]
+        log("movers: %d stocks · top 3M: %s" % (len(mv), ", ".join("%s %+.0f%%" % (m["symbol"], m["r3m"]) for m in best)))
     if a.dry_run:
         log("DRY RUN - nothing written (%.0fs)" % (time.time() - t0))
         return
@@ -199,7 +214,13 @@ def main():
                            json=rows[i:i + 300], timeout=120)
         if rr.status_code >= 300:
             raise SystemExit("write failed %s: %s" % (rr.status_code, rr.text[:200]))
-    log("WROTE market_history %s: %d days (%.0fs)" % (a.market, len(rows), time.time() - t0))
+    requests.delete(CFG.SUPABASE_URL + "/rest/v1/market_movers?market=eq.%s" % a.market, headers=H, timeout=60)
+    for i in range(0, len(mv), 500):
+        rr = requests.post(CFG.SUPABASE_URL + "/rest/v1/market_movers?on_conflict=market,symbol",
+                           headers=dict(H, Prefer="resolution=merge-duplicates,return=minimal"), json=mv[i:i + 500], timeout=120)
+        if rr.status_code >= 300:
+            raise SystemExit("movers write failed %s: %s" % (rr.status_code, rr.text[:200]))
+    log("WROTE market_history %s: %d days · movers %d (%.0fs)" % (a.market, len(rows), len(mv), time.time() - t0))
 
 
 if __name__ == "__main__":
