@@ -48,9 +48,9 @@ def prev_open(d, hol):
     return d
 
 
-def latest(table, col):
+def latest(table, col, where=""):
     try:
-        r = requests.get("%s/rest/v1/%s?select=%s&order=%s.desc&limit=1" % (CFG.SUPABASE_URL, table, col, col),
+        r = requests.get("%s/rest/v1/%s?select=%s&order=%s.desc&limit=1%s" % (CFG.SUPABASE_URL, table, col, col, where),
                          headers=H, timeout=45)
         if r.status_code != 200:
             return None, "read failed (%s)" % r.status_code
@@ -103,8 +103,10 @@ def run(dry):
             ("Playbook tracker", "playbook_picks", "session_date", False),
             ("F&O bhav OI", "fo_bhav_oi", "session_date", True),
             ("Shakeout scan", "shakeout_state", "session_date", False),
+            ("Market history", "market_history|&market=eq.IN", "d", False),
         ]:
-            got, err = latest(table, col)
+            table, _, where = table.partition("|")
+            got, err = latest(table, col, where)
             if err:
                 add("bad", "%s — %s" % (label, err))
             elif got and got >= want:
@@ -135,8 +137,10 @@ def run(dry):
         ("US MTF scan", "us_momentum_mtf", "session_date"),
         ("US playbook tracker", "us_playbook_picks", "session_date"),
         ("US shakeout scan", "us_shakeout_state", "session_date"),
+        ("US market history", "market_history|&market=eq.US", "d"),
     ]:
-        got, err = latest(table, col)
+        table, _, where = table.partition("|")
+        got, err = latest(table, col, where)
         if err:
             add("bad", "%s — %s" % (label, err))
         elif got and got >= us_want:

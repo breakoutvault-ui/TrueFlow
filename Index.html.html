@@ -1174,6 +1174,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
       <div class="nav-tabs" id="momentum-tabs" style="display:none">
         <button class="nav-tab active" onclick="switchTab('screener',this,'momentum')">🔎 Screener</button>
+        <button class="nav-tab" onclick="switchTab('market',this,'momentum')">📊 Market</button>
         <button class="nav-tab" onclick="switchTab('volume',this,'momentum')">🌊 Volume</button>
         <button class="nav-tab" onclick="switchTab('charts',this,'momentum')">📈 Charts</button>
         <button class="nav-tab" onclick="switchTab('smartmoney',this,'momentum')">🏦 Smart Money</button>
@@ -2988,6 +2989,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
     </div>
   </div>
+
+  <!-- ── MARKET TAB (history) ── -->
+  <div id="tab-market" class="panel"></div>
 
   <!-- ── CHARTS TAB ── -->
   <div id="tab-charts" class="panel">
@@ -14363,8 +14367,8 @@ function bar(){
 var TFS=[['allup','All TF Up','#22C55E'],['htfpb','HTF Pullback','#3B82F6'],['wkturn','Weekly Turn','#8B5CF6'],['earlyturn','Early Turnaround','#10B981'],
  ['stretched','HTF Stretched','#F97316'],['ctbounce','Counter-Trend','#EAB308'],['rolling','Rolling Over','#F59E0B'],['alldown','All TF Down','#EF4444'],['mixed','Mixed','#94A3B8']];
 var PER={d:['1D','day','Today'],w:['1W','week','Last 5 sessions'],m:['1M','month','Last ~22 sessions']};
-window.mkPer=function(p){ST.per=p;save();market();};
-window.mkTog=function(){ST.open=!ST.open;save();var m=$('mk');if(m)m.classList.toggle('closed',!ST.open);market();};
+window.mkPer=function(p){ST.per=p;save();market0();};
+window.mkTog=function(){ST.open=!ST.open;save();var m=$('mk');if(m)m.classList.toggle('closed',!ST.open);market0();};
 window.mkEv=function(){var s=$('tf-mtf-strip');if(s)s.classList.toggle('mk-show');};
 window.mkInd=function(g){var S=SCRx();if(!S)return;var st=S.state.industry;
  S.state.industry=new Set(st&&st.size===1&&st.has(g)?[]:[g]);S.activePreset=null;
@@ -14372,7 +14376,7 @@ window.mkInd=function(g){var S=SCRx();if(!S)return;var st=S.state.industry;
 function pc(x,d){return x==null?'—':((x>0?'+':'')+x.toFixed(d==null?1:d)+'%');}
 function colr(x){return x==null?'var(--muted)':(x>0.2?'#22C55E':(x<-0.2?'#EF4444':'var(--muted)'));}
 function pctOf(a,b){return b?Math.round(100*a/b):null;}
-function market(){
+function market0(){
  var el=$('mk'),S=SCRx();if(!el||!S)return;
  var rows=(S.data||[]).filter(function(d){return !d._ipoRow;});
  var per=ST.per,key=PER[per][1],M=window.TF_MTF||{};
@@ -14399,26 +14403,32 @@ function market(){
   btip='Share of the universe above its '+(per==='w'?'weekly':'monthly')+' 9 and 20 EMA (completed candles).';
  }
  function brc(v){return v==null?'var(--muted)':(v>=55?'#22C55E':(v<45?'#EF4444':'#F59E0B'));}
- var tBr='<div class="tile" title="'+esc(btip)+'"><div class="tl">BREADTH · '+(per==='d'?'DAILY':(per==='w'?'WEEKLY':'MONTHLY'))+'</div><div class="tv">'+
+ var tBr='<div class="tile" onclick="mhGo(\'breadth\')" title="'+esc(btip+' Click for the daily history.')+'"><div class="tl">BREADTH · '+(per==='d'?'DAILY':(per==='w'?'WEEKLY':'MONTHLY'))+'</div><div class="tv">'+
   br.map(function(x){return '<span style="color:'+brc(x[1])+'">'+(x[1]==null?'—':x[1]+'%')+' <small>'+x[0]+'</small></span>';}).join('')+'</div></div>';
  /* advancers / decliners */
  var up=0,dn=0,sum=0,k=0;
  rows.forEach(function(d){var v=d[key];if(v==null||isNaN(v))return;k++;sum+=+v;if(v>0)up++;else if(v<0)dn++;});
  var avg=k?sum/k:null,tot=up+dn;
- var tAd='<div class="tile" title="'+esc(PER[per][2]+': stocks up vs down, and the average move of all '+k+'.')+'"><div class="tl">ADVANCERS / DECLINERS</div>'+
+ var tAd='<div class="tile" onclick="mhGo(\'ad\')" title="'+esc(PER[per][2]+': stocks up vs down, and the average move of all '+k+'. Click for the daily history.')+'"><div class="tl">ADVANCERS / DECLINERS</div>'+
   '<div class="tv"><span style="color:#22C55E">'+up+'</span><span style="color:#EF4444">'+dn+'</span><small>avg <b style="color:'+colr(avg)+'">'+pc(avg,2)+'</b></small></div>'+
   '<div class="bar"><span style="width:'+(tot?100*up/tot:50)+'%;background:#22C55E"></span><span style="flex:1;background:#EF4444"></span></div></div>';
  /* 52-week extremes (today's close) */
  var hi=0,lo=0;
  rows.forEach(function(d){if(d.ltp==null)return;if(d.hi52&&d.ltp>=d.hi52*0.99)hi++;if(d.low52&&d.ltp<=d.low52*1.01)lo++;});
- var tHl='<div class="tile" title="Stocks closing within 1% of their 52-week high, and within 1% of their 52-week low. Latest session only - the toggle does not change this tile."><div class="tl">52W HIGHS / LOWS</div>'+
+ var tHl='<div class="tile" onclick="mhGo(\'hl\')" title="Stocks closing within 1% of their 52-week high, and within 1% of their 52-week low. Latest session only - the toggle does not change this tile. Click for the daily history."><div class="tl">52W HIGHS / LOWS</div>'+
   '<div class="tv"><span style="color:#22C55E">'+hi+' <small>at highs</small></span><span style="color:#EF4444">'+lo+' <small>at lows</small></span></div>'+
   '<div class="bar"><span style="width:'+((hi+lo)?100*hi/(hi+lo):50)+'%;background:#22C55E"></span><span style="flex:1;background:#EF4444"></span></div></div>';
- /* setups today */
- var sc={VCP:0,HTF:0,EP:0,R:0};
- rows.forEach(function(d){if(d.qm&&sc[d.qm]!=null)sc[d.qm]++;if(d.rclGrade&&'ABD'.indexOf(d.rclGrade)>=0)sc.R++;});
- var tSu='<div class="tile" title="Setups the nightly scan found on the latest session: VCP and HTF bases, episodic pivots, and shakeout reclaims graded A, B or D. Latest session only."><div class="tl">SETUPS TODAY</div>'+
-  '<div class="tv"><span>'+sc.VCP+' <small>VCP</small></span><span>'+sc.HTF+' <small>HTF</small></span><span>'+sc.EP+' <small>EP</small></span><span>'+sc.R+' <small>Reclaim</small></span></div></div>';
+ /* volume today: heavy-volume stocks up vs down, the biggest surges, market volume vs its average */
+ var vu=0,vd=0,top=[];
+ rows.forEach(function(d){if(d.rvol!=null&&d.rvol>=2){if(d.day>0)vu++;else if(d.day<0)vd++;top.push(d);}});
+ top.sort(function(a,b){return b.rvol-a.rvol;});top=top.slice(0,3);
+ var ML=(typeof MH_latest==='function')?MH_latest():null,tr=ML&&ML.turn_ratio!=null?+ML.turn_ratio:null;
+ var tSu='<div class="tile" onclick="mhGo(\'vol\')" title="Stocks trading 2x or more their 20-day average volume today, split by whether they closed up or down, and the market\u2019s total turnover vs its 20-day average (latest completed session). Click for the daily history.">'+
+  '<div class="tl">VOLUME</div><div class="tv"><span style="color:#22C55E">'+vu+' <small>≥2× up</small></span><span style="color:#EF4444">'+vd+' <small>≥2× down</small></span>'+
+  (tr!=null?'<small>market '+(Math.round(tr*100)/100)+'× avg</small>':'')+'</div>'+
+  '<div style="font-size:10.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+
+  (top.length?top.map(function(d){return '<span class="vlink" onclick="event.stopPropagation();try{scOpen(\''+esc(d.sym)+'\')}catch(e){}">'+esc(d.sym)+' '+(Math.round(d.rvol*10)/10)+'×</span>';}).join(' · '):'no 2× volume today')+
+  (vu?' · <span class="vlink" onclick="event.stopPropagation();mhScreen(\'rv2_up\')">in Screener ›</span>':'')+'</div></div>';
  /* sectors + industries, ranked on the chosen period */
  function rank(get){
   var acc={};rows.forEach(function(d){var g=get(d);if(!g||g==='—')return;var v=d[key];if(v==null||isNaN(v))return;
@@ -14448,7 +14458,7 @@ function market(){
     esc(x.g+' · '+x.n+' stocks · average '+pc(x.v)+' ('+PER[per][2].toLowerCase()+'). Click to filter the table; click again to clear.')+'">'+
     '<span class="nm">'+esc(x.g)+'</span><span class="vl" style="color:'+(x.v>=0?'#16A34A':'#DC2626')+'">'+pc(x.v)+'</span></button>';}).join('');
  }
- var rS='<div class="hcard"><div class="lb"><span>SECTORS · strongest → weakest</span><span>'+secs.length+' ranked</span></div><div class="heat">'+heat(secs,aS,'scrPickSector',7)+'</div></div>';
+ var rS='<div class="hcard"><div class="lb"><span>SECTORS · strongest → weakest</span><span>'+secs.length+' ranked · <span class="vlink" onclick="mhGo(\'sectors\')">rotation history ›</span></span></div><div class="heat">'+heat(secs,aS,'scrPickSector',7)+'</div></div>';
  var rI='<div class="hcard"><div class="lb"><span>INDUSTRIES · top 6 · bottom 6</span><span>'+inds.length+' ranked</span></div><div class="heat">'+heat(inds,aI,'mkInd',6)+'</div></div>';
  /* trend-state mix */
  var cnt={},tn=0;rows.forEach(function(d){if(!d.mtf)return;cnt[d.mtf]=(cnt[d.mtf]||0)+1;tn++;});
@@ -14456,7 +14466,7 @@ function market(){
    return '<span style="width:'+(100*cnt[s[0]]/tn)+'%;background:'+s[2]+'" title="'+esc(s[1]+': '+cnt[s[0]]+' stocks ('+Math.round(100*cnt[s[0]]/tn)+'%)')+'"></span>';}).join(''):'';
  var legend=tn?TFS.filter(function(s){return cnt[s[0]]&&s[0]!=='mixed';}).slice(0,4).map(function(s){
    return '<span style="white-space:nowrap"><span style="color:'+s[2]+'">●</span> '+s[1]+' '+cnt[s[0]]+'</span>';}).join(' '):'';
- var rT='<div class="strip" title="How the whole universe splits across the multi-timeframe states. Hover a segment for its count."><span class="lb">TREND MIX</span>'+
+ var rT='<div class="strip" title="How the whole universe splits across the multi-timeframe states. Hover a segment for its count."><span class="lb">TREND MIX <span class="vlink" onclick="mhGo(\'mtf\')">history ›</span></span>'+
   (tn?'<span class="mix">'+mix+'</span><span style="font-size:10.5px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap">'+legend+'</span>':'<span style="color:var(--muted)">trend data not loaded yet</span>')+'</div>';
  var ft='<div class="ft"><span>'+N+' stocks · data '+esc(S.updated||'—')+(window.TF_MTF_DATE?' · trend '+esc(window.TF_MTF_DATE):'')+'</span>'+
   ($('tf-mtf-strip')?'<a onclick="mkEv()" title="The evidence table: forward returns for each trend state, from your own data">Does it work? Evidence ▸</a>':'')+'</div>';
@@ -14625,7 +14635,15 @@ function subs(){
  document.querySelectorAll('#scr-pbp .scr-pb-grp').forEach(function(g){
   var c=g.style.color||'';if(!c||/border/.test(c))g.style.color='var(--muted)';});
 }
-function refresh(){try{if(build()){bar();market();subs();clip();}}catch(e){console.error('screener ui v2:',e);}}
+function setupsLine(){
+ var hd=$('scr-pbphd'),S=SCRx();if(!hd||!S||!S.data)return;
+ var el=$('sx-setups');if(!el){el=document.createElement('span');el.id='sx-setups';el.style.cssText='font-size:11px;color:var(--muted)';hd.insertBefore(el,hd.lastChild);}
+ var sc={VCP:0,HTF:0,EP:0,R:0};
+ S.data.forEach(function(d){if(d._ipoRow)return;if(d.qm&&sc[d.qm]!=null)sc[d.qm]++;if(d.rclGrade&&'ABD'.indexOf(d.rclGrade)>=0)sc.R++;});
+ el.textContent='Setups today: '+sc.VCP+' VCP · '+sc.HTF+' HTF · '+sc.EP+' EP · '+sc.R+' Reclaim';
+}
+window.market=function(){try{market0();}catch(e){}};
+function refresh(){try{if(build()){bar();market0();subs();clip();setupsLine();}}catch(e){console.error('screener ui v2:',e);}}
 function hook(){
  if(typeof scrRender!=='function')return false;
  if(!scrRender._ui2){var o=scrRender;window.scrRender=scrRender=function(){var r=o.apply(this,arguments);refresh();return r;};scrRender._ui2=true;}
@@ -15859,6 +15877,254 @@ setTimeout(function(){clearInterval(t);},60000);
 })();
 </script>
 <style>.sk-ev{display:block;margin-top:6px;font-size:11.5px;color:var(--text2)}</style>
+
+
+<!-- ═══ TrueFlow Market History v1 — the Market tab + volume filter ═══ -->
+<style>
+#tab-market .mh-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 10px}
+#tab-market .mh-top h2{font-size:16px;margin:0 8px 0 0;color:var(--text)}
+#tab-market .mh-per{padding:3px 11px;border-radius:99px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11.5px;font-family:inherit}
+#tab-market .mh-per.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+#tab-market .mh-note{font-size:11px;color:var(--muted);margin-left:auto}
+#tab-market .mh-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:10px 14px 8px;margin:0 0 12px;scroll-margin-top:90px}
+#tab-market .mh-card.flash{box-shadow:0 0 0 2px var(--cyan)}
+#tab-market .mh-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+#tab-market .mh-h b{font-size:13px;color:var(--text)}
+#tab-market .mh-h .sub{font-size:11.5px;color:var(--text2);flex:1 1 300px}
+#tab-market .mh-go{font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--cyan);color:var(--cyan);background:none;cursor:pointer;font-family:inherit;white-space:nowrap}
+#tab-market .mh-leg{font-size:10.5px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin:4px 0 2px}
+#tab-market .mh-leg i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
+#tab-market svg{width:100%;height:auto;display:block}
+#mh-tip{position:fixed;z-index:10005;pointer-events:none;background:var(--bg1);border:1px solid var(--bg3);border-radius:8px;padding:6px 9px;font-size:11px;color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,.25);display:none;white-space:nowrap}
+#tab-market .mh-hm td{padding:0;height:18px;min-width:14px}
+#tab-market .mh-hm th{font-size:10px;color:var(--muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap}
+#tab-market .mh-tbl{width:100%;border-collapse:collapse;font-size:12px}
+#tab-market .mh-tbl th{font-size:10px;letter-spacing:.8px;color:var(--muted);text-align:right;padding:5px 8px;border-bottom:1px solid var(--bg3)}
+#tab-market .mh-tbl th:first-child,#tab-market .mh-tbl td:first-child{text-align:left}
+#tab-market .mh-tbl td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--bg3);color:var(--text)}
+#mk .tile{cursor:pointer}
+#mk .tile:hover{border-color:var(--cyan)}
+#mk .vlink{color:var(--cyan);cursor:pointer;font-size:10.5px}
+</style>
+<script>
+(function(){
+'use strict';
+var MKT='IN',PICKS='playbook_picks';
+var SET={IN:{burst:4,burstVol:1,big:25,rvx:2},US:{burst:4,burstVol:1,big:25,rvx:2}}[MKT];
+function $(id){return document.getElementById(id);}
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function sbGet(p){return fetch(CONFIG.supabaseUrl+'/rest/v1/'+p,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});}
+window.MH={rows:[],loaded:false,per:'1y',picks:null};
+var _p=null;
+window.mhLoad=function(){
+ if(_p)return _p;
+ _p=(async function(){
+  var all=[],off=0;
+  for(var g=0;g<6;g++){var b=await sbGet('market_history?market=eq.'+MKT+'&select=*&order=d.asc&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}
+  MH.rows=all;MH.loaded=true;
+  try{if(typeof market==='function')market();}catch(e){}
+ })();
+ return _p;
+};
+window.MH_latest=function(){return MH.rows.length?MH.rows[MH.rows.length-1]:null;};
+
+/* ── volume / momentum filter for the Screener ───────── */
+var VF={key:'vmove',label:'Volume & Momentum Move',opts:['burst_up','burst_dn','rv2_up','rv2_dn','big_up','big_dn'],
+ disp:{burst_up:'🚀 Burst up (≥'+SET.burst+'% on volume)',burst_dn:'🔻 Burst down',rv2_up:'🔊 ≥'+SET.rvx+'× volume, up',rv2_dn:'🔊 ≥'+SET.rvx+'× volume, down',big_up:'📈 Up ≥'+SET.big+'% in a month',big_dn:'📉 Down ≥'+SET.big+'% in a month'},
+ tips:{burst_up:'Up '+SET.burst+'% or more today on at least average volume - a momentum burst.',burst_dn:'Down '+SET.burst+'% or more today on at least average volume.',
+  rv2_up:'Traded '+SET.rvx+'x its 20-day average volume today and closed up.',rv2_dn:'Traded '+SET.rvx+'x its average volume and closed down.',
+  big_up:'Up '+SET.big+'% or more over the last month.',big_dn:'Down '+SET.big+'% or more over the last month.'}};
+function vpass(d,o){
+ var dy=d.day,rv=d.rvol,m=d.month;
+ if(o==='burst_up')return dy!=null&&dy>=SET.burst&&(rv==null||rv>=SET.burstVol);
+ if(o==='burst_dn')return dy!=null&&dy<=-SET.burst&&(rv==null||rv>=SET.burstVol);
+ if(o==='rv2_up')return rv!=null&&rv>=SET.rvx&&dy>0;
+ if(o==='rv2_dn')return rv!=null&&rv>=SET.rvx&&dy<0;
+ if(o==='big_up')return m!=null&&m>=SET.big;
+ if(o==='big_dn')return m!=null&&m<=-SET.big;
+ return true;
+}
+window.mhVpass=vpass;
+function installFilter(){
+ if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
+ if(window._mhInstalled)return true;window._mhInstalled=true;
+ SCR_FILTERS.push(VF);SCR.state.vmove=new Set();
+ try{var g=SCR_FGROUPS.filter(function(x){return /^Volume/.test(x[0]);})[0];if(g)g[1].push('vmove');}catch(e){}
+ try{SCR_FILTER_WHY.vmove='Big single-day moves on volume, heavy-volume days, and large one-month moves - the same counts the Market tab charts over time.';}catch(e){}
+ var orig=scrPasses;
+ scrPasses=function(d){
+  if(!orig(d))return false;
+  var st=SCR.state.vmove;if(!st||!st.size)return true;
+  var ok=false;st.forEach(function(o){if(vpass(d,o))ok=true;});return ok;
+ };
+ return true;
+}
+window.mhScreen=function(opt){
+ try{
+  var b=document.querySelector('#momentum-tabs .nav-tab[onclick*="screener"]');
+  switchTab('screener',b,'momentum');
+  setTimeout(function(){
+   try{scrClearAll();}catch(e){}
+   SCR.state.vmove=new Set([opt]);SCR.activePreset=null;
+   try{scrSyncChecks();}catch(e){}try{scrSyncChips();}catch(e){}scrRender();
+   window.scrollTo(0,0);
+  },250);
+ }catch(e){console.error(e);}
+};
+
+/* ── charts ─────────────────────────────────────────── */
+var W=1000,HT=210,PL=44,PR=44,PT=10,PB=22;
+function period(){
+ var r=MH.rows;if(!r.length)return r;
+ var n={'3m':63,'6m':126,'1y':252,'all':1e9}[MH.per];return r.slice(Math.max(0,r.length-n));
+}
+function scale(vals,pad){var v=vals.filter(function(x){return x!=null&&!isNaN(x);});if(!v.length)return [0,1];var mn=Math.min.apply(null,v),mx=Math.max.apply(null,v);if(mn===mx){mn-=1;mx+=1;}var p=(mx-mn)*(pad||0.06);return [mn-p,mx+p];}
+function xs(n){return function(i){return PL+(W-PL-PR)*(n<=1?0.5:i/(n-1));};}
+function ys(r){return function(v){return PT+(HT-PT-PB)*(1-(v-r[0])/(r[1]-r[0]));};}
+function path(arr,X,Y){var d='',pen=false;arr.forEach(function(v,i){if(v==null||isNaN(v)){pen=false;return;}d+=(pen?'L':'M')+X(i).toFixed(1)+','+Y(v).toFixed(1);pen=true;});return d;}
+function axis(R,Y,side,fmt){var o='',x=side==='r'?W-PR+4:PL-4;for(var k=0;k<=4;k++){var v=R[0]+(R[1]-R[0])*k/4;o+='<text x="'+x+'" y="'+(Y(v)+3)+'" font-size="9.5" fill="var(--muted)" text-anchor="'+(side==='r'?'start':'end')+'">'+fmt(v)+'</text>';if(side!=='r')o+='<line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--bg3)" stroke-width=".6"/>';}return o;}
+function dates(rows,X){var o='',n=rows.length,step=Math.max(1,Math.round(n/8));for(var i=0;i<n;i+=step){o+='<text x="'+X(i)+'" y="'+(HT-6)+'" font-size="9.5" fill="var(--muted)" text-anchor="middle">'+rows[i].d.slice(2,7).replace('-','/')+'</text>';}return o;}
+function svg(id,inner){return '<svg id="'+id+'" viewBox="0 0 '+W+' '+HT+'" preserveAspectRatio="none" style="height:'+HT+'px">'+inner+'<rect class="mh-hov" x="'+PL+'" y="0" width="'+(W-PL-PR)+'" height="'+HT+'" fill="transparent"/><line class="mh-cur" x1="0" x2="0" y1="'+PT+'" y2="'+(HT-PB)+'" stroke="var(--muted)" stroke-dasharray="3 3" style="display:none"/></svg>';}
+var TIPS={};
+function hover(id,rows,fn){TIPS[id]={rows:rows,fn:fn};}
+function f1(v){return v==null?'—':(Math.round(v*10)/10);}
+function pc(v){return v==null?'—':(v>0?'+':'')+(Math.round(v*100)/100)+'%';}
+function card(id,title,sub,body,btn){return '<div class="mh-card" id="mh-'+id+'"><div class="mh-h"><b>'+title+'</b><span class="sub">'+sub+'</span>'+(btn||'')+'</div>'+body+'</div>';}
+function leg(items){return '<div class="mh-leg">'+items.map(function(x){return '<span><i style="background:'+x[1]+'"></i>'+x[0]+'</span>';}).join('')+'</div>';}
+
+function cRegime(rows){
+ var X=xs(rows.length),bw=(W-PL-PR)/Math.max(1,rows.length),o='';
+ rows.forEach(function(r,i){var v=r.pct20,c=v==null?'var(--bg3)':(v>=55?'#22C55E':(v<45?'#EF4444':'#F59E0B'));o+='<rect x="'+(X(i)-bw/2)+'" y="6" width="'+(bw+0.4)+'" height="22" fill="'+c+'" opacity=".85"/>';});
+ var h=40;hover('mh-s-reg',rows,function(r){return 'Above 20 EMA: '+f1(r.pct20)+'% → '+(r.pct20>=55?'strong':(r.pct20<45?'weak':'neutral'));});
+ return '<svg id="mh-s-reg" viewBox="0 0 '+W+' '+h+'" preserveAspectRatio="none" style="height:'+h+'px">'+o+'<rect class="mh-hov" x="'+PL+'" y="0" width="'+(W-PL-PR)+'" height="'+h+'" fill="transparent"/><line class="mh-cur" x1="0" x2="0" y1="0" y2="'+h+'" stroke="var(--text)" style="display:none"/></svg>';
+}
+function cBreadth(rows){
+ var X=xs(rows.length),R=[0,100],Y=ys(R),S=[['pct9','9 EMA','#0EA5E9'],['pct20','20 EMA','#22C55E'],['pct50','50 EMA','#8B5CF6'],['pct200','200 EMA','#F59E0B']];
+ var o=axis(R,Y,'l',function(v){return Math.round(v)+'%';})+'<line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+Y(50)+'" y2="'+Y(50)+'" stroke="var(--muted)" stroke-dasharray="5 4"/>';
+ var ix=rows.map(function(r){return r.idx_close!=null?+r.idx_close:null;}),IR=scale(ix),IY=ys(IR);
+ if(ix.some(function(v){return v!=null;}))o+='<path d="'+path(ix,X,IY)+'" fill="none" stroke="var(--text)" stroke-width="1.6" opacity=".55"/>'+axis(IR,IY,'r',function(v){return Math.round(v);});
+ S.forEach(function(s){o+='<path d="'+path(rows.map(function(r){return r[s[0]]!=null?+r[s[0]]:null;}),X,Y)+'" fill="none" stroke="'+s[2]+'" stroke-width="1.5"/>';});
+ hover('mh-s-br',rows,function(r){return S.map(function(s){return s[1]+': '+f1(r[s[0]])+'%';}).join(' · ')+(r.idx_close?' · '+(MKT==='IN'?'Nifty ':'S&P ')+r.idx_close:'');});
+ return leg(S.map(function(s){return ['% above '+s[1],s[2]];}).concat([[MKT==='IN'?'Nifty 50 (right axis)':'S&P 500 (right axis)','var(--text)']]))+svg('mh-s-br',o+dates(rows,X));
+}
+function cBars(id,rows,up,dn,line,lineName,fmtUp,lab){
+ var X=xs(rows.length),bw=Math.max(1,(W-PL-PR)/Math.max(1,rows.length)*0.7);
+ var U=rows.map(function(r){return r[up]!=null?+r[up]:null;}),Dn=rows.map(function(r){return r[dn]!=null?-r[dn]:null;});
+ var R=scale(U.concat(Dn).concat([0]),0.08),Y=ys(R),o=axis(R,Y,'l',function(v){return Math.round(v);});
+ rows.forEach(function(r,i){if(U[i]!=null)o+='<rect x="'+(X(i)-bw/2)+'" y="'+Y(Math.max(0,U[i]))+'" width="'+bw+'" height="'+Math.abs(Y(0)-Y(U[i]))+'" fill="#22C55E" opacity=".75"/>';
+  if(Dn[i]!=null)o+='<rect x="'+(X(i)-bw/2)+'" y="'+Y(0)+'" width="'+bw+'" height="'+Math.abs(Y(Dn[i])-Y(0))+'" fill="#EF4444" opacity=".75"/>';});
+ if(line){var L=line(rows),LR=scale(L),LY=ys(LR);o+='<path d="'+path(L,X,LY)+'" fill="none" stroke="var(--cyan)" stroke-width="1.8"/>'+axis(LR,LY,'r',function(v){return Math.round(v*10)/10;});}
+ hover(id,rows,function(r,i){return lab[0]+': '+(r[up]==null?'—':r[up])+' · '+lab[1]+': '+(r[dn]==null?'—':r[dn])+(line?' · '+lineName+': '+f1(line(rows)[i]):'');});
+ return leg([[lab[0],'#22C55E'],[lab[1],'#EF4444']].concat(line?[[lineName+' (right axis)','var(--cyan)']]:[]))+svg(id,o+dates(rows,X));
+}
+function cumAD(rows){var s=0;return rows.map(function(r){s+=(r.adv||0)-(r.dec||0);return s;});}
+function netHL(rows){return rows.map(function(r){return r.hi52!=null?r.hi52-r.lo52:null;});}
+function ma(arr,n){var o=[];for(var i=0;i<arr.length;i++){var s=0,c=0;for(var j=Math.max(0,i-n+1);j<=i;j++){if(arr[j]!=null){s+=arr[j];c++;}}o.push(c?s/c:null);}return o;}
+function cVolume(rows){
+ return cBars('mh-s-vol',rows,'rvol2_up','rvol2_dn',function(rs){return rs.map(function(r){return r.turn_ratio!=null?+r.turn_ratio:null;});},'Market volume vs 20-day avg (×)',null,['≥'+SET.rvx+'× volume, closed up','≥'+SET.rvx+'× volume, closed down']);
+}
+function cBig(rows){
+ var X=xs(rows.length),U=rows.map(function(r){return r.big_up;}),Dn=rows.map(function(r){return r.big_dn;}),R=scale(U.concat(Dn).concat([0])),Y=ys(R);
+ var o=axis(R,Y,'l',function(v){return Math.round(v);})+'<path d="'+path(U,X,Y)+'" fill="none" stroke="#22C55E" stroke-width="1.8"/><path d="'+path(Dn,X,Y)+'" fill="none" stroke="#EF4444" stroke-width="1.8"/>';
+ hover('mh-s-big',rows,function(r){return 'Up ≥'+SET.big+'%: '+(r.big_up==null?'—':r.big_up)+' · Down ≥'+SET.big+'%: '+(r.big_dn==null?'—':r.big_dn);});
+ return leg([['Stocks up ≥'+SET.big+'% over a month','#22C55E'],['Down ≥'+SET.big+'%','#EF4444']])+svg('mh-s-big',o+dates(rows,X));
+}
+var MIX=[['allup','All TF Up','#22C55E'],['htfpb','HTF Pullback','#3B82F6'],['wkturn','Weekly Turn','#8B5CF6'],['earlyturn','Early Turnaround','#10B981'],['stretched','HTF Stretched','#F97316'],['ctbounce','Counter-Trend','#EAB308'],['rolling','Rolling Over','#F59E0B'],['alldown','All TF Down','#EF4444'],['mixed','Mixed','#94A3B8']];
+function cMix(rows){
+ var rs=rows.filter(function(r){return r.mtf&&Object.keys(r.mtf).length;});
+ if(rs.length<2)return '<div style="color:var(--muted);font-size:12px;padding:14px 2px">History is building'+(rs.length?' - started '+rs[0].d:'')+'. The chart fills in as nightly trend scans accumulate.</div>';
+ var X=xs(rs.length),Y=ys([0,100]),o='',base=rs.map(function(){return 0;});
+ MIX.forEach(function(m){
+  var top=rs.map(function(r,i){var t=0;for(var k in r.mtf)t+=r.mtf[k];return base[i]+(t?100*(r.mtf[m[0]]||0)/t:0);});
+  var d='';rs.forEach(function(r,i){d+=(i?'L':'M')+X(i).toFixed(1)+','+Y(top[i]).toFixed(1);});
+  for(var i=rs.length-1;i>=0;i--)d+='L'+X(i).toFixed(1)+','+Y(base[i]).toFixed(1);
+  o+='<path d="'+d+'Z" fill="'+m[2]+'" opacity=".8"/>';base=top;});
+ hover('mh-s-mix',rs,function(r){var t=0;for(var k in r.mtf)t+=r.mtf[k];return MIX.filter(function(m){return r.mtf[m[0]];}).map(function(m){return m[1]+' '+Math.round(100*r.mtf[m[0]]/t)+'%';}).join(' · ');});
+ return leg(MIX.map(function(m){return [m[1],m[2]];}))+svg('mh-s-mix',o+axis([0,100],Y,'l',function(v){return Math.round(v)+'%';})+dates(rs,X));
+}
+function cSectors(rows){
+ var wk={},order=[];
+ rows.forEach(function(r){if(!r.sectors)return;var dt=new Date(r.d+'T00:00:00Z'),day=(dt.getUTCDay()+6)%7;dt.setUTCDate(dt.getUTCDate()-day);var k=dt.toISOString().slice(0,10);
+  if(!wk[k]){wk[k]={};order.push(k);}for(var s in r.sectors){wk[k][s]=(wk[k][s]||0)+ +r.sectors[s];}});
+ order=order.slice(-26);if(!order.length)return '<div style="color:var(--muted)">No sector data.</div>';
+ var secs={};order.forEach(function(k){for(var s in wk[k])secs[s]=1;});
+ var last4=order.slice(-4),list=Object.keys(secs).map(function(s){var v=0;last4.forEach(function(k){v+=wk[k][s]||0;});return [s,v];}).sort(function(a,b){return b[1]-a[1];});
+ var mx=0;order.forEach(function(k){for(var s in wk[k])mx=Math.max(mx,Math.abs(wk[k][s]));});mx=mx||1;
+ var h='<div style="overflow-x:auto"><table class="mh-hm" style="border-collapse:separate;border-spacing:2px;width:100%;table-layout:fixed"><colgroup><col style="width:170px">'+order.map(function(){return '<col>';}).join('')+'<col style="width:74px"></colgroup><tr><th></th>'+order.map(function(k,i){return '<th style="font-size:9px;text-align:center">'+(i%4===0?k.slice(5).replace('-','/'):'')+'</th>';}).join('')+'<th>last 4w</th></tr>';
+ list.forEach(function(p){var s=p[0];h+='<tr><th>'+esc(s)+'</th>'+order.map(function(k){var v=wk[k][s];if(v==null)return '<td style="background:var(--bg3);opacity:.3"></td>';var a=0.12+0.78*Math.min(1,Math.abs(v)/mx);
+   return '<td title="'+esc(s+' · week of '+k+': '+pc(v))+'" style="background:'+(v>=0?'rgba(34,197,94,':'rgba(239,68,68,')+a.toFixed(2)+');border-radius:3px"></td>';}).join('')+
+  '<td style="text-align:right;font-size:11px;font-weight:700;color:'+(p[1]>=0?'#16A34A':'#DC2626')+';padding-left:8px">'+pc(p[1])+'</td></tr>';});
+ return h+'</table></div>';
+}
+function scoreboard(){
+ if(!MH.picks)return '<div style="color:var(--muted);font-size:12px;padding:10px 2px">Loading…</div>';
+ var now=new Date(),c1=new Date(now.getTime()-31*864e5).toISOString().slice(0,10),c3=new Date(now.getTime()-93*864e5).toISOString().slice(0,10);
+ var agg={};MH.picks.forEach(function(p){if(p.r10==null)return;var a=agg[p.playbook]||(agg[p.playbook]={m1:[],m3:[]});a.m3.push(+p.r10);if(p.session_date>=c1)a.m1.push(+p.r10);});
+ function st(v){if(!v.length)return ['—','—','—'];var s=v.slice().sort(function(a,b){return a-b;}),m=s[Math.floor(s.length/2)],w=100*v.filter(function(x){return x>0;}).length/v.length;return [v.length,pc(m),Math.round(w)+'%'];}
+ var names=Object.keys(agg).sort(function(a,b){var x=agg[a].m3,y=agg[b].m3;var mx=x.slice().sort(function(p,q){return p-q;})[Math.floor(x.length/2)],my=y.slice().sort(function(p,q){return p-q;})[Math.floor(y.length/2)];return my-mx;});
+ if(!names.length)return '<div style="color:var(--muted);font-size:12px;padding:10px 2px">No graded picks yet. A pick is graded once 10 sessions have passed, so this fills in about two weeks after the tracker starts recording.</div>';
+ return '<table class="mh-tbl"><tr><th>Playbook</th><th>1M trades</th><th>1M median</th><th>1M win</th><th>3M trades</th><th>3M median</th><th>3M win</th></tr>'+
+  names.map(function(n){var a=st(agg[n].m1),b=st(agg[n].m3);return '<tr><td>'+esc(n)+'</td><td>'+a[0]+'</td><td>'+a[1]+'</td><td>'+a[2]+'</td><td>'+b[0]+'</td><td>'+b[1]+'</td><td>'+b[2]+'</td></tr>';}).join('')+'</table>'+
+  '<div style="font-size:10.5px;color:var(--muted);margin-top:6px">10-session return from the next open after each pick, from the nightly playbook tracker. Small counts are noise - read them together with the Regime strip.</div>';
+}
+function render(){
+ var el=$('tab-market');if(!el)return;
+ if(!MH.loaded){el.innerHTML='<div style="padding:30px;color:var(--muted)">Loading market history…</div>';mhLoad().then(render);return;}
+ var rows=period();
+ if(!rows.length){el.innerHTML='<div style="padding:30px;color:var(--muted)">No market history yet - it appears after the first run of market_history.py.</div>';return;}
+ var last=rows[rows.length-1];
+ var h='<div class="mh-top"><h2>📊 Market · '+(MKT==='IN'?'India':'US')+'</h2>'+['3m','6m','1y','all'].map(function(p){return '<button class="mh-per'+(MH.per===p?' on':'')+'" onclick="mhPer(\''+p+'\')">'+p.toUpperCase()+'</button>';}).join('')+
+  '<span class="mh-note">Latest '+last.d+' · '+last.n+' stocks · built from today\u2019s stock list, so older periods read slightly healthier than they were</span></div>';
+ h+=card('regime','Regime','Share of stocks above their 20 EMA each day: green ≥ 55% (strong), amber in between, red < 45% (weak).',cRegime(rows));
+ h+=card('breadth','Breadth','% of stocks above each EMA. Watch the 50% line and divergences with the index.',cBreadth(rows));
+ h+=card('ad','Advancers vs decliners','Daily up vs down count; the blue line is the running total (A/D line) - rising means broad participation.',cBars('mh-s-ad',rows,'adv','dec',cumAD,'A/D line',null,['Advancers','Decliners']));
+ h+=card('hl','52-week highs vs lows','Stocks closing within 1% of a 52-week high vs low; blue = highs minus lows. Starts once a year of prices exists.',cBars('mh-s-hl',rows,'hi52','lo52',netHL,'Net highs',null,['At 52W highs','At 52W lows']));
+ h+=card('vol','Volume','Heavy-volume days (≥'+SET.rvx+'× average) up vs down, and total market turnover vs its 20-day average.',cVolume(rows),
+  '<button class="mh-go" onclick="mhScreen(\'rv2_up\')">Today\u2019s ≥'+SET.rvx+'× up in Screener ›</button>');
+ h+=card('burst','Momentum bursts','Stocks moving ≥'+SET.burst+'% in a day on at least average volume. Up-bursts clustering = momentum working; down-bursts dominating = stand aside. Blue = 10-day average of (up − down).',
+  cBars('mh-s-bu',rows,'burst_up','burst_dn',function(rs){return ma(rs.map(function(r){return (r.burst_up||0)-(r.burst_dn||0);}),10);},'Net bursts, 10-day avg',null,['Bursts up','Bursts down']),
+  '<button class="mh-go" onclick="mhScreen(\'burst_up\')">Today\u2019s bursts in Screener ›</button>');
+ h+=card('big','Big movers (1 month)','How many stocks are up or down '+SET.big+'%+ over the last ~21 sessions - when the market produces big winners.',cBig(rows),
+  '<button class="mh-go" onclick="mhScreen(\'big_up\')">Today\u2019s list in Screener ›</button>');
+ h+=card('sectors','Sector rotation','Each sector\u2019s move per week (sum of its daily average move). Sorted by the last 4 weeks.',cSectors(rows));
+ h+=card('mtf','Trend-state mix','How the universe splits across the multi-timeframe states, day by day.',cMix(rows));
+ h+=card('score','Playbook scoreboard','Which playbooks worked over the last 1 and 3 months, from the tracker\u2019s graded picks.','<div id="mh-score-body">'+scoreboard()+'</div>');
+ el.innerHTML=h;
+ wire();
+ if(!MH.picks&&!MH._pl){MH._pl=true;var since=new Date(Date.now()-95*864e5).toISOString().slice(0,10);
+  (async function(){var all=[],off=0;for(var g=0;g<10;g++){var b=await sbGet(PICKS+'?select=playbook,session_date,r10&session_date=gte.'+since+'&r10=not.is.null&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}MH.picks=all;
+   var s=$('mh-score-body');if(s)s.innerHTML=scoreboard();})();}
+ if(MH._go){var t=$('mh-'+MH._go);MH._go=null;if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('flash');setTimeout(function(){t.classList.remove('flash');},1600);}}
+}
+function wire(){
+ var tip=$('mh-tip');if(!tip){tip=document.createElement('div');tip.id='mh-tip';document.body.appendChild(tip);}
+ Object.keys(TIPS).forEach(function(id){
+  var s=$(id);if(!s)return;var T=TIPS[id],hov=s.querySelector('.mh-hov'),cur=s.querySelector('.mh-cur');
+  hov.addEventListener('mousemove',function(e){
+   var b=s.getBoundingClientRect(),fx=(e.clientX-b.left)/b.width*W,n=T.rows.length,i=Math.round((fx-PL)/(W-PL-PR)*(n-1));
+   i=Math.max(0,Math.min(n-1,i));var x=PL+(W-PL-PR)*(n<=1?0.5:i/(n-1));
+   cur.setAttribute('x1',x);cur.setAttribute('x2',x);cur.style.display='';
+   tip.innerHTML='<b>'+T.rows[i].d+'</b><br>'+T.fn(T.rows[i],i);tip.style.display='block';
+   var tx=e.clientX+14;if(tx+tip.offsetWidth>innerWidth-8)tx=e.clientX-tip.offsetWidth-14;tip.style.left=tx+'px';tip.style.top=(e.clientY+12)+'px';});
+  hov.addEventListener('mouseleave',function(){tip.style.display='none';cur.style.display='none';});
+ });
+}
+window.mhPer=function(p){MH.per=p;render();};
+window.mhGo=function(sec){
+ MH._go=sec;
+ var b=document.querySelector('#momentum-tabs .nav-tab[onclick*="\'market\'"]');
+ switchTab('market',b,'momentum');render();window.scrollTo(0,0);
+};
+window.mhRender=render;
+var t=setInterval(function(){
+ if(installFilter()){clearInterval(t);}
+},300);
+setTimeout(function(){clearInterval(t);},60000);
+// the panel on the Screener uses the latest row (market volume vs average)
+setTimeout(function(){try{mhLoad();}catch(e){}},1500);
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#momentum-tabs .nav-tab');if(b&&/'market'/.test(b.getAttribute('onclick')||''))setTimeout(render,30);});
+})();
+</script>
 
 
 <!-- ═══ TrueFlow Stock Card v1 — one stock, every data point, slide-over ═══ -->
