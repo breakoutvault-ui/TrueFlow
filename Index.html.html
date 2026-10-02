@@ -14548,6 +14548,15 @@ var FIGS={
   var v=[6,6,6,6,7,7,7,7,7,7,6,6,8,9,9,9];
   return fig('EXIT WATCH','One close under the daily 9 EMA is a warning. The second close in a row under it is the exit — the trend that justified holding is gone.',
    {c:c,v:v,ema:9,notes:[{i:14,t:'1st close below — warning',y:88.9,col:'#D97706',anchor:'end'},{i:15,t:'2nd — exit',y:87.8,col:'#DC2626',anchor:'end'}],hl:[14,15]});},
+ ign:function(){var c=[60.4,61,60.6,61.2,60.8,61.4,61,61.3,60.9,61.2,61.1,61.4,61,61.3].concat([62.4,64.2,66.3,68.4]).concat([69.2,70.4,71.1]);
+  var r=[];r[14]=1.6;r[15]=2.1;r[16]=2.4;r[17]=2.5;var v=[3,3,3,3,3,3,3,3,3,3,3,3,3,3,7,8,9,10,6,5,5];
+  return fig('MOMENTUM IGNITION (NO GAP)','No overnight gap: the stock rallies through the day and closes near its high on heavy volume \u2014 or does it over 2\u20133 strong days in a row. Buyers arriving in size, just without the gap. Enter on strength above the high; stop under the low of the move.',
+   {c:c,v:v,r:r,lines:[{y:61.6,t:'Stop \u2014 low of the move',col:'#DC2626',a:13,below:1,left:1}],notes:[{i:16,t:'Closes at the high, 2\u00d7+ volume',up:1,col:'#16A34A',anchor:'end'}],zones:[{a:14,b:17,col:'#22C55E',t:'IGNITION'}]});},
+ dep:function(){var c=[61,62,60.5,61.5,62.2,61,60.4,61.8,62.5,61.6,62,61.2].concat([73.5,76,75,74.2,73.6,74.4,73.9,74.6,74.1,74.5,74.3,77.8,80.2]);
+  var v=[3,3,3,3,3,3,3,3,3,3,3,3,16,8,5,4,3.5,3,3,3,2.6,2.5,2.5,9,8];
+  return fig('DELAYED EPISODIC PIVOT','The gap happens, then the stock HOLDS it and builds a tight base on drying volume. Buy the break of the base high \u2014 the stop sits under the base low, much tighter than the gap-day low.',
+   {c:c,v:v,gap:[12],box:{a:14,b:22,hi:76.3,lo:72.8},lines:[{y:76.3,t:'Base high \u2014 delayed-EP entry',col:'#16A34A',a:14,left:1},{y:72.6,t:'Stop \u2014 base low',col:'#DC2626',a:14,b:24,below:1}],
+    notes:[{i:12,t:'Gap on volume',up:1,col:'#94A3B8'},{i:23,t:'Breakout \u2192 entry',up:1,col:'#16A34A',anchor:'end'}],hl:[23]});},
  box_ur:function(){var c=seq(75,83,5).concat([84,85.6,83,81,82.4,85.2,84,81.4,80.9,83,85.5,84,82,81.2,83.5,84.6,79.7,82.2,83.8,85.3]);
   var v=[9,9,10,10,10,6,6,5,5,5,5,5,4,4,5,5,4,4,4,4,4,7,9,7,6];
   return fig('BOX UNDERCUT & RALLY','Price dips under the box low where the stops sit, then closes back inside within 1\u20133 sessions. Sellers and shorts get trapped. Enter on the reclaim; stop under the undercut low.',
@@ -15983,6 +15992,9 @@ function installFilter(){
  if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
  if(window._mhInstalled)return true;window._mhInstalled=true;
  SCR_FILTERS.push(VF,TF);SCR.state.vmove=new Set();SCR.state.topmv=new Set();
+ var qi=SCR_PRESETS.findIndex(function(p){return p.grp;});if(qi<0)qi=SCR_PRESETS.length;
+ SCR_PRESETS.splice(qi,0,{id:'qv_top_w',label:'📈 Top gainers · week',set:{topmv:['g_r1w']},desc:'The 50 biggest gainers over the last week.'},{id:'qv_top_m',label:'📈 Top gainers · month',set:{topmv:['g_r1m']},desc:'The 50 biggest gainers over the last month.'});
+ if(SCR.loaded){try{scrBuildUI();}catch(e){}}
  try{var g=SCR_FGROUPS.filter(function(x){return /^Volume/.test(x[0]);})[0];if(g){g[1].push('vmove');g[1].push('topmv');}}catch(e){}
  try{SCR_FILTER_WHY.vmove='Big single-day moves on volume and heavy-volume days - the same counts the Market Sentiment tab charts over time.';
      SCR_FILTER_WHY.topmv='The market\u2019s biggest gainers or losers over a chosen period, refreshed every night.';}catch(e){}
@@ -16209,6 +16221,102 @@ var t=setInterval(function(){if(installFilter())clearInterval(t);},300);
 setTimeout(function(){clearInterval(t);},60000);
 setTimeout(function(){try{mhLoad();}catch(e){}},1500);
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#momentum-tabs .nav-tab');if(b&&/'market'/.test(b.getAttribute('onclick')||''))setTimeout(render,30);});
+})();
+</script>
+
+
+<!-- ═══ TrueFlow EP v2 — gap EPs, momentum ignitions, delayed EPs ═══ -->
+<style>.ep-ev{display:block;margin-top:6px;font-size:11.5px;color:var(--text2)}</style>
+<script>
+(function(){
+'use strict';
+var TBL='ep_state',EVT='ep_evidence';
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function sbGet(p){return fetch(CONFIG.supabaseUrl+'/rest/v1/'+p,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});}
+window.EPX={rows:{},ev:{}};
+var _p=null;
+function load(){
+ if(_p)return _p;
+ _p=(async function(){
+  var all=[],off=0;for(var g=0;g<8;g++){var b=await sbGet(TBL+'?select=*&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}
+  var cnt={},mx='';all.forEach(function(x){cnt[x.session_date]=(cnt[x.session_date]||0)+1;});for(var d in cnt){if(!mx||cnt[d]>cnt[mx])mx=d;}
+  var cut=mx?new Date(new Date(mx).getTime()-7*864e5).toISOString().slice(0,10):'';
+  all.forEach(function(x){if(x.session_date>=cut)EPX.rows[x.symbol]=x;});
+  (await sbGet(EVT+'?select=*')||[]).forEach(function(r){EPX.ev[r.type+'|'+r.horizon]=r;});
+ })();return _p;
+}
+function n(x){return x==null?null:+x;}
+function apply(d){var r=EPX.rows[d.sym];
+ d.epType=r?r.ev_type:null;d.epStage=r?r.stage:null;d.epAge=r?n(r.ev_age):null;d.epNeg=r?r.neglected:null;d.epRes=!!(r&&r.results);
+ d.epLow=r?n(r.ev_low):null;d.epBaseHi=r?n(r.base_high):null;d.epMove=r?n(r.ev_move):null;d.epHits=(r&&r.pb_hits)?String(r.pb_hits).split(','):[];
+ d.epTrigAge=r?n(r.trigger_age):null;}
+var STG={fresh:'⚡ Fresh',drifting:'📈 Drifting',basing:'🛏 Basing',coiling:'🌀 Coiling',resumed:'🚀 Delayed EP breakout',faded:'💧 Faded'};
+var EP_FILTERS=[
+ {key:'eptype',label:'EP / Ignition',opts:['gap','ignition'],disp:{gap:'⚡ Episodic Pivot (gap)',ignition:'🔥 Momentum Ignition (no gap)'},
+  tips:{gap:'Opened with a real gap above yesterday\u2019s close, closed strong, on 2x+ volume.',ignition:'No big gap, but rallied through the day (or 2-3 days in a row), closing near the high on heavy volume.'}},
+ {key:'epstage',label:'EP Life Stage',opts:['fresh','drifting','basing','coiling','resumed','faded'],disp:STG,
+  tips:{fresh:'The event happened today or yesterday.',drifting:'Still making new highs after the event.',basing:'Pulled back but holding above the event-day low.',
+   coiling:'Basing, and the last week is tight on drying volume - the delayed-EP watchlist.',resumed:'Broke above its base high after basing - the delayed-EP trigger.',faded:'Closed below the event-day low - the move failed.'}},
+ {key:'epctx',label:'EP Context',opts:['neglected','moving','results'],disp:{neglected:'💤 From neglect',moving:'🏃 Already moving',results:'📋 On results'},
+  tips:{neglected:'Was quiet (under 8% either way) for the month before the event.',moving:'Was already moving before the event - more crowded.',results:'The event lined up with a results date.'}},
+ {key:'epage',label:'EP Age',opts:['2','5','10','20'],disp:{'2':'≤ 2 sessions','5':'≤ 5','10':'≤ 10','20':'≤ 20'},tips:{}}
+];
+function passes(d){var S=SCR.state;
+ if(S.eptype&&S.eptype.size&&!S.eptype.has(d.epType))return false;
+ if(S.epstage&&S.epstage.size&&!S.epstage.has(d.epStage))return false;
+ if(S.epctx&&S.epctx.size){var ok=false;if(S.epctx.has('neglected')&&d.epNeg===true)ok=true;if(S.epctx.has('moving')&&d.epNeg===false)ok=true;if(S.epctx.has('results')&&d.epRes)ok=true;if(!ok)return false;}
+ if(S.epage&&S.epage.size){var m=0;S.epage.forEach(function(v){m=Math.max(m,+v);});if(d.epAge==null||d.epAge>m)return false;}
+ return true;}
+function evLine(keys){
+ for(var i=0;i<keys.length;i++){var r=EPX.ev[keys[i]+'|10'];if(r)return '<span class="ep-ev">📊 Your data (~2 years): '+r.n+' signals · average '+(r.mean_pct>0?'+':'')+r.mean_pct+'% over 10 sessions, '+
+  (r.edge_pct>=0?'<b style="color:#16A34A">+'+r.edge_pct+'%</b>':'<b style="color:#DC2626">'+r.edge_pct+'%</b>')+' vs a plain uptrend entry · higher after 10 sessions '+r.win_pct+'% of the time. Not yet tightened by a study \u2014 a guide, no costs.</span>';}
+ return '';}
+var EP_PB=[
+ {id:'ep_neglect',label:'⭐ EP from neglect',fig:'ep',ev:['gap_neglected'],
+  how:'A quiet, ignored stock opens with a real gap on 2x+ volume and closes strong \u2014 the classic Episodic Pivot. The surprise forces a repricing that takes weeks. Plan: buy the opening-range high on the gap day or the next session\u2019s strength; stop under the gap-day low. Event today or yesterday.'},
+ {id:'ep_moving',label:'EP: already moving',fig:'ep',ev:['gap_moving'],
+  how:'A real gap on heavy volume, but the stock was already running before it. Valid catalyst, more crowded \u2014 size smaller or wait for the delayed entry.'},
+ {id:'ep_ignition',label:'🔥 Momentum Ignition (no gap)',fig:'ign',ev:['ignition'],
+  how:'No big gap \u2014 instead the stock rallied all day and closed near the high on 2x+ volume, or did it over 2-3 strong days in a row. Same idea as an EP without the overnight gap: buyers arriving in size. Plan: buy next session\u2019s strength above the high; stop under the low of the move.'},
+ {id:'ep_results',label:'📋 EP on results',fig:'ep',ev:['gap_results','ignition_results'],
+  how:'A gap or ignition on a results day, still fresh or drifting higher. The catalyst is confirmed. Check the Results tab for the numbers behind it.'},
+ {id:'dep_coil',label:'🌀 Delayed EP: coiling (watchlist)',fig:'dep',ev:['delayed_gap','delayed_ignition'],
+  how:'After a gap or ignition, the stock held above the event-day low and is now tight on drying volume. This is the delayed-EP watchlist: set an alert just above the base high (drawn on the chart); stop under the base low.'},
+ {id:'dep_break',label:'🚀 Delayed EP: breakout',fig:'dep',ev:['delayed_gap','delayed_ignition'],
+  how:'The base after a gap or ignition just broke out (within the last 2 sessions). The event proved itself by holding; this is the entry with a tighter stop than the original gap day. Stop under the base low.'}
+];
+var EP_COL={k:'epage',g:'Setup',lbl:'EP / Ignition',a:'l',def:1,tip:'Latest Episodic Pivot or Momentum Ignition in the last 60 sessions, how many sessions ago, and its life stage.',
+ cell:function(d){if(!d.epType)return (typeof DASH!=='undefined')?DASH:'—';
+  var c=d.epStage==='resumed'?'#16A34A':(d.epStage==='faded'?'#DC2626':(d.epStage==='coiling'?'#8B5CF6':'var(--text2)'));
+  return '<span style="white-space:nowrap" title="'+esc((d.epType==='gap'?'Gap EP':'Ignition')+' '+(d.epMove!=null?'+'+d.epMove+'%':'')+(d.epNeg?' · from neglect':'')+(d.epRes?' · on results':'')+(d.epLow?' · event low '+d.epLow:'')+(d.epBaseHi?' · base high '+d.epBaseHi:''))+'">'+
+   ((d.epHits||[]).length?'⭐ ':'')+(d.epType==='gap'?'⚡ EP':'🔥 Ign')+' · '+d.epAge+'d · <b style="color:'+c+'">'+(STG[d.epStage]||'').replace(/^\S+ /,'')+'</b></span>';}};
+function install(){
+ if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
+ if(window._epInstalled)return true;window._epInstalled=true;
+ var at=SCR_FILTERS.findIndex(function(f){return f.key==='shk';});at=at<0?SCR_FILTERS.length:at;
+ Array.prototype.splice.apply(SCR_FILTERS,[at,0].concat(EP_FILTERS));EP_FILTERS.forEach(function(f){SCR.state[f.key]=new Set();});
+ try{var o=SCR_FGROUPS.findIndex(function(g){return /^Shakeouts/.test(g[0]);});var g=['Episodic Pivots',['eptype','epstage','epctx','epage']];if(o<0)SCR_FGROUPS.push(g);else SCR_FGROUPS.splice(o,0,g);}catch(e){}
+ try{SCR_FILTER_WHY.eptype='Episodic Pivot (opening gap) or Momentum Ignition (a strong close-at-the-high day, or 2-3 strong days, without a gap).';
+  SCR_FILTER_WHY.epstage='Where the stock is in its life after the event: fresh, drifting, basing, coiling (delayed-EP watchlist), delayed-EP breakout, or faded.';
+  SCR_FILTER_WHY.epctx='Was it quiet before (from neglect) or already moving, and did it land on a results date.';
+  SCR_FILTER_WHY.epage='How many sessions ago the event happened.';}catch(e){}
+ SCR_COLS.push(EP_COL);SCR.vis[EP_COL.k]=true;
+ EP_PB.forEach(function(p){SCR_PRESETS.push({id:p.id,grp:'Episodic Pivots',when:'eod',label:p.label,set:{},fig:p.fig,_how0:p.how,how:p.how,_ev:p.ev,_ep:true,
+  req:function(d){return (d.epHits||[]).indexOf(p.id)>=0;}});});
+ var orig=scrPasses;
+ scrPasses=function(d){if(!orig(d))return false;if(!passes(d))return false;
+  var p=null;for(var i=0;i<SCR_PRESETS.length;i++){if(SCR_PRESETS[i].id===SCR.activePreset){p=SCR_PRESETS[i];break;}}
+  if(p&&p._ep&&p.req&&!p.req(d))return false;return true;};
+ try{scrFillPlaybooks();}catch(e){}
+ return true;}
+function addEv(){SCR_PRESETS.forEach(function(p){if(p._ep)p.how=p._how0+evLine(p._ev);});}
+var t=setInterval(function(){
+ if(install()){clearInterval(t);
+  var m=window.tfMtfMerge;
+  if(typeof m==='function'&&!m._ep){window.tfMtfMerge=async function(){var r=await m.apply(this,arguments);try{await load();(SCR.data||[]).forEach(apply);addEv();}catch(e){console.error('ep merge',e);}return r;};window.tfMtfMerge._ep=true;}
+  if(typeof SCR!=='undefined'&&SCR.loaded){load().then(function(){(SCR.data||[]).forEach(apply);addEv();try{scrRender();}catch(e){}});}
+ }},300);
+setTimeout(function(){clearInterval(t);},60000);
 })();
 </script>
 
@@ -17647,6 +17755,8 @@ function ceLevels(o){
  add('rngh',d.skBoxHi,'Range high','var(--amber)','Top of the sideways box the shakeout scan found — the breakout level.');
  add('rngl',d.skBoxLo,'Range low','var(--amber)','Bottom of the box — the level shakeouts undercut.');
  add('shkl',d.skLow,'Shakeout low','var(--red)','Low of the latest shakeout — where the setup fails (the stop).');
+ add('epl',d.epLow,'EP / ignition low','var(--red)','Low of the latest Episodic Pivot or Momentum Ignition — below it the move has failed.');
+ add('epb',d.epBaseHi,'Delayed-EP base high','var(--green)','Top of the base after the EP — the delayed-EP entry.');
  return L;
 }
 

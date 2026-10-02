@@ -104,6 +104,7 @@ def run(dry):
             ("F&O bhav OI", "fo_bhav_oi", "session_date", True),
             ("Shakeout scan", "shakeout_state", "session_date", False),
             ("Market history", "market_history|&market=eq.IN", "d", False),
+            ("EP scan", "ep_state", "session_date", False),
         ]:
             table, _, where = table.partition("|")
             got, err = latest(table, col, where)
@@ -138,6 +139,7 @@ def run(dry):
         ("US playbook tracker", "us_playbook_picks", "session_date"),
         ("US shakeout scan", "us_shakeout_state", "session_date"),
         ("US market history", "market_history|&market=eq.US", "d"),
+        ("US EP scan", "us_ep_state", "session_date"),
     ]:
         table, _, where = table.partition("|")
         got, err = latest(table, col, where)

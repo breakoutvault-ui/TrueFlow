@@ -110,6 +110,13 @@ PLAYS = {
  "20 EMA Shakeout + Volume":          lambda r: "in_ema20v" in (r.get("pb_hits") or "").split(","),
  "20 EMA Shakeout + Volume, strong":  lambda r: "in_ema20v_rs" in (r.get("pb_hits") or "").split(","),
  "Box U&R (tight)":                   lambda r: "in_box_ur" in (r.get("pb_hits") or "").split(","),
+ # Episodic Pivots / Momentum Ignitions / Delayed EPs (from the nightly ep_scan)
+ "EP from neglect":                   lambda r: "ep_neglect" in (r.get("ep_hits") or "").split(","),
+ "EP already moving":                 lambda r: "ep_moving" in (r.get("ep_hits") or "").split(","),
+ "Momentum Ignition (no gap)":        lambda r: "ep_ignition" in (r.get("ep_hits") or "").split(","),
+ "EP on results":                     lambda r: "ep_results" in (r.get("ep_hits") or "").split(","),
+ "Delayed EP coiling":                lambda r: "dep_coil" in (r.get("ep_hits") or "").split(","),
+ "Delayed EP breakout":               lambda r: "dep_break" in (r.get("ep_hits") or "").split(","),
  "ALL SETUPS (baseline)":lambda r: (r.get("qm_pattern") or "") in ("VCP", "HTF", "EP", "Reclaim"),
 }
 
@@ -151,7 +158,23 @@ def record(day):
                 r.update({k: x.get(k) for k in ("trend_ok", "box_state", "shake_type", "shake_age", "shk_bo", "shk_near", "pb_hits")})
         log("shakeout rows merged: %d" % len(sk))
     except Exception as e:
-        log("shakeout rows not available (%s) - shakeout plays skipped tonight" % str(e)[:80])
+        log("shakeout rows not available (%s)" % str(e)[:80])
+    try:
+        epm, off3 = {}, 0
+        while True:
+            b = get("ep_state?select=symbol,session_date,pb_hits&limit=1000&offset=%d" % off3)
+            for x in b:
+                if str(x.get("session_date")) == str(day):
+                    epm[x["symbol"]] = x.get("pb_hits")
+            if len(b) < 1000:
+                break
+            off3 += 1000
+        for r in rows:
+            if r["symbol"] in epm:
+                r["ep_hits"] = epm[r["symbol"]]
+        log("EP rows merged: %d" % len(epm))
+    except Exception as e:
+        log("EP rows not available (%s) - EP plays skipped tonight" % str(e)[:80])
 
     picks, counts = [], {}
     for name, test in PLAYS.items():
