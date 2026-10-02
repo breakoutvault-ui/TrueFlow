@@ -110,13 +110,9 @@ PLAYS = {
  "20 EMA Shakeout + Volume":          lambda r: "in_ema20v" in (r.get("pb_hits") or "").split(","),
  "20 EMA Shakeout + Volume, strong":  lambda r: "in_ema20v_rs" in (r.get("pb_hits") or "").split(","),
  "Box U&R (tight)":                   lambda r: "in_box_ur" in (r.get("pb_hits") or "").split(","),
- # Episodic Pivots / Momentum Ignitions / Delayed EPs (from the nightly ep_scan)
- "EP from neglect":                   lambda r: "ep_neglect" in (r.get("ep_hits") or "").split(","),
- "EP already moving":                 lambda r: "ep_moving" in (r.get("ep_hits") or "").split(","),
- "Momentum Ignition (no gap)":        lambda r: "ep_ignition" in (r.get("ep_hits") or "").split(","),
- "EP on results":                     lambda r: "ep_results" in (r.get("ep_hits") or "").split(","),
- "Delayed EP coiling":                lambda r: "dep_coil" in (r.get("ep_hits") or "").split(","),
- "Delayed EP breakout":               lambda r: "dep_break" in (r.get("ep_hits") or "").split(","),
+ # Episodic Pivots - only the rules that passed ep_study.py for this market (2 Oct 2026)
+ "EP big gap (>=8%)":                 lambda r: "in_ep_gap8" in (r.get("ep_hits") or "").split(","),
+ "EP gap >=6%":                       lambda r: "in_ep_gap6" in (r.get("ep_hits") or "").split(","),
  "ALL SETUPS (baseline)":lambda r: (r.get("qm_pattern") or "") in ("VCP", "HTF", "EP", "Reclaim"),
 }
 

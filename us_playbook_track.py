@@ -93,13 +93,11 @@ PLAYS = {
  "Shakeout -> Box Breakout (tight)":  lambda r: "us_shkbo" in (r.get("pb_hits") or "").split(","),
  "Box U&R (tight)":                   lambda r: "us_box_ur" in (r.get("pb_hits") or "").split(","),
  "Spring":                            lambda r: "us_spring" in (r.get("pb_hits") or "").split(","),
- # Episodic Pivots / Momentum Ignitions / Delayed EPs (from the nightly ep_scan)
- "EP from neglect":                   lambda r: "ep_neglect" in (r.get("ep_hits") or "").split(","),
- "EP already moving":                 lambda r: "ep_moving" in (r.get("ep_hits") or "").split(","),
- "Momentum Ignition (no gap)":        lambda r: "ep_ignition" in (r.get("ep_hits") or "").split(","),
- "EP on results":                     lambda r: "ep_results" in (r.get("ep_hits") or "").split(","),
- "Delayed EP coiling":                lambda r: "dep_coil" in (r.get("ep_hits") or "").split(","),
- "Delayed EP breakout":               lambda r: "dep_break" in (r.get("ep_hits") or "").split(","),
+ # Episodic Pivots - only the rules that passed ep_study.py for this market (2 Oct 2026)
+ "Momentum Ignition":                 lambda r: "us_ign" in (r.get("ep_hits") or "").split(","),
+ "Ignition on 3x volume":             lambda r: "us_ign3" in (r.get("ep_hits") or "").split(","),
+ "Delayed EP after ignition (watch)": lambda r: "us_dep_watch" in (r.get("ep_hits") or "").split(","),
+ "Delayed EP after ignition (break)": lambda r: "us_dep_break" in (r.get("ep_hits") or "").split(","),
  "ALL SETUPS (baseline)":lambda r: (r.get("qm_pattern") or "") in ("VCP", "HTF", "EP", "Reclaim"),
 }
 

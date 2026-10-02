@@ -16128,20 +16128,32 @@ function evLine(keys){
  for(var i=0;i<keys.length;i++){var r=EPX.ev[keys[i]+'|10'];if(r)return '<span class="ep-ev">📊 Your data (~2 years): '+r.n+' signals · average '+(r.mean_pct>0?'+':'')+r.mean_pct+'% over 10 sessions, '+
   (r.edge_pct>=0?'<b style="color:#16A34A">+'+r.edge_pct+'%</b>':'<b style="color:#DC2626">'+r.edge_pct+'%</b>')+' vs a plain uptrend entry · higher after 10 sessions '+r.win_pct+'% of the time. Not yet tightened by a study \u2014 a guide, no costs.</span>';}
  return '';}
-var EP_PB=[
- {id:'ep_neglect',label:'⭐ EP from neglect',fig:'ep',ev:['gap_neglected'],
-  how:'A quiet, ignored stock opens with a real gap on 2x+ volume and closes strong \u2014 the classic Episodic Pivot. The surprise forces a repricing that takes weeks. Plan: buy the opening-range high on the gap day or the next session\u2019s strength; stop under the gap-day low. Event today or yesterday.'},
- {id:'ep_moving',label:'EP: already moving',fig:'ep',ev:['gap_moving'],
-  how:'A real gap on heavy volume, but the stock was already running before it. Valid catalyst, more crowded \u2014 size smaller or wait for the delayed entry.'},
- {id:'ep_ignition',label:'🔥 Momentum Ignition (no gap)',fig:'ign',ev:['ignition'],
-  how:'No big gap \u2014 instead the stock rallied all day and closed near the high on 2x+ volume, or did it over 2-3 strong days in a row. Same idea as an EP without the overnight gap: buyers arriving in size. Plan: buy next session\u2019s strength above the high; stop under the low of the move.'},
- {id:'ep_results',label:'📋 EP on results',fig:'ep',ev:['gap_results','ignition_results'],
-  how:'A gap or ignition on a results day, still fresh or drifting higher. The catalyst is confirmed. Check the Results tab for the numbers behind it.'},
- {id:'dep_coil',label:'🌀 Delayed EP: coiling (watchlist)',fig:'dep',ev:['delayed_gap','delayed_ignition'],
-  how:'After a gap or ignition, the stock held above the event-day low and is now tight on drying volume. This is the delayed-EP watchlist: set an alert just above the base high (drawn on the chart); stop under the base low.'},
- {id:'dep_break',label:'🚀 Delayed EP: breakout',fig:'dep',ev:['delayed_gap','delayed_ignition'],
-  how:'The base after a gap or ignition just broke out (within the last 2 sessions). The event proved itself by holding; this is the entry with a tighter stop than the original gap day. Stop under the base low.'}
-];
+/* Only the playbooks that PASSED ep_study.py (2 Oct 2026) for this market. */
+var STUDY='<span class="ep-ev">📊 Study, 2 Oct 2026 (your data, ~2.5 years, judged against a plain uptrend entry on the same kind of market day): ';
+var EP_SETS={
+ IN:[
+  {id:'in_ep_gap8',label:'⭐ EP: big gap (≥8%)',fig:'ep',
+   how:'Opened at least 8% above yesterday\u2019s close on heavy volume and closed in the upper half of the day \u2014 an Episodic Pivot. In India the gap size is what made it work: the bigger the surprise, the better. Plan: buy the opening-range high on the gap day or the next session\u2019s strength; stop under the gap-day low (drawn on the chart). Event today or yesterday.'+
+    STUDY+'251 trades · <b style="color:#16A34A">+2.04% per trade</b> better than a plain entry · held before and in the last 12 months · also positive on weak-market days. Win rate ~47% \u2014 the edge comes from bigger winners.</span>'},
+  {id:'in_ep_gap6',label:'⚡ EP: gap ≥6%',fig:'ep',
+   how:'The same Episodic Pivot with a gap of at least 6%. More signals, smaller edge than the 8% version. Plan as above.'+
+    STUDY+'451 trades · <b style="color:#16A34A">+1.30% per trade</b> vs a plain entry · held in both periods. Win rate ~42%.</span>'}
+ ],
+ US:[
+  {id:'us_ign',label:'🔥 Momentum Ignition',fig:'ign',
+   how:'No big gap \u2014 the stock rallied through the day (or 2\u20133 strong days in a row) and closed near the high on 2x+ volume. In the US this beat gap EPs. Plan: buy next session\u2019s strength above the high; stop under the low of the move. Event today or yesterday.'+
+    STUDY+'2,241 trades · <b style="color:#16A34A">+1.54% per trade</b> vs a plain entry · strongly significant · held in both periods. Win rate ~52%.</span>'},
+  {id:'us_ign3',label:'⭐ Ignition on 3× volume',fig:'ign',
+   how:'A Momentum Ignition on at least 3x the stock\u2019s average volume \u2014 bigger participation, better follow-through. Plan as above.'+
+    STUDY+'508 trades · <b style="color:#16A34A">+2.46% per trade</b> vs a plain entry · held in both periods (+3.7% in the last 12 months). Weaker on neutral-market days.</span>'},
+  {id:'us_dep_watch',label:'🌀 Delayed EP after ignition (watch)',fig:'dep',
+   how:'An ignition happened, the stock held above the low of the move and has been basing for 5+ sessions, and has not broken out yet. This is the watchlist for the breakout below: set an alert just above the base high (drawn on the chart).'},
+  {id:'us_dep_break',label:'🚀 Delayed EP after ignition (breakout)',fig:'dep',
+   how:'The FIRST breakout from a base of 5+ sessions after an ignition, on at least 1.5x volume, in the last 2 sessions. Plan: enter next session; stop under the base low \u2014 much tighter than the original move\u2019s low.'+
+    STUDY+'254 trades · <b style="color:#16A34A">+2.25% per trade</b> vs a plain entry · held before and in the last 12 months. Only the first breakout counts \u2014 later breakouts showed no edge.</span>'}
+ ]
+};
+var EP_PB=EP_SETS['US']||[];
 var EP_COL={k:'epage',g:'Setup',lbl:'EP / Ignition',a:'l',def:1,tip:'Latest Episodic Pivot or Momentum Ignition in the last 60 sessions, how many sessions ago, and its life stage.',
  cell:function(d){if(!d.epType)return (typeof DASH!=='undefined')?DASH:'—';
   var c=d.epStage==='resumed'?'#16A34A':(d.epStage==='faded'?'#DC2626':(d.epStage==='coiling'?'#8B5CF6':'var(--text2)'));
@@ -16158,7 +16170,7 @@ function install(){
   SCR_FILTER_WHY.epctx='Was it quiet before (from neglect) or already moving, and did it land on a results date.';
   SCR_FILTER_WHY.epage='How many sessions ago the event happened.';}catch(e){}
  SCR_COLS.push(EP_COL);SCR.vis[EP_COL.k]=true;
- EP_PB.forEach(function(p){SCR_PRESETS.push({id:p.id,grp:'Episodic Pivots',when:'eod',label:p.label,set:{},fig:p.fig,_how0:p.how,how:p.how,_ev:p.ev,_ep:true,
+ EP_PB.forEach(function(p){SCR_PRESETS.push({id:p.id,grp:'Episodic Pivots',when:'eod',label:p.label,set:{},fig:p.fig,how:p.how,_ep:true,
   req:function(d){return (d.epHits||[]).indexOf(p.id)>=0;}});});
  var orig=scrPasses;
  scrPasses=function(d){if(!orig(d))return false;if(!passes(d))return false;
@@ -16166,7 +16178,7 @@ function install(){
   if(p&&p._ep&&p.req&&!p.req(d))return false;return true;};
  try{scrFillPlaybooks();}catch(e){}
  return true;}
-function addEv(){SCR_PRESETS.forEach(function(p){if(p._ep)p.how=p._how0+evLine(p._ev);});}
+function addEv(){}
 var t=setInterval(function(){
  if(install()){clearInterval(t);
   var m=window.tfMtfMerge;

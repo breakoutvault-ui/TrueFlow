@@ -185,7 +185,7 @@ def analyse(bars, P, results_days):
     state = {"session_date": bars[t]["d"], "close": round(c[t], 4), "trend_ok": bool(c[t] > e50[t] and e50[t] > e50[t - 10]),
              "ev_type": None, "ev_date": None, "ev_age": None, "ev_move": None, "ev_rvol": None, "ev_low": None,
              "neglected": None, "results": None, "stage": None, "base_high": None, "base_low": None, "base_days": None,
-             "trigger_date": None, "trigger_age": None}
+             "trigger_date": None, "trigger_age": None, "trig_nth": None, "trig_rvol": None, "trig_base_len": None}
     if live:
         ev = live[-1]
         st, trig, bh, bl, bd = stage_walk(ev, t)
@@ -194,6 +194,9 @@ def analyse(bars, P, results_days):
                      stage=st, base_high=round(bh, 4) if bh else None, base_low=round(bl, 4) if bl else None,
                      base_days=bd, trigger_date=bars[trig]["d"] if trig is not None else None,
                      trigger_age=(t - trig) if trig is not None else None)
+        if ev.get("_trigs"):
+            lt = ev["_trigs"][-1]
+            state.update(trig_nth=lt["nth"], trig_rvol=round(lt["rvol"], 2) if lt["rvol"] else None, trig_base_len=lt["base_len"])
     return events, state
 
 
@@ -223,15 +226,21 @@ def evidence(bars, events, P, acc, base_acc):
                     base_acc.setdefault(hz, []).append((bars[i + hz]["c"] / e - 1) * 100)
 
 
-PB = {   # playbook rules, per market (scan decides who qualifies)
-    "IN": [("ep_neglect", lambda s: s["ev_type"] == "gap" and s["neglected"] and s["stage"] in ("fresh",)),
-           ("ep_moving", lambda s: s["ev_type"] == "gap" and not s["neglected"] and s["stage"] in ("fresh",)),
-           ("ep_ignition", lambda s: s["ev_type"] == "ignition" and s["stage"] in ("fresh",)),
-           ("ep_results", lambda s: s["results"] and s["stage"] in ("fresh", "drifting")),
-           ("dep_coil", lambda s: s["stage"] == "coiling"),
-           ("dep_break", lambda s: s["stage"] == "resumed" and (s["trigger_age"] or 99) <= 2)],
+# Playbooks that PASSED ep_study.py (2 Oct 2026), one list per market. Others are not offered.
+#  IN: gap EPs work (gap >= 8%: +2.04%/trade vs a plain entry, n=251; >= 6%: +1.30%, n=451);
+#      ignitions and delayed EPs showed no edge.
+#  US: ignitions work (as built +1.54%, n=2,241; on 3x volume +2.46%, n=508); delayed EP after an
+#      ignition works (1st breakout, base >= 5d, breakout volume >= 1.5x: +2.25%, n=254); gap EPs did not.
+PB = {
+    "IN": [("in_ep_gap8", lambda s: s["ev_type"] == "gap" and (s["ev_move"] or 0) >= 8 and s["stage"] == "fresh"),
+           ("in_ep_gap6", lambda s: s["ev_type"] == "gap" and (s["ev_move"] or 0) >= 6 and s["stage"] == "fresh")],
+    "US": [("us_ign", lambda s: s["ev_type"] == "ignition" and s["stage"] == "fresh"),
+           ("us_ign3", lambda s: s["ev_type"] == "ignition" and (s["ev_rvol"] or 0) >= 3 and s["stage"] == "fresh"),
+           ("us_dep_watch", lambda s: s["ev_type"] == "ignition" and s["stage"] in ("basing", "coiling") and not s["trig_nth"]
+                                      and (s["base_days"] or 0) >= 5),
+           ("us_dep_break", lambda s: s["ev_type"] == "ignition" and s["stage"] == "resumed" and (s["trigger_age"] if s["trigger_age"] is not None else 99) <= 2
+                                      and s["trig_nth"] == 1 and (s["trig_base_len"] or 0) >= 5 and (s["trig_rvol"] or 0) >= 1.5)],
 }
-PB["US"] = list(PB["IN"])
 
 
 def main():
