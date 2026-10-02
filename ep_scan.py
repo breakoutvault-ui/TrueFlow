@@ -108,7 +108,7 @@ def analyse(bars, P, results_days):
         vr = (v[i] / v20[i]) if v20[i] else 0
         gap = (o[i] / c[i - 1] - 1) * 100 if c[i - 1] else 0
         chg = (c[i] / c[i - 1] - 1) * 100 if c[i - 1] else 0
-        typ = None
+        typ = None; run_k = 1
         if gap >= max(P["gap_pct"], P["gap_adr"] * a) and vr >= P["gap_vol"] and pos(i) >= P["gap_close_frac"]:
             typ = "gap"
         elif chg >= max(P["ign_pct"], P["ign_adr"] * a) and pos(i) >= P["ign_close_frac"] and vr >= P["ign_vol"] \
@@ -125,6 +125,7 @@ def analyse(bars, P, results_days):
                 if all(pos(j) >= 0.5 and c[j] > c[j - 1] for j in range(s, i + 1)) and \
                         all(v20[j] and v[j] / v20[j] >= P["run_vol"] for j in range(s, i + 1)):
                     typ = "ignition"; chg = run; vr = sum(v[j] / v20[j] for j in range(s, i + 1)) / k
+                    run_k = k
                     break
         if typ and i - last_ev > 5:                         # one event per burst of activity
             pre = (c[i - 1] / c[i - 21] - 1) * 100 if c[i - 21] else 0
@@ -134,14 +135,14 @@ def analyse(bars, P, results_days):
             ev = dict(i=i, typ=typ, move=round(gap if typ == "gap" else chg, 2), rvol=round(vr, 2),
                       low=min(l[start:i + 1]), high=h[i], neglected=abs(pre) <= P["neglect_pct"],
                       results=any(d in results_days for d in (bars[i]["d"], bars[i - 1]["d"])),
-                      trend=bool(c[i] > e50[i]))
+                      trend=bool(c[i] > e50[i]), pos=round(pos(i), 2), run=run_k, adr=a)
             events.append(ev)
             last_ev = i
     # ── stage of the latest event, and delayed-EP triggers through history ──
     def stage_walk(ev, upto):
         """Stage of an event as of bar `upto`, plus the bar of a delayed trigger (resumed)."""
         i0 = ev["i"]; peak = h[i0]; peak_i = i0; base_hi = None; base_lo = None; based_since = None
-        st = "fresh"; trig = None
+        st = "fresh"; trig = None; trigs = ev.setdefault("_trigs", []) if upto == n - 1 or "_walked" not in ev else []
         for j in range(i0 + 1, upto + 1):
             if c[j] < ev["low"]:
                 return "faded", trig, None, None, None
@@ -153,6 +154,11 @@ def analyse(bars, P, results_days):
                     base_hi = max(h[peak_i:j + 1]); base_lo = min(l[peak_i + 1:j + 1])
             else:
                 if c[j] > base_hi and j - based_since >= P["base_min"]:
+                    if "_walked" not in ev:
+                        a_ = adr[j] or 2.0
+                        trigs.append(dict(j=j, base_len=j - based_since, depth_adr=((base_hi - base_lo) / base_hi * 100 / a_) if base_lo else None,
+                                          rvol=(v[j] / v20[j]) if v20[j] else None, trend=bool(c[j] > e50[j] and e50[j] > e50[j - 10]),
+                                          nth=len(trigs) + 1, stop=base_lo))
                     trig = j; st = "resumed"
                     based_since = None; peak = h[j]; peak_i = j; base_hi = base_lo = None
                     continue
@@ -170,8 +176,10 @@ def analyse(bars, P, results_days):
 
     # evidence: event days and delayed triggers
     for ev in events:
-        st, trig, _, _, _ = stage_walk(ev, min(n - 1, ev["i"] + P["max_age"]))
-        ev["trigger"] = trig
+        ev["_trigs"] = []
+        stage_walk(ev, min(n - 1, ev["i"] + P["max_age"]))
+        ev["_walked"] = True
+        ev["trigger"] = ev["_trigs"][0]["j"] if ev["_trigs"] else None     # FIRST breakout = the classic delayed EP
     t = n - 1
     live = [e for e in events if t - e["i"] <= P["max_age"]]
     state = {"session_date": bars[t]["d"], "close": round(c[t], 4), "trend_ok": bool(c[t] > e50[t] and e50[t] > e50[t - 10]),
