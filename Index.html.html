@@ -15935,6 +15935,28 @@ setTimeout(function(){clearInterval(t);},60000);
 #tab-market .ms-hm td.tot{font-size:11.5px;font-weight:700;text-align:right;padding-left:6px}
 #tab-market .ms-rot{font-size:11px;color:var(--muted);cursor:pointer;margin-left:4px}
 #tab-market .ms-rot:hover{color:var(--cyan)}
+#ms-ledbk{position:fixed;inset:0;z-index:10003;background:rgba(0,0,0,.35);display:none}
+#ms-ledbk.open{display:block}
+#ms-led{position:fixed;top:0;bottom:0;right:-620px;width:580px;max-width:96vw;z-index:10004;background:var(--bg1);border-left:1px solid var(--bg3);
+ display:flex;flex-direction:column;transition:right .22s ease;box-shadow:-12px 0 36px rgba(0,0,0,.35)}
+#ms-led.open{right:0}
+#ms-led .lh{padding:13px 16px 8px;border-bottom:1px solid var(--bg3)}
+#ms-led .lh b{font-size:14px;color:var(--text)}
+#ms-led .lx{float:right;cursor:pointer;color:var(--muted);font-size:17px}
+#ms-led .ltabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+#ms-led .lt{padding:4px 11px;border-radius:99px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11.5px;font-family:inherit}
+#ms-led .lt.on{border-color:var(--cyan);color:var(--cyan);font-weight:700;background:rgba(6,182,212,.08)}
+#ms-led .lopt{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:11px;color:var(--muted)}
+#ms-led .lbody{flex:1 1 auto;overflow:auto;padding:0 10px 24px}
+#ms-led table{width:100%;border-collapse:separate;border-spacing:0 3px;font-size:12px}
+#ms-led th{position:sticky;top:0;background:var(--bg1);font-size:10px;letter-spacing:.8px;color:var(--muted);font-weight:600;text-transform:uppercase;padding:9px 6px 6px;text-align:right;z-index:1}
+#ms-led th:first-child,#ms-led td:first-child{text-align:left}
+#ms-led td{padding:6px 6px;text-align:right;color:var(--text);white-space:nowrap}
+#ms-led td.c{border-radius:6px}
+#ms-led td .dv{font-size:10.5px;margin-left:5px}
+#ms-led tr.hl td{box-shadow:inset 0 0 0 1px var(--cyan)}
+#tab-market .ms-led-link{font-size:11px;color:var(--muted);cursor:pointer;margin-left:6px}
+#tab-market .ms-led-link:hover{color:var(--cyan)}
 #ms-tip{position:fixed;z-index:10005;pointer-events:none;background:var(--bg1);border:1px solid var(--bg3);border-radius:10px;padding:7px 10px;font-size:11.5px;color:var(--text);box-shadow:0 10px 28px rgba(0,0,0,.25);display:none;white-space:nowrap;line-height:1.5}
 #mk .tile{cursor:pointer}
 #mk .tile:hover{border-color:var(--cyan)}
@@ -15992,9 +16014,6 @@ function installFilter(){
  if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
  if(window._mhInstalled)return true;window._mhInstalled=true;
  SCR_FILTERS.push(VF,TF);SCR.state.vmove=new Set();SCR.state.topmv=new Set();
- var qi=SCR_PRESETS.findIndex(function(p){return p.grp;});if(qi<0)qi=SCR_PRESETS.length;
- SCR_PRESETS.splice(qi,0,{id:'qv_top_w',label:'📈 Top gainers · week',set:{topmv:['g_r1w']},desc:'The 50 biggest gainers over the last week.'},{id:'qv_top_m',label:'📈 Top gainers · month',set:{topmv:['g_r1m']},desc:'The 50 biggest gainers over the last month.'});
- if(SCR.loaded){try{scrBuildUI();}catch(e){}}
  try{var g=SCR_FGROUPS.filter(function(x){return /^Volume/.test(x[0]);})[0];if(g){g[1].push('vmove');g[1].push('topmv');}}catch(e){}
  try{SCR_FILTER_WHY.vmove='Big single-day moves on volume and heavy-volume days - the same counts the Market Sentiment tab charts over time.';
      SCR_FILTER_WHY.topmv='The market\u2019s biggest gainers or losers over a chosen period, refreshed every night.';}catch(e){}
@@ -16084,10 +16103,13 @@ function kpis(all){
   ['vol','Market volume',(L.turn_ratio!=null?(+L.turn_ratio).toFixed(2)+'×':'—'),'of its 20-day average',col(last60,'turn_ratio'),'var(--cyan)'],
   ['burst','Momentum bursts','<span style="color:var(--g)">'+L.burst_up+'</span> <span style="font-size:13px;color:var(--muted);font-weight:500">up · </span><span style="color:var(--r)">'+L.burst_dn+'</span> <span style="font-size:13px;color:var(--muted);font-weight:500">down</span>','stocks moving ≥'+SET.burst+'% on volume',ma(col(last60,'burst_up').map(function(v,i){return v-(last60[i].burst_dn||0);}),5),'var(--g)']
  ];
- return '<div class="ms-kpis">'+cards.map(function(c){return '<div class="ms-kpi" onclick="mhJump(\''+c[0]+'\')"><div class="ms-kl">'+c[1]+'</div><div class="ms-kv">'+c[2]+'</div><div class="ms-kd">'+c[3]+'</div>'+spark(c[4],c[5])+'</div>';}).join('')+'</div>';
+ var KT={breadth:'breadth',ad:'ad',hl:'hl',vol:'vol',burst:'burst'};
+ return '<div class="ms-kpis">'+cards.map(function(c){return '<div class="ms-kpi" title="Click for the day-by-day table" onclick="mhLed(\''+(KT[c[0]]||'breadth')+'\')"><div class="ms-kl">'+c[1]+'</div><div class="ms-kv">'+c[2]+'</div><div class="ms-kd">'+c[3]+'</div>'+spark(c[4],c[5])+'</div>';}).join('')+'</div>';
 }
 function card(id,title,now,sub,body,btn,wide){
- return '<div class="ms-card'+(wide?' wide':'')+'" id="ms-'+id+'"><div class="ms-h"><b>'+title+'</b>'+(now?'<span class="now">'+now+'</span>':'')+(btn||'')+'</div>'+(sub?'<div class="ms-sub">'+sub+'</div>':'')+body+'</div>';
+ var lt={breadth:'breadth',ad:'ad',hl:'hl',vol:'vol',burst:'burst'}[id];
+ return '<div class="ms-card'+(wide?' wide':'')+'" id="ms-'+id+'"><div class="ms-h"><b>'+title+'</b>'+(now?'<span class="now">'+now+'</span>':'')+
+  (lt?'<span class="ms-led-link" onclick="mhLed(\''+lt+'\')" title="Open the day-by-day table">📅 Day by day</span>':'')+(btn||'')+'</div>'+(sub?'<div class="ms-sub">'+sub+'</div>':'')+body+'</div>';
 }
 function btn(label,js){return '<button class="ms-go" onclick="'+js+'">'+label+' ›</button>';}
 function burstsToday(){
@@ -16203,8 +16225,70 @@ function wire(){
    tip.innerHTML='<b>'+fmtD(T.rows[i].d)+' '+T.rows[i].d.slice(0,4)+'</b><br>'+(T.fn?T.fn(T.rows[i],i):'');tip.style.display='block';
    var tx=e.clientX+14;if(tx+tip.offsetWidth>innerWidth-8)tx=e.clientX-tip.offsetWidth-14;tip.style.left=tx+'px';tip.style.top=(e.clientY+12)+'px';});
   hov.addEventListener('mouseleave',function(){tip.style.display='none';cur.style.display='none';});
+  if(CHART_TAB[id]){hov.style.cursor='pointer';hov.addEventListener('click',function(e){
+   var b=s.getBoundingClientRect(),fx=(e.clientX-b.left)/b.width*W,n=T.n,i=Math.round((fx-PADL)/(W-PADL-PADR)*(n-1));
+   i=Math.max(0,Math.min(n-1,i));tip.style.display='none';mhLed(CHART_TAB[id],T.rows[i].d);});}
  });
 }
+/* ── day-by-day ledger (side pane) ─────────────────── */
+var LED={
+ breadth:{t:'Breadth',cols:[['pct9','Above 9 EMA',1,'p'],['pct20','Above 20 EMA',1,'p'],['pct50','Above 50 EMA',1,'p'],['pct200','Above 200 EMA',1,'p']]},
+ ad:{t:'Participation',cols:[['adv','Advancing',1,'n'],['dec','Declining',-1,'n'],['_net','Net',1,'n'],['avg_chg','Avg move',1,'pc']]},
+ hl:{t:'52W highs',cols:[['hi52','At highs',1,'n'],['lo52','At lows',-1,'n'],['_nhl','Net',1,'n']]},
+ burst:{t:'Bursts',cols:[['burst_up','Bursts up',1,'n'],['burst_dn','Bursts down',-1,'n'],['_nb','Net',1,'n']]},
+ vol:{t:'Volume',cols:[['turn_ratio','Market vol ×avg',1,'x'],['rvol2_up','≥2× up',1,'n'],['rvol2_dn','≥2× down',-1,'n']]}
+};
+var CHART_TAB={'ms-c-br':'breadth','ms-c-ad':'ad','ms-c-hl':'hl','ms-c-vol':'vol','ms-c-bu':'burst'};
+MH.ledTab='breadth';MH.ledDays=30;MH.ledHL=null;
+try{MH.ledMode=localStorage.getItem('tfLedMode')||'pct';}catch(e){MH.ledMode='pct';}
+function lval(r,k){
+ if(k==='_net')return (r.adv==null||r.dec==null)?null:r.adv-r.dec;
+ if(k==='_nhl')return r.hi52==null?null:r.hi52-(r.lo52||0);
+ if(k==='_nb')return (r.burst_up||0)-(r.burst_dn||0);
+ return r[k]==null?null:+r[k];
+}
+function ledger(){
+ var el=$('ms-led');if(!el)return;
+ var T=LED[MH.ledTab],all=MH.rows,N=Math.min(MH.ledDays,all.length);
+ var rows=all.slice(-(N+1)).reverse();     // newest first, one extra row for the oldest change
+ var cnt=MH.ledTab==='breadth'&&MH.ledMode==='cnt';
+ function fmt(v,f,r,k){if(v==null)return '—';
+  if(f==='p')return cnt?((k==='pct200'?'≈':'')+Math.round(v*r.n/100)):(v.toFixed(0)+'%');
+  if(f==='pc')return (v>0?'+':'')+v.toFixed(2)+'%';if(f==='x')return v.toFixed(2)+'×';return Math.round(v);}
+ function dfmt(dv,f,r,k){if(f==='p')return cnt?Math.round(Math.abs(dv)*r.n/100):Math.abs(dv).toFixed(1)+'pt';if(f==='pc')return Math.abs(dv).toFixed(2)+'%';if(f==='x')return Math.abs(dv).toFixed(2);return Math.round(Math.abs(dv));}
+ var h='<div class="lh"><span class="lx" onclick="mhLed(false)">✕</span><b>Day by day · '+T.t+'</b>'+
+  '<div class="ltabs">'+Object.keys(LED).map(function(k){return '<button class="lt'+(k===MH.ledTab?' on':'')+'" onclick="mhLed(\''+k+'\')">'+LED[k].t+'</button>';}).join('')+'</div>'+
+  '<div class="lopt">'+[30,60,90].map(function(d){return '<button class="lt'+(MH.ledDays===d?' on':'')+'" onclick="mhLedDays('+d+')">'+d+' days</button>';}).join('')+
+  (MH.ledTab==='breadth'?'<span style="margin-left:auto"></span><button class="lt'+(!cnt?' on':'')+'" onclick="mhLedMode(\'pct\')">%</button><button class="lt'+(cnt?' on':'')+'" onclick="mhLedMode(\'cnt\')">Count</button>':'')+
+  '</div><div class="lopt" style="margin-top:6px">Each cell shows the day’s value and its change from the previous day (pt = percentage points): <span style="color:#16A34A">green = better for longs</span>, <span style="color:#DC2626">red = worse</span>.'+(cnt?' 200 EMA counts are approximate (≈).':'')+'</div></div>';
+ h+='<div class="lbody"><table><tr><th>Date</th>'+T.cols.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+'</tr>';
+ for(var i=0;i<Math.min(N,rows.length-1);i++){
+  var r=rows[i],p=rows[i+1],reg=r.pct20>=55?'#22C55E':(r.pct20<45?'#EF4444':'#F59E0B');
+  h+='<tr'+(MH.ledHL===r.d?' class="hl" id="ms-led-hl"':'')+'><td><span style="color:'+reg+'" title="Regime: '+(r.pct20>=55?'strong':(r.pct20<45?'weak':'neutral'))+'">●</span> '+fmtD(r.d)+' <span style="color:var(--muted);font-size:10.5px">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(r.d+'T00:00:00Z').getUTCDay()]+'</span></td>';
+  T.cols.forEach(function(c){
+   var v=lval(r,c[0]),pv=lval(p,c[0]),dv=(v!=null&&pv!=null)?v-pv:null;
+   var good=dv==null||Math.abs(dv)<1e-9?0:(dv>0?c[2]:-c[2]);
+   var bg=good>0?'rgba(34,197,94,.13)':(good<0?'rgba(239,68,68,.13)':'transparent');
+   var dc=good>0?'#16A34A':(good<0?'#DC2626':'var(--muted)');
+   h+='<td class="c" style="background:'+bg+'">'+fmt(v,c[3],r,c[0])+(dv!=null?'<span class="dv" style="color:'+dc+'">'+(dv>0?'▲':(dv<0?'▼':'·'))+(Math.abs(dv)>1e-9?dfmt(dv,c[3],r,c[0]):'')+'</span>':'')+'</td>';
+  });
+  h+='</tr>';
+ }
+ h+='</table></div>';
+ el.innerHTML=h;
+ var hl=$('ms-led-hl');if(hl)setTimeout(function(){hl.scrollIntoView({block:'center'});},30);
+}
+window.mhLed=function(tab,date){
+ var p=$('ms-led'),b=$('ms-ledbk');
+ if(!p){p=document.createElement('div');p.id='ms-led';document.body.appendChild(p);b=document.createElement('div');b.id='ms-ledbk';b.onclick=function(){mhLed(false);};document.body.appendChild(b);}
+ if(tab===false){p.classList.remove('open');b.classList.remove('open');return;}
+ if(tab)MH.ledTab=tab;MH.ledHL=date||null;
+ if(date){var idx=MH.rows.length-1-MH.rows.map(function(r){return r.d;}).lastIndexOf(date);if(idx>=MH.ledDays)MH.ledDays=idx<60?60:90;}
+ ledger();p.classList.add('open');b.classList.add('open');
+};
+window.mhLedDays=function(d){MH.ledDays=d;ledger();};
+window.mhLedMode=function(m){MH.ledMode=m;try{localStorage.setItem('tfLedMode',m);}catch(e){}ledger();};
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){try{mhLed(false);}catch(x){}}});
 window.mhPer=function(p){MH.per=p;render();};
 window.mhMv=function(p){MH.mvPer=p;var m=$('ms-mv');if(m)m.innerHTML=movers();var c=$('ms-movers');if(c){var b=c.querySelector('.ms-go');if(b)b.setAttribute('onclick','mhTop(\''+MH.mvDir+'_'+MH.mvPer+'\')');}};
 window.mhDir=function(d){MH.mvDir=d;var m=$('ms-mv');if(m)m.innerHTML=movers();var c=$('ms-movers');if(c){var b=c.querySelector('.ms-go');if(b)b.setAttribute('onclick','mhTop(\''+MH.mvDir+'_'+MH.mvPer+'\')');}};
