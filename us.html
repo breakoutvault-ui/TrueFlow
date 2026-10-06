@@ -15745,34 +15745,72 @@ setTimeout(function(){clearInterval(t);},60000);
 <style>.sk-ev{display:block;margin-top:6px;font-size:11.5px;color:var(--text2)}</style>
 
 
-<!-- ═══ TrueFlow Market Sentiment v2 — calm summary + drill-down ═══ -->
+<!-- ═══ TrueFlow Market Sentiment v3 — tiles, inline day-by-day, one chart + picker, explanations ═══ -->
 <style>
 #tab-market{--g:#22C55E;--r:#EF4444}
 #tab-market .ms-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
 #tab-market .ms-top h2{font-size:17px;margin:0 10px 0 0;color:var(--text);font-weight:700;letter-spacing:.2px}
 #tab-market .ms-pill{padding:4px 12px;border-radius:99px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11.5px;font-family:inherit}
 #tab-market .ms-pill.on{border-color:var(--cyan);color:var(--cyan);font-weight:700;background:rgba(6,182,212,.08)}
+#tab-market .ms-pill:hover{border-color:var(--cyan)}
 #tab-market .ms-note{font-size:10.5px;color:var(--muted);margin-left:auto}
+#tab-market .ms-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);font-size:9px;font-weight:700;font-style:normal;cursor:help;margin-left:5px;vertical-align:middle;line-height:1;text-transform:none;letter-spacing:0;flex:none}
+#tab-market .ms-i:hover{border-color:var(--cyan);color:var(--cyan)}
 #tab-market .ms-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
-#tab-market .ms-kpi{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:12px 14px 8px;cursor:pointer;transition:border-color .15s,transform .15s}
+#tab-market .ms-kpi{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:12px 14px 8px;cursor:pointer;transition:border-color .15s,transform .15s;position:relative}
 #tab-market .ms-kpi:hover{border-color:var(--cyan);transform:translateY(-1px)}
-#tab-market .ms-kl{font-size:10px;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase}
+#tab-market .ms-kpi.sel{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan)}
+#tab-market .ms-kpi .hint{position:absolute;right:12px;top:10px;font-size:10px;color:var(--muted);opacity:0;transition:opacity .15s}
+#tab-market .ms-kpi:hover .hint,#tab-market .ms-kpi.sel .hint{opacity:1;color:var(--cyan)}
+#tab-market .ms-kl{font-size:10px;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;display:flex;align-items:center}
 #tab-market .ms-kv{font-size:22px;font-weight:700;color:var(--text);margin:3px 0 0;line-height:1.15}
 #tab-market .ms-kd{font-size:11px;color:var(--muted);margin-top:2px;min-height:15px}
+#tab-market .ms-day{background:var(--bg2);border:1px solid var(--cyan);border-radius:14px;padding:12px 14px 10px;margin:-2px 0 16px;scroll-margin-top:90px}
+#tab-market .ms-dh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#tab-market .ms-dh b{font-size:13.5px;color:var(--text);margin-right:6px}
+#tab-market .ms-dx{margin-left:auto;cursor:pointer;color:var(--muted);font-size:16px;padding:0 4px}
+#tab-market .ms-dx:hover{color:var(--text)}
+#tab-market .ms-drow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--muted)}
+#tab-market .ms-dsep{width:1px;height:16px;background:var(--bg3);margin:0 4px}
+#tab-market .ms-dwrap{max-height:440px;overflow:auto;margin-top:8px;border-top:1px solid var(--bg3)}
+#tab-market .ms-dt{width:100%;border-collapse:separate;border-spacing:0 3px;font-size:12px}
+#tab-market .ms-dt th{position:sticky;top:0;background:var(--bg2);font-size:10px;letter-spacing:.8px;color:var(--muted);font-weight:600;text-transform:uppercase;padding:9px 6px 6px;text-align:right;z-index:1;white-space:nowrap}
+#tab-market .ms-dt th:first-child,#tab-market .ms-dt td:first-child{text-align:left}
+#tab-market .ms-dt td{padding:6px 6px;text-align:right;color:var(--text);white-space:nowrap}
+#tab-market .ms-dt td.c{border-radius:6px}
+#tab-market .ms-dt td .dv{font-size:10.5px;margin-left:5px}
+#tab-market .ms-dt tr.hl td{box-shadow:inset 0 0 0 1px var(--cyan)}
 #tab-market .ms-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:1100px){#tab-market .ms-grid{grid-template-columns:1fr}}
-#tab-market .ms-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:14px 16px 10px;scroll-margin-top:90px;min-width:0}
+#tab-market .ms-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:14px 16px 12px;scroll-margin-top:90px;min-width:0}
 #tab-market .ms-card.wide{grid-column:1/-1}
 #tab-market .ms-card.flash{box-shadow:0 0 0 2px var(--cyan)}
 #tab-market .ms-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px}
-#tab-market .ms-h b{font-size:13.5px;color:var(--text);font-weight:700}
+#tab-market .ms-h b{font-size:13.5px;color:var(--text);font-weight:700;display:inline-flex;align-items:center}
 #tab-market .ms-h .now{font-size:12px;color:var(--text2);margin-left:2px}
 #tab-market .ms-go{margin-left:auto;font-size:11px;padding:3px 11px;border-radius:99px;border:1px solid transparent;color:var(--cyan);background:rgba(6,182,212,.08);cursor:pointer;font-family:inherit;white-space:nowrap}
 #tab-market .ms-go:hover{border-color:var(--cyan)}
 #tab-market .ms-sub{font-size:11px;color:var(--muted);margin:0 0 6px;line-height:1.45}
-#tab-market .ms-leg{font-size:10.5px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin:2px 0 0}
+#tab-market .ms-leg{font-size:10.5px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin:4px 0 0}
 #tab-market .ms-leg i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
 #tab-market svg{width:100%;display:block;overflow:visible}
+#tab-market .ms-chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}
+#tab-market .ms-cw{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start}
+@media(max-width:900px){#tab-market .ms-cw{grid-template-columns:1fr}}
+#tab-market .ms-ex{background:var(--bg1);border:1px solid var(--bg3);border-radius:12px;padding:11px 13px;font-size:11.5px;line-height:1.55;color:var(--text2)}
+#tab-market .ms-ex h4{margin:0 0 3px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600}
+#tab-market .ms-ex p{margin:0 0 9px}
+#tab-market .ms-ex p:last-child{margin:0}
+#tab-market .ms-read{display:flex;gap:8px;align-items:flex-start;margin-top:10px;padding:9px 12px;border-radius:10px;background:var(--bg1);font-size:12.5px;line-height:1.5;color:var(--text)}
+#tab-market .ms-read .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+#tab-market .ms-mixbar{display:flex;height:28px;border-radius:8px;overflow:hidden;margin:4px 0 8px;border:1px solid var(--bg3)}
+#tab-market .ms-mixbar span{display:block;height:100%;cursor:pointer;transition:opacity .15s}
+#tab-market .ms-mixbar span.off{opacity:.35}
+#tab-market .ms-mixbar span:hover{opacity:1}
+#tab-market .ms-mixleg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+#tab-market .ms-mixleg .st{font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--bg3);cursor:pointer;color:var(--text2);background:none;font-family:inherit}
+#tab-market .ms-mixleg .st.on{border-color:var(--cyan);color:var(--text);font-weight:700}
+#tab-market .ms-mixleg .st i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
 #tab-market .ms-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 #tab-market .ms-chip{font-size:11.5px;padding:3px 9px;border-radius:8px;background:var(--bg1);border:1px solid var(--bg3);cursor:pointer;color:var(--text)}
 #tab-market .ms-chip:hover{border-color:var(--cyan)}
@@ -15792,29 +15830,7 @@ setTimeout(function(){clearInterval(t);},60000);
 #tab-market .ms-hm td.tot{font-size:11.5px;font-weight:700;text-align:right;padding-left:6px}
 #tab-market .ms-rot{font-size:11px;color:var(--muted);cursor:pointer;margin-left:4px}
 #tab-market .ms-rot:hover{color:var(--cyan)}
-#ms-ledbk{position:fixed;inset:0;z-index:10003;background:rgba(0,0,0,.35);display:none}
-#ms-ledbk.open{display:block}
-#ms-led{position:fixed;top:0;bottom:0;right:-620px;width:580px;max-width:96vw;z-index:10004;background:var(--bg1);border-left:1px solid var(--bg3);
- display:flex;flex-direction:column;transition:right .22s ease;box-shadow:-12px 0 36px rgba(0,0,0,.35)}
-#ms-led.open{right:0}
-#ms-led .lh{padding:13px 16px 8px;border-bottom:1px solid var(--bg3)}
-#ms-led .lh b{font-size:14px;color:var(--text)}
-#ms-led .lx{float:right;cursor:pointer;color:var(--muted);font-size:17px}
-#ms-led .ltabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
-#ms-led .lt{padding:4px 11px;border-radius:99px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11.5px;font-family:inherit}
-#ms-led .lt.on{border-color:var(--cyan);color:var(--cyan);font-weight:700;background:rgba(6,182,212,.08)}
-#ms-led .lopt{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:11px;color:var(--muted)}
-#ms-led .lbody{flex:1 1 auto;overflow:auto;padding:0 10px 24px}
-#ms-led table{width:100%;border-collapse:separate;border-spacing:0 3px;font-size:12px}
-#ms-led th{position:sticky;top:0;background:var(--bg1);font-size:10px;letter-spacing:.8px;color:var(--muted);font-weight:600;text-transform:uppercase;padding:9px 6px 6px;text-align:right;z-index:1}
-#ms-led th:first-child,#ms-led td:first-child{text-align:left}
-#ms-led td{padding:6px 6px;text-align:right;color:var(--text);white-space:nowrap}
-#ms-led td.c{border-radius:6px}
-#ms-led td .dv{font-size:10.5px;margin-left:5px}
-#ms-led tr.hl td{box-shadow:inset 0 0 0 1px var(--cyan)}
-#tab-market .ms-led-link{font-size:11px;color:var(--muted);cursor:pointer;margin-left:6px}
-#tab-market .ms-led-link:hover{color:var(--cyan)}
-#ms-tip{position:fixed;z-index:10005;pointer-events:none;background:var(--bg1);border:1px solid var(--bg3);border-radius:10px;padding:7px 10px;font-size:11.5px;color:var(--text);box-shadow:0 10px 28px rgba(0,0,0,.25);display:none;white-space:nowrap;line-height:1.5}
+#ms-tip{position:fixed;z-index:10005;pointer-events:none;background:var(--bg1);border:1px solid var(--bg3);border-radius:10px;padding:8px 11px;font-size:11.5px;color:var(--text);box-shadow:0 10px 28px rgba(0,0,0,.25);display:none;line-height:1.5;max-width:320px}
 #mk .tile{cursor:pointer}
 #mk .tile:hover{border-color:var(--cyan)}
 #mk .vlink{color:var(--cyan);cursor:pointer;font-size:10.5px}
@@ -15829,7 +15845,8 @@ function $(id){return document.getElementById(id);}
 function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function q(t){return esc(t).replace(/'/g,"\\'");}
 function sbGet(p){return fetch(CONFIG.supabaseUrl+'/rest/v1/'+p,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});}
-window.MH={rows:[],mv:[],loaded:false,per:'6m',mvPer:'r1m',mvDir:'g',secPer:'3m',secAll:false,picks:null};
+window.MH={rows:[],mv:[],loaded:false,per:'6m',mvPer:'r1m',mvDir:'g',secPer:'3m',secAll:false,picks:null,ch:'breadth',mixSel:'allup',day:null,dayTile:null,dayPer:'1m',dayGrp:'d',dayHL:null};
+try{MH.ledMode=localStorage.getItem('tfLedMode')||'pct';}catch(e){MH.ledMode='pct';}
 var _p=null;
 window.mhLoad=function(){
  if(_p)return _p;
@@ -15914,7 +15931,7 @@ function chart(id,rows,S,o){
  var X=function(i){return PADL+(W-PADL-PADR)*(n<=1?0.5:i/(n-1));};
  var all=[];S.forEach(function(s){if(!s.noScale)s.v.forEach(function(v){if(v!=null&&!isNaN(v))all.push(+v);});});(o.refs||[]).forEach(function(r){all.push(r.v);});
  var mn=o.min!=null?o.min:Math.min.apply(null,all.length?all:[0]),mx=o.max!=null?o.max:Math.max.apply(null,all.length?all:[1]);
- if(mn===mx){mn-=1;mx+=1;}if(o.min==null){var p=(mx-mn)*0.08;mn-=p;mx+=p;}
+ if(mn===mx){mn-=1;mx+=1;}if(o.min==null){var p=(mx-mn)*0.08;mn-=p;mx+=p;}else if(o.max==null){mx+=(mx-mn)*0.08;}
  var Y=function(v){return PADT+(H-PADT-PADB)*(1-(v-mn)/(mx-mn));};
  var g='';
  [mn+(mx-mn)*0.25,mn+(mx-mn)*0.75].forEach(function(v){g+='<line x1="'+PADL+'" x2="'+(W-PADR)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--bg3)" stroke-width=".7"/><text x="'+(PADL-5)+'" y="'+(Y(v)+3)+'" font-size="9" fill="var(--muted)" text-anchor="end">'+(o.fmt?o.fmt(v):Math.round(v))+'</text>';});
@@ -15927,13 +15944,14 @@ function chart(id,rows,S,o){
    if(s.area){var base=o.zero?Y(0):(H-PADB);g+='<path d="'+d+'L'+pts[pts.length-1][0]+','+base+'L'+pts[0][0]+','+base+'Z" fill="'+s.c+'" opacity="'+(s.area)+'"/>';}
    g+='<path d="'+d+'" fill="none" stroke="'+s.c+'" stroke-width="'+(s.w||1.8)+'" '+(s.dash?'stroke-dasharray="'+s.dash+'" ':'')+'opacity="'+(s.op||1)+'" stroke-linecap="round"/>';});
  });
- var step=Math.max(1,Math.round(n/5));
- for(var i=0;i<n;i+=step)g+='<text x="'+X(i)+'" y="'+(H-5)+'" font-size="9" fill="var(--muted)" text-anchor="middle">'+fmtD(rows[i].d)+'</text>';
- TIPS[id]={rows:rows,fn:o.tip,H:H,n:n};
+ var step=Math.max(1,Math.round(n/6));
+ for(var i=0;i<n;i+=step)g+='<text x="'+X(i)+'" y="'+(H-5)+'" font-size="9" fill="var(--muted)" text-anchor="middle">'+fmtD(rows[i].d,n>260)+'</text>';
+ TIPS[id]={rows:rows,fn:o.tip,H:H,n:n,led:o.led};
  return '<svg id="'+id+'" viewBox="0 0 '+W+' '+H+'" style="height:auto">'+g+'<line class="ms-cur" x1="0" x2="0" y1="'+PADT+'" y2="'+(H-PADB)+'" stroke="var(--muted)" stroke-dasharray="3 3" style="display:none"/><rect class="ms-hov" x="'+PADL+'" y="0" width="'+(W-PADL-PADR)+'" height="'+H+'" fill="transparent"/></svg>';
 }
 var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtD(d){return +d.slice(8,10)+' '+MON[+d.slice(5,7)-1];}
+function fmtD(d,yr){return yr?MON[+d.slice(5,7)-1]+" '"+d.slice(2,4):+d.slice(8,10)+' '+MON[+d.slice(5,7)-1];}
+function fmtDY(d){return +d.slice(8,10)+' '+MON[+d.slice(5,7)-1]+' '+d.slice(0,4);}
 function spark(vals,col){
  var v=vals.filter(function(x){return x!=null;});if(v.length<2)return '';
  var mn=Math.min.apply(null,v),mx=Math.max.apply(null,v);if(mn===mx)mx=mn+1;
@@ -15943,46 +15961,250 @@ function spark(vals,col){
 }
 function pc(v,dp){return v==null?'—':(v>0?'+':'')+(+v).toFixed(dp==null?1:dp)+'%';}
 function leg(items){return '<div class="ms-leg">'+items.map(function(x){return '<span><i style="background:'+x[1]+';'+(x[2]?'opacity:.45':'')+'"></i>'+x[0]+'</span>';}).join('')+'</div>';}
-function period(){var r=MH.rows,n={'3m':63,'6m':126,'1y':252,'all':1e9}[MH.per];return r.slice(Math.max(0,r.length-n));}
+var SPAN={'1m':21,'3m':63,'6m':126,'1y':252,'all':1e9};
+function period(){var r=MH.rows;return r.slice(Math.max(0,r.length-SPAN[MH.per]));}
 function col(r,k){return r.map(function(x){return x[k]!=null?+x[k]:null;});}
+function I(t){return '<i class="ms-i" data-tip="'+esc(t)+'" onclick="event.stopPropagation();mhTipShow(this,event)">i</i>';}
+function back(arr,k){return arr.length>k?arr[arr.length-1-k]:null;}
+function f0(v){return v==null||isNaN(v)?'—':Math.round(v);}
+function sg(v){return v==null||isNaN(v)?'—':(v>0?'+':'')+Math.round(v);}
 
-/* ── pieces ─────────────────────────────────────────── */
+/* ── what every number means (hover ⓘ) ───────────── */
+var TXT={
+ regime:'Market regime, read from the share of stocks above their 20 EMA: Strong at 55% or more, Neutral between 45% and 55%, Weak below 45%. Setups follow through best in a Strong market.',
+ pct50:'Share of all stocks closing above their 50-day EMA. Above 50% = most stocks are in a medium-term uptrend. The arrow is the change against 5 sessions ago.',
+ adv:'Stocks that closed up vs closed down today. "10-day net" is the average of (up minus down) over the last 10 sessions; above zero means broad participation.',
+ hl:'Stocks closing at or within 1% of their 52-week high (big number) and their 52-week low (small number). More highs than lows = healthy leadership.',
+ vol:'Total market turnover today divided by its 20-day average. 1.00× is a normal day; above 1 is heavier than usual.',
+ burst:'Stocks that moved '+SET.burst+'% or more in a day on at least average volume, up vs down. More up-bursts = momentum is working.',
+ spark:'The small line under each number is the last 60 sessions.',
+ tile:'Click any tile to open its day-by-day table right below the tiles. Click again to close.'
+};
+var CH={
+ breadth:{t:'Breadth',what:'Share of stocks above their 20 EMA (cyan) and 50 EMA (purple), 3-day smoothed. The grey line is the '+IDX+' (shape only, own scale). The strip on top is each day’s regime: green strong, amber neutral, red weak.',
+  how:'Rising lines = more stocks joining the trend. When the index rises but these lines fall, fewer stocks are carrying the move.'},
+ ad:{t:'Participation',what:'Advancers minus decliners each day, averaged over 10 days.',
+  how:'Above zero = more stocks rising than falling. A falling line while the index rises = narrowing participation.'},
+ hl:{t:'52W highs',what:'Stocks at 52-week highs (green) and at 52-week lows (faint red), as 10-day averages.',
+  how:'Leaders make new highs in healthy markets. Highs shrinking while lows grow is an early warning.'},
+ burst:{t:'Bursts',what:'Stocks moving '+SET.burst+'% or more in a day on at least average volume: up (green) and down (red), 10-day averages.',
+  how:'Green above red = breakouts are following through. Red above green = selling pressure.'},
+ vol:{t:'Volume',what:'Market turnover vs its 20-day average, as a 10-day average. The dashed line is 1× (a normal day).',
+  how:'Heavy volume on up days with rising breadth = conviction. Heavy volume while breadth falls = selling into strength.'},
+ mix:{t:'Trend mix',what:'How all stocks split across the multi-timeframe trend states (daily, weekly, monthly). The bar is the latest day; the line is the selected state’s share over time.',
+  how:'More All TF Up and HTF Pullback = healthier ground for long setups. Click a state in the bar or the chips to see its history.'}
+};
+var CHORDER=['breadth','ad','hl','burst','vol','mix'];
+var MIX=[['allup','All TF Up','#22C55E'],['htfpb','HTF Pullback','#3B82F6'],['wkturn','Weekly Turn','#8B5CF6'],['earlyturn','Early Turnaround','#14B8A6'],['stretched','HTF Stretched','#F97316'],['ctbounce','Counter-Trend','#EAB308'],['rolling','Rolling Over','#F59E0B'],['alldown','All TF Down','#EF4444'],['mixed','Mixed','#94A3B8']];
+var MIXT={
+ allup:'Daily, weekly and monthly all rising. Can be held as a position.',
+ htfpb:'Weekly and monthly rising, daily resting or basing — the best entry zone. HTF = higher timeframes (weekly + monthly).',
+ wkturn:'Weekly 9 EMA crossed above the 20 in the last 3 weeks — a new leg starting.',
+ earlyturn:'Daily up and the weekly 9 EMA crossed above the 20 in the last 3 weeks, but the monthly is still falling. Swing only, never a position.',
+ stretched:'All rising, but more than 15% above the weekly 9 EMA. Stay in and trail the stop tighter.',
+ ctbounce:'Daily up while weekly and monthly are falling. Quick swing only, never a position.',
+ rolling:'Monthly still up but the weekly closed below its 9 EMA. No new entries; tighten trails.',
+ alldown:'Daily, weekly and monthly all falling. Skip longs.',
+ mixed:'No clear multi-timeframe read.'
+};
+function mixName(k){for(var i=0;i<MIX.length;i++)if(MIX[i][0]===k)return MIX[i];return [k,k,'#94A3B8'];}
+
+/* ── tiles ─────────────────────────────────────────── */
 function kpis(all){
  var L=all[all.length-1],P=all[Math.max(0,all.length-6)],last60=all.slice(-60);
- function delta(k,unit){if(L[k]==null||P[k]==null)return '';var d=L[k]-P[k];return '<span style="color:'+(d>=0?'var(--g)':'var(--r)')+'">'+(d>=0?'▲ ':'▼ ')+Math.abs(d).toFixed(unit==='%'?1:0)+(unit||'')+'</span> vs 5 days ago';}
+ function delta(k,unit){if(L[k]==null||P[k]==null)return '';var d=L[k]-P[k];return '<span style="color:'+(d>=0?'var(--g)':'var(--r)')+'">'+(d>=0?'▲ ':'▼ ')+Math.abs(d).toFixed(unit==='%'?1:0)+(unit==='%'?'pt':'')+'</span> vs 5 days ago';}
  var reg=L.pct20>=55?['Strong','var(--g)']:(L.pct20<45?['Weak','var(--r)']:['Neutral','#F59E0B']);
  var net=all.map(function(r){return (r.adv||0)-(r.dec||0);});
  var cards=[
-  ['breadth','Regime','<span style="color:'+reg[1]+'">'+reg[0]+'</span>',(L.pct20!=null?L.pct20.toFixed(0)+'% above the 20 EMA':''),col(last60,'pct20'),reg[1]],
-  ['breadth','Above 50 EMA',(L.pct50!=null?L.pct50.toFixed(0)+'%':'—'),delta('pct50','%'),col(last60,'pct50'),'var(--cyan)'],
-  ['ad','Advancing',L.adv+' <span style="font-size:13px;color:var(--muted);font-weight:500">/ '+L.dec+' falling</span>','10-day net: '+Math.round(ma(net,10)[net.length-1]),ma(net.slice(-60),10),(L.adv>=L.dec?'var(--g)':'var(--r)')],
-  ['hl','52W highs',(L.hi52!=null?L.hi52:'—'),(L.lo52!=null?'<span style="opacity:.8">'+L.lo52+' at lows</span>':''),ma(col(last60,'hi52'),5),'var(--g)'],
-  ['vol','Market volume',(L.turn_ratio!=null?(+L.turn_ratio).toFixed(2)+'×':'—'),'of its 20-day average',col(last60,'turn_ratio'),'var(--cyan)'],
-  ['burst','Momentum bursts','<span style="color:var(--g)">'+L.burst_up+'</span> <span style="font-size:13px;color:var(--muted);font-weight:500">up · </span><span style="color:var(--r)">'+L.burst_dn+'</span> <span style="font-size:13px;color:var(--muted);font-weight:500">down</span>','stocks moving ≥'+SET.burst+'% on volume',ma(col(last60,'burst_up').map(function(v,i){return v-(last60[i].burst_dn||0);}),5),'var(--g)']
+  ['regime','breadth','Regime','<span style="color:'+reg[1]+'">'+reg[0]+'</span>',(L.pct20!=null?L.pct20.toFixed(0)+'% above the 20 EMA':''),col(last60,'pct20'),reg[1]],
+  ['pct50','breadth','Above 50 EMA',(L.pct50!=null?L.pct50.toFixed(0)+'%':'—'),delta('pct50','%'),col(last60,'pct50'),'var(--cyan)'],
+  ['adv','ad','Advancing',L.adv+' <span style="font-size:13px;color:var(--muted);font-weight:500">/ '+L.dec+' falling</span>','10-day net: '+sg(ma(net,10)[net.length-1]),ma(net.slice(-60),10),(L.adv>=L.dec?'var(--g)':'var(--r)')],
+  ['hl','hl','52W highs',(L.hi52!=null?L.hi52:'—'),(L.lo52!=null?'<span style="opacity:.8">'+L.lo52+' at lows</span>':''),ma(col(last60,'hi52'),5),'var(--g)'],
+  ['vol','vol','Market volume',(L.turn_ratio!=null?(+L.turn_ratio).toFixed(2)+'×':'—'),'of its 20-day average',col(last60,'turn_ratio'),'var(--cyan)'],
+  ['burst','burst','Momentum bursts','<span style="color:var(--g)">'+L.burst_up+'</span> <span style="font-size:13px;color:var(--muted);font-weight:500">up · </span><span style="color:var(--r)">'+L.burst_dn+'</span> <span style="font-size:13px;color:var(--muted);font-weight:500">down</span>','stocks moving ≥'+SET.burst+'% on volume',ma(col(last60,'burst_up').map(function(v,i){return v-(last60[i].burst_dn||0);}),5),'var(--g)']
  ];
- var KT={breadth:'breadth',ad:'ad',hl:'hl',vol:'vol',burst:'burst'};
- return '<div class="ms-kpis">'+cards.map(function(c){return '<div class="ms-kpi" title="Click for the day-by-day table" onclick="mhLed(\''+(KT[c[0]]||'breadth')+'\')"><div class="ms-kl">'+c[1]+'</div><div class="ms-kv">'+c[2]+'</div><div class="ms-kd">'+c[3]+'</div>'+spark(c[4],c[5])+'</div>';}).join('')+'</div>';
+ return '<div class="ms-kpis">'+cards.map(function(c){
+  return '<div class="ms-kpi'+(MH.dayTile===c[0]?' sel':'')+'" data-k="'+c[0]+'" onclick="mhTile(\''+c[0]+'\',\''+c[1]+'\')"><span class="hint">'+(MH.dayTile===c[0]?'▴ close':'▾ day by day')+'</span>'+
+   '<div class="ms-kl">'+c[2]+I(TXT[c[0]]+' '+TXT.spark+' '+TXT.tile)+'</div><div class="ms-kv">'+c[3]+'</div><div class="ms-kd">'+c[4]+'</div>'+spark(c[5],c[6])+'</div>';}).join('')+'</div>'+
+  '<div id="ms-day"></div>';
 }
-function card(id,title,now,sub,body,btn,wide){
- var lt={breadth:'breadth',ad:'ad',hl:'hl',vol:'vol',burst:'burst'}[id];
- return '<div class="ms-card'+(wide?' wide':'')+'" id="ms-'+id+'"><div class="ms-h"><b>'+title+'</b>'+(now?'<span class="now">'+now+'</span>':'')+
-  (lt?'<span class="ms-led-link" onclick="mhLed(\''+lt+'\')" title="Open the day-by-day table">📅 Day by day</span>':'')+(btn||'')+'</div>'+(sub?'<div class="ms-sub">'+sub+'</div>':'')+body+'</div>';
+
+/* ── day-by-day table (inline, under the tiles) ────── */
+var LED={
+ breadth:{t:'Breadth',cols:[['pct9','Above 9 EMA',1,'p','Share of stocks closing above their 9 EMA — the short-term trend.'],['pct20','Above 20 EMA',1,'p','Share above the 20 EMA — the swing trend. This one sets the regime (55% strong, 45% weak).'],['pct50','Above 50 EMA',1,'p','Share above the 50 EMA — the medium-term trend.'],['pct200','Above 200 EMA',1,'p','Share above the 200 EMA — the long-term trend. In Count mode this is approximate (≈).']]},
+ ad:{t:'Participation',cols:[['adv','Advancing',1,'n','Stocks that closed up.'],['dec','Declining',-1,'n','Stocks that closed down. Fewer is better, so a drop shows green.'],['_net','Net',1,'n','Advancing minus declining.'],['avg_chg','Avg move',1,'pc','The average % change of every stock that day — the typical stock, not the index.']]},
+ hl:{t:'52W highs',cols:[['hi52','At highs',1,'n','Stocks closing at or within 1% of a 52-week high.'],['lo52','At lows',-1,'n','Stocks closing at or within 1% of a 52-week low. Fewer is better.'],['_nhl','Net',1,'n','Highs minus lows.']]},
+ burst:{t:'Bursts',cols:[['burst_up','Bursts up',1,'n','Stocks up '+SET.burst+'% or more on at least average volume.'],['burst_dn','Bursts down',-1,'n','Stocks down '+SET.burst+'% or more on at least average volume. Fewer is better.'],['_nb','Net',1,'n','Up-bursts minus down-bursts.']]},
+ vol:{t:'Volume',cols:[['turn_ratio','Market vol ×avg',1,'x','Total turnover vs its 20-day average. 1.00× = normal.'],['rvol2_up','≥'+SET.rvx+'× up',1,'n','Stocks trading '+SET.rvx+'× their average volume or more and closing up.'],['rvol2_dn','≥'+SET.rvx+'× down',-1,'n','Stocks trading '+SET.rvx+'× their average volume or more and closing down. Fewer is better.']]}
+};
+var CHART_LED={breadth:'breadth',ad:'ad',hl:'hl',burst:'burst',vol:'vol'};
+function lval(r,k){
+ if(k==='_net')return (r.adv==null||r.dec==null)?null:r.adv-r.dec;
+ if(k==='_nhl')return r.hi52==null?null:r.hi52-(r.lo52||0);
+ if(k==='_nb')return (r.burst_up||0)-(r.burst_dn||0);
+ return r[k]==null?null:+r[k];
+}
+function wkKey(d){var dt=new Date(d+'T00:00:00Z');dt.setUTCDate(dt.getUTCDate()-((dt.getUTCDay()+6)%7));return dt.toISOString().slice(0,10);}
+function weekly(rows,T){   // levels (%/×) = the week's last day, counts = average per day
+ var out=[],cur=null;
+ rows.forEach(function(r){var k=wkKey(r.d);
+  if(!cur||cur.k!==k){cur={k:k,days:[],d:r.d};out.push(cur);}cur.days.push(r);cur.d=r.d;});
+ return out.map(function(w){var last=w.days[w.days.length-1],o={d:last.d,_from:w.days[0].d,_nd:w.days.length,n:last.n,pct20:last.pct20};
+  T.cols.forEach(function(c){
+   if(c[3]==='p'||c[3]==='x')o['_v_'+c[0]]=lval(last,c[0]);
+   else{var s=0,m=0;w.days.forEach(function(r){var v=lval(r,c[0]);if(v!=null){s+=v;m++;}});o['_v_'+c[0]]=m?s/m:null;}
+  });return o;});
+}
+function dayTable(){
+ var el=$('ms-day');if(!el)return;
+ if(!MH.day){el.className='';el.innerHTML='';return;}
+ el.className='ms-day';
+ var T=LED[MH.day],all=MH.rows,wk=MH.dayGrp==='w';
+ var src=all.slice(Math.max(0,all.length-SPAN[MH.dayPer]-(wk?5:1)));
+ var rows=wk?weekly(src,T):src;
+ rows=rows.slice().reverse();      // newest first; the last row only feeds the oldest change
+ var N=Math.max(0,rows.length-1);
+ var cnt=MH.day==='breadth'&&MH.ledMode==='cnt';
+ function V(r,k){return wk?r['_v_'+k]:lval(r,k);}
+ function fmt(v,f,r,k){if(v==null)return '—';
+  if(f==='p')return cnt?((k==='pct200'?'≈':'')+Math.round(v*r.n/100)):(v.toFixed(0)+'%');
+  if(f==='pc')return (v>0?'+':'')+v.toFixed(2)+'%';if(f==='x')return v.toFixed(2)+'×';return Math.round(v);}
+ function dfmt(dv,f,r){if(f==='p')return cnt?Math.round(Math.abs(dv)*r.n/100):Math.abs(dv).toFixed(1)+'pt';if(f==='pc')return Math.abs(dv).toFixed(2)+'%';if(f==='x')return Math.abs(dv).toFixed(2);return Math.round(Math.abs(dv));}
+ var pills=function(arr,cur,fn){return arr.map(function(p){return '<button class="ms-pill'+(cur===p[0]?' on':'')+'" onclick="'+fn+'(\''+p[0]+'\')">'+p[1]+'</button>';}).join('');};
+ var h='<div class="ms-dh"><b>📅 Day by day</b>'+pills(Object.keys(LED).map(function(k){return [k,LED[k].t];}),MH.day,'mhLed')+'<span class="ms-dx" title="Close" onclick="mhLed(false)">✕</span></div>'+
+  '<div class="ms-drow">Period '+pills([['1m','1M'],['3m','3M'],['6m','6M'],['1y','1Y'],['all','All']],MH.dayPer,'mhDayPer')+
+  '<span class="ms-dsep"></span>Rows '+pills([['d','Daily'],['w','Weekly']],MH.dayGrp,'mhDayGrp')+
+  (MH.day==='breadth'?'<span class="ms-dsep"></span>Show '+pills([['pct','%'],['cnt','Count']],MH.ledMode,'mhLedMode')+I('% = share of all stocks. Count = number of stocks (share × stocks in the universe that day).'):'')+
+  '</div><div class="ms-drow" style="margin-top:6px">Each cell = the '+(wk?'week':'day')+'’s value and its change from the '+(wk?'previous week':'previous day')+(MH.day==='breadth'||MH.day==='vol'?'':'')+
+  ': <span style="color:#16A34A">&nbsp;green = better for longs</span>, <span style="color:#DC2626">red = worse</span>.'+(wk?' Weekly rows: % and × values are the week’s last day; counts are the average per day.':'')+(cnt?' 200 EMA counts are approximate (≈).':'')+'</div>';
+ h+='<div class="ms-dwrap" id="ms-dwrap"><table class="ms-dt"><tr><th>'+(wk?'Week':'Date')+I(wk?'Week ending on this day (Mon–Fri). The dot is the regime on the last day.':'The dot is that day’s regime: green strong, amber neutral, red weak.')+'</th>'+T.cols.map(function(c){return '<th>'+c[1]+I(c[4])+'</th>';}).join('')+'</tr>';
+ var DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+ for(var i=0;i<N;i++){
+  var r=rows[i],p=rows[i+1],reg=r.pct20>=55?'#22C55E':(r.pct20<45?'#EF4444':'#F59E0B');
+  var hl=MH.dayHL&&(wk?(MH.dayHL>=r._from&&MH.dayHL<=r.d):MH.dayHL===r.d);
+  var lab=wk?(fmtD(r._from)+' – '+fmtD(r.d)+' <span style="color:var(--muted);font-size:10.5px">'+r.d.slice(0,4)+(r._nd<5?' · '+r._nd+'d':'')+'</span>'):(fmtD(r.d)+' <span style="color:var(--muted);font-size:10.5px">'+DN[new Date(r.d+'T00:00:00Z').getUTCDay()]+(r.d.slice(0,4)!==(rows[0].d||'').slice(0,4)?' '+r.d.slice(0,4):'')+'</span>');
+  h+='<tr'+(hl?' class="hl" id="ms-day-hl"':'')+'><td><span style="color:'+reg+'">●</span> '+lab+'</td>';
+  T.cols.forEach(function(c){
+   var v=V(r,c[0]),pv=V(p,c[0]),dv=(v!=null&&pv!=null)?v-pv:null;
+   var good=dv==null||Math.abs(dv)<1e-9?0:(dv>0?c[2]:-c[2]);
+   var bg=good>0?'rgba(34,197,94,.13)':(good<0?'rgba(239,68,68,.13)':'transparent');
+   var dc=good>0?'#16A34A':(good<0?'#DC2626':'var(--muted)');
+   h+='<td class="c" style="background:'+bg+'">'+fmt(v,c[3],r,c[0])+(dv!=null?'<span class="dv" style="color:'+dc+'">'+(dv>0?'▲':(dv<0?'▼':'·'))+(Math.abs(dv)>1e-9?dfmt(dv,c[3],r):'')+'</span>':'')+'</td>';
+  });
+  h+='</tr>';
+ }
+ if(!N)h+='<tr><td colspan="9" class="ms-empty">No rows in this period yet.</td></tr>';
+ h+='</table></div>';
+ el.innerHTML=h;
+ var x=$('ms-day-hl'),wr=$('ms-dwrap');if(x&&wr)setTimeout(function(){wr.scrollTop=Math.max(0,x.offsetTop-wr.clientHeight/2);},20);
+}
+function fitPer(date){   // widen the table period so a clicked chart date is inside it
+ if(!date)return;var idx=MH.rows.length-1-MH.rows.map(function(r){return r.d;}).lastIndexOf(date);
+ var order=['1m','3m','6m','1y','all'];while(order.indexOf(MH.dayPer)<4&&SPAN[MH.dayPer]<=idx)MH.dayPer=order[order.indexOf(MH.dayPer)+1];
+}
+function syncTiles(){
+ var ks=document.querySelectorAll('#tab-market .ms-kpi');
+ ks.forEach(function(k){var on=!!MH.day&&k.getAttribute('data-k')===MH.dayTile;k.classList.toggle('sel',on);var h=k.querySelector('.hint');if(h)h.textContent=on?'▴ close':'▾ day by day';});
+}
+window.mhTile=function(tile,tab){
+ if(MH.day&&MH.dayTile===tile){mhLed(false);return;}
+ MH.dayTile=tile;MH.day=tab;MH.dayHL=null;dayTable();syncTiles();
+};
+window.mhLed=function(tab,date){
+ if(tab===false){MH.day=null;MH.dayTile=null;MH.dayHL=null;dayTable();syncTiles();return;}
+ if(!$('ms-day')){MH._pend=[tab,date];mhGo('breadth');return;}
+ if(tab){MH.day=tab;if(MH.dayTile&&!({regime:'breadth',pct50:'breadth',adv:'ad',hl:'hl',vol:'vol',burst:'burst'}[MH.dayTile]===tab))MH.dayTile=null;}
+ if(!MH.day)MH.day='breadth';
+ MH.dayHL=date||null;fitPer(date);dayTable();syncTiles();
+ if(date){var d=$('ms-day');if(d)d.scrollIntoView({behavior:'smooth',block:'start'});}
+};
+window.mhDayPer=function(p){MH.dayPer=p;dayTable();};
+window.mhDayGrp=function(g){MH.dayGrp=g;dayTable();};
+window.mhLedMode=function(m){MH.ledMode=m;try{localStorage.setItem('tfLedMode',m);}catch(e){}dayTable();};
+
+/* ── one chart + picker ─────────────────────────────── */
+function card(id,title,tip,now,sub,body,btn,wide){
+ return '<div class="ms-card'+(wide?' wide':'')+'" id="ms-'+id+'"><div class="ms-h"><b>'+title+(tip?I(tip):'')+'</b>'+(now?'<span class="now">'+now+'</span>':'')+(btn||'')+'</div>'+(sub?'<div class="ms-sub">'+sub+'</div>':'')+body+'</div>';
 }
 function btn(label,js){return '<button class="ms-go" onclick="'+js+'">'+label+' ›</button>';}
 function burstsToday(){
  var S=(typeof SCR!=='undefined')?SCR:null;
- if(!S||!S.data||!S.data.length)return '<div class="ms-sub" style="margin-top:8px">Today\u2019s list appears once the Screener has loaded.</div>';
+ if(!S||!S.data||!S.data.length)return '<div class="ms-sub" style="margin-top:8px">Today’s list appears once the Screener has loaded.</div>';
  var l=S.data.filter(function(d){return !d._ipoRow&&vpass(d,'burst_up');}).sort(function(a,b){return b.day-a.day;}).slice(0,10);
  if(!l.length)return '<div class="ms-sub" style="margin-top:8px">No up-bursts today.</div>';
- return '<div class="ms-list">'+l.map(function(d){return '<span class="ms-chip" onclick="try{scOpen(\''+q(d.sym)+'\')}catch(e){}" title="'+esc((d.sector||'')+(d.rvol!=null?' · '+(+d.rvol).toFixed(1)+'× volume':''))+'"><b>'+esc(d.sym)+'</b> <span style="color:var(--g)">'+pc(d.day)+'</span></span>';}).join('')+'</div>';
+ return '<div class="ms-list">'+l.map(function(d){return '<span class="ms-chip" onclick="try{scOpen(\''+q(d.sym)+'\')}catch(e){}" data-tip="'+esc((d.sector||'')+(d.rvol!=null?' · '+(+d.rvol).toFixed(1)+'× its average volume':'')+' · click for the stock card')+'"><b>'+esc(d.sym)+'</b> <span style="color:var(--g)">'+pc(d.day)+'</span></span>';}).join('')+'</div>';
 }
+function word(d,th){return d==null?['','var(--muted)']:(d>th?['improving','var(--g)']:(d<-th?['weakening','var(--r)']:['steady','#F59E0B']));}
+function reading(k){
+ var all=MH.rows,L=all[all.length-1],P=back(all,5);if(!L)return '';
+ var t='',c='var(--muted)';
+ if(k==='breadth'&&L.pct50!=null&&P&&P.pct50!=null){var d=L.pct50-P.pct50,w=word(d,2),reg=L.pct20>=55?'Strong':(L.pct20<45?'Weak':'Neutral');c=w[1];
+  t='Breadth '+w[0]+': <b>'+L.pct50.toFixed(0)+'%</b> of stocks are above the 50 EMA, '+(d>=0?'up':'down')+' from '+P.pct50.toFixed(0)+'% a week ago. Regime <b>'+reg+'</b> ('+(L.pct20!=null?L.pct20.toFixed(0):'—')+'% above the 20 EMA).';}
+ else if(k==='ad'){var net=all.map(function(r){return (r.adv||0)-(r.dec||0);}),m=ma(net,10),a=m[m.length-1],b=back(m,5),w2=word(a-b,15);c=a>=0?'var(--g)':'var(--r)';
+  t='Over the last 10 sessions, on average <b>'+Math.abs(Math.round(a))+'</b> more stocks '+(a>=0?'rose than fell':'fell than rose')+' each day (a week ago: '+sg(b)+'). Participation '+w2[0]+'.';}
+ else if(k==='hl'){var h=ma(col(all,'hi52'),10),a3=h[h.length-1],b3=back(h,5),w3=word(a3-b3,1);c=(L.hi52||0)>=(L.lo52||0)?'var(--g)':'var(--r)';
+  t='Today <b>'+f0(L.hi52)+'</b> stocks at 52-week highs vs <b>'+f0(L.lo52)+'</b> at lows. 10-day average of highs '+f0(a3)+' (a week ago '+f0(b3)+') — '+w3[0]+'.';}
+ else if(k==='burst'){var u=ma(col(all,'burst_up'),10),dn=ma(col(all,'burst_dn'),10),U=u[u.length-1],D=dn[dn.length-1];
+  var st=U>D*1.2?['momentum is working','var(--g)']:(D>U*1.2?['selling pressure dominates','var(--r)']:['balanced','#F59E0B']);c=st[1];
+  t='Today <b>'+f0(L.burst_up)+'</b> up-bursts vs <b>'+f0(L.burst_dn)+'</b> down. Over 10 days about '+(U!=null?U.toFixed(1):'—')+' up vs '+(D!=null?D.toFixed(1):'—')+' down a day — '+st[0]+'.';}
+ else if(k==='vol'&&L.turn_ratio!=null){var v=ma(col(all,'turn_ratio'),10),a5=v[v.length-1];var st5=a5>1.05?'heavier than usual':(a5<0.95?'lighter than usual':'about normal');c=a5>1.05?'var(--cyan)':'var(--muted)';
+  t='Turnover today <b>'+(+L.turn_ratio).toFixed(2)+'×</b> its 20-day average; the 10-day average is '+a5.toFixed(2)+'× — '+st5+'. '+f0(L.rvol2_up)+' stocks traded '+SET.rvx+'× volume and closed up, '+f0(L.rvol2_dn)+' closed down.';}
+ else if(k==='mix'){var rs=mixRows(all);if(!rs.length)return '';var R=rs[rs.length-1],tot=mixTot(R),sh=function(r,s){var tt=mixTot(r);return tt?100*(r.mtf[s]||0)/tt:0;};
+  var sel=mixName(MH.mixSel),now=sh(R,MH.mixSel),ago=rs.length>21?sh(rs[rs.length-22],MH.mixSel):null,good=(sh(R,'allup')+sh(R,'htfpb'))>=sh(R,'alldown');c=good?'var(--g)':'var(--r)';
+  t='Latest: <b>'+sh(R,'allup').toFixed(0)+'%</b> All TF Up, <b>'+sh(R,'htfpb').toFixed(0)+'%</b> HTF Pullback, <b>'+sh(R,'alldown').toFixed(0)+'%</b> All TF Down. '+sel[1]+' is '+now.toFixed(0)+'% now'+(ago!=null?' vs '+ago.toFixed(0)+'% a month ago':'')+'.';}
+ if(!t)return '';
+ return '<div class="ms-read"><span class="dot" style="background:'+c+'"></span><span>'+t+'</span></div>';
+}
+function mixTot(r){var t=0;for(var k in r.mtf)t+=r.mtf[k];return t;}
+function mixRows(rows){var rs=rows.filter(function(r){return r.mtf;}),tot=rs.map(mixTot),big=Math.max.apply(null,tot.length?tot:[0]);return rs.filter(function(r,i){return tot[i]>=0.8*big;});}
+function mixBody(rows){
+ var allR=mixRows(MH.rows);if(!allR.length)return '<div class="ms-empty">Trend-state data builds up night by night.</div>';
+ var R=allR[allR.length-1],tot=mixTot(R),h='<div class="ms-sub" style="margin:0 0 2px">Latest day · '+fmtDY(R.d)+' · '+tot+' stocks</div><div class="ms-mixbar">';
+ MIX.forEach(function(m){var v=R.mtf[m[0]]||0;if(!v)return;var p=100*v/tot;
+  h+='<span class="'+(MH.mixSel===m[0]?'':'off')+'" style="width:'+p+'%;background:'+m[2]+'" onclick="mhMix(\''+m[0]+'\')" data-tip="<b>'+esc(m[1])+'</b> · '+v+' stocks ('+p.toFixed(0)+'%)<br>'+esc(MIXT[m[0]])+'"></span>';});
+ h+='</div><div class="ms-mixleg">'+MIX.map(function(m){var v=R.mtf[m[0]]||0;return '<button class="st'+(MH.mixSel===m[0]?' on':'')+'" onclick="mhMix(\''+m[0]+'\')" data-tip="'+esc(MIXT[m[0]])+'"><i style="background:'+m[2]+'"></i>'+m[1]+' '+(tot?Math.round(100*v/tot):0)+'%</button>';}).join('')+'</div>';
+ var rs=mixRows(rows),sel=mixName(MH.mixSel);
+ if(rs.length<5)return h+'<div class="ms-empty">The history line appears once a few complete days exist ('+rs.length+' so far).</div>';
+ var vals=rs.map(function(r){var t=mixTot(r);return t?100*(r.mtf[MH.mixSel]||0)/t:null;});
+ return h+'<div class="ms-sub" style="margin:0 0 2px"><span style="color:'+sel[2]+'">●</span> '+sel[1]+' — share of all stocks over time</div>'+
+  chart('ms-c-mix',rs,[{v:vals,c:sel[2],w:2.4,area:.1}],{min:0,h:210,fmt:function(v){return Math.round(v)+'%';},tip:function(r){var t=mixTot(r);return '<span style="color:'+sel[2]+'">●</span> '+sel[1]+' <b>'+(t?Math.round(100*(r.mtf[MH.mixSel]||0)/t):0)+'%</b> ('+(r.mtf[MH.mixSel]||0)+' of '+t+')';}});
+}
+function chartBody(k,rows){
+ var H=230;
+ if(k==='breadth')return chart('ms-c-br',rows,[{v:col(rows,'idx_close'),c:'var(--muted)',w:1.4,op:.55,idx:1,noScale:1},{v:ma(col(rows,'pct50'),3),c:'#8B5CF6',w:2},{v:ma(col(rows,'pct20'),3),c:'var(--cyan)',w:2}],
+   {h:H,min:0,max:100,refs:[{v:50,t:'50%'}],ribbon:1,led:'breadth',fmt:function(v){return Math.round(v)+'%';},tip:function(r){return 'Above 20 EMA <b>'+(r.pct20!=null?(+r.pct20).toFixed(0):'—')+'%</b><br>Above 50 EMA <b>'+(r.pct50!=null?(+r.pct50).toFixed(0):'—')+'%</b>'+(r.idx_close?'<br>'+IDX+' '+r.idx_close:'');}})+
+  leg([['Above 20 EMA','var(--cyan)'],['Above 50 EMA','#8B5CF6'],[IDX,'var(--muted)',1]]);
+ if(k==='ad'){var net=col(rows,'adv').map(function(a,i){return a==null?null:a-(rows[i].dec||0);}),m=ma(net,10);
+  return chart('ms-c-ad',rows,[{v:m,c:'var(--cyan)',w:2.2,area:.12}],{h:H,refs:[{v:0}],zero:1,led:'ad',tip:function(r,i){return 'Up <b>'+r.adv+'</b> · down <b>'+r.dec+'</b><br>10-day net '+sg(m[i]);}})+leg([['Advancers − decliners (10-day avg)','var(--cyan)']]);}
+ if(k==='hl')return chart('ms-c-hl',rows,[{v:ma(col(rows,'lo52'),10),c:'var(--r)',w:1.4,op:.45},{v:ma(col(rows,'hi52'),10),c:'var(--g)',w:2.4,area:.08}],
+   {h:H,min:0,led:'hl',tip:function(r){return 'At highs <b>'+(r.hi52==null?'—':r.hi52)+'</b><br><span style="opacity:.75">At lows '+(r.lo52==null?'—':r.lo52)+'</span>';}})+leg([['At 52W highs (10-day avg)','var(--g)'],['At 52W lows','var(--r)',1]]);
+ if(k==='burst')return chart('ms-c-bu',rows,[{v:ma(col(rows,'burst_dn'),10),c:'var(--r)',w:1.8,op:.8},{v:ma(col(rows,'burst_up'),10),c:'var(--g)',w:2.4,area:.1}],{h:H,min:0,led:'burst',tip:function(r){return 'Up-bursts <b>'+r.burst_up+'</b> · down <b>'+r.burst_dn+'</b>';}})+
+  leg([['Bursts up (10-day avg)','var(--g)'],['Bursts down','var(--r)']])+'<div class="ms-sub" style="margin:10px 0 0">Today’s biggest up-bursts'+I('Click a stock to open its card.')+'</div><div id="ms-bl">'+burstsToday()+'</div>';
+ if(k==='vol')return chart('ms-c-vol',rows,[{v:ma(col(rows,'turn_ratio'),10),c:'var(--cyan)',w:2.4,area:.08}],{h:H,refs:[{v:1,t:'1×'}],led:'vol',fmt:function(v){return v.toFixed(1)+'×';},
+   tip:function(r){return 'Turnover <b>'+(r.turn_ratio!=null?(+r.turn_ratio).toFixed(2)+'×':'—')+'</b><br>≥'+SET.rvx+'× volume: '+r.rvol2_up+' up · '+r.rvol2_dn+' down';}})+leg([['Market turnover ÷ 20-day avg (10-day avg)','var(--cyan)']]);
+ if(k==='mix')return mixBody(rows);
+ return '';
+}
+function chartCard(){
+ var k=MH.ch,C=CH[k],rows=period();
+ var chips='<div class="ms-chips">'+CHORDER.map(function(x){return '<button class="ms-pill'+(x===k?' on':'')+'" onclick="mhCh(\''+x+'\')" data-tip="'+esc(CH[x].what)+'">'+CH[x].t+'</button>';}).join('')+'</div>';
+ var go=k==='burst'?btn('All bursts in Screener','mhScreen(\'burst_up\')'):(k==='vol'?btn('Heavy volume today','mhScreen(\'rv2_up\')'):'');
+ var ex='<div class="ms-ex"><h4>What this shows</h4><p>'+C.what+'</p><h4>How to read it</h4><p>'+C.how+'</p>'+
+  (k==='mix'?'<h4>'+esc(mixName(MH.mixSel)[1])+'</h4><p>'+esc(MIXT[MH.mixSel])+'</p>':'')+
+  (CHART_LED[k]?'<p style="color:var(--muted)">Hover the chart for any day’s values; click a day to open it in the day-by-day table.</p>':'')+'</div>';
+ return '<div class="ms-card wide" id="ms-chart"><div class="ms-h"><b>📈 Market chart'+I('Pick one view at a time. The period buttons at the top (1M to All) set how far back the chart goes.')+'</b>'+go+'</div>'+chips+
+  '<div class="ms-cw"><div>'+chartBody(k,rows)+reading(k)+'</div>'+ex+'</div></div>';
+}
+function drawChart(){var c=$('ms-chart');if(!c)return;TIPS={};c.outerHTML=chartCard();wire();}
+window.mhCh=function(k){MH.ch=k;drawChart();};
+window.mhMix=function(k){MH.mixSel=k;MH.ch='mix';drawChart();};
 function movers(){
  if(!MH.mv.length)return '<div class="ms-empty">Available after tonight\u2019s market history run.</div>';
  var f=MH.mvPer,dir=MH.mvDir;
  var l=MH.mv.filter(function(m){return m[f]!=null;}).sort(function(a,b){return dir==='g'?b[f]-a[f]:a[f]-b[f];}).slice(0,10);
  var pills='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px">'+MVP.map(function(p){return '<button class="ms-pill'+(f===p[0]?' on':'')+'" onclick="mhMv(\''+p[0]+'\')">'+(p[0]==='r1d'?'Today':p[0]==='r1w'?'Week':p[0]==='r1m'?'Month':p[0].slice(1).toUpperCase())+'</button>';}).join('')+
   '<span style="margin-left:auto"></span><button class="ms-pill'+(dir==='g'?' on':'')+'" onclick="mhDir(\'g\')">Gainers</button><button class="ms-pill'+(dir==='l'?' on':'')+'" onclick="mhDir(\'l\')">Losers</button></div>';
- return pills+'<table class="ms-tbl"><tr><th>#</th><th>Stock</th><th>Move</th><th>Sector</th><th>Below high</th></tr>'+
+ return pills+'<table class="ms-tbl"><tr><th>#</th><th>Stock</th><th>Move'+I('% change over the chosen period.')+'</th><th>Sector</th><th>Below high'+I('How far the stock now sits under its 1-year high. Green = within 10%, red = 30% or more below.')+'</th></tr>'+
   l.map(function(m,i){return '<tr><td style="color:var(--muted)">'+(i+1)+'</td><td><span class="ms-sym" onclick="try{scOpen(\''+q(m.symbol)+'\')}catch(e){}">'+esc(m.symbol)+'</span></td><td style="font-weight:700;color:'+(m[f]>=0?'var(--g)':'var(--r)')+'">'+pc(m[f],0)+'</td><td style="color:var(--text2);font-size:11px">'+esc(m.sector||'—')+'</td><td style="color:'+(m.below_high<=10?'var(--g)':(m.below_high>=30?'var(--r)':'var(--text2)'))+'">'+(m.below_high!=null?(+m.below_high).toFixed(0)+'%':'—')+'</td></tr>';}).join('')+'</table>';
 }
 function sectors(){
@@ -16001,22 +16223,13 @@ function sectors(){
  h+='<table class="ms-hm"><colgroup><col style="width:180px">'+cols.map(function(){return '<col>';}).join('')+'<col style="width:70px"></colgroup><tr><th></th>'+cols.map(function(k,i){return '<th>'+(i%every===0?lab(k):'')+'</th>';}).join('')+'<th style="text-align:right">'+P.toUpperCase()+'</th></tr>';
  show.forEach(function(p){
   if(!p){h+='<tr><td class="nm" style="color:var(--muted);cursor:default">⋯</td><td colspan="'+(cols.length+1)+'"></td></tr>';return;}
-  h+='<tr><td class="nm" title="Open these stocks in the Screener" onclick="mhSector(\''+q(p[0])+'\')">'+esc(p[0])+'<span class="ms-rot" title="Open the Rotation tab" onclick="event.stopPropagation();mhRotation()">↗</span></td>'+
+  h+='<tr><td class="nm" data-tip="Open '+esc(p[0])+' stocks in the Screener" onclick="mhSector(\''+q(p[0])+'\')">'+esc(p[0])+'<span class="ms-rot" data-tip="Open the Rotation tab" onclick="event.stopPropagation();mhRotation()">↗</span></td>'+
    cols.map(function(k){var v=B[k][p[0]];if(v==null)return '<td style="background:var(--bg3);opacity:.35"></td>';var a=0.1+0.75*Math.min(1,Math.abs(v)/mx);
-    return '<td title="'+esc(p[0]+' · '+lab(k)+': '+pc(v))+'" style="background:'+(v>=0?'rgba(34,197,94,':'rgba(239,68,68,')+a.toFixed(2)+')"></td>';}).join('')+
+    return '<td data-tip="'+esc(p[0]+' · '+lab(k)+': '+pc(v))+'" style="background:'+(v>=0?'rgba(34,197,94,':'rgba(239,68,68,')+a.toFixed(2)+')"></td>';}).join('')+
    '<td class="tot" style="color:'+(p[1]>=0?'var(--g)':'var(--r)')+'">'+pc(p[1])+'</td></tr>';});
  h+='</table>';
  if(list.length>12)h+='<div style="margin-top:6px"><span class="ms-rot" style="margin:0" onclick="mhSecAll()">'+(MH.secAll?'Show top & bottom 6':'Show all '+list.length+' sectors')+'</span></div>';
  return h;
-}
-var MIX=[['allup','All TF Up','#22C55E'],['htfpb','HTF Pullback','#3B82F6'],['wkturn','Weekly Turn','#8B5CF6'],['earlyturn','Early Turnaround','#14B8A6'],['stretched','HTF Stretched','#F97316'],['ctbounce','Counter-Trend','#EAB308'],['rolling','Rolling Over','#F59E0B'],['alldown','All TF Down','#EF4444'],['mixed','Mixed','#94A3B8']];
-function mix(rows){
- var rs=rows.filter(function(r){return r.mtf;}),tot=rs.map(function(r){var t=0;for(var k in r.mtf)t+=r.mtf[k];return t;});
- var big=Math.max.apply(null,tot.length?tot:[0]);rs=rs.filter(function(r,i){return tot[i]>=0.8*big;});
- if(rs.length<20)return '<div class="ms-empty">Builds up night by night \u2014 it appears once 20 complete days exist ('+rs.length+' so far).</div>';
- var S=MIX.filter(function(m){return m[0]!=='mixed';}).map(function(m){return {v:rs.map(function(r){var t=0;for(var k in r.mtf)t+=r.mtf[k];return t?100*(r.mtf[m[0]]||0)/t:0;}),c:m[2],w:1.8};});
- return chart('ms-c-mix',rs,S,{min:0,tip:function(r){var t=0;for(var k in r.mtf)t+=r.mtf[k];return MIX.filter(function(m){return r.mtf[m[0]];}).map(function(m){return '<span style="color:'+m[2]+'">●</span> '+m[1]+' '+Math.round(100*r.mtf[m[0]]/t)+'%';}).join('<br>');},fmt:function(v){return Math.round(v)+'%';}})+
-  leg(MIX.filter(function(m){return m[0]!=='mixed';}).map(function(m){return [m[1],m[2]];}));
 }
 function scoreboard(){
  if(!MH.picks)return '<div class="ms-empty">Loading…</div>';
@@ -16025,135 +16238,75 @@ function scoreboard(){
  function med(v){if(!v.length)return null;var s=v.slice().sort(function(a,b){return a-b;});return s[Math.floor(s.length/2)];}
  var names=Object.keys(agg).sort(function(a,b){return (med(agg[b].m3)||0)-(med(agg[a].m3)||0);});
  if(!names.length)return '<div class="ms-empty">Fills in once the tracker\u2019s picks are 10 sessions old.</div>';
- return '<table class="ms-tbl"><tr><th></th><th>Playbook</th><th>1M median</th><th>1M win</th><th>3M median</th><th>3M win</th><th>Trades (3M)</th></tr>'+names.map(function(n){var a=agg[n];
+ return '<table class="ms-tbl"><tr><th></th><th>Playbook</th><th>1M median'+I('Middle 10-session return of picks made in the last month.')+'</th><th>1M win'+I('Share of last month\'s picks that were up after 10 sessions.')+'</th><th>3M median'+I('Middle 10-session return over 3 months. 🟢 = positive.')+'</th><th>3M win</th><th>Trades (3M)'+I('How many picks the numbers are based on. Under ~20 is mostly noise.')+'</th></tr>'+names.map(function(n){var a=agg[n];
   function w(v){return v.length?Math.round(100*v.filter(function(x){return x>0;}).length/v.length)+'%':'—';}
   var m3=med(a.m3);return '<tr><td>'+(m3>0?'🟢':'🔴')+'</td><td>'+esc(n)+'</td><td>'+pc(med(a.m1))+'</td><td>'+w(a.m1)+'</td><td style="font-weight:700">'+pc(m3)+'</td><td>'+w(a.m3)+'</td><td style="color:var(--muted)">'+a.m3.length+'</td></tr>';}).join('')+'</table>'+
   '<div class="ms-sub" style="margin-top:6px">10-session return after each pick. Small counts are noise.</div>';
 }
 
+
 /* ── render ─────────────────────────────────────────── */
 function render(){
  var el=$('tab-market');if(!el)return;
  if(!MH.loaded){el.innerHTML='<div class="ms-empty" style="padding:30px">Loading market sentiment…</div>';mhLoad().then(render);return;}
- if(!MH.rows.length){el.innerHTML='<div class="ms-empty" style="padding:30px">No history yet \u2014 it appears after the first market_history run.</div>';return;}
+ if(!MH.rows.length){el.innerHTML='<div class="ms-empty" style="padding:30px">No history yet — it appears after the first market_history run.</div>';return;}
  if(typeof SCR!=='undefined'&&!SCR.loaded&&typeof scrLoad==='function'&&!MH._sl){MH._sl=true;try{scrLoad().then(function(){var b=$('ms-bl');if(b)b.innerHTML=burstsToday();});}catch(e){}}
  TIPS={};
- var all=MH.rows,rows=period(),L=all[all.length-1];
- var h='<div class="ms-top"><h2>📊 Market Sentiment · '+(MKT==='IN'?'India':'US')+'</h2>'+['3m','6m','1y','all'].map(function(p){return '<button class="ms-pill'+(MH.per===p?' on':'')+'" onclick="mhPer(\''+p+'\')">'+p.toUpperCase()+'</button>';}).join('')+
-  '<span class="ms-note">as of '+fmtD(L.d)+' '+L.d.slice(0,4)+' · '+L.n+' stocks</span></div>';
- h+=kpis(all)+'<div class="ms-grid">';
- h+=card('breadth','Breadth',(L.pct50!=null?L.pct50.toFixed(0)+'% above 50 EMA':''),'Share of stocks above their 20 and 50 EMA (3-day smoothed; hover for the exact day). The strip on top is the regime (green strong · amber neutral · red weak). Grey = '+IDX+', shape only.',
-  chart('ms-c-br',rows,[{v:col(rows,'idx_close'),c:'var(--muted)',w:1.4,op:.55,idx:1,noScale:1},{v:ma(col(rows,'pct50'),3),c:'#8B5CF6',w:2},{v:ma(col(rows,'pct20'),3),c:'var(--cyan)',w:2}],
-   {min:0,max:100,refs:[{v:50,t:'50%'}],ribbon:1,fmt:function(v){return Math.round(v)+'%';},tip:function(r){return 'Above 20 EMA <b>'+(r.pct20!=null?(+r.pct20).toFixed(0):'—')+'%</b><br>Above 50 EMA <b>'+(r.pct50!=null?(+r.pct50).toFixed(0):'—')+'%</b>'+(r.idx_close?'<br>'+IDX+' '+r.idx_close:'');}})+
-  leg([['Above 20 EMA','var(--cyan)'],['Above 50 EMA','#8B5CF6'],[IDX,'var(--muted)',1]]));
- var net=col(rows,'adv').map(function(a,i){return a==null?null:a-(rows[i].dec||0);});
- h+=card('ad','Participation',(L.adv+' up · '+L.dec+' down'),'Advancers minus decliners, smoothed over 10 days. Above zero = most stocks joining in.',
-  chart('ms-c-ad',rows,[{v:ma(net,10),c:'var(--cyan)',w:2.2,area:.12}],{refs:[{v:0}],zero:1,tip:function(r,i){return 'Up <b>'+r.adv+'</b> · down <b>'+r.dec+'</b><br>10-day net '+Math.round(ma(net,10)[i]);}}));
- h+=card('hl','52-week highs',(L.hi52!=null?L.hi52+' today':''),'Stocks closing at (or within 1% of) a 52-week high, as a 10-day average. Faint red = stocks at 52-week lows — highs falling while lows rise is an early warning.',
-  chart('ms-c-hl',rows,[{v:ma(col(rows,'lo52'),10),c:'var(--r)',w:1.4,op:.4},{v:ma(col(rows,'hi52'),10),c:'var(--g)',w:2.4,area:.08}],
-   {min:0,tip:function(r){return 'At highs <b>'+(r.hi52==null?'—':r.hi52)+'</b><br><span style="opacity:.75">At lows '+(r.lo52==null?'—':r.lo52)+'</span>';}})+leg([['At 52W highs (10-day avg)','var(--g)'],['At 52W lows','var(--r)',1]]));
- h+=card('vol','Volume',(L.turn_ratio!=null?(+L.turn_ratio).toFixed(2)+'× average':''),'Market turnover vs its 20-day average, as a 10-day average. Above the dashed line = heavier than usual.',
-  chart('ms-c-vol',rows,[{v:ma(col(rows,'turn_ratio'),10),c:'var(--cyan)',w:2.4,area:.08}],{refs:[{v:1,t:'1×'}],fmt:function(v){return v.toFixed(1)+'×';},
-   tip:function(r){return 'Turnover <b>'+(r.turn_ratio!=null?(+r.turn_ratio).toFixed(2)+'×':'—')+'</b><br>≥'+SET.rvx+'× volume: '+r.rvol2_up+' up · '+r.rvol2_dn+' down';}}),
-  btn('Heavy volume today','mhScreen(\'rv2_up\')'));
- h+=card('burst','Momentum bursts',(L.burst_up+' up · '+L.burst_dn+' down'),'Stocks moving ≥'+SET.burst+'% in a day on volume (10-day averages). Green above red = momentum is working.',
-  chart('ms-c-bu',rows,[{v:ma(col(rows,'burst_dn'),10),c:'var(--r)',w:1.8,op:.8},{v:ma(col(rows,'burst_up'),10),c:'var(--g)',w:2.4,area:.1}],{min:0,tip:function(r){return 'Up-bursts <b>'+r.burst_up+'</b> · down <b>'+r.burst_dn+'</b>';}})+
-  '<div class="ms-sub" style="margin:8px 0 0">Today\u2019s biggest up-bursts</div><div id="ms-bl">'+burstsToday()+'</div>',btn('All bursts in Screener','mhScreen(\'burst_up\')'));
+ var all=MH.rows,L=all[all.length-1];
+ var h='<div class="ms-top"><h2>📊 Market Sentiment · '+(MKT==='IN'?'India':'US')+'</h2>'+[['1m','1M'],['3m','3M'],['6m','6M'],['1y','1Y'],['all','All']].map(function(p){return '<button class="ms-pill'+(MH.per===p[0]?' on':'')+'" onclick="mhPer(\''+p[0]+'\')">'+p[1]+'</button>';}).join('')+
+  I('How far back the chart goes. The day-by-day table has its own period buttons.')+
+  '<span class="ms-note">as of '+fmtDY(L.d)+' · '+L.n+' stocks'+I('Updated every evening after the close from all '+L.n+' stocks in the universe.')+'</span></div>';
+ h+=kpis(all);
+ h+=chartCard();
+ h+='<div class="ms-grid" style="margin-top:14px">';
  var mvLabel={r1d:'today',r1w:'this week',r1m:'this month',r3m:'3 months',r6m:'6 months',r1y:'1 year'}[MH.mvPer];
- h+=card('movers','Big movers','','The biggest '+(MH.mvDir==='g'?'gainers':'losers')+' over '+mvLabel+'. "Below high" = how far under its 1-year high it sits now.',
+ h+=card('movers','Big movers','The 10 biggest gainers or losers over the period you pick, from stored prices (refreshed nightly). The button opens all 50 in the Screener.','',
+  'The biggest '+(MH.mvDir==='g'?'gainers':'losers')+' over '+mvLabel+'.',
   '<div id="ms-mv">'+movers()+'</div>',btn('All 50 in Screener','mhTop(\''+MH.mvDir+'_'+MH.mvPer+'\')'));
- h+=card('sectors','Sector rotation','','Each sector\u2019s move per column, sorted by the whole period. Click a sector for its stocks; ↗ opens the Rotation tab.','<div id="ms-sec">'+sectors()+'</div>','',1);
- h+=card('mtf','Trend-state mix','','Share of the market in each multi-timeframe state. More green and blue = healthier ground for setups.',mix(rows),'',1);
- h+=card('score','Playbook scoreboard','','Which playbooks paid over the last 1 and 3 months, from the tracker.','<div id="ms-sb">'+scoreboard()+'</div>','',1);
+ h+=card('score','Playbook scoreboard','For each playbook: the median (middle) 10-session return of its picks, and the win rate (share of picks that were up after 10 sessions), over the last 1 and 3 months. Sorted by the 3-month median.','',
+  'Which playbooks paid recently, from the tracker.','<div id="ms-sb">'+scoreboard()+'</div>','');
+ h+=card('sectors','Sector rotation','Each column is one period (day, week or month depending on the button). Green = the sector’s stocks rose on average, red = fell; darker = bigger move. Hover a cell for the exact %. The right column is the whole-period total.','',
+  'Sorted by the whole period. Click a sector for its stocks; ↗ opens the Rotation tab.','<div id="ms-sec">'+sectors()+'</div>','',1);
  h+='</div>';
- el.innerHTML=h;wire();
+ el.innerHTML=h;wire();dayTable();
+ if(MH._pend){var pd=MH._pend;MH._pend=null;mhLed(pd[0],pd[1]);}
  if(!MH.picks&&!MH._pl){MH._pl=true;var since=new Date(Date.now()-95*864e5).toISOString().slice(0,10);
   (async function(){var a=[],off=0;for(var g=0;g<10;g++){var b=await sbGet(PICKS+'?select=playbook,session_date,r10&session_date=gte.'+since+'&r10=not.is.null&limit=1000&offset='+off);a=a.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}MH.picks=a;var s=$('ms-sb');if(s)s.innerHTML=scoreboard();})();}
  if(MH._go){var t=$('ms-'+MH._go);MH._go=null;if(t){setTimeout(function(){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('flash');setTimeout(function(){t.classList.remove('flash');},1600);},60);}}
 }
+function tipEl(){var tip=$('ms-tip');if(!tip){tip=document.createElement('div');tip.id='ms-tip';document.body.appendChild(tip);}return tip;}
+function place(tip,x,y){var tx=x+14;if(tx+tip.offsetWidth>innerWidth-8)tx=Math.max(8,x-tip.offsetWidth-14);var ty=y+14;if(ty+tip.offsetHeight>innerHeight-8)ty=Math.max(8,y-tip.offsetHeight-12);tip.style.left=tx+'px';tip.style.top=ty+'px';}
 function wire(){
- var tip=$('ms-tip');if(!tip){tip=document.createElement('div');tip.id='ms-tip';document.body.appendChild(tip);}
+ var tip=tipEl();
  Object.keys(TIPS).forEach(function(id){
-  var s=$(id);if(!s)return;var T=TIPS[id],hov=s.querySelector('.ms-hov'),cur=s.querySelector('.ms-cur');
+  var s=$(id);if(!s||s._w)return;s._w=1;var T=TIPS[id],hov=s.querySelector('.ms-hov'),cur=s.querySelector('.ms-cur');
+  function at(e){var b=s.getBoundingClientRect(),fx=(e.clientX-b.left)/b.width*W,n=T.n,i=Math.round((fx-PADL)/(W-PADL-PADR)*(n-1));return Math.max(0,Math.min(n-1,i));}
   hov.addEventListener('mousemove',function(e){
-   var b=s.getBoundingClientRect(),fx=(e.clientX-b.left)/b.width*W,n=T.n,i=Math.round((fx-PADL)/(W-PADL-PADR)*(n-1));
-   i=Math.max(0,Math.min(n-1,i));var x=PADL+(W-PADL-PADR)*(n<=1?0.5:i/(n-1));
+   var i=at(e),x=PADL+(W-PADL-PADR)*(T.n<=1?0.5:i/(T.n-1));
    cur.setAttribute('x1',x);cur.setAttribute('x2',x);cur.style.display='';
-   tip.innerHTML='<b>'+fmtD(T.rows[i].d)+' '+T.rows[i].d.slice(0,4)+'</b><br>'+(T.fn?T.fn(T.rows[i],i):'');tip.style.display='block';
-   var tx=e.clientX+14;if(tx+tip.offsetWidth>innerWidth-8)tx=e.clientX-tip.offsetWidth-14;tip.style.left=tx+'px';tip.style.top=(e.clientY+12)+'px';});
+   tip.style.whiteSpace='nowrap';tip.innerHTML='<b>'+fmtDY(T.rows[i].d)+'</b><br>'+(T.fn?T.fn(T.rows[i],i):'')+(T.led?'<br><span style="color:var(--muted);font-size:10.5px">click for the day-by-day table</span>':'');tip.style.display='block';place(tip,e.clientX,e.clientY);});
   hov.addEventListener('mouseleave',function(){tip.style.display='none';cur.style.display='none';});
-  if(CHART_TAB[id]){hov.style.cursor='pointer';hov.addEventListener('click',function(e){
-   var b=s.getBoundingClientRect(),fx=(e.clientX-b.left)/b.width*W,n=T.n,i=Math.round((fx-PADL)/(W-PADL-PADR)*(n-1));
-   i=Math.max(0,Math.min(n-1,i));tip.style.display='none';mhLed(CHART_TAB[id],T.rows[i].d);});}
+  if(T.led){hov.style.cursor='pointer';hov.addEventListener('click',function(e){tip.style.display='none';mhLed(T.led,T.rows[at(e)].d);});}
  });
 }
-/* ── day-by-day ledger (side pane) ─────────────────── */
-var LED={
- breadth:{t:'Breadth',cols:[['pct9','Above 9 EMA',1,'p'],['pct20','Above 20 EMA',1,'p'],['pct50','Above 50 EMA',1,'p'],['pct200','Above 200 EMA',1,'p']]},
- ad:{t:'Participation',cols:[['adv','Advancing',1,'n'],['dec','Declining',-1,'n'],['_net','Net',1,'n'],['avg_chg','Avg move',1,'pc']]},
- hl:{t:'52W highs',cols:[['hi52','At highs',1,'n'],['lo52','At lows',-1,'n'],['_nhl','Net',1,'n']]},
- burst:{t:'Bursts',cols:[['burst_up','Bursts up',1,'n'],['burst_dn','Bursts down',-1,'n'],['_nb','Net',1,'n']]},
- vol:{t:'Volume',cols:[['turn_ratio','Market vol ×avg',1,'x'],['rvol2_up','≥2× up',1,'n'],['rvol2_dn','≥2× down',-1,'n']]}
-};
-var CHART_TAB={'ms-c-br':'breadth','ms-c-ad':'ad','ms-c-hl':'hl','ms-c-vol':'vol','ms-c-bu':'burst'};
-MH.ledTab='breadth';MH.ledDays=30;MH.ledHL=null;
-try{MH.ledMode=localStorage.getItem('tfLedMode')||'pct';}catch(e){MH.ledMode='pct';}
-function lval(r,k){
- if(k==='_net')return (r.adv==null||r.dec==null)?null:r.adv-r.dec;
- if(k==='_nhl')return r.hi52==null?null:r.hi52-(r.lo52||0);
- if(k==='_nb')return (r.burst_up||0)-(r.burst_dn||0);
- return r[k]==null?null:+r[k];
-}
-function ledger(){
- var el=$('ms-led');if(!el)return;
- var T=LED[MH.ledTab],all=MH.rows,N=Math.min(MH.ledDays,all.length);
- var rows=all.slice(-(N+1)).reverse();     // newest first, one extra row for the oldest change
- var cnt=MH.ledTab==='breadth'&&MH.ledMode==='cnt';
- function fmt(v,f,r,k){if(v==null)return '—';
-  if(f==='p')return cnt?((k==='pct200'?'≈':'')+Math.round(v*r.n/100)):(v.toFixed(0)+'%');
-  if(f==='pc')return (v>0?'+':'')+v.toFixed(2)+'%';if(f==='x')return v.toFixed(2)+'×';return Math.round(v);}
- function dfmt(dv,f,r,k){if(f==='p')return cnt?Math.round(Math.abs(dv)*r.n/100):Math.abs(dv).toFixed(1)+'pt';if(f==='pc')return Math.abs(dv).toFixed(2)+'%';if(f==='x')return Math.abs(dv).toFixed(2);return Math.round(Math.abs(dv));}
- var h='<div class="lh"><span class="lx" onclick="mhLed(false)">✕</span><b>Day by day · '+T.t+'</b>'+
-  '<div class="ltabs">'+Object.keys(LED).map(function(k){return '<button class="lt'+(k===MH.ledTab?' on':'')+'" onclick="mhLed(\''+k+'\')">'+LED[k].t+'</button>';}).join('')+'</div>'+
-  '<div class="lopt">'+[30,60,90].map(function(d){return '<button class="lt'+(MH.ledDays===d?' on':'')+'" onclick="mhLedDays('+d+')">'+d+' days</button>';}).join('')+
-  (MH.ledTab==='breadth'?'<span style="margin-left:auto"></span><button class="lt'+(!cnt?' on':'')+'" onclick="mhLedMode(\'pct\')">%</button><button class="lt'+(cnt?' on':'')+'" onclick="mhLedMode(\'cnt\')">Count</button>':'')+
-  '</div><div class="lopt" style="margin-top:6px">Each cell shows the day’s value and its change from the previous day (pt = percentage points): <span style="color:#16A34A">green = better for longs</span>, <span style="color:#DC2626">red = worse</span>.'+(cnt?' 200 EMA counts are approximate (≈).':'')+'</div></div>';
- h+='<div class="lbody"><table><tr><th>Date</th>'+T.cols.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+'</tr>';
- for(var i=0;i<Math.min(N,rows.length-1);i++){
-  var r=rows[i],p=rows[i+1],reg=r.pct20>=55?'#22C55E':(r.pct20<45?'#EF4444':'#F59E0B');
-  h+='<tr'+(MH.ledHL===r.d?' class="hl" id="ms-led-hl"':'')+'><td><span style="color:'+reg+'" title="Regime: '+(r.pct20>=55?'strong':(r.pct20<45?'weak':'neutral'))+'">●</span> '+fmtD(r.d)+' <span style="color:var(--muted);font-size:10.5px">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(r.d+'T00:00:00Z').getUTCDay()]+'</span></td>';
-  T.cols.forEach(function(c){
-   var v=lval(r,c[0]),pv=lval(p,c[0]),dv=(v!=null&&pv!=null)?v-pv:null;
-   var good=dv==null||Math.abs(dv)<1e-9?0:(dv>0?c[2]:-c[2]);
-   var bg=good>0?'rgba(34,197,94,.13)':(good<0?'rgba(239,68,68,.13)':'transparent');
-   var dc=good>0?'#16A34A':(good<0?'#DC2626':'var(--muted)');
-   h+='<td class="c" style="background:'+bg+'">'+fmt(v,c[3],r,c[0])+(dv!=null?'<span class="dv" style="color:'+dc+'">'+(dv>0?'▲':(dv<0?'▼':'·'))+(Math.abs(dv)>1e-9?dfmt(dv,c[3],r,c[0]):'')+'</span>':'')+'</td>';
-  });
-  h+='</tr>';
- }
- h+='</table></div>';
- el.innerHTML=h;
- var hl=$('ms-led-hl');if(hl)setTimeout(function(){hl.scrollIntoView({block:'center'});},30);
-}
-window.mhLed=function(tab,date){
- var p=$('ms-led'),b=$('ms-ledbk');
- if(!p){p=document.createElement('div');p.id='ms-led';document.body.appendChild(p);b=document.createElement('div');b.id='ms-ledbk';b.onclick=function(){mhLed(false);};document.body.appendChild(b);}
- if(tab===false){p.classList.remove('open');b.classList.remove('open');return;}
- if(tab)MH.ledTab=tab;MH.ledHL=date||null;
- if(date){var idx=MH.rows.length-1-MH.rows.map(function(r){return r.d;}).lastIndexOf(date);if(idx>=MH.ledDays)MH.ledDays=idx<60?60:90;}
- ledger();p.classList.add('open');b.classList.add('open');
-};
-window.mhLedDays=function(d){MH.ledDays=d;ledger();};
-window.mhLedMode=function(m){MH.ledMode=m;try{localStorage.setItem('tfLedMode',m);}catch(e){}ledger();};
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){try{mhLed(false);}catch(x){}}});
-window.mhPer=function(p){MH.per=p;render();};
-window.mhMv=function(p){MH.mvPer=p;var m=$('ms-mv');if(m)m.innerHTML=movers();var c=$('ms-movers');if(c){var b=c.querySelector('.ms-go');if(b)b.setAttribute('onclick','mhTop(\''+MH.mvDir+'_'+MH.mvPer+'\')');}};
-window.mhDir=function(d){MH.mvDir=d;var m=$('ms-mv');if(m)m.innerHTML=movers();var c=$('ms-movers');if(c){var b=c.querySelector('.ms-go');if(b)b.setAttribute('onclick','mhTop(\''+MH.mvDir+'_'+MH.mvPer+'\')');}};
+/* hover explanations for every [data-tip] in the tab (tap on phones) */
+(function(){
+ var on=null;
+ window.mhTipShow=function(t,e){on=t;show(t,e);};
+ function show(t,e){var tip=tipEl();tip.style.whiteSpace='normal';tip.innerHTML=t.getAttribute('data-tip');tip.style.display='block';var b=t.getBoundingClientRect();place(tip,e&&e.clientX!=null?e.clientX:b.right,e&&e.clientY!=null?e.clientY:b.bottom);}
+ document.addEventListener('mouseover',function(e){var t=e.target.closest&&e.target.closest('#tab-market [data-tip]');if(t&&t!==on){on=t;show(t,e);}else if(!t&&on){on=null;var x=$('ms-tip');if(x)x.style.display='none';}});
+ document.addEventListener('scroll',function(){if(on){on=null;var x=$('ms-tip');if(x)x.style.display='none';}},true);
+})();
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&MH.day){try{mhLed(false);}catch(x){}}});
+window.mhPer=function(p){MH.per=p;var b=document.querySelectorAll('#tab-market .ms-top .ms-pill');b.forEach(function(x){x.classList.toggle('on',(x.getAttribute('onclick')||'').indexOf("'"+p+"'")>0);});drawChart();};
+window.mhMv=function(p){MH.mvPer=p;var m=$('ms-mv');if(m)m.innerHTML=movers();var c=$('ms-movers');if(c){var b=c.querySelector('.ms-go');if(b)b.setAttribute('onclick','mhTop(\''+MH.mvDir+'_'+MH.mvPer+'\')');var sb=c.querySelector('.ms-sub');if(sb)sb.textContent='The biggest '+(MH.mvDir==='g'?'gainers':'losers')+' over '+{r1d:'today',r1w:'this week',r1m:'this month',r3m:'3 months',r6m:'6 months',r1y:'1 year'}[MH.mvPer]+'.';}};
+window.mhDir=function(d){MH.mvDir=d;mhMv(MH.mvPer);};
 window.mhSec=function(p){MH.secPer=p;var s=$('ms-sec');if(s)s.innerHTML=sectors();};
 window.mhSecAll=function(){MH.secAll=!MH.secAll;var s=$('ms-sec');if(s)s.innerHTML=sectors();};
-window.mhJump=function(sec){var t=$('ms-'+sec);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('flash');setTimeout(function(){t.classList.remove('flash');},1600);}};
+var GOCH={breadth:'breadth',ad:'ad',hl:'hl',vol:'vol',burst:'burst',mtf:'mix',mix:'mix'};
+window.mhJump=function(sec){if(GOCH[sec]){MH.ch=GOCH[sec];drawChart();sec='chart';}var t=$('ms-'+sec);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('flash');setTimeout(function(){t.classList.remove('flash');},1600);}};
 window.mhGo=function(sec){
- var map={breadth:'breadth',ad:'ad',hl:'hl',vol:'vol',mtf:'mtf',sectors:'sectors'};MH._go=map[sec]||sec;
+ if(GOCH[sec]){MH.ch=GOCH[sec];MH._go='chart';}else MH._go=sec;
  var b=document.querySelector('#momentum-tabs .nav-tab[onclick*="\'market\'"]');
  switchTab('market',b,'momentum');render();window.scrollTo(0,0);
 };
@@ -16164,7 +16317,6 @@ setTimeout(function(){try{mhLoad();}catch(e){}},1500);
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#momentum-tabs .nav-tab');if(b&&/'market'/.test(b.getAttribute('onclick')||''))setTimeout(render,30);});
 })();
 </script>
-
 
 <!-- ═══ TrueFlow EP v2 — gap EPs, momentum ignitions, delayed EPs ═══ -->
 <style>.ep-ev{display:block;margin-top:6px;font-size:11.5px;color:var(--text2)}</style>
