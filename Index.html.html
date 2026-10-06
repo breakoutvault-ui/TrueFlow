@@ -15891,7 +15891,8 @@ setTimeout(function(){clearInterval(t);},60000);
 <!-- ═══ TrueFlow Market Sentiment v3 — tiles, inline day-by-day, one chart + picker, explanations ═══ -->
 <!-- v3.1 (7 Oct 2026): brighter width-aware chart, end labels, EMA line chips, hover-on-item explanations -->
 <style>
-#tab-market{--g:#22C55E;--r:#EF4444}
+#tab-market{--g:#22C55E;--r:#EF4444;--e9:#F59E0B;--e50:#A78BFA;--e200:#F472B6}
+body.theme-light #tab-market{--g:#16A34A;--r:#DC2626;--e9:#D97706;--e50:#7C3AED;--e200:#DB2777}
 #tab-market .ms-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
 #tab-market .ms-top h2{font-size:17px;margin:0 10px 0 0;color:var(--text);font-weight:700;letter-spacing:.2px}
 #tab-market .ms-pill{padding:4px 12px;border-radius:99px;border:1px solid var(--bg3);background:none;color:var(--muted);cursor:pointer;font-size:11.5px;font-family:inherit}
@@ -16154,7 +16155,7 @@ var CH={
   how:'More All TF Up and HTF Pullback = healthier ground for long setups. Click a state in the bar or the chips to see its history.'}
 };
 var CHORDER=['breadth','ad','hl','burst','vol','mix'];
-var BRL=[['9','9 EMA','#F59E0B','pct9','Share of stocks closing above their 9 EMA — the short-term trend. The noisiest line.'],['20','20 EMA','var(--cyan)','pct20','Share above the 20 EMA — the swing trend. Sets the regime: 55% or more strong, under 45% weak.'],['50','50 EMA','#A78BFA','pct50','Share above the 50 EMA — the medium-term trend.'],['200','200 EMA','#F472B6','pct200','Share above the 200 EMA — the long-term trend.'],['idx',IDX,'var(--text2)','idx_close','The '+IDX+' close on its own scale (shape only), to compare with breadth.']];
+var BRL=[['9','9 EMA','var(--e9)','pct9','Share of stocks closing above their 9 EMA — the short-term trend. The noisiest line.'],['20','20 EMA','var(--cyan)','pct20','Share above the 20 EMA — the swing trend. Sets the regime: 55% or more strong, under 45% weak.'],['50','50 EMA','var(--e50)','pct50','Share above the 50 EMA — the medium-term trend.'],['200','200 EMA','var(--e200)','pct200','Share above the 200 EMA — the long-term trend.'],['idx',IDX,'var(--text2)','idx_close','The '+IDX+' close on its own scale (shape only), to compare with breadth.']];
 var MIX=[['allup','All TF Up','#22C55E'],['htfpb','HTF Pullback','#3B82F6'],['wkturn','Weekly Turn','#8B5CF6'],['earlyturn','Early Turnaround','#14B8A6'],['stretched','HTF Stretched','#F97316'],['ctbounce','Counter-Trend','#EAB308'],['rolling','Rolling Over','#F59E0B'],['alldown','All TF Down','#EF4444'],['mixed','Mixed','#94A3B8']];
 var MIXT={
  allup:'Daily, weekly and monthly all rising. Can be held as a position.',
