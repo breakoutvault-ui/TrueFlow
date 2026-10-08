@@ -12934,7 +12934,7 @@ const SCR_FILTERS=[
  {key:'zone',label:'Daily 9E Zone',opts:['near9e','w10','above9d'],disp:{near9e:'Near 9E (±5%)',w10:'Within 10%',above9d:'Above Daily 9'},tips:{near9e:'Within 5% of the daily 9 EMA as of todays close.',w10:'Within 10% of the daily 9 EMA as of todays close.',above9d:'Trading above the daily 9 EMA as of todays close.'}},
  {key:'zone5',label:'Daily 5E Zone',opts:['near5e2','near5e5','above5d'],disp:{near5e2:'≤2%',near5e5:'≤5%',above5d:'Above Daily 5'},tips:{near5e2:'Within 2% of the daily 5 EMA as of todays close.',near5e5:'Within 5% of the daily 5 EMA as of todays close.',above5d:'Trading above the daily 5 EMA as of todays close.'}},
  {key:'wzone',label:'Wk 9E Away',opts:['w2','w5','w10','w15'],disp:{w2:'≤2%',w5:'≤5%',w10:'≤10%',w15:'≤15%'},tips:{w2:'Within 2% of the weekly 9 EMA as of the latest weekly close.',w5:'Within 5% of the weekly 9 EMA as of the latest weekly close.',w10:'Within 10% of the weekly 9 EMA as of the latest weekly close.',w15:'Within 15% of the weekly 9 EMA as of the latest weekly close.'}},
- {key:'z52',label:'52W',opts:['zone','base','bo'],disp:{zone:'🎯 BO Zone',base:'🟦 Breakout Base',bo:'🚀 52W Base BO'},tips:{zone:'Within 15% below the 52-week high right now — coiling near highs.',base:'Broke out and holding within 15% of the breakout — current state.',bo:'Extended more than 15% past the breakout — current state.'}},
+ {key:'z52',label:'52W',opts:['zone','base','bo'],disp:{zone:'🎯 BO Zone',base:'🟦 Breakout Base',bo:'🚀 52W Base BO'},tips:{zone:'Within 15% below the 52-week high, or at a new high that the scan has not tagged as a breakout yet.',base:'Broke out and holding within 15% of the breakout — current state.',bo:'Extended more than 15% past the breakout — current state.'}},
  {key:'vsig',label:'Volume',opts:['acc','weak','dist','pull','High','Building'],disp:{acc:'🟢 Accumulation',weak:'🟡 Weak rally',dist:'🔴 Distribution',pull:'⚪ Healthy pullback',High:'Vol: High',Building:'Vol: Building'},tips:{acc:'Accumulation — closed UP today on 1.5x or more of the 20-day average volume. Todays session only.',weak:'Weak rally — closed up today but on under 1.5x the 20-day average volume. Todays session only.',dist:'Distribution — closed DOWN today on 1.5x or more of the 20-day average volume. Todays session only.',pull:'Healthy pullback — closed down today on under 1.5x the 20-day average volume. Todays session only.',High:'Todays volume bucket is High vs its 20-day average. Todays session.',Building:'Volume building — todays bucket is High or Very High vs average. Todays session.'}},
  {key:'rvolmin',label:'RVOL',opts:['1.5','2','3'],disp:{'1.5':'≥1.5×','2':'≥2×','3':'≥3×'},tips:{'1.5':'Todays volume is at least 1.5x the 20-day average. Today vs 20-day baseline.','2':'Todays volume is at least 2x the 20-day average. Today vs 20-day baseline.','3':'Todays volume is at least 3x the 20-day average. Today vs 20-day baseline.'}},
  {key:'adrmin',label:'ADR%',opts:['3','5','7'],disp:{'3':'≥3%','5':'≥5%','7':'≥7%'},tips:{'3':'Average daily range at least 3% - moves enough to trade.','5':'At least 5% - a strong mover.','7':'At least 7% - very volatile.'}},
@@ -12967,7 +12967,7 @@ const SCR_PRESETS=[
 
 function scrZ52state(s,pct52){
  if(s.breakout_type&&s.breakout_price){const r=(+s.ltp)/(+s.breakout_price);return r>1.15?'bo':'base';}
- if(s.high_52w){const dist=((+s.high_52w)-(+s.ltp))/(+s.high_52w)*100;if(dist>0&&dist<=15)return 'zone';}
+ if(s.high_52w){const dist=((+s.high_52w)-(+s.ltp))/(+s.high_52w)*100;if(dist<=15)return 'zone';}
  return null;
 }
 function scrDaysBetween(a,b){if(!a||!b||a==='—'||b==='—')return null;const d=(new Date(b)-new Date(a))/864e5;return isNaN(d)?null:Math.round(d);}
@@ -16611,6 +16611,84 @@ setTimeout(function(){clearInterval(t);},60000);
 })();
 </script>
 
+
+<!-- ═══ TrueFlow 52W v1 — 52-week-high conviction signals (weekly close above, fresh, strong close, not extended, leader) ═══ -->
+<script>
+(function(){
+'use strict';
+var MKT='IN',TBL=MKT==='IN'?'hi52_state':'us_hi52_state',IDXN=MKT==='IN'?'Nifty 50':'S&P 500';
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function sbGet(p){return fetch(CONFIG.supabaseUrl+'/rest/v1/'+p,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});}
+window.H52X={rows:{},date:null};
+var _p=null;
+function load(){
+ if(_p)return _p;
+ _p=(async function(){
+  var all=[],off=0;for(var g=0;g<8;g++){var b=await sbGet(TBL+'?select=*&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}
+  var cnt={},mx='';all.forEach(function(x){cnt[x.session_date]=(cnt[x.session_date]||0)+1;});for(var d in cnt){if(!mx||cnt[d]>cnt[mx])mx=d;}
+  H52X.date=mx;all.forEach(function(x){if(x.session_date===mx)H52X.rows[x.symbol]=x;});
+ })();
+ return _p;
+}
+function n(x){return x==null?null:+x;}
+function apply(d){var r=H52X.rows[d.sym];
+ d.h52New=!!(r&&r.new_hi);d.h52Strong=!!(r&&r.strong);d.h52Wk=r?r.wk_state:null;d.h52WkOk=!!(r&&r.wk_ok);
+ d.h52WkVr=r?n(r.wk_vr):null;d.h52Fresh=!!(r&&r.fresh);d.h52Gap=r?n(r.gap_wk):null;d.h52Ext=r?n(r.ext_pct):null;
+ d.h52Rs=r?n(r.rs3m):null;d.h52Rvol=r?n(r.rvol):null;d.h52Pct=r?n(r.pct_from_hi):null;d.h52Prev=r?n(r.prev_hi):null;}
+var F_SIG={key:'h52sig',label:'52W High Signal',opts:['newhi','strong','wk','wkv'],
+ disp:{newhi:'🆕 New 52W high today',strong:'💪 Strong close on volume',wk:'📅 Weekly close above 52W high',wkv:'📅🔊 Weekly close above, on volume'},
+ tips:{newhi:'Today’s high went above the highest high of the previous 252 sessions.',
+  strong:'Closed ABOVE the previous 52-week high, in the top 25% of the day’s range, on at least 1.5× its 20-day average volume. Not just an intraday poke.',
+  wk:'This week’s close (so far) or last week’s close is above the 52-week high as it stood before that week.',
+  wkv:'Weekly close above the 52-week high AND that week’s average volume was at least 1.5× the 10 weeks before (or the week before it was).'}};
+var F_Q={key:'h52q',label:'52W Quality (all ticked must match)',opts:['fresh','notext','leader'],
+ disp:{fresh:'🌱 Fresh: first in 8+ weeks',notext:'🎯 Not extended (≤5%)',leader:'🏆 Beating '+IDXN+' (3M)'},
+ tips:{fresh:'A new 52-week high in the last 5 sessions that is the FIRST one after at least 8 weeks without one — a new breakout, not a stock that has sat at highs for months.',
+  notext:'Close is between 1% below and 5% above the 52-week-high level it broke — still near the pivot.',
+  leader:'3-month return better than the '+IDXN+'’s.'}};
+function passes(d){var S=SCR.state;
+ var s=S.h52sig;if(s&&s.size){var ok=false;s.forEach(function(o){
+  if(o==='newhi'&&d.h52New)ok=true;if(o==='strong'&&d.h52Strong)ok=true;if(o==='wk'&&d.h52Wk)ok=true;if(o==='wkv'&&d.h52WkOk)ok=true;});if(!ok)return false;}
+ var q=S.h52q;if(q&&q.size){var all=true;q.forEach(function(o){
+  if(o==='fresh'&&!d.h52Fresh)all=false;if(o==='notext'&&!(d.h52Ext!=null&&d.h52Ext>=-1&&d.h52Ext<=5))all=false;if(o==='leader'&&!(d.h52Rs!=null&&d.h52Rs>0))all=false;});if(!all)return false;}
+ return true;}
+var COL={k:'h52sig',g:'Price',lbl:'52W Signal',a:'l',def:1,tip:'52-week-high signals from the nightly scan: new high, strong close on volume, weekly close above, fresh, extension above the old high.',
+ cell:function(d){
+  var b=[];if(d.h52Strong)b.push('💪');else if(d.h52New)b.push('🆕');
+  if(d.h52Wk)b.push('📅'+(d.h52WkOk?'🔊':''));if(d.h52Fresh)b.push('🌱');
+  if(!b.length)return (typeof DASH!=='undefined')?DASH:'—';
+  var t=(d.h52New?'New 52W high today':'')+(d.h52Strong?' · strong close on '+(d.h52Rvol!=null?d.h52Rvol.toFixed(1)+'×':'')+' volume':'')+
+   (d.h52Wk?' · weekly close above ('+(d.h52Wk==='this'?'this week':'last week')+(d.h52WkVr!=null?', week volume '+d.h52WkVr.toFixed(1)+'×':'')+')':'')+
+   (d.h52Fresh?' · fresh: first new high in '+d.h52Gap+' weeks':'')+(d.h52Ext!=null?' · '+(d.h52Ext>=0?'+':'')+d.h52Ext.toFixed(1)+'% vs the level it broke':'')+
+   (d.h52Rs!=null?' · 3M vs '+IDXN+' '+(d.h52Rs>=0?'+':'')+d.h52Rs.toFixed(1)+' pts':'');
+  return '<span style="white-space:nowrap" title="'+esc(t.replace(/^ · /,''))+'">'+b.join(' ')+(d.h52Ext!=null?' <span style="color:'+(d.h52Ext<=5?'#16A34A':'#D97706')+'">'+(d.h52Ext>=0?'+':'')+d.h52Ext.toFixed(1)+'%</span>':'')+'</span>';}};
+var PB=[
+ {id:'h52_conv',grp:'52-Week Highs',when:'eod',label:'📅 52W Weekly Breakout, high conviction',set:{h52sig:['wkv'],h52q:['fresh','notext','leader']},
+  how:'Weekly close above the 52-week high on 1.5× weekly volume, the first new high in 8+ weeks, still within 5% of the level, and beating the '+IDXN+' over 3 months. Not yet studied — a filter combination, not proven edge. Plan: buy strength above the breakout week’s high; stop under the breakout level (the old 52-week high).'},
+ {id:'h52_strong',grp:'52-Week Highs',when:'eod',label:'💪 52W Breakout Day, strong close',set:{h52sig:['strong'],h52q:['notext','leader']},
+  how:'Closed above the 52-week high today in the top quarter of its range on 1.5× volume, within 5% of the level, beating the '+IDXN+'. Not yet studied. Plan: enter on follow-through above today’s high; stop under today’s low or the old high.'}
+];
+function install(){
+ if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
+ if(window._h52Installed)return true;window._h52Installed=true;
+ SCR_FILTERS.push(F_SIG,F_Q);SCR.state.h52sig=new Set();SCR.state.h52q=new Set();
+ try{var o=SCR_FGROUPS.findIndex(function(g){return /^Price/.test(g[0]);});var g=['52-Week Highs',['h52sig','h52q']];if(o<0)SCR_FGROUPS.push(g);else SCR_FGROUPS.splice(o+1,0,g);}catch(e){}
+ try{SCR_FILTER_WHY.h52sig='What happened at the 52-week high: a new high today, a strong close above it on volume, or a weekly close above it. Ticking several shows stocks matching ANY of them.';
+  SCR_FILTER_WHY.h52q='Quality checks for 52-week-high stocks. Every option you tick must match (fresh AND not extended AND leader).';}catch(e){}
+ SCR_COLS.push(COL);SCR.vis[COL.k]=true;
+ PB.forEach(function(p){p._h52=true;SCR_PRESETS.push(p);});
+ var orig=scrPasses;scrPasses=function(d){if(!orig(d))return false;return passes(d);};
+ try{scrFillPlaybooks();}catch(e){}
+ return true;}
+var t=setInterval(function(){
+ if(install()){clearInterval(t);
+  var m=window.tfMtfMerge;
+  if(typeof m==='function'&&!m._h52){window.tfMtfMerge=async function(){var r=await m.apply(this,arguments);try{await load();(SCR.data||[]).forEach(apply);}catch(e){console.error('52w merge',e);}return r;};window.tfMtfMerge._h52=true;}
+  if(typeof SCR!=='undefined'&&SCR.loaded){load().then(function(){(SCR.data||[]).forEach(apply);try{scrRender();}catch(e){}});}
+ }},300);
+setTimeout(function(){clearInterval(t);},60000);
+})();
+</script>
 
 <!-- ═══ TrueFlow Focus v1 — today's proven playbooks, combined shortlist, playbook counts, pane jump chips ═══ -->
 <style>
