@@ -117,12 +117,34 @@ COUNT_JS = r"""() => {
 
 
 def replay(mkt, days, snapshot):
-    """days: list of dates. snapshot(d) -> scan rows. Returns {d: {n, pb:{id:{...,syms}}}}"""
+    """days: list of dates. snapshot(d) -> scan rows. Returns {d: {n, universe, pb:{id:{...,syms}}}}.
+    Robust for long runs on a small server: a fresh tab per day, the browser restarted every
+    RESTART_EVERY days and after any crash, one retry per day, and every finished day saved to
+    study/pb_replay_<MKT>.json so a re-run continues where it stopped (cache is dropped if the
+    dashboard file changes)."""
     from playwright.sync_api import sync_playwright
     html = os.path.join(BASE, SETTINGS[mkt]['html'])
     scan_tbl = SETTINGS[mkt]['scan']
+    os.makedirs(os.path.join(BASE, 'study'), exist_ok=True)
+    cpath = os.path.join(BASE, 'study', 'pb_replay_%s.json' % mkt)
+    hsize = os.path.getsize(html)
+    cache = {}
+    try:
+        cj = json.load(open(cpath))
+        if cj.get('html_size') == hsize:
+            cache = cj.get('days', {})
+            log('  resuming: %d days already replayed' % len(cache))
+        else:
+            log('  dashboard file changed since the last run: starting the replay fresh')
+    except Exception:
+        pass
+
+    def save_cache():
+        tmp = cpath + '.tmp'
+        json.dump({'html_size': hsize, 'days': cache}, open(tmp, 'w'))
+        os.replace(tmp, cpath)
+
     cur = {'rows': []}
-    res = {}
 
     def handle(route):
         u = route.request.url
@@ -139,51 +161,92 @@ def replay(mkt, days, snapshot):
             return route.fulfill(status=200, content_type='application/json', body=json.dumps(body))
         return route.abort()
 
-    with sync_playwright() as pw:
-        br = pw.chromium.launch()
-        ctx = br.new_context(viewport={'width': 1400, 'height': 900})
-        ctx.add_init_script("try{localStorage.setItem('tf_auth_until',String(Date.now()+864e5));}catch(e){}")
-        page = ctx.new_page()
+    def one_day(ctx, d):
         errs = []
-        page.on('pageerror', lambda e: errs.append(str(e)[:200]))
-        page.on('console', lambda m: errs.append(m.text[:200]) if m.type == 'error' and 'Failed to load resource' not in m.text else None)
-        page.route('**/*', handle)
-        t0 = time.time()
-        for k, d in enumerate(days):
+        page = ctx.new_page()
+        try:
+            page.on('pageerror', lambda e: errs.append(str(e)[:200]))
+            page.route('**/*', handle)
+            page.goto('file://' + html, wait_until='load', timeout=120000)
+            page.wait_for_function("typeof scrLoad==='function' && typeof switchTab==='function'", timeout=60000)
+            page.wait_for_timeout(2500)   # the page finishes its own start-up (login check, tab setup) first
+            ok = False
+            for attempt in range(3):
+                page.evaluate(START_JS)
+                try:
+                    page.wait_for_function("typeof SCR!=='undefined' && SCR.loaded && SCR.data && SCR.data.length>0", timeout=30000)
+                    ok = True
+                    break
+                except Exception:
+                    page.wait_for_timeout(2000)
+            if not ok:
+                raise RuntimeError('screener did not load · page errors: ' + ' | '.join(errs[-3:]))
+            page.wait_for_timeout(1200)   # let late modules (Shakeouts/EP/Focus) install their presets
+            return page.evaluate(COUNT_JS)
+        finally:
+            try:
+                page.close()
+            except Exception:
+                pass
+
+    todo = [d for d in days if d not in cache]
+    log('  replay: %d days to do, %d from earlier runs' % (len(todo), len([d for d in days if d in cache])))
+    RESTART_EVERY = 20
+    t0, done, failed = time.time(), 0, []
+    with sync_playwright() as pw:
+        br = ctx = None
+
+        def start():
+            b = pw.chromium.launch(args=['--disable-dev-shm-usage', '--disable-gpu', '--disable-extensions'])
+            c = b.new_context(viewport={'width': 1400, 'height': 900})
+            c.add_init_script("try{localStorage.setItem('tf_auth_until',String(Date.now()+864e5));}catch(e){}")
+            return b, c
+
+        def stop(b):
+            try:
+                b.close()
+            except Exception:
+                pass
+
+        br, ctx = start()
+        since_restart = 0
+        for k, d in enumerate(todo):
             try:
                 rows = snapshot(d)
-                if not rows:
-                    log('  %s: no scan rows, skipped' % d)
-                    continue
-                cur['rows'] = rows
-                page.goto('file://' + html, wait_until='load', timeout=90000)
-                page.wait_for_function("typeof scrLoad==='function' && typeof switchTab==='function'", timeout=60000)
-                page.wait_for_timeout(2500)   # the page finishes its own start-up (login check, tab setup) first
-                ok = False
-                for attempt in range(3):
-                    page.evaluate(START_JS)
-                    try:
-                        page.wait_for_function("typeof SCR!=='undefined' && SCR.loaded && SCR.data && SCR.data.length>0", timeout=30000)
-                        ok = True
-                        break
-                    except Exception:
-                        page.wait_for_timeout(2000)
-                if not ok:
-                    raise RuntimeError('screener did not load · page errors: ' + ' | '.join(errs[-3:]))
-                errs.clear()
-                page.wait_for_timeout(1200)   # let late modules (Shakeouts/EP/Focus) install their presets
-                r = page.evaluate(COUNT_JS)
-                if r.get('updated') and r['updated'] != d:
-                    log('  %s: dashboard read date %s, skipped' % (d, r['updated']))
-                    continue
-                res[d] = r
-                if k % 10 == 0:
-                    el = time.time() - t0
-                    log('  replay %d/%d %s · %d stocks · %d playbooks · %.0fs elapsed' % (k + 1, len(days), d, r['n'], len(r['pb']), el))
             except Exception as e:
-                log('  %s: replay error %s' % (d, str(e)[:200]))
-        br.close()
-    return res
+                log('  %s: could not read the scan (%s)' % (d, str(e)[:120])); failed.append(d); continue
+            if not rows:
+                log('  %s: no scan rows, skipped' % d); continue
+            cur['rows'] = rows
+            r = None
+            for attempt in range(2):
+                if since_restart >= RESTART_EVERY or not br.is_connected():
+                    stop(br); br, ctx = start(); since_restart = 0
+                try:
+                    r = one_day(ctx, d)
+                    since_restart += 1
+                    break
+                except Exception as e:
+                    log('  %s: attempt %d failed (%s) · restarting the browser' % (d, attempt + 1, str(e)[:120]))
+                    stop(br); br, ctx = start(); since_restart = 0
+            if r is None:
+                failed.append(d); continue
+            if r.get('updated') and r['updated'] != d:
+                log('  %s: dashboard read date %s, skipped' % (d, r['updated'])); continue
+            r['universe'] = [x.get('symbol') for x in rows if x.get('symbol')]
+            cache[d] = r
+            done += 1
+            if done % 5 == 0:
+                save_cache()
+            if done % 10 == 0:
+                el = time.time() - t0
+                log('  replay %d/%d %s · %d stocks · %d playbooks · %.0fs elapsed · ~%.0f min left' % (
+                    k + 1, len(todo), d, r['n'], len(r['pb']), el, el / (k + 1) * (len(todo) - k - 1) / 60))
+        stop(br)
+    save_cache()
+    if failed:
+        log('  %d days failed: %s' % (len(failed), ', '.join(failed[:12]) + (' …' if len(failed) > 12 else '')))
+    return {d: cache[d] for d in days if d in cache}
 
 
 # ── maths ─────────────────────────────────────────────────────────
@@ -464,17 +527,11 @@ def main():
         days = days[-a.days:]
     log('study days: %d (%s -> %s)' % (len(days), days[0] if days else '-', days[-1] if days else '-'))
 
-    snaps = {}
-
-    def snapshot(d):
-        rows = scan_day(mkt, d)
-        snaps[d] = [r.get('symbol') for r in rows if r.get('symbol')]
-        return rows
-
-    rep = replay(mkt, days, snapshot)
-    for d in rep:
-        rep[d]['universe'] = snaps.get(d, [])
-    log('replayed %d days' % len(rep))
+    rep = replay(mkt, days, lambda d: scan_day(mkt, d))
+    log('replayed %d of %d days' % (len(rep), len(days)))
+    if len(rep) < max(20, len(days) // 2):
+        log('too few days replayed to judge anything: nothing saved or sent. Run the same command again: it continues where it stopped.')
+        sys.exit(1)
     R = study(rep, S, reg, P)
     txt = report(mkt, R, P)
     os.makedirs(os.path.join(BASE, 'study'), exist_ok=True)
