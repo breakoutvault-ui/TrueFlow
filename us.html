@@ -16547,6 +16547,213 @@ setTimeout(function(){clearInterval(t);},60000);
 })();
 </script>
 
+<!-- ═══ TrueFlow Filters v2 — ordered groups (collapsible), plain names, an explanation for every filter and option, daily 200 EMA filters ═══ -->
+<style>
+#scr-fpbody .fp-g{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;position:relative}
+#scr-fpbody .fp-g::before{content:'▸';font-size:10px;color:var(--muted);width:10px;display:inline-block;transition:transform .12s}
+#scr-fpbody .fp-g.open::before{transform:rotate(90deg)}
+#scr-fpbody .fp-g[data-n]::after{content:attr(data-n);margin-left:4px;background:var(--cyan);color:#03121a;border-radius:9px;padding:0 6px;font-size:9.5px;letter-spacing:0;font-weight:700}
+#scr-fpbody .fp-g:hover{color:var(--cyan)}
+#scr-fpbody .fp-g:not(.open)+.fp-gb{display:none}
+#scr-fpbody .fp-fl>span:first-child{cursor:help}
+#scr-fpbody .fp-tools{display:flex;gap:12px;padding:8px 16px 2px;font-size:10.5px;color:var(--muted)}
+#scr-fpbody .fp-tools span{cursor:pointer}
+#scr-fpbody .fp-tools span:hover{color:var(--cyan)}
+</style>
+<script>
+(function(){
+'use strict';
+var MKT='US';
+/* ── the order, top to bottom (Mahesh, 13 Oct 2026). Keys missing in a market are skipped. ── */
+var ORDER=[
+ ['🧱 Setup & Base',['pattern','entry','basemin','consolmin','contractmin','nr','polemin','polespeedmin','pole','ebase']],
+ ['⚡ Episodic Pivots',['eptype','epstage','epctx','epage']],
+ ['🌀 Shakeouts & Reclaims',['shk','shkage','bstate','ucd','rclv','rclgrade','rclvol','rclriskmax','rcldaysmax']],
+ ['🏔 52-Week Highs',['h52sig','h52q','z52']],
+ ['📍 Where Price Is',['zone5','zone','wzone','e50z','e200z','e200s']],
+ ['🔊 Today’s Volume & Move',['vsig','rvolmin','vmove']],
+ ['🌐 Market & Sector',['mkt','sec','secw','secm','align']],
+ ['📈 Stock Trend',['signal','cat','dtr','wtr','mtr','tfup','mtf','conv','hold']],
+ ['🏆 Strength & Leaders',['topmv','rsr','rshi']],
+ ['📋 Results',['erwin','erstat','erverd','errv','erreact','catalyst','ersurp','erstage','erep']],
+ ['🏦 Big-Investor Buying',['smt','clust','stake','cgbuyersmin','cgrecent','cgconf','cgconv','cgparty','cgretmin']],
+ ['⚙ Basics',['price','adrmin','newl']]
+];
+/* ── plain-English names ── */
+var NAME={pattern:'Setup pattern',entry:'Entry type',basemin:'Base length',consolmin:'Days near 52W high',contractmin:'Base tightness',
+ nr:'Narrow range (NR4 / NR7)',polemin:'Rally before the base (pole %)',polespeedmin:'Rally speed',pole:'Pole size',ebase:'Base on the 20 / 50 EMA',
+ rclv:'Box reclaim volume',rclgrade:'EMA reclaim grade',rclvol:'EMA reclaim volume',rclriskmax:'EMA reclaim risk (stop distance)',rcldaysmax:'Days below the EMA',
+ z52:'52W state',zone5:'Distance from daily 5 EMA',zone:'Distance from daily 9 EMA',wzone:'Distance from weekly 9 EMA',e50z:'Daily 50 EMA',
+ vsig:'Today’s volume type',rvolmin:'Volume vs average (RVOL)',
+ mkt:'Market condition',sec:'Sector strength (daily)',secw:'Sector strength (weekly)',secm:'Sector strength (monthly)',align:'Market + sector alignment',
+ signal:'Trend signal',cat:'Trend category (A / B / C)',dtr:'Daily trend',wtr:'Weekly trend',mtr:'Monthly trend',tfup:'Timeframes rising',mtf:'Multi-timeframe trend',hold:'Hold type',
+ rsr:'Relative strength rank',rshi:'RS line at new high',
+ erwin:'Result date',erverd:'Result reaction type',errv:'Volume on results',erreact:'Up the day after results',erstage:'Results EP stage',erep:'Results EP type',
+ smt:'Big-investor buying',clust:'Insider cluster buying',stake:'Big stake filings (13D / 13G)',
+ adrmin:'Daily range (ADR %)',newl:'New listings'};
+/* ── what each filter does (shown on hover and in the explanation box) ── */
+var IDX=MKT==='IN'?'Nifty':'SPY';
+var WHY={
+ mtf:'Combines the daily, weekly and monthly trends into one state. Best ground for longs: All Timeframes Up and HTF Pullback.',
+ dtr:'Today’s trend on the daily chart, read from the 9 and 20 EMAs.',
+ wtr:'Trend on the weekly chart (last completed week), read from the weekly 9 and 20 EMAs.',
+ mtr:'Trend on the monthly chart (last completed month), read from the monthly 9 and 20 EMAs.',
+ tfup:'How many of the three timeframes (daily, weekly, monthly) are in an Up trend.',
+ secw:'The stock’s sector ranked against all sectors by the share of its stocks above their weekly 20 EMA: top third strong, bottom third weak.',
+ secm:'The stock’s sector ranked against all sectors by the share of its stocks above their monthly 9 EMA: top third strong, bottom third weak.',
+ conv:'A star rating that combines the stock’s own trend with its sector and the market. More stars = more things lined up.',
+ hold:'Whether the trend supports holding as a position or only a quick swing.',
+ ebase:'A sideways box resting on the 20 or 50 EMA: the stock builds its base on the moving average instead of falling through it.',
+ e50z:'Where today’s close sits versus the daily 50 EMA (the medium-term trend line).',
+ e200z:'Where today’s close sits versus the daily 200 EMA (the long-term trend line). Needs 200+ sessions of history, so very new listings show nothing.',
+ e200s:'Long-term structure: the daily 50 EMA is above the daily 200 EMA, the classic shape of a long-term uptrend.',
+ newl:'Stocks that listed on the exchange within the last 12 months, and their listing-high breakouts.',
+ zone:'How far today’s close is from the daily 9 EMA. Near it = a low-risk pullback entry; far above it = stretched.',
+ zone5:'How far today’s close is from the daily 5 EMA: the very short-term trend, for tight entries.',
+ wzone:'How far the stock is from its weekly 9 EMA (last completed week). Near it = pulled back to the weekly trend line.',
+ vsig:'What today’s price move and volume say together: up on heavy volume = buyers in control, down on heavy volume = sellers.',
+ rvolmin:'Today’s volume compared with the stock’s 20-day average volume.',
+ adrmin:'Average daily range: how much the stock typically moves in a day, as % of its price. Higher = moves faster, with bigger gains and wider stops.',
+ consolmin:'How many sessions the stock has spent building near its 52-week high (in the breakout zone or its base).',
+ basemin:'How many sessions the current VCP / High Tight Flag base has lasted.',
+ erwin:'When the company reports quarterly results.',
+ erstat:'Whether this quarter’s results are still to come or already reported.',
+ erverd:'How the stock behaved around its results, in a word.',
+ errv:'The highest volume around the results day, compared with the stock’s average volume.',
+ erreact:'The stock closed higher in the session after its results.',
+ rclgrade:'Grades how the stock lost and then took back its 9 / 20 EMA. A is the cleanest, C only half-recovered.',
+ rclvol:'The volume footprint of the EMA reclaim: dry on the dip, heavier on the way back up is the textbook version.',
+ rclriskmax:'How far the stop (the low of the dip) is below today’s price — your risk if you enter now.',
+ rcldaysmax:'How many sessions the stock stayed below the EMA before taking it back.',
+ polemin:'Size of the rally that came before the current base (the “pole”).',
+ polespeedmin:'How fast that rally was, in average % gained per session.',
+ erstage:'Where a results-day episodic pivot is in its life: gapped, drifting, basing, coiling, resumed or faded.',
+ erep:'Whether the stock was quiet before the results (from neglect) or already moving.',
+ ersurp:'Reported earnings per share compared with the analysts’ estimate.',
+ pole:'Size of the rally into the current base.',
+ rsr:'The stock’s 3-month performance against SPY, ranked 0–100 across the US universe.',
+ rshi:'The stock’s relative-strength line against SPY is at a 3-month high: it is leading right now.',
+ clust:'Several of the company’s own insiders buying at around the same time.',
+ stake:'A new 5%+ ownership stake filed with the SEC.',
+ cgbuyersmin:'How many different members of Congress disclosed buying the stock.',
+ cgrecent:'How recently a member of Congress disclosed a buy.',
+ cgconf:'One of the buyers sits on a committee that oversees this sector.',
+ cgconv:'Congress buying that overlaps another signal (insider cluster, activist stake or delayed EP).',
+ cgparty:'Which party’s members bought more of the stock.',
+ cgretmin:'How the stock has moved since the trade was disclosed.'
+};
+var TIP={
+ mtr:{Pullback:'Monthly 9 EMA above the 20, but the last monthly close was below the 9.',Flat:'Monthly 9 and 20 EMAs tangled — no clear direction.',Down:'Monthly close below the 9 EMA, and the 9 below the 20.'},
+ tfup:{'3':'Daily, weekly and monthly trends are all Up.','2':'Two of the three timeframes are Up.','1':'Only one timeframe is Up.','0':'None of the three is Up.'},
+ secw:{neutral:'Middle third of sectors.',weak:'Bottom third of sectors by % of stocks above their weekly 20 EMA.'},
+ secm:{neutral:'Middle third of sectors.',weak:'Bottom third of sectors by % of stocks above their monthly 9 EMA.'},
+ conv:{'3':'Trend is All Timeframes Up or HTF Pullback (or a forming EMA base with the weekly up), the sector is strong on the daily AND weekly, and the market is not weak.',
+  '2':'Daily up or pulling back, weekly up, and the sector strong on the daily or the weekly.',
+  '1':'Weekly up or pulling back, and the daily not in a downtrend.',
+  avoid:'All timeframes down, or a counter-trend bounce in a weak sector. Skip longs.'},
+ hold:{poscand:'Highest conviction (★★★) and All Timeframes Up or HTF Pullback — can be held as a position.',swing:'A normal swing trade.',
+  swingonly:'Counter-trend bounce or early turnaround — quick swings only, never hold as a position.'},
+ e50z:{near50:'Within one average daily range (ADR) of the 50 EMA, above or below it.',above50:'Closed above the daily 50 EMA.',above200:'Closed above the daily 200 EMA.'},
+ newl:{all:'Listed within the last 365 days.'},
+ epage:{'2':'The event happened in the last 2 sessions.','5':'In the last 5 sessions.','10':'In the last 10 sessions.','20':'In the last 20 sessions.'},
+ shkage:{'3':'The shakeout happened in the last 3 sessions.','10':'In the last 10 sessions.','20':'In the last 20 sessions.'},
+ ucd:{'1':'Undercut no deeper than 1× the stock’s average daily range.','1.5':'No deeper than 1.5× its average daily range.'},
+ rclv:{'2':'Volume on the reclaim day at least 2× the 20-day average.'},
+ erverd:{'Positive surprise':'Moved up on heavy volume on the results.','Anticipation':'Ran up before the results.','Drifting up':'Kept rising after the results.',
+  'Sell the news':'Ran up into the results, then fell.','Quiet':'Little move either way around the results.',
+  'Watch':'Label set by the results tracker (exact rule being confirmed).','Mixed':'Label set by the results tracker (exact rule being confirmed).'}
+};
+/* ── the new 200 EMA filters ── */
+var F200={key:'e200z',label:'Daily 200 EMA',opts:['above','near','below'],disp:{above:'Above 200 EMA',near:'Near 200 EMA (≤ 1 ADR)',below:'Below 200 EMA'},
+ tips:{above:'Closed above the daily 200 EMA — in a long-term uptrend.',near:'Within one average daily range of the 200 EMA, above or below — testing the long-term trend line.',below:'Closed below the daily 200 EMA — in a long-term downtrend. Usually skip for longs.'}};
+var F200S={key:'e200s',label:'50 EMA vs 200 EMA',opts:['gx','dx'],disp:{gx:'50 EMA above 200 EMA',dx:'50 EMA below 200 EMA'},
+ tips:{gx:'The daily 50 EMA is above the daily 200 EMA: long-term uptrend structure.',dx:'The daily 50 EMA is below the daily 200 EMA: long-term downtrend structure.'}};
+function pass200(d){var S=SCR.state;
+ var z=S.e200z;if(z&&z.size){if(d.p200==null)return false;var ok=false;z.forEach(function(o){
+  if(o==='above'&&d.p200>0)ok=true;if(o==='below'&&d.p200<0)ok=true;if(o==='near'&&d.adr&&Math.abs(d.p200)<=d.adr)ok=true;});if(!ok)return false;}
+ var s=S.e200s;if(s&&s.size){if(d.p200==null||d.p50==null)return false;var gx=d.p200>d.p50,ok2=false;   // price/EMA50 < price/EMA200  <=>  EMA50 > EMA200
+  s.forEach(function(o){if(o==='gx'&&gx)ok2=true;if(o==='dx'&&!gx)ok2=true;});if(!ok2)return false;}
+ return true;}
+/* ── apply names, explanations and the order (idempotent; runs before every pane build) ── */
+function enrich(){
+ if(typeof SCR_FILTERS==='undefined')return;
+ var W=(typeof SCR_FILTER_WHY!=='undefined')?SCR_FILTER_WHY:null;
+ SCR_FILTERS.forEach(function(f){
+  if(NAME[f.key]&&f.label!==NAME[f.key])f.label=NAME[f.key];
+  if(W&&WHY[f.key]&&!W[f.key])W[f.key]=WHY[f.key];
+  var t=TIP[f.key];if(t){f.tips=f.tips||{};for(var o in t)if(!f.tips[o])f.tips[o]=t[o];}
+  if(f.key==='price'){f.tips=f.tips||{};(f.opts||[]).forEach(function(o){if(!f.tips[o])f.tips[o]='Share price at least '+String((f.disp&&f.disp[o])||o).replace(/^≥/,'')+'.';});}
+ });
+ if(typeof SCR_FGROUPS!=='undefined'){
+  var have={};SCR_FILTERS.forEach(function(f){have[f.key]=1;});
+  var placed={},groups=ORDER.map(function(g){var ks=g[1].filter(function(k){if(have[k]){placed[k]=1;return true;}return false;});return [g[0],ks];});
+  var last=(typeof SCR_FLAST!=='undefined')?SCR_FLAST:[];
+  var left=SCR_FILTERS.filter(function(f){return !placed[f.key]&&last.indexOf(f.key)<0;}).map(function(f){return f.key;});
+  if(left.length){console.warn('Filters v2: not in ORDER, placed in Basics:',left);groups[groups.length-1][1]=groups[groups.length-1][1].concat(left);}
+  SCR_FGROUPS.length=0;groups.forEach(function(g){if(g[1].length)SCR_FGROUPS.push(g);});
+ }
+}
+/* ── collapsible groups in the Filters pane ── */
+var OPEN={};
+function collapse(){
+ var body=document.getElementById('scr-fpbody');if(!body)return;
+ var W=(typeof SCR_FILTER_WHY!=='undefined')?SCR_FILTER_WHY:{};
+ var heads=[].slice.call(body.querySelectorAll(':scope > .fp-g'));
+ heads.forEach(function(h){
+  var name=h.textContent.trim(),wrap=document.createElement('div');wrap.className='fp-gb';
+  var el=h.nextSibling;while(el&&!(el.classList&&el.classList.contains('fp-g'))){var nx=el.nextSibling;wrap.appendChild(el);el=nx;}
+  h.parentNode.insertBefore(wrap,h.nextSibling);
+  var n=wrap.querySelectorAll('.fp-o.on').length;
+  if(n)h.setAttribute('data-n',n);else h.removeAttribute('data-n');
+  if(OPEN[name]||n)h.classList.add('open');
+  h.onclick=function(){var o=!h.classList.contains('open');h.classList.toggle('open',o);OPEN[name]=o;};
+ });
+ // hover on every filter name explains the filter
+ body.querySelectorAll('.fp-f').forEach(function(ff){var o=ff.querySelector('[id^="fpo-"]');if(!o)return;var k=o.id.slice(4);
+  var lab=ff.querySelector('.fp-fl>span');if(lab&&W[k])lab.title=W[k].replace(/<[^>]+>/g,'');});
+ if(!body.querySelector('.fp-tools')){var tl=document.createElement('div');tl.className='fp-tools';
+  tl.innerHTML='<span data-a="1">▾ Open all</span><span data-a="0">▸ Close all</span>';
+  tl.onclick=function(e){var a=e.target.getAttribute('data-a');if(a==null)return;
+   body.querySelectorAll(':scope > .fp-g').forEach(function(h){h.classList.toggle('open',a==='1');OPEN[h.textContent.trim()]=a==='1';});};
+  body.insertBefore(tl,body.firstChild);}
+}
+/* a jump chip opens its group before scrolling to it */
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#tf-fpjump button');if(!b)return;
+ var body=document.getElementById('scr-fpbody');if(!body)return;var h=body.querySelectorAll(':scope > .fp-g')[+b.dataset.i];
+ if(h){h.classList.add('open');OPEN[h.textContent.trim()]=true;}},true);
+/* ── the explanation box: also show what each ticked option means ── */
+function upgradeExplain(){
+ if(typeof scrExplain!=='function'||scrExplain._v2)return;
+ var orig=scrExplain;
+ window.scrExplain=scrExplain=function(){
+  orig.apply(this,arguments);
+  try{var el=document.getElementById('scr-play-info');if(!el||el.style.display==='none')return;
+   var W=(typeof SCR_FILTER_WHY!=='undefined')?SCR_FILTER_WHY:{},lines=[];
+   SCR_FILTERS.forEach(function(f){var st=SCR.state[f.key];if(!st||!st.size)return;
+    var vals=[...st].filter(function(v){return !(typeof SCR_DEEP!=='undefined'&&SCR_DEEP[f.key+':'+v]);});if(!vals.length)return;
+    var opt=vals.map(function(v){var t=f.tips&&f.tips[v];return '<b>'+((f.disp&&f.disp[v])||v)+'</b>'+(t?' — '+t:'');}).join('<br>');
+    lines.push('<div style="margin:5px 0"><b>'+f.label+'</b>'+(W[f.key]?' <span style="opacity:.75">· '+W[f.key]+'</span>':'')+'<div style="margin:2px 0 0 12px">'+opt+'</div></div>');});
+   var heads=[].slice.call(el.querySelectorAll('.pi-h'));var h=heads.filter(function(x){return /Other filters applied/.test(x.textContent);})[0];
+   if(h&&h.nextElementSibling&&lines.length){h.nextElementSibling.innerHTML=lines.join('');}
+  }catch(e){}
+ };
+ scrExplain._v2=true;
+}
+function install(){
+ if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled||typeof scrFPBuild!=='function'||typeof scrPasses!=='function')return false;
+ if(window._fv2)return true;window._fv2=true;
+ SCR_FILTERS.push(F200,F200S);SCR.state.e200z=new Set();SCR.state.e200s=new Set();
+ var op=scrPasses;scrPasses=function(d){if(!op(d))return false;return pass200(d);};
+ var ob=scrFPBuild;window.scrFPBuild=scrFPBuild=function(){enrich();var r=ob.apply(this,arguments);try{collapse();}catch(e){console.error('filters v2',e);}return r;};
+ upgradeExplain();enrich();
+ return true;}
+var t=setInterval(function(){if(install())clearInterval(t);},300);
+setTimeout(function(){clearInterval(t);},60000);
+// late modules (52W, EP, shakeouts) add filters after us: re-apply names/explanations once they have
+setTimeout(function(){try{enrich();}catch(e){}},4000);setTimeout(function(){try{enrich();}catch(e){}},12000);
+})();
+</script>
+
 <!-- ═══ TrueFlow Focus v1 — today's proven playbooks, combined shortlist, playbook counts, pane jump chips ═══ -->
 <style>
 #tf-focus{border:1px solid var(--bg3);border-radius:12px;background:var(--bg2);margin:0 0 8px;font-size:12px}
