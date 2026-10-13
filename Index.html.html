@@ -2405,7 +2405,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div>The <b>QM / Setup</b> column tags the pattern a stock is in. These are the Qullamaggie-style continuation setups:</div>
       <dl class="def">
         <dt>🔥 EP</dt><dd><b>Episodic Pivot</b> — gapped up 5%+ on ~2× volume on a catalyst. <i>Wait for a pullback toward the gap, then enter.</i></dd>
-        <dt>📐 VCP</dt><dd><b>Volatility Contraction</b> — a big move, then a tight base with volume drying up. <i>Buy the break above the pivot, on volume.</i></dd>
+        <dt>🏁 Momentum Flag</dt><dd><b>Momentum Flag</b> — a 20%+ run, then a tight 5-day pause near the high. (Classic shrinking-pullback bases: 📐 True VCP in the Screener.) <i>Buy the break above the pivot, on volume.</i></dd>
         <dt>🚩 HTF</dt><dd><b>High Tight Flag</b> — rare: an 80%+ surge then a shallow (&lt;25%) pause. <i>Enter on the break above the pivot.</i></dd>
         <dt>↩ Reclaim</dt><dd><b>EMA Reclaim</b> — dipped below the 9 EMA, then closed back above it (a shakeout recovery). <i>Entry near the 9 EMA.</i></dd>
         <dt>🎯 Near Pivot</dt><dd>Coiled within 3% of the buy trigger — the highest-priority watch. <i>Set an alert at the pivot.</i></dd>
@@ -2448,7 +2448,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <h4>⭐ The A+ Setup — the ideal checklist</h4>
       <div>The <b>⭐ A+ Setups</b> preset flags the highest-confluence names — every box ticked at once:</div>
       <div style="line-height:1.85;margin-top:4px">
-        <div><b style="color:var(--cyan)">1.</b> A <b>VCP</b> or <b>HTF</b> coil pattern — a tightening base, not random chop</div>
+        <div><b style="color:var(--cyan)">1.</b> A <b>Momentum Flag</b> or <b>HTF</b> coil pattern — a tightening base, not random chop</div>
         <div><b style="color:var(--cyan)">2.</b> EMA category <span class="scr-cat scr-cat-A">A</span> or <span class="scr-cat scr-cat-AC">A+C</span> — a real uptrend</div>
         <div><b style="color:var(--cyan)">3.</b> Base older than <b>5 days</b> and shallower than <b>10%</b> — mature and tight</div>
         <div><b style="color:var(--cyan)">4.</b> <b>Volume drying up</b> — dried within the base <i>and</i> still quiet now (last-5 avg RVOL under 0.8×)</div>
@@ -2553,7 +2553,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div><span class="k">RVOL ×</span> latest session's volume vs 20-day average. <code>2.0×</code> = twice the normal volume.</div>
       <div><span class="k">Trend</span> ▲ Rising / ■ Flat / ▼ Fading — slope of the bars across the window.</div>
       <div><span class="k">EMA</span> your category — 🟢 A, 🟡 B, 🔵 C, 💎 A+C (hover for the rule).</div>
-      <div><span class="k">Setup</span> active breakout / Qullamaggie pattern (EP, VCP, HTF, Reclaim).</div>
+      <div><span class="k">Setup</span> active breakout / Qullamaggie pattern (EP, Momentum Flag, HTF, Reclaim).</div>
       <div><span class="k">Results</span> latest earnings grade (from your Results tab — upload results to populate).</div>
       <div><span class="k">Smart $</span> smart-money tier from bulk/block deals.</div>
       <div><span class="k">Score</span> <code>RVOL×16 + slope×14 + (sustained&gt;1.4× ? +12)</code>, capped 0–100.</div>
@@ -2598,7 +2598,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <th class="r" title="Relative Volume — latest session's volume divided by 20-day average. 2.0x means twice the normal volume.">RVOL ×</th>
           <th class="c" title="Direction of the volume bars across the window: Rising / Flat / Fading">Trend</th>
           <th class="c" title="Your EMA category. A: above daily 9+20 AND weekly 9+20 (strongest). B: below daily 9 but above weekly (watch). C: fresh weekly crossover (early). A+C: daily bullish + weekly crossover (best).">EMA</th>
-          <th class="c" title="Active breakout / Qullamaggie pattern: EP, VCP, HTF, Reclaim.">Setup</th>
+          <th class="c" title="Active breakout / Qullamaggie pattern: EP, Momentum Flag, HTF, Reclaim.">Setup</th>
           <th class="c" title="Latest earnings grade from the Results tab.">Results</th>
           <th class="c" title="Smart-money tier from bulk/block deals.">Smart $</th>
           <th class="r" title="Buildup Score 0-100 = RVOL x16 + slope x14 + (+12 if volume sustained above 1.4x average).">Score</th>
@@ -2855,7 +2855,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
           <b style="color:var(--cyan);font-size:12px">📐 The 3 Patterns</b><br><br>
           <b style="color:#F97316">🔥 EP (Episodic Pivot)</b> — Stock gapped up 5%+ on 2x volume. <i>Wait for pullback to gap area, then enter.</i><br><br>
-          <b style="color:#3B82F6">📐 VCP (Volatility Contraction)</b> — 20%+ move then tight consolidation with declining volume. <i>Buy on break above Pivot Level with volume.</i><br><br>
+          <b style="color:#3B82F6">🏁 Momentum Flag</b> — 20%+ move then tight consolidation with declining volume. <i>Buy on break above Pivot Level with volume.</i><br><br>
           <b style="color:#EF4444">🏴 HTF (High Tight Flag)</b> — RARE. 80%+ surge then &lt;25% pullback. <i>Entry on break above pivot.</i><br><br>
           <b style="color:#8B5CF6">🔄 EMA Reclaim</b> — Dipped below 9 EMA yesterday, bounced back today. <i>Entry near 9 EMA level.</i>
         </div>
@@ -2870,7 +2870,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         </div>
         <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px 14px">
           <b style="color:var(--green);font-size:12px">✅ Ideal Setup Checklist</b><br>
-          ☑️ Pattern: VCP or HTF &nbsp; ☑️ Base%: Under 15% &nbsp; ☑️ Contraction: 0.5+<br>
+          ☑️ Pattern: Momentum Flag or HTF &nbsp; ☑️ Base%: Under 15% &nbsp; ☑️ Contraction: 0.5+<br>
           ☑️ Vol Dry: ✅ Yes &nbsp; ☑️ Pivot: 🎯 Within 3% &nbsp; ☑️ Category: A or AC<br>
           <b>Entry:</b> Close above Pivot with volume &nbsp; <b>Stop:</b> Below base low
         </div>
@@ -2883,7 +2883,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <span style="font-size:10px;color:var(--amber);font-weight:600;margin-right:2px" title="Qullamaggie Pattern Filters">QM</span>
             <button class="sort-btn multi-active" data-filter-group="sharp-qm" data-filter-val="all" onclick="toggleMultiFilter('sharp','qm','all',this)" title="Show all QM patterns">All</button>
             <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="EP" onclick="toggleMultiFilter('sharp','qm','EP',this)" title="Episodic Pivot — Gap up 5%+ on 2x volume">🔥 EP</button>
-            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="VCP" onclick="toggleMultiFilter('sharp','qm','VCP',this)" title="Volatility Contraction Pattern">📐 VCP</button>
+            <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="VCP" onclick="toggleMultiFilter('sharp','qm','VCP',this)" title="Momentum Flag: a 20%+ run, then a tight 5-day pause near the high">🏁 Momentum Flag</button>
             <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="HTF" onclick="toggleMultiFilter('sharp','qm','HTF',this)" title="High Tight Flag — rare, powerful">🏴 HTF</button>
             <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="reclaim" onclick="toggleMultiFilter('sharp','qm','reclaim',this)" title="EMA Reclaim — shakeout recovery">🔄 Reclaim</button>
             <button class="sort-btn" data-filter-group="sharp-qm" data-filter-val="ready" onclick="toggleMultiFilter('sharp','qm','ready',this)" title="Within 3% of pivot — highest priority">🎯 Near Pivot</button>
@@ -2925,7 +2925,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <!-- Quick Glossary -->
       <div id="sharp-glossary" style="display:none;margin:0 0 6px 0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:10px;color:var(--muted);line-height:1.7">
         <span style="font-weight:600;color:var(--text)">📖 Quick Glossary</span><br>
-        <b>QM:</b> Qullamaggie pattern (EP/VCP/HTF/Reclaim) · <b>Pivot:</b> Breakout price level · <b>Base %:</b> Pullback depth (lower=better) · <b>Contract:</b> Tightness (higher=better) · <b>Vol Dry:</b> Volume declining? · <b>Base Days:</b> Days consolidating · <b>Reclaim:</b> Bounced above 9 EMA · <b>Post-BO:</b> % move above pivot since breakout (🔄 ≤2% re-entry zone, ⚠️ >10% extended) · <b>Row Colors:</b> 🟢 = above pivot, 🟡 = near pivot
+        <b>QM:</b> Qullamaggie pattern (EP/Momentum Flag/HTF/Reclaim) · <b>Pivot:</b> Breakout price level · <b>Base %:</b> Pullback depth (lower=better) · <b>Contract:</b> Tightness (higher=better) · <b>Vol Dry:</b> Volume declining? · <b>Base Days:</b> Days consolidating · <b>Reclaim:</b> Bounced above 9 EMA · <b>Post-BO:</b> % move above pivot since breakout (🔄 ≤2% re-entry zone, ⚠️ >10% extended) · <b>Row Colors:</b> 🟢 = above pivot, 🟡 = near pivot
       </div>
       <!-- QM Setup Count Strip -->
       <div id="sharp-setup-strip" style="background:var(--glass);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
@@ -2964,7 +2964,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <th class="no-sort" title="Did 9 EMA cross above 20 EMA recently? A bullish trend confirmation signal">Crossover?</th>
               <th class="no-sort" title="Is stock breaking out of a key level (52W high, resistance)? Shows type and how many days holding above">Breakout?</th>
               <th onclick="sortMomTable('sharp','momentum_score')" title="Momentum Score 0-100 — composite score based on EMA alignment, volume, trend strength. 80+ = high conviction">Score ↕</th>
-              <th class="no-sort" title="Qullamaggie Pattern: 🔥 EP (Episodic Pivot) / 📐 VCP (Volatility Contraction) / 🏴 HTF (High Tight Flag) / 🔄 Reclaim">QM</th>
+              <th class="no-sort" title="Qullamaggie Pattern: 🔥 EP (Episodic Pivot) / 🏁 Momentum Flag / 🏴 HTF (High Tight Flag) / 🔄 Reclaim">QM</th>
               <th onclick="sortMomTable('sharp','qm_pivot_level')" title="Pivot Level — THE breakout price. If stock closes above this with volume → confirmed breakout. ✅ = above, 🎯 = within 3%">Pivot ↕</th>
               <th onclick="sortMomTable('sharp','qm_base_depth')" title="Base Depth — how much did stock pull back from its high during consolidation. Lower = tighter = better. Under 15% ideal">Base % ↕</th>
               <th onclick="sortMomTable('sharp','qm_contraction')" title="Contraction Ratio — how tight is the consolidation vs the initial move. Higher = tighter = better. 0.7+ is excellent">Contract ↕</th>
@@ -4032,7 +4032,7 @@ function smCopyTV(){
 
   <div class="sa-hiw" id="sa-hiw">
     <h4>What each dimension measures</h4>
-    <div><span class="k">📈 Price Action</span> how many of the sector's stocks had a fresh EMA crossover (daily or weekly) or an active breakout (EP / VCP / HTF / Reclaim) inside the selected date window. More crossovers + breakouts = the sector is turning up. Normalised 0–100 against the busiest sector.</div>
+    <div><span class="k">📈 Price Action</span> how many of the sector's stocks had a fresh EMA crossover (daily or weekly) or an active breakout (EP / Momentum Flag / HTF / Reclaim) inside the selected date window. More crossovers + breakouts = the sector is turning up. Normalised 0–100 against the busiest sector.</div>
     <div><span class="k">🌊 Volume</span> the share of the sector's stocks whose volume is running above their 20-day average over the window — i.e. where money is flowing in. 100 = every stock in the sector is seeing elevated volume.</div>
     <div><span class="k">🏦 Smart Money</span> net bulk &amp; block deal value into the sector over the window (buys − sells, in ₹). <b style="color:var(--green)">Green</b> = net accumulation, <b style="color:var(--red)">red</b> = net distribution. Magnitude is scaled 0–100 against the most-active sector.</div>
     <div><span class="k">🔥 Trending</span> the headline blend: <code>40% Price Action + 30% Volume + 30% Smart Money</code> (distribution drags the score down). Sectors strong on all three earn the 🔥 badge.</div>
@@ -9556,12 +9556,12 @@ function getQMBadge(s) {
   if (!s.qm_pattern) return s.qm_ema_reclaim ? '<span title="EMA Reclaim — Stock was below 9 EMA yesterday but closed above it today. Shakeout recovery signal." style="color:#8B5CF6;font-size:10px;font-weight:700;background:#8B5CF622;padding:1px 6px;border-radius:8px;cursor:help">🔄 Reclaim</span>' : '<span style="color:var(--muted);font-size:10px">—</span>';
   const map = {
     'EP':  { icon:'🔥', color:'#F97316', label:'EP',  tip:'Episodic Pivot (EP) — Stock gapped up 5%+ on 2x average volume. Catalyst-driven move. Look for pullback to gap area for entry.' },
-    'VCP': { icon:'📐', color:'#3B82F6', label:'VCP', tip:'Volatility Contraction Pattern (VCP) — Big move then tight consolidation with declining volume. Entry on break above pivot level.' },
+    'VCP': { icon:'🏁', color:'#3B82F6', label:'Momentum Flag', tip:'Momentum Flag — a 20%+ run, then a tight 5-day pause (range 8% or less) within 15% of the high. Click for the rules. Entry on break above pivot level.' },
     'HTF': { icon:'🏴', color:'#EF4444', label:'HTF', tip:'High Tight Flag (HTF) — RARE. 80%+ surge then shallow pullback into tight flag. Most powerful momentum setup.' }
   };
   const p = map[s.qm_pattern];
   if (!p) return '<span style="color:var(--muted);font-size:10px">—</span>';
-  let badge = `<span title="${p.tip}" style="color:${p.color};font-size:10px;font-weight:700;background:${p.color}18;padding:1px 6px;border-radius:8px;cursor:help">${p.icon} ${p.label}</span>`;
+  let badge = `<span title="${p.tip}"${s.qm_pattern==='VCP'?` onclick="event.stopPropagation();tfPatExplain('flag','${s.symbol}')"`:''} style="color:${p.color};font-size:10px;font-weight:700;background:${p.color}18;padding:1px 6px;border-radius:8px;cursor:help">${p.icon} ${p.label}</span>`;
   if (s.qm_ema_reclaim) badge += ' <span style="color:#8B5CF6;font-size:9px;cursor:help" title="Also reclaimed 9 EMA today — double signal.">🔄</span>';
   return badge;
 }
@@ -11515,10 +11515,10 @@ function renderSharpSetupStrip() {
     return `<button class="sort-btn" onclick="momFilters.sharp._industry='${name.replace(/'/g,"\\'")}';renderSharp();renderSharpSetupStrip()" title="${name} — ${cnt} setups forming" style="font-size:10px;padding:3px 8px">${name} <span style="color:var(--cyan);font-weight:700">${cnt}</span></button>`;
   }).join('') || '<span style="font-size:11px;color:var(--muted)">No industries</span>';
   
-  const patMap = { EP: {icon:'🔥',color:'#F97316'}, VCP: {icon:'📐',color:'#3B82F6'}, HTF: {icon:'🏴',color:'#EF4444'}, Reclaim: {icon:'🔄',color:'#8B5CF6'} };
+  const patMap = { EP: {icon:'🔥',color:'#F97316'}, VCP: {icon:'🏁',color:'#3B82F6',name:'Momentum Flag'}, HTF: {icon:'🏴',color:'#EF4444'}, Reclaim: {icon:'🔄',color:'#8B5CF6'} };
   mixEl.innerHTML = Object.entries(patCnt).filter(([_,c])=>c>0).map(([p,c]) => {
     const m = patMap[p] || {icon:'',color:'var(--text)'};
-    return `<span style="font-size:10px;color:${m.color};font-weight:600">${m.icon} ${p}: ${c}</span>`;
+    return `<span style="font-size:10px;color:${m.color};font-weight:600">${m.icon} ${m.name||p}: ${c}</span>`;
   }).join('<span style="color:var(--border);margin:0 2px">·</span>') +
     `<span style="color:var(--border);margin:0 2px">·</span>` +
     `<span style="font-size:10px;color:#22C55E;font-weight:600">✅ Broken: ${abovePivot}</span>` +
@@ -12888,7 +12888,7 @@ const SCR_COLS=[
  {k:'wkdays',g:'Crossover',lbl:'Wk Days',a:'r',tip:'Days since weekly crossover',def:0,cell:d=>scrTxt(d.wkdays)},
  {k:'isCross',g:'Breakout',lbl:'Crossover?',a:'c',tip:'Has a fresh crossover',def:0,cell:d=>d.fresh?'<span class="scr-yes">✅</span>':'<span class="scr-dash">—</span>'},
  {k:'isBO',g:'Breakout',lbl:'Breakout?',a:'c',tip:'Has an active breakout',def:0,cell:d=>d.qm?'<span class="scr-yes">✅</span>':'<span class="scr-dash">—</span>'},
- {k:'qm',g:'Breakout',lbl:'QM / Setup',a:'c',tip:'EP / VCP / HTF / Reclaim pattern',def:1,cell:d=>d.qm?`<span class="scr-chip scr-c-setup"${SCR_T('Pattern: '+d.qm)}>${d.qm}</span>`:'<span class="scr-dash">—</span>'},
+ {k:'qm',g:'Breakout',lbl:'QM / Setup',a:'c',tip:'EP / Momentum Flag / HTF / Reclaim pattern',def:1,cell:d=>d.qm?(d.qm==='VCP'?`<span class="scr-chip scr-c-setup tf-pchip" title="Momentum Flag: a 20%+ run, then a tight 5-day pause. Click for the rules." onclick="event.stopPropagation();tfPatExplain('flag','${d.sym}')">🏁 Momentum Flag</span>`:`<span class="scr-chip scr-c-setup"${SCR_T('Pattern: '+d.qm)}>${d.qm}</span>`):'<span class="scr-dash">—</span>'},
  {k:'pivot',g:'Breakout',lbl:'Pivot',a:'r',tip:'Breakout pivot level',def:0,cell:d=>d.pivot!=null?`<span class="scr-mono">₹${d.pivot}</span>`:'<span class="scr-dash">—</span>'},
  {k:'basePct',g:'Breakout',lbl:'Base %',a:'r',tip:'Base depth %',def:0,cell:d=>d.basePct!=null?scrNum(d.basePct)+'%':'<span class="scr-dash">—</span>'},
  {k:'contract',g:'Breakout',lbl:'Contract',a:'r',tip:'Contraction %',def:0,cell:d=>d.contract!=null?d.contract+'%':'<span class="scr-dash">—</span>'},
@@ -12914,14 +12914,14 @@ const SCR_COLS=[
  {k:'score',g:'Breakout',lbl:'Score',a:'r',tip:'Momentum score 0-100',def:1,cell:d=>{if(d.score==null)return '<span class="scr-dash">—</span>';const c=d.score>=75?'scr-s-hi':d.score>=55?'scr-s-mid':'scr-s-lo';return `<span class="scr-score ${c}"${SCR_T('Momentum score '+d.score+'/100')}>${d.score}</span>`;}},
  
  {k:'smt',g:'Smart $',lbl:'Smart $',a:'c',tip:'Smart-money tier from bulk/block deals',def:1,cell:d=>scrSmB(d.smt)},
- {k:'aplus',g:'Actions',lbl:'A+',a:'c',tip:'A+ confluence flag',def:1,cell:d=>d.aplus?`<span class="scr-aplus"${SCR_T('A+ Setup — VCP/HTF + Cat A/A+C + base >5d & <10% deep + volume dry-up (base + last-5 avg RVOL <0.8x) + 2x+ volume day in last 20 + BO zone + ADR 3+')}>⭐</span>`:''},
+ {k:'aplus',g:'Actions',lbl:'A+',a:'c',tip:'A+ confluence flag',def:1,cell:d=>d.aplus?`<span class="scr-aplus"${SCR_T('A+ Setup — Momentum Flag/HTF + Cat A/A+C + base >5d & <10% deep + volume dry-up (base + last-5 avg RVOL <0.8x) + 2x+ volume day in last 20 + BO zone + ADR 3+')}>⭐</span>`:''},
 ];
 SCR_COLS.forEach(c=>SCR.vis[c.k]=!!c.def);
 SCR.manualCols=new Set();SCR.ctxMode=true;
 SCR.pbMode=([0,6].indexOf(new Date().getDay())>=0)?'weekend':'eod';
 
 const SCR_FILTERS=[
- {key:'pattern',label:'Setup',opts:['EP','VCP','HTF','Reclaim','NearPivot','BrokenOut'],disp:{EP:'🔥 EP',VCP:'📐 VCP',HTF:'🚩 HTF',Reclaim:'↩ Reclaim',NearPivot:'🎯 Near Pivot',BrokenOut:'✅ Broken Out'},tips:{EP:'Episodic Pivot — gapped up 5%+ on ~2x volume. Current pattern as of the latest close.',VCP:'Volatility Contraction — big move then a tightening base. Current pattern as of the latest close.',HTF:'High Tight Flag — 80%+ surge then a shallow pause. Current pattern as of the latest close.',Reclaim:'EMA Reclaim — dipped below the 9 EMA then closed back above. Based on the last two daily closes.',NearPivot:'Within 3% of the breakout pivot right now — coiled to trigger.',BrokenOut:'Already broken out above the pivot as of the latest close.'}},
+ {key:'pattern',label:'Setup',opts:['EP','VCP','HTF','Reclaim','NearPivot','BrokenOut'],disp:{EP:'🔥 EP',VCP:'🏁 Momentum Flag',HTF:'🚩 HTF',Reclaim:'↩ Reclaim',NearPivot:'🎯 Near Pivot',BrokenOut:'✅ Broken Out'},tips:{EP:'Episodic Pivot — gapped up 5%+ on ~2x volume. Current pattern as of the latest close.',VCP:'Momentum Flag — a 20%+ run in the last ~5 weeks, then a tight 5-day pause (range 8% or less) within 15% of the high. Its old name was “VCP”. For the classic shrinking-pullback base, use the True VCP filter. Current pattern as of the latest close.',HTF:'High Tight Flag — 80%+ surge then a shallow pause. Current pattern as of the latest close.',Reclaim:'EMA Reclaim — dipped below the 9 EMA then closed back above. Based on the last two daily closes.',NearPivot:'Within 3% of the breakout pivot right now — coiled to trigger.',BrokenOut:'Already broken out above the pivot as of the latest close.'}},
  {key:'entry',label:'Entry Mode',opts:['pullback','breakout','wait'],disp:{pullback:'\ud83d\udd35 Buy pullback',breakout:'\ud83d\udfe2 Buy breakout',wait:'\u26aa Wait'},tips:{pullback:'Short, tight base \u2014 the stock is still hot, so buy the shallow dip to the 9 EMA rather than waiting for a breakout.',breakout:'Base has run 10 days or more \u2014 supply has built up, so wait for the break of the box high.',wait:'Either no base measured, or the base is short but too loose to trust.'}},
  {key:'align',label:'Alignment',opts:['full','sectorled','lone','carried','against','neutral'],disp:{full:'\ud83d\udfe2 Full',sectorled:'\ud83d\udd35 Sector-led',lone:'\ud83d\udfe3 Lone leader',carried:'\ud83d\udfe1 Carried',against:'\ud83d\udd34 Against tape',neutral:'\u26aa Neutral'},tips:{full:'Market, sector and stock all strong \u2014 best base rate.',sectorled:'Sector and stock strong, market weak \u2014 rotation into new leadership.',lone:'Stock strong, market and sector weak \u2014 check the catalyst.',carried:'Market and sector strong but stock lagging \u2014 usually avoid.',against:'Everything weak \u2014 skip.',neutral:'Mixed combination with no clear read.'}},
  {key:'mkt',label:'Market Leg',opts:['strong','neutral','weak'],disp:{strong:'Market strong',neutral:'Market neutral',weak:'Market weak'},tips:{strong:'Breadth of your universe above 55% \u2014 most stocks are above their 20 EMA.',neutral:'Breadth between 45% and 55% \u2014 no clear market direction.',weak:'Breadth below 45% \u2014 most stocks are below their 20 EMA.'}},
@@ -12963,7 +12963,7 @@ const SCR_PRESETS=[
   {id:'rcl_ideal',label:'\u2b50 Reclaim + Ideal Volume',gold:true,set:{rclgrade:['A','B'],rclvol:['Ideal']},desc:'A or B reclaim where volume dried up through the dip and expanded on the reclaim day.',how:'The volume footprint is what separates a real shakeout from a stock that simply drifted lower. Volume drying up while price falls means the selling has run out of participants - nobody left who wants out at these prices. Volume expanding on the day it closes back above the EMA means buyers stepped in deliberately rather than price floating up on no interest. When both happen on the same setup you have the highest-conviction version of this pattern, which is why this preset is marked gold. Expect fewer names here; on many days it returns nothing at all, and that is the point.'},
   {id:'rcl_tight',label:'\ud83c\udfaf Reclaim \u00b7 Tightest Risk',set:{rclgrade:['A','B','D'],rclriskmax:['3']},desc:'Any tradeable reclaim grade where the stop sits within 3% of the current price.',how:'Sorted purely by how little you stand to lose. The shakeout low is your invalidation, and here it sits within 3% - so a full position risks very little while giving you the whole of the resumed trend if it works. This is the preset to use when you want to add exposure without adding much heat to the book, or when your portfolio is already carrying open risk elsewhere. The caution: a very tight stop is easy to clip on ordinary noise, so check the ADR column - if the stock routinely swings 5% a day, a 3% stop will get hit for no reason at all.'},
   {id:'rcl_pole',label:'\ud83d\ude80 Reclaim after Big Pole',set:{rclgrade:['A','B'],polemin:['50']},desc:'A shakeout reclaim in a stock that ran 50%+ into its base.',how:'Combines the two ideas that matter most: something powerful drove the stock up, and the pullback since has only shaken people out rather than broken the trend. A 50%+ pole means real institutional demand was behind the advance, and institutions rarely finish buying in one leg. When a stock like that dips below its 9 EMA for a few days and reclaims, you are usually being handed a second entry into a move that was too extended to chase the first time. Use the Pole Speed column alongside this - a 50% move in 15 sessions is a very different animal from 50% over three months.'},
-  {id:'all',label:'All',desc:'Show every stock; no preset filter applied.'},{id:'uptrend',label:'📈 In Uptrend',set:{signal:['active']},desc:'Closed above the daily 9 EMA (or only 1 day below); still in an uptrend.'},{id:'aplus',label:'⭐ A+ Setups',gold:true,desc:'The full A+ coil checklist: VCP/HTF base in an uptrend (Cat A/A+C), base older than 5 days and shallower than 10%, volume drying up and still quiet right now (last-5 avg RVOL under 0.8x), a 2x+ volume day in the last 20 sessions, sitting in the BO zone / 52w base, and ADR% 3+. Springs fully loaded.'},{id:'cross',label:'Fresh Crossovers',set:{signal:['fresh']},desc:'A fresh daily 9 over 20 EMA crossover flagged in the latest scan.'},{id:'bo',label:'Breakout Setups',set:{signal:['setup']},desc:'Has an active breakout or QM pattern (EP, VCP, HTF, Reclaim) as of the latest close.'},{id:'vol',label:'Volume Buildup',set:{vsig:['acc']},desc:'Volume accumulation: today closed up on at least 1.5x the 20-day average volume.'},{id:'zone',label:'BO Zone',set:{z52:['zone','base']},desc:'Price sitting at or near its 52-week high / breakout base.'},{id:'pb_9epull',when:'eod',grp:'Swing Entries',label:'9E Pullback',set:{cat:['A','AC'],zone:['near9e'],signal:['active'],vsig:['pull']},how:'Strong names (above all four EMAs, in uptrend) that are actively pulling back toward the daily 9 EMA on quiet volume - the classic swing buy zone, narrowed to names genuinely retracing rather than just sitting nearby. Plan: wait for a reversal candle off the 9 EMA before entering, stop below the pullback low or the 20 EMA, then trail with the 9/20 EMA as it runs. Skip names slicing straight through the 9 with no support.'},{id:'pb_9ereclaim',when:'eod',grp:'Swing Entries',label:'Fresh 9E Reclaim',set:{pattern:['Reclaim'],vsig:['acc']},how:'Stocks that dipped below the daily 9 EMA and just closed back above it on accumulation volume (an up day on 1.5x average or more). An early re-entry as a name resumes its trend. Plan: enter on the reclaim close or a tight follow-through, stop under the reclaim candle low. Best when the 20/50 EMA trend is still up.'},{id:'pb_coil',when:'eod',grp:'Coil / Pre-Breakout',label:'Coiled & Drying',set:{pattern:['VCP','HTF'],cat:['A','AC'],contractmin:['0.7']},how:'MERGED: this was two screens (Coiled & Drying and Tight Contraction) that returned near-identical lists - same median, same mean, same win rate. Now one screen, keeping the tighter contraction test. VCP/HTF setups in an uptrend - a prior move then a tightening base with volume drying up (the contraction is baked into the VCP tag). Springs loading. Plan: mark the pivot (base high), buy the breakout through it on a volume expansion, stop under the last contraction low. No volume on the break means pass.'},{id:'pb_vcppivot',when:'eod',grp:'Coil / Pre-Breakout',label:'VCP at Pivot',set:{pattern:['VCP'],z52:['zone'],cat:['A','AC']},how:'VCP bases sitting in the 52-week breakout zone (within 15% of the high) in an uptrend - tight, pivot-ready setups closest to triggering. Plan: mark the base high as the pivot, set an alert there, enter as price clears it on a volume expansion, stop just under the last contraction low. These can move fast once they go, so have the order ready.'},{id:'pb_bovol',when:'eod',grp:'Breakout / Leaders',label:'Breakout + Volume',set:{pattern:['BrokenOut'],rvolmin:['1.5'],cat:['A','AC']},how:'Names already broken out above their pivot, confirmed by above-average volume (1.5x or more), in a full uptrend. The volume filter removes the low-conviction breakouts that tend to fail. Plan: buy strength or the first tight pullback to the breakout level, stop below the breakout point. Do not chase if it is already far past the pivot. On a quiet day with no fresh breakouts this can be empty - that is correct, not a bug.'},{id:'pb_leaders',when:'eod',grp:'Breakout / Leaders',label:'Leaders Near Highs',set:{z52:['zone'],cat:['A','AC'],rvolmin:['1.5']},how:'Leadership names in the tightest band below their 52-week high, above all four EMAs, with above-average volume (1.5x or more) confirming real demand - true leaders, not the whole field near highs. Tip: sort by Score to surface the strongest. Plan: buy strength or the shallow dip, respect the 9/20 EMA on the way up, and do not fight a clean uptrend.'},{id:'pb_quietacc',when:'eod',grp:'Smart Money',label:'Quiet Accumulation',set:{smt:['LOADING_UP','ACCUMULATING'],zone:['near9e','w10']},how:'Stocks where institutions are buying (Loading Up or Accumulating across recent bulk and block deals) while price is still calm and near the 9 EMA - before the move is obvious. Plan: treat as a watchlist screen, not an instant buy. Wait for price confirmation (a reclaim or breakout) before committing; the smart-money flow is the tailwind, not the trigger.'},{id:'pb_epsmart',when:'eod',grp:'Smart Money',label:'EP + Smart Money',set:{pattern:['EP'],smt:['LOADING_UP','ACCUMULATING'],rvolmin:['2']},how:'Episodic Pivots (gapped up 5% or more on heavy volume) that also have institutional buying behind them and 2x volume or more - the highest-conviction EP variety. Plan: EPs tend to trend, so buy the first orderly pullback or a tight flag after the gap, stop under the gap-day low. Smart-money backing improves the odds the gap holds.'},{id:'pb_sector',when:'eod',grp:'Sector-Driven',label:'Strong-Sector Leaders',set:{sec:['strong'],cat:['A','AC'],rvolmin:['1.5']},cols:['entry','trigger','align','dots','secrank','rankinsec','rvol'],how:'Quality names (Category A or A+C) trading on above-average volume, in sectors ranking in the top third today. This now uses the live Sector Leg reading, so sector strength is measured the same way everywhere on the dashboard - no second definition. Plan: these are the names most likely to be carried by sector flow. Take the entry the Entry Mode column suggests, and check Rank in Sector to make sure you have the leader of the group rather than a laggard.'},{id:'wk_coils',when:'weekend',grp:'Weekend Scans',label:'Weekend Coils',set:{pattern:['VCP','HTF'],cat:['A','AC'],adrmin:['3'],basemin:['5']},how:'Tight VCP/HTF bases in an uptrend that actually move (ADR% 3+) and have a real base (5+ days). The weekend shortlist of coils most likely to resolve in the coming days. Plan: mark each pivot (base high), set alerts, and trade the breakout on a volume expansion next week. Stop under the last contraction low.'},{id:'wk_freshweekly',when:'weekend',grp:'Weekend Scans',label:'Fresh Weekly Crossovers',set:{cat:['C','AC'],adrmin:['3']},cols:['entry','trigger','align','dots','cat','adr'],how:'Stocks whose weekly 9 EMA has just crossed above the weekly 20 EMA (Category C), or Category A names that also just crossed weekly (A+C), filtered to those with enough daily range to actually trade. A new higher-timeframe uptrend turning up is where many of the best swing trades begin, and the weekend is the right time to find them because the weekly candle has just closed. Plan: this is a watchlist screen, not an entry - wait for a daily setup to form, then use the Entry Mode column.'},{id:'wk_reclaim',when:'weekend',grp:'Weekend Scans',label:'Reclaim Watch',set:{pattern:['Reclaim'],zone:['above9d'],adrmin:['3']},how:'Stocks that reclaimed the daily 9 EMA and are holding above it, with enough range to be worth trading. Bounce and continuation candidates to watch into next week. Plan: confirm the reclaim holds, enter on a tight follow-through, stop under the reclaim low. Best when the 20/50 EMA trend is still up.'},{id:'wk_secleaders',when:'weekend',grp:'Weekend Scans',label:'Next Week Sector Leaders',set:{sec:['strong'],cat:['A','AC'],adrmin:['3']},cols:['entry','trigger','align','dots','secrank','rankinsec','adr'],how:'Weekend build: quality movers with enough daily range to be worth trading, sitting in sectors that finished the week in the top third. Volume is deliberately left out - on a weekend you are building next weeks watchlist, not reacting to todays volume. Plan: mark the trigger prices now so Monday is just execution, and use Rank in Sector to take one or two leaders per sector rather than a long list.'},{id:'pb_highadrbo',when:'eod',grp:'Breakout / Leaders',label:'High-ADR Breakouts',set:{pattern:['BrokenOut'],rvolmin:['1.5'],adrmin:['5'],cat:['A','AC']},how:'Confirmed breakouts (above pivot on 1.5x+ volume, full uptrend) filtered to high-range names (ADR% 5+) - the breakouts that can actually travel, not the sleepy ones that stall. Plan: buy strength or the first tight pullback to the breakout level, stop below it. The ADR filter keeps you in names that pay.'},{id:'pb_epcont',when:'eod',grp:'Breakout / Leaders',label:'EP Continuation',set:{pattern:['EP'],zone:['above9d'],adrmin:['3']},how:'Episodic Pivots still holding above the daily 9 EMA after their gap, with enough range to keep moving. EPs tend to trend, so this catches the continuation rather than the initial gap. Plan: buy the first orderly pullback or tight flag, stop under the 9 EMA or the gap-day low.'},{id:'pb_smartcoils',when:'eod',grp:'Smart Money',label:'Smart Money Coils',set:{pattern:['VCP','HTF'],smt:['LOADING_UP','ACCUMULATING']},how:'Tight VCP/HTF bases where institutions are buying (Loading Up or Accumulating) while price is still coiled - the highest-conviction pre-breakout setups. Plan: watchlist screen; wait for the breakout through the pivot on volume before entering. Smart-money flow is the tailwind, the breakout is the trigger.'},{id:'nr_aligned',when:'eod',grp:'Alignment',label:'Coiled + Aligned',set:{nr:['nr7'],align:['full','sectorled']},cols:['entry','trigger','nr','align','dots','catalyst'],how:'A stock posting its tightest range in seven days, while the market and sector are both supporting it. Compression plus a favourable backdrop is the combination you want before a move - the coil tells you a move is coming, the alignment tells you which way it is likely to go. Plan: mark the narrow days high and low from the Range column, then take the break in the direction the alignment favours. This screen did not exist before because narrow-range and alignment data were never combined.'},{id:'pullback_aligned',when:'eod',grp:'Swing Entries',label:'Buy-the-Dip, Aligned',set:{entry:['pullback'],align:['full','sectorled']},cols:['entry','trigger','align','dots','rankinsec','rvol'],how:'Stocks the dashboard says to buy on a pullback rather than a breakout - short, tight bases where the stock is still hot - and where the market and sector are also working. Plan: the Trigger column gives you the 9 EMA level to buy into. Because these bases are short, do not wait for a breakout or you will miss it; buy the shallow dip and stop just under the base low.'},{id:'breakout_aligned',when:'eod',grp:'Breakout / Leaders',label:'Breakout Ready, Aligned',set:{entry:['breakout'],align:['full','sectorled'],rvolmin:['1.5']},cols:['entry','trigger','align','dots','pole','rvol'],how:'Longer bases where the right move is to wait for the box high to break, with volume already picking up and the market and sector on side. Plan: the Trigger column is the exact level - box high plus a small buffer. Set an alert there rather than watching. A break on real volume with alignment behind it is the highest-quality breakout this dashboard can identify.'},{id:'lone_nocat',when:'eod',grp:'Alignment',label:'Unexplained Movers (caution)',set:{align:['lone'],catalyst:['no']},cols:['align','dots','catalyst','rvol','entry'],how:'The opposite of the Catalyst-Backed screen, and here as a warning list rather than a buy list. These stocks are rising while both their market and sector fall, and there is no visible reason in the data - no results, no institutional buying, no volume surge. Unexplained divergent strength fails more often than it works. Plan: treat this as a do-not-chase list. If you already hold one of these, it is worth asking what you know that the data does not show.'},{id:'wk_align_review',when:'weekend',grp:'Weekend Scans',label:'Weekend Alignment Review',set:{align:['full','sectorled'],cat:['A','AC']},cols:['entry','trigger','align','dots','secrank','rankinsec','pole'],how:'The weekend version of the alignment screens: every quality name where the market and sector both finished the week supporting the stock. Rather than reacting to one days move, this shows you where the weight of the market is sitting as the new week starts. Plan: work down the list, mark trigger prices, and note which sectors keep appearing - that concentration is usually the real signal.'},{id:'wk_tight_bases',when:'weekend',grp:'Weekend Scans',label:'Tightest Bases in Market',set:{contractmin:['0.7'],cat:['A','AC'],adrmin:['3']},cols:['entry','trigger','contract','baseDays','pole','align','dots'],how:'The tightest consolidations in your whole universe, measured by Contraction Ratio of 0.7 or higher - meaning the base is very small relative to the advance that came before it, a sign holders are not selling. Combined with enough daily range to be worth trading. Plan: this is a patience screen. These often sit for weeks before resolving, so mark them, set alerts at the trigger price, and let them come to you.'},{id:'align_full',when:'eod',grp:'Alignment',label:'Full Alignment A+',set:{align:['full'],aplus:['yes']},cols:['entry','trigger','align','dots','catalyst','rankinsec'],how:'Market, sector and stock all strong, on an A+ setup. This is the highest base-rate combination on the dashboard - everything is pushing the same direction. Plan: size normally or up, take the entry the Entry Mode column suggests, stop under the base low.'},{id:'align_sectorled',when:'eod',grp:'Alignment',label:'Sector-Led Leaders',set:{align:['sectorled'],cat:['A','AC']},cols:['entry','trigger','align','dots','secrank','rankinsec'],how:'Sector and stock strong while the broader market is weak - money rotating into this pocket despite the tape. Historically where new leadership emerges. Plan: very tradable, but respect that the market is not helping - keep stops tight and do not oversize.'},{id:'align_lone',when:'eod',grp:'Alignment',label:'Catalyst-Backed Lone Movers',set:{align:['lone'],catalyst:['yes']},cols:['entry','trigger','align','dots','catalyst','rvol'],how:'Stock rising while both its market and sector fall - AND there is a visible reason in the data (an EP, near-term earnings, smart-money accumulation or a volume surge). Nothing else is competing for attention, which is why these can be the highest-reward setups available. Plan: the catalyst is the thesis - if it fails, exit. Without a catalyst these same names are the most likely to fail, which is why this screen filters for one.'},{id:'exitwatch',when:'eod',grp:'Position Management',label:'\u26a0\ufe0f Exit Watch',how:'Your starred picks (My Picks) that closed BELOW the daily 9 EMA today. This is the only screen here that is about getting out rather than getting in. Read it against your own rule: one close below the 9 EMA is a warning, two consecutive closes is the exit. The In Uptrend column does that counting for you - a name still marked active has been below for one session, a name no longer active has been below for more than one, which is your exit. Empty means either nothing you hold has lost the 9 EMA, or you have not starred anything.'},{id:'pb_shakeout',when:'eod',grp:'Swing Entries',label:'Shakeout & Reclaim',set:{rclgrade:['A','B','D'],rcldaysmax:['3'],cat:['A','AC']},how:'The trade that throws you out and then goes: price loses the daily 9 EMA, spends no more than three sessions below it, then closes back above while the bigger trend never broke. Plan: enter on the reclaim close or a tight follow-through, stop under the shakeout low - that low is the whole point of the setup, because everyone who sold into it is now watching it. Honest warning: only about 700 stocks a year carry a reclaim grade at all, so this list will usually be short or empty. Empty is not a bug.'},{id:'pb_mtfcoil',when:'eod',grp:'Coil / Pre-Breakout',label:'Multi-Timeframe Coil',set:{pattern:['VCP','HTF'],cat:['A','AC']},how:'A daily coil that is ALSO tightening on the weekly, inside a monthly trend that is not falling. The idea is that a base which shows up on three timeframes at once has more stored energy than one that only looks tight on the daily. Plan: mark the pivot, buy the break on volume expansion, stop under the last contraction low - and give it more room and more time than a daily-only coil, because these tend to sit longer before they resolve. Measurement caveat: the weekly test uses weekly CLOSES, because weekly highs and lows are not stored yet, so it is a proxy for weekly tightness rather than a true range contraction.'},{id:'nr_vcp',when:'eod',grp:'Coil / Pre-Breakout',label:'NR7 + VCP Combo',set:{nr:['nr7'],pattern:['VCP']},how:'An NR7 day landing inside an active VCP base - weeks of contraction culminating in the tightest possible single session. The strongest version of a pre-breakout setup on this list. Plan: mark the NR7 days high as the near-term trigger and the VCP pivot as the bigger one, then buy the breakout through either on a volume expansion. Stop under the last contraction low.'},{id:'nr_confirmed',when:'eod',grp:'Breakout / Leaders',label:'NR Breakout Confirmed',set:{nr:['brokenUp']},how:'Stocks that just closed above their Narrow-Range days high - the compression has resolved upward. Catches the move as it happens rather than waiting on the sidelines. Plan: buy strength or the first tight pullback, stop under the NR days low. Check the volume yourself - a break on real volume holds up far better than one on a quiet session.'}];
+  {id:'all',label:'All',desc:'Show every stock; no preset filter applied.'},{id:'uptrend',label:'📈 In Uptrend',set:{signal:['active']},desc:'Closed above the daily 9 EMA (or only 1 day below); still in an uptrend.'},{id:'aplus',label:'⭐ A+ Setups',gold:true,desc:'The full A+ coil checklist: Momentum Flag/HTF base in an uptrend (Cat A/A+C), base older than 5 days and shallower than 10%, volume drying up and still quiet right now (last-5 avg RVOL under 0.8x), a 2x+ volume day in the last 20 sessions, sitting in the BO zone / 52w base, and ADR% 3+. Springs fully loaded.'},{id:'cross',label:'Fresh Crossovers',set:{signal:['fresh']},desc:'A fresh daily 9 over 20 EMA crossover flagged in the latest scan.'},{id:'bo',label:'Breakout Setups',set:{signal:['setup']},desc:'Has an active breakout or QM pattern (EP, Momentum Flag, HTF, Reclaim) as of the latest close.'},{id:'vol',label:'Volume Buildup',set:{vsig:['acc']},desc:'Volume accumulation: today closed up on at least 1.5x the 20-day average volume.'},{id:'zone',label:'BO Zone',set:{z52:['zone','base']},desc:'Price sitting at or near its 52-week high / breakout base.'},{id:'pb_9epull',when:'eod',grp:'Swing Entries',label:'9E Pullback',set:{cat:['A','AC'],zone:['near9e'],signal:['active'],vsig:['pull']},how:'Strong names (above all four EMAs, in uptrend) that are actively pulling back toward the daily 9 EMA on quiet volume - the classic swing buy zone, narrowed to names genuinely retracing rather than just sitting nearby. Plan: wait for a reversal candle off the 9 EMA before entering, stop below the pullback low or the 20 EMA, then trail with the 9/20 EMA as it runs. Skip names slicing straight through the 9 with no support.'},{id:'pb_9ereclaim',when:'eod',grp:'Swing Entries',label:'Fresh 9E Reclaim',set:{pattern:['Reclaim'],vsig:['acc']},how:'Stocks that dipped below the daily 9 EMA and just closed back above it on accumulation volume (an up day on 1.5x average or more). An early re-entry as a name resumes its trend. Plan: enter on the reclaim close or a tight follow-through, stop under the reclaim candle low. Best when the 20/50 EMA trend is still up.'},{id:'pb_coil',when:'eod',grp:'Coil / Pre-Breakout',label:'Coiled & Drying',set:{pattern:['VCP','HTF'],cat:['A','AC'],contractmin:['0.7']},how:'MERGED: this was two screens (Coiled & Drying and Tight Contraction) that returned near-identical lists - same median, same mean, same win rate. Now one screen, keeping the tighter contraction test. Momentum Flag/HTF setups in an uptrend - a prior move then a tightening base with volume drying up (the contraction is baked into the Momentum Flag tag). Springs loading. Plan: mark the pivot (base high), buy the breakout through it on a volume expansion, stop under the last contraction low. No volume on the break means pass.'},{id:'pb_vcppivot',when:'eod',grp:'Coil / Pre-Breakout',label:'Momentum Flag at Pivot',set:{pattern:['VCP'],z52:['zone'],cat:['A','AC']},how:'Momentum Flag bases sitting in the 52-week breakout zone (within 15% of the high) in an uptrend - tight, pivot-ready setups closest to triggering. Plan: mark the base high as the pivot, set an alert there, enter as price clears it on a volume expansion, stop just under the last contraction low. These can move fast once they go, so have the order ready.'},{id:'pb_bovol',when:'eod',grp:'Breakout / Leaders',label:'Breakout + Volume',set:{pattern:['BrokenOut'],rvolmin:['1.5'],cat:['A','AC']},how:'Names already broken out above their pivot, confirmed by above-average volume (1.5x or more), in a full uptrend. The volume filter removes the low-conviction breakouts that tend to fail. Plan: buy strength or the first tight pullback to the breakout level, stop below the breakout point. Do not chase if it is already far past the pivot. On a quiet day with no fresh breakouts this can be empty - that is correct, not a bug.'},{id:'pb_leaders',when:'eod',grp:'Breakout / Leaders',label:'Leaders Near Highs',set:{z52:['zone'],cat:['A','AC'],rvolmin:['1.5']},how:'Leadership names in the tightest band below their 52-week high, above all four EMAs, with above-average volume (1.5x or more) confirming real demand - true leaders, not the whole field near highs. Tip: sort by Score to surface the strongest. Plan: buy strength or the shallow dip, respect the 9/20 EMA on the way up, and do not fight a clean uptrend.'},{id:'pb_quietacc',when:'eod',grp:'Smart Money',label:'Quiet Accumulation',set:{smt:['LOADING_UP','ACCUMULATING'],zone:['near9e','w10']},how:'Stocks where institutions are buying (Loading Up or Accumulating across recent bulk and block deals) while price is still calm and near the 9 EMA - before the move is obvious. Plan: treat as a watchlist screen, not an instant buy. Wait for price confirmation (a reclaim or breakout) before committing; the smart-money flow is the tailwind, not the trigger.'},{id:'pb_epsmart',when:'eod',grp:'Smart Money',label:'EP + Smart Money',set:{pattern:['EP'],smt:['LOADING_UP','ACCUMULATING'],rvolmin:['2']},how:'Episodic Pivots (gapped up 5% or more on heavy volume) that also have institutional buying behind them and 2x volume or more - the highest-conviction EP variety. Plan: EPs tend to trend, so buy the first orderly pullback or a tight flag after the gap, stop under the gap-day low. Smart-money backing improves the odds the gap holds.'},{id:'pb_sector',when:'eod',grp:'Sector-Driven',label:'Strong-Sector Leaders',set:{sec:['strong'],cat:['A','AC'],rvolmin:['1.5']},cols:['entry','trigger','align','dots','secrank','rankinsec','rvol'],how:'Quality names (Category A or A+C) trading on above-average volume, in sectors ranking in the top third today. This now uses the live Sector Leg reading, so sector strength is measured the same way everywhere on the dashboard - no second definition. Plan: these are the names most likely to be carried by sector flow. Take the entry the Entry Mode column suggests, and check Rank in Sector to make sure you have the leader of the group rather than a laggard.'},{id:'wk_coils',when:'weekend',grp:'Weekend Scans',label:'Weekend Coils',set:{pattern:['VCP','HTF'],cat:['A','AC'],adrmin:['3'],basemin:['5']},how:'Tight Momentum Flag/HTF bases in an uptrend that actually move (ADR% 3+) and have a real base (5+ days). The weekend shortlist of coils most likely to resolve in the coming days. Plan: mark each pivot (base high), set alerts, and trade the breakout on a volume expansion next week. Stop under the last contraction low.'},{id:'wk_freshweekly',when:'weekend',grp:'Weekend Scans',label:'Fresh Weekly Crossovers',set:{cat:['C','AC'],adrmin:['3']},cols:['entry','trigger','align','dots','cat','adr'],how:'Stocks whose weekly 9 EMA has just crossed above the weekly 20 EMA (Category C), or Category A names that also just crossed weekly (A+C), filtered to those with enough daily range to actually trade. A new higher-timeframe uptrend turning up is where many of the best swing trades begin, and the weekend is the right time to find them because the weekly candle has just closed. Plan: this is a watchlist screen, not an entry - wait for a daily setup to form, then use the Entry Mode column.'},{id:'wk_reclaim',when:'weekend',grp:'Weekend Scans',label:'Reclaim Watch',set:{pattern:['Reclaim'],zone:['above9d'],adrmin:['3']},how:'Stocks that reclaimed the daily 9 EMA and are holding above it, with enough range to be worth trading. Bounce and continuation candidates to watch into next week. Plan: confirm the reclaim holds, enter on a tight follow-through, stop under the reclaim low. Best when the 20/50 EMA trend is still up.'},{id:'wk_secleaders',when:'weekend',grp:'Weekend Scans',label:'Next Week Sector Leaders',set:{sec:['strong'],cat:['A','AC'],adrmin:['3']},cols:['entry','trigger','align','dots','secrank','rankinsec','adr'],how:'Weekend build: quality movers with enough daily range to be worth trading, sitting in sectors that finished the week in the top third. Volume is deliberately left out - on a weekend you are building next weeks watchlist, not reacting to todays volume. Plan: mark the trigger prices now so Monday is just execution, and use Rank in Sector to take one or two leaders per sector rather than a long list.'},{id:'pb_highadrbo',when:'eod',grp:'Breakout / Leaders',label:'High-ADR Breakouts',set:{pattern:['BrokenOut'],rvolmin:['1.5'],adrmin:['5'],cat:['A','AC']},how:'Confirmed breakouts (above pivot on 1.5x+ volume, full uptrend) filtered to high-range names (ADR% 5+) - the breakouts that can actually travel, not the sleepy ones that stall. Plan: buy strength or the first tight pullback to the breakout level, stop below it. The ADR filter keeps you in names that pay.'},{id:'pb_epcont',when:'eod',grp:'Breakout / Leaders',label:'EP Continuation',set:{pattern:['EP'],zone:['above9d'],adrmin:['3']},how:'Episodic Pivots still holding above the daily 9 EMA after their gap, with enough range to keep moving. EPs tend to trend, so this catches the continuation rather than the initial gap. Plan: buy the first orderly pullback or tight flag, stop under the 9 EMA or the gap-day low.'},{id:'pb_smartcoils',when:'eod',grp:'Smart Money',label:'Smart Money Coils',set:{pattern:['VCP','HTF'],smt:['LOADING_UP','ACCUMULATING']},how:'Tight Momentum Flag/HTF bases where institutions are buying (Loading Up or Accumulating) while price is still coiled - the highest-conviction pre-breakout setups. Plan: watchlist screen; wait for the breakout through the pivot on volume before entering. Smart-money flow is the tailwind, the breakout is the trigger.'},{id:'nr_aligned',when:'eod',grp:'Alignment',label:'Coiled + Aligned',set:{nr:['nr7'],align:['full','sectorled']},cols:['entry','trigger','nr','align','dots','catalyst'],how:'A stock posting its tightest range in seven days, while the market and sector are both supporting it. Compression plus a favourable backdrop is the combination you want before a move - the coil tells you a move is coming, the alignment tells you which way it is likely to go. Plan: mark the narrow days high and low from the Range column, then take the break in the direction the alignment favours. This screen did not exist before because narrow-range and alignment data were never combined.'},{id:'pullback_aligned',when:'eod',grp:'Swing Entries',label:'Buy-the-Dip, Aligned',set:{entry:['pullback'],align:['full','sectorled']},cols:['entry','trigger','align','dots','rankinsec','rvol'],how:'Stocks the dashboard says to buy on a pullback rather than a breakout - short, tight bases where the stock is still hot - and where the market and sector are also working. Plan: the Trigger column gives you the 9 EMA level to buy into. Because these bases are short, do not wait for a breakout or you will miss it; buy the shallow dip and stop just under the base low.'},{id:'breakout_aligned',when:'eod',grp:'Breakout / Leaders',label:'Breakout Ready, Aligned',set:{entry:['breakout'],align:['full','sectorled'],rvolmin:['1.5']},cols:['entry','trigger','align','dots','pole','rvol'],how:'Longer bases where the right move is to wait for the box high to break, with volume already picking up and the market and sector on side. Plan: the Trigger column is the exact level - box high plus a small buffer. Set an alert there rather than watching. A break on real volume with alignment behind it is the highest-quality breakout this dashboard can identify.'},{id:'lone_nocat',when:'eod',grp:'Alignment',label:'Unexplained Movers (caution)',set:{align:['lone'],catalyst:['no']},cols:['align','dots','catalyst','rvol','entry'],how:'The opposite of the Catalyst-Backed screen, and here as a warning list rather than a buy list. These stocks are rising while both their market and sector fall, and there is no visible reason in the data - no results, no institutional buying, no volume surge. Unexplained divergent strength fails more often than it works. Plan: treat this as a do-not-chase list. If you already hold one of these, it is worth asking what you know that the data does not show.'},{id:'wk_align_review',when:'weekend',grp:'Weekend Scans',label:'Weekend Alignment Review',set:{align:['full','sectorled'],cat:['A','AC']},cols:['entry','trigger','align','dots','secrank','rankinsec','pole'],how:'The weekend version of the alignment screens: every quality name where the market and sector both finished the week supporting the stock. Rather than reacting to one days move, this shows you where the weight of the market is sitting as the new week starts. Plan: work down the list, mark trigger prices, and note which sectors keep appearing - that concentration is usually the real signal.'},{id:'wk_tight_bases',when:'weekend',grp:'Weekend Scans',label:'Tightest Bases in Market',set:{contractmin:['0.7'],cat:['A','AC'],adrmin:['3']},cols:['entry','trigger','contract','baseDays','pole','align','dots'],how:'The tightest consolidations in your whole universe, measured by Contraction Ratio of 0.7 or higher - meaning the base is very small relative to the advance that came before it, a sign holders are not selling. Combined with enough daily range to be worth trading. Plan: this is a patience screen. These often sit for weeks before resolving, so mark them, set alerts at the trigger price, and let them come to you.'},{id:'align_full',when:'eod',grp:'Alignment',label:'Full Alignment A+',set:{align:['full'],aplus:['yes']},cols:['entry','trigger','align','dots','catalyst','rankinsec'],how:'Market, sector and stock all strong, on an A+ setup. This is the highest base-rate combination on the dashboard - everything is pushing the same direction. Plan: size normally or up, take the entry the Entry Mode column suggests, stop under the base low.'},{id:'align_sectorled',when:'eod',grp:'Alignment',label:'Sector-Led Leaders',set:{align:['sectorled'],cat:['A','AC']},cols:['entry','trigger','align','dots','secrank','rankinsec'],how:'Sector and stock strong while the broader market is weak - money rotating into this pocket despite the tape. Historically where new leadership emerges. Plan: very tradable, but respect that the market is not helping - keep stops tight and do not oversize.'},{id:'align_lone',when:'eod',grp:'Alignment',label:'Catalyst-Backed Lone Movers',set:{align:['lone'],catalyst:['yes']},cols:['entry','trigger','align','dots','catalyst','rvol'],how:'Stock rising while both its market and sector fall - AND there is a visible reason in the data (an EP, near-term earnings, smart-money accumulation or a volume surge). Nothing else is competing for attention, which is why these can be the highest-reward setups available. Plan: the catalyst is the thesis - if it fails, exit. Without a catalyst these same names are the most likely to fail, which is why this screen filters for one.'},{id:'exitwatch',when:'eod',grp:'Position Management',label:'\u26a0\ufe0f Exit Watch',how:'Your starred picks (My Picks) that closed BELOW the daily 9 EMA today. This is the only screen here that is about getting out rather than getting in. Read it against your own rule: one close below the 9 EMA is a warning, two consecutive closes is the exit. The In Uptrend column does that counting for you - a name still marked active has been below for one session, a name no longer active has been below for more than one, which is your exit. Empty means either nothing you hold has lost the 9 EMA, or you have not starred anything.'},{id:'pb_shakeout',when:'eod',grp:'Swing Entries',label:'Shakeout & Reclaim',set:{rclgrade:['A','B','D'],rcldaysmax:['3'],cat:['A','AC']},how:'The trade that throws you out and then goes: price loses the daily 9 EMA, spends no more than three sessions below it, then closes back above while the bigger trend never broke. Plan: enter on the reclaim close or a tight follow-through, stop under the shakeout low - that low is the whole point of the setup, because everyone who sold into it is now watching it. Honest warning: only about 700 stocks a year carry a reclaim grade at all, so this list will usually be short or empty. Empty is not a bug.'},{id:'pb_mtfcoil',when:'eod',grp:'Coil / Pre-Breakout',label:'Multi-Timeframe Coil',set:{pattern:['VCP','HTF'],cat:['A','AC']},how:'A daily coil that is ALSO tightening on the weekly, inside a monthly trend that is not falling. The idea is that a base which shows up on three timeframes at once has more stored energy than one that only looks tight on the daily. Plan: mark the pivot, buy the break on volume expansion, stop under the last contraction low - and give it more room and more time than a daily-only coil, because these tend to sit longer before they resolve. Measurement caveat: the weekly test uses weekly CLOSES, because weekly highs and lows are not stored yet, so it is a proxy for weekly tightness rather than a true range contraction.'},{id:'nr_vcp',when:'eod',grp:'Coil / Pre-Breakout',label:'NR7 + Momentum Flag Combo',set:{nr:['nr7'],pattern:['VCP']},how:'An NR7 day landing inside an active Momentum Flag base - weeks of contraction culminating in the tightest possible single session. The strongest version of a pre-breakout setup on this list. Plan: mark the NR7 days high as the near-term trigger and the Momentum Flag pivot as the bigger one, then buy the breakout through either on a volume expansion. Stop under the last contraction low.'},{id:'nr_confirmed',when:'eod',grp:'Breakout / Leaders',label:'NR Breakout Confirmed',set:{nr:['brokenUp']},how:'Stocks that just closed above their Narrow-Range days high - the compression has resolved upward. Catches the move as it happens rather than waiting on the sidelines. Plan: buy strength or the first tight pullback, stop under the NR days low. Check the volume yourself - a break on real volume holds up far better than one on a quiet session.'}];
 
 function scrZ52state(s,pct52){
  if(s.breakout_type&&s.breakout_price){const r=(+s.ltp)/(+s.breakout_price);return r>1.15?'bo':'base';}
@@ -13353,11 +13353,11 @@ const SCR_DEEP={
  h:'The strongest EPs never fill their gap. Use the first 1\u20135 days after the gap as your reference: mark the high of the gap day. Entries come either on the first shallow pullback that holds above the 9 EMA, or on a break of the gap-day high. Your stop belongs below the gap-day low \u2014 if the gap fills completely, the thesis is dead.',
  c:'Strongest combined with: <b>Smart Money</b> (institutions accumulating confirms the buyer is real), <b>Alignment = Full or Sector-led</b> (the backdrop is not fighting you), and <b>Entry Mode</b> for the exact trigger price. The EP + Smart Money playbook is exactly this combination.'},
 
-'pattern:VCP':{t:'Volatility Contraction Pattern (VCP)',
+'pattern:VCP':{t:'Momentum Flag',
  w:'A strong advance, followed by a series of pullbacks that each get progressively smaller and quieter. Price swings tighten and volume dries up as the base matures.',
- y:'Each successive pullback shakes out weaker holders. By the time the swings are tiny, almost everyone left holding wants to hold. Supply has been exhausted, so it takes very little new buying to push price out of the range \u2014 which is why VCP breakouts can move so fast.',
+ y:'Each successive pullback shakes out weaker holders. By the time the swings are tiny, almost everyone left holding wants to hold. Supply has been exhausted, so it takes very little new buying to push price out of the range \u2014 which is why Momentum Flag breakouts can move so fast.',
  h:'The pivot is the high of the final, tightest contraction. Buy the break of that pivot on a clear volume expansion, not before \u2014 buying inside the base means sitting through more chop. Stop goes under the low of the last contraction, which should be tight enough to keep risk small. If volume does not expand on the break, be quick to cut it.',
- c:'Strongest combined with: <b>Contraction \u2265 0.7</b> (proves the base is genuinely tight relative to the advance), <b>NR7</b> (maximum compression right at the end of the base \u2014 see the NR7 + VCP Combo playbook), and <b>Volume dry-up</b>. Check <b>Entry Mode</b>: if the base is short, the dashboard will tell you to buy the pullback instead of waiting.'},
+ c:'Strongest combined with: <b>Contraction \u2265 0.7</b> (proves the base is genuinely tight relative to the advance), <b>NR7</b> (maximum compression right at the end of the base \u2014 see the NR7 + Momentum Flag Combo playbook), and <b>Volume dry-up</b>. Check <b>Entry Mode</b>: if the base is short, the dashboard will tell you to buy the pullback instead of waiting.'},
 
 'pattern:HTF':{t:'High Tight Flag (HTF)',
  w:'A violent advance \u2014 typically 80% or more in around two months \u2014 followed by a shallow, short sideways pause that gives back very little of the move.',
@@ -13375,7 +13375,7 @@ const SCR_DEEP={
  w:'Price is currently within about 3% of its breakout pivot \u2014 coiled right underneath the level that would trigger a move.',
  y:'This is a timing filter, not a pattern. It tells you which setups are close enough to matter now rather than in three weeks, which is what makes it useful for building a daily watchlist you will actually act on.',
  h:'Set alerts at the pivot rather than watching. When it triggers, check that volume is expanding \u2014 a pivot break on quiet volume fails far more often than one on heavy volume.',
- c:'Use it as a narrowing filter on top of a pattern: <b>VCP + Near Pivot</b> is the classic combination, and is exactly what the VCP at Pivot playbook does.'},
+ c:'Use it as a narrowing filter on top of a pattern: <b>Momentum Flag + Near Pivot</b> is the classic combination, and is exactly what the Momentum Flag at Pivot playbook does.'},
 
 'pattern:BrokenOut':{t:'Broken Out',
  w:'The stock has already closed above its breakout pivot as of the most recent session.',
@@ -13477,7 +13477,7 @@ const SCR_DEEP={
  w:'Today\u2019s high-to-low range is the smallest of the last seven sessions, today included. The standard definition, from Toby Crabel\u2019s work on short-term price patterns.',
  y:'Volatility is cyclical. Periods of extreme quiet are followed by periods of movement, because a very narrow range means buyers and sellers have reached temporary agreement \u2014 and that balance does not last. The tighter the coil, the more energy is stored for the eventual expansion.',
  h:'An NR7 day is not a trade by itself and it does not tell you direction. Mark the day\u2019s high and low \u2014 both are in the Range column tooltip. Trade the break of either level, ideally with volume expanding. The dashboard then tracks what happens next automatically: the badge becomes Broken \u2191, Broken \u2193, or stays Coiling.',
- c:'Direction comes from context. <b>NR7 + VCP</b> means maximum compression at the end of a mature base. <b>NR7 + Alignment</b> (Coiled + Aligned) tells you which way the backdrop favours the break. NR7 always implies NR4, since 4 days are a subset of 7.'},
+ c:'Direction comes from context. <b>NR7 + Momentum Flag</b> means maximum compression at the end of a mature base. <b>NR7 + Alignment</b> (Coiled + Aligned) tells you which way the backdrop favours the break. NR7 always implies NR4, since 4 days are a subset of 7.'},
 
 'nr:nr4':{t:'NR4 \u2014 Narrowest Range in 4 Days',
  w:'Today\u2019s range is the smallest of the last four sessions, today included. A looser version of the same idea as NR7.',
@@ -13501,13 +13501,13 @@ const SCR_DEEP={
  w:'The stock posted a narrow-range day earlier and is still trading inside that day\u2019s high and low.',
  y:'The compression has not resolved yet. The longer a stock stays inside a narrow-range day, the more meaningful the eventual break tends to be, because the balance between buyers and sellers is persisting rather than breaking immediately.',
  h:'This is your live watchlist. Set alerts at both the high and the low from the Range tooltip and let the market choose the direction. Do not pre-empt the break by guessing.',
- c:'Combine with <b>Alignment</b> to form a directional bias while you wait, and with <b>VCP</b> to find coils inside mature bases.'},
+ c:'Combine with <b>Alignment</b> to form a directional bias while you wait, and with <b>Momentum Flag</b> to find coils inside mature bases.'},
 
 'contractmin:0.7':{t:'Contraction \u2265 0.7 (tight)',
  w:'The Contraction Ratio compares how tight the current base is against the size of the advance that led into it. 0.7 or higher means the base is very small relative to that move.',
  y:'A stock that ran up 40% and now consolidates in an 8% range is behaving very differently from one that ran 40% and is chopping in a 25% range. In the first case holders are refusing to sell after a large gain \u2014 strong hands. In the second, the base is nearly as large as the move, which means the advance is being given back and the pattern is far more likely to fail.',
- h:'Use it as a quality gate on top of a pattern rather than as a screen on its own. A VCP with a 0.7+ contraction is meaningfully better than a VCP without one. Because the base is tight, your stop is close, which keeps risk small and lets you size sensibly.',
- c:'The Tight Contraction and Tightest Bases in Market playbooks. Strongest combined with <b>VCP</b> or <b>HTF</b> and <b>Category A/AC</b>.'},
+ h:'Use it as a quality gate on top of a pattern rather than as a screen on its own. A Momentum Flag with a 0.7+ contraction is meaningfully better than a Momentum Flag without one. Because the base is tight, your stop is close, which keeps risk small and lets you size sensibly.',
+ c:'The Tight Contraction and Tightest Bases in Market playbooks. Strongest combined with <b>Momentum Flag</b> or <b>HTF</b> and <b>Category A/AC</b>.'},
 
 'contractmin:0.5':{t:'Contraction \u2265 0.5',
  w:'The base is reasonably tight relative to the advance before it.',
@@ -13629,7 +13629,7 @@ function scrEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</
    A saved preset now gets the same two parts a playbook has: a short label and
    a plain-English description. The label is SUGGESTED, never forced - the box
    stays editable. Combinations that are recognised get a real name; anything
-   else gets an accurate composed one ("VCP - Cat A - ADR 3+"), because a good
+   else gets an accurate composed one ("Momentum Flag - Cat A - ADR 3+"), because a good
    evocative name cannot be invented reliably for an arbitrary filter set.
    The description is built from each selected option's own tooltip, so it says
    the same thing the filter bar says - nothing new is invented here either. */
@@ -13638,7 +13638,7 @@ var TF_PNAME_RULES=[
  {n:'EP + Smart Money',        need:{pattern:['EP'],smt:['LOADING_UP','ACCUMULATING']}},
  {n:'Coiled Pullback',         need:{pattern:['VCP','HTF'],zone:['near9e']}},
  {n:'Coiled Pullback',         need:{pattern:['VCP','HTF'],entry:['pullback']}},
- {n:'VCP at Pivot',            need:{pattern:['VCP','HTF'],z52:['zone']}},
+ {n:'Momentum Flag at Pivot',            need:{pattern:['VCP','HTF'],z52:['zone']}},
  {n:'Tightest Contraction',    need:{pattern:['VCP','HTF'],contractmin:['0.5','0.6','0.7','0.8']}},
  {n:'Coiled & Drying',         need:{pattern:['VCP','HTF']}},
  {n:'Fresh 9E Reclaim',        need:{pattern:['Reclaim'],vsig:['acc']}},
@@ -14512,9 +14512,13 @@ function seq(a,b,n){var o=[];for(var i=0;i<n;i++)o.push(a+(b-a)*i/(n-1));return 
 var FIGS={
  vcp:function(){var c=seq(60,99,14).concat([96,92,88,86,90,94,97,95,92,90.5,93,96,96.8,95.2,94.4,95.6,96.4,95.9,100.5,104]);
   var v=[8,8,9,9,10,10,11,11,12,12,13,13,14,14,11,10,10,9,8,8,7,7,6,6,5,5,4.5,4,4,3.5,3.2,3,12,14];
-  return fig('VCP — VOLATILITY CONTRACTION','Each pullback is shallower than the last and volume dries up. Buy the break of the pivot on expanding volume; the stop goes under the last, tightest contraction.',
+  return fig('TRUE VCP — VOLATILITY CONTRACTION','Each pullback is shallower than the last and volume dries up. Buy the break of the pivot on expanding volume; the stop goes under the last, tightest contraction.',
    {c:c,v:v,lines:[{y:97.4,t:'Pivot — buy the break',col:'#16A34A',a:14,b:30},{y:93.9,t:'Stop',col:'#DC2626',a:24,b:30,below:1}],
     notes:[{i:17,t:'−13%',col:'#DC2626'},{i:22,t:'−7%',col:'#DC2626'},{i:27,t:'−3%',col:'#DC2626'},{i:6,t:'prior move',up:1}],hl:[32]});},
+ flag:function(){var c=seq(60,74,8).concat([76.5,78.4,80]).concat([79.2,78.4,79.6,78.9,79.4,82.6,84.5]);
+  var v=[8,8,9,9,10,10,11,11,12,12,12,7,6,5,5,4.5,12,10];
+  return fig('MOMENTUM FLAG','A 20%+ run in the last few weeks, then a tight 5-day pause (range 8% or less) near the high. Buy the break of the 5-day high on volume; stop under the low of the pause.',
+   {c:c,v:v,lines:[{y:80.25,t:'Pivot — 5-day high',col:'#16A34A',a:11,b:17,left:1},{y:77.9,t:'Stop',col:'#DC2626',a:11,b:17,below:1}],zones:[{a:0,b:10,col:'#22C55E',t:'RUN 20%+'},{a:11,b:15,col:'#3B82F6',t:'5-DAY PAUSE'}],hl:[16]});},
  htf:function(){var c=[50,50.6,49.8,50.4,50.2,50.8].concat(seq(53,96,8)).concat([94,92.5,93.8,92,93.2,94.4,93.6,94.8,99.5,103]);
   var v=[3,3,3,3,3,3,9,11,12,14,13,12,11,10,6,5,4,4,3.5,3.5,3,3,12,13];
   return fig('HIGH TIGHT FLAG','A near-vertical pole (roughly doubling in a few weeks), then a flag that drifts no more than ~20–25% off the high on quiet volume. Buy the break of the flag high.',
@@ -14588,6 +14592,7 @@ var FIGS={
   return '<div class="sx-fig"><div class="ft">MULTI-TIMEFRAME — HTF PULLBACK</div>'+svg+
    '<div class="cap">The bigger timeframes carry the trend; the daily is only resting. Entries taken when weekly and monthly both point up have the wind behind them — the daily dip is the entry, not the warning.</div></div>';}
 };
+window.TF_FIGS=FIGS;
 function figKeys(){
  var S=SCRx();if(!S)return [];var st=S.state||{},k=[];
  function has(key,v){return st[key]&&st[key].size&&(v===undefined||st[key].has(v));}
@@ -14601,7 +14606,8 @@ function figKeys(){
  if(ap==='pb_spring'||has('shk','spring'))k.push('spring');
  if(ap==='pb_box_ur'||ap==='pb_uc_now'||has('shk','ur')||has('bstate','undercut')||has('bstate','reclaimed'))k.push('box_ur');
  if(has('shk','ema9')||has('shk','ema20')||(has('shk','any')&&!k.length))k.push('reclaim');
- if(has('pattern','VCP'))k.push('vcp');
+ if(has('pattern','VCP'))k.push('flag');
+ if(has('v2state')||has('v2t')||has('v2last'))k.push('vcp');
  if(has('pattern','HTF'))k.push('htf');
  if(has('pattern','EP')||/ep/i.test(ap)&&/pb_ep|earningsep|delayedep|epcoil|epresumed|epinsider/.test(ap))k.push('ep');
  if(has('rclgrade')||has('pattern','Reclaim')||/rcl_|reclaim|shakeout/.test(ap))k.push('reclaim');
@@ -14610,7 +14616,7 @@ function figKeys(){
  if(has('entry','breakout')||has('pattern','BrokenOut')||has('pattern','NearPivot')||has('z52','bo')||/bovol|bo_aligned|highadrbo|nr_confirmed/.test(ap))k.push('breakout');
  if(has('ebase')||/base_20|base_50/.test(ap))k.push('ebase');
  if(has('mtf')||has('wtr')||has('mtr')||/^mtf_|mtfcoil/.test(ap))k.push('mtf');
- if(!k.length&&(has('contractmin')||/coil/.test(ap)))k.push('vcp');
+ if(!k.length&&(has('contractmin')||/coil/.test(ap)))k.push('flag');
  var out=[];k.forEach(function(x){if(out.indexOf(x)<0)out.push(x);});
  return out.slice(0,2);
 }
@@ -14647,9 +14653,9 @@ function subs(){
 function setupsLine(){
  var hd=$('scr-pbphd'),S=SCRx();if(!hd||!S||!S.data)return;
  var el=$('sx-setups');if(!el){el=document.createElement('span');el.id='sx-setups';el.style.cssText='font-size:11px;color:var(--muted)';hd.insertBefore(el,hd.lastChild);}
- var sc={VCP:0,HTF:0,EP:0,R:0};
- S.data.forEach(function(d){if(d._ipoRow)return;if(d.qm&&sc[d.qm]!=null)sc[d.qm]++;if(d.rclGrade&&'ABD'.indexOf(d.rclGrade)>=0)sc.R++;});
- el.textContent='Setups today: '+sc.VCP+' VCP · '+sc.HTF+' HTF · '+sc.EP+' EP · '+sc.R+' Reclaim';
+ var sc={VCP:0,HTF:0,EP:0,R:0,V2:0};
+ S.data.forEach(function(d){if(d._ipoRow)return;if(d.qm&&sc[d.qm]!=null)sc[d.qm]++;if(d.rclGrade&&'ABD'.indexOf(d.rclGrade)>=0)sc.R++;if(d.v2State)sc.V2++;});
+ el.textContent='Setups today: '+sc.VCP+' Momentum Flag · '+sc.HTF+' HTF · '+sc.EP+' EP · '+sc.R+' Reclaim · '+sc.V2+' True VCP';
 }
 window.market=function(){try{market0();}catch(e){}};
 function refresh(){try{if(build()){bar();market0();subs();clip();setupsLine();}}catch(e){console.error('screener ui v2:',e);}}
@@ -16709,12 +16715,12 @@ setTimeout(function(){clearInterval(t);},60000);
 var MKT='IN';
 /* ── the order, top to bottom (Mahesh, 13 Oct 2026). Keys missing in a market are skipped. ── */
 var ORDER=[
- ['🧱 Setup & Base',['pattern','entry','basemin','consolmin','contractmin','nr','polemin','polespeedmin','pole','ebase']],
+ ['🧱 Setup & Base',['pattern','v2state','v2t','v2last','entry','basemin','consolmin','contractmin','nr','polemin','polespeedmin','pole','ebase']],
  ['⚡ Episodic Pivots',['eptype','epstage','epctx','epage']],
  ['🌀 Shakeouts & Reclaims',['shk','shkage','bstate','ucd','rclv','rclgrade','rclvol','rclriskmax','rcldaysmax']],
  ['🏔 52-Week Highs',['h52sig','h52q','z52']],
  ['📍 Where Price Is',['zone5','zone','wzone','e50z','e200z','e200s']],
- ['🔊 Today’s Volume & Move',['vsig','rvolmin','vmove']],
+ ['🔊 Today’s Volume & Move',['gnow','vsig','rvolmin','vmove']],
  ['🌐 Market & Sector',['mkt','sec','secw','secm','align']],
  ['📈 Stock Trend',['signal','cat','dtr','wtr','mtr','tfup','mtf','conv','hold']],
  ['🏆 Strength & Leaders',['topmv','rsr','rshi']],
@@ -16758,7 +16764,7 @@ var WHY={
  rvolmin:'Today’s volume compared with the stock’s 20-day average volume.',
  adrmin:'Average daily range: how much the stock typically moves in a day, as % of its price. Higher = moves faster, with bigger gains and wider stops.',
  consolmin:'How many sessions the stock has spent building near its 52-week high (in the breakout zone or its base).',
- basemin:'How many sessions the current VCP / High Tight Flag base has lasted.',
+ basemin:'How many sessions the current Momentum Flag / High Tight Flag base has lasted.',
  erwin:'When the company reports quarterly results.',
  erstat:'Whether this quarter’s results are still to come or already reported.',
  erverd:'How the stock behaved around its results, in a word.',
@@ -16897,6 +16903,161 @@ setTimeout(function(){try{enrich();}catch(e){}},4000);setTimeout(function(){try{
 })();
 </script>
 
+<!-- ═══ TrueFlow VCP v2 — True VCP (classic rules, nightly vcp_scan.py), Momentum Flag explainer, Top gainers today button ═══ -->
+<style>
+#tf-px{position:fixed;inset:0;background:rgba(2,6,23,.55);z-index:9998;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:40px 12px}
+#tf-px.open{display:flex}
+#tf-px .bx{background:var(--bg2,#fff);color:var(--text,#111);border:1px solid var(--border,#ddd);border-radius:14px;max-width:760px;width:100%;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.35);font-size:13px;line-height:1.55}
+#tf-px h3{margin:0 0 4px;font-size:16px}
+#tf-px .sub{color:var(--muted);font-size:12px;margin-bottom:10px}
+#tf-px ol{margin:6px 0 10px 18px;padding:0}#tf-px li{margin:3px 0}
+#tf-px .me{background:var(--bg3,#f1f5f9);border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px}
+#tf-px .x{float:right;cursor:pointer;color:var(--muted);font-size:18px;line-height:1}
+#tf-px .sx-fig{margin-top:8px}
+.tf-pchip{cursor:pointer!important;text-decoration:underline dotted;text-underline-offset:2px}
+#tf-gnow.on{background:var(--cyan);color:#03121a;border-color:var(--cyan)}
+</style>
+<script>
+(function(){
+'use strict';
+var MKT='IN',TBL=MKT==='IN'?'vcp_state':'us_vcp_state';
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function sbGet(p){return fetch(CONFIG.supabaseUrl+'/rest/v1/'+p,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});}
+window.VCP2X={rows:{},date:null};
+var _p=null;
+function load(){
+ if(_p)return _p;
+ _p=(async function(){
+  var all=[],off=0;for(var g=0;g<4;g++){var b=await sbGet(TBL+'?select=symbol,session_date,state,t_count,depths,first_depth,last_depth,base_days,pivot,pct_to_pivot,vol_ratio,prior_adv,bo_vol&is_vcp=eq.true&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}
+  var mx='';all.forEach(function(x){if(x.session_date>mx)mx=x.session_date;});
+  VCP2X.date=mx;all.forEach(function(x){if(x.session_date===mx)VCP2X.rows[x.symbol]=x;});
+ })();
+ return _p;
+}
+function n(x){return x==null?null:+x;}
+function apply(d){var r=VCP2X.rows[d.sym];
+ d.v2State=r?r.state:null;d.v2T=r?n(r.t_count):null;d.v2Depths=r?r.depths:null;d.v2First=r?n(r.first_depth):null;d.v2Last=r?n(r.last_depth):null;
+ d.v2Base=r?n(r.base_days):null;d.v2Pivot=r?n(r.pivot):null;d.v2Pct=r?n(r.pct_to_pivot):null;d.v2Vr=r?n(r.vol_ratio):null;d.v2Prior=r?n(r.prior_adv):null;d.v2BoVol=r?n(r.bo_vol):null;
+ d.v2=r?({breakout:300,near:200,forming:100}[r.state]||0)-(n(r.pct_to_pivot)||0):null;}
+var STI={breakout:'🚀',near:'🎯',forming:'⏳'};
+var F_ST={key:'v2state',label:'True VCP',opts:['breakout','near','forming'],
+ disp:{breakout:'🚀 True VCP · breakout',near:'🎯 True VCP · near pivot',forming:'⏳ True VCP · forming'},
+ tips:{breakout:'A True VCP whose first close above the pivot was today or yesterday, on at least 1.5× the 50-day average volume.',
+  near:'A True VCP closing within 3% under its pivot (or just above it without the volume yet). The classic place to set an alert.',
+  forming:'A True VCP that passes every rule but is still more than 3% under the pivot. Watch list, not a buy yet.'}};
+var F_T={key:'v2t',label:'True VCP · number of pullbacks',opts:['2','3','4'],
+ disp:{'2':'2+ pullbacks','3':'3+ pullbacks','4':'4+ pullbacks'},
+ tips:{'2':'At least 2 shrinking pullbacks (the minimum for a VCP).','3':'At least 3 shrinking pullbacks — the textbook “3T” base.','4':'At least 4 shrinking pullbacks — a long, mature base.'}};
+var F_L={key:'v2last',label:'True VCP · last pullback',opts:['5','10'],
+ disp:{'5':'Last pullback ≤ 5%','10':'Last pullback ≤ 10%'},
+ tips:{'5':'The final, tightest pullback was 5% or less — very little supply left, and a close stop.','10':'The final pullback was 10% or less (every True VCP already meets this).'}};
+var F_G={key:'gnow',label:'Top gainers today',opts:['top50'],disp:{top50:'🚀 Top 50 gainers today'},
+ tips:{top50:'The 50 stocks up the most today (the Day % column), from the stocks on this screener. Same as the 🚀 button in the tools row.'}};
+var GN={ref:null,len:0,set:null};
+function gset(){var D=SCR.data||[];if(GN.ref===D&&GN.len===D.length&&GN.set)return GN.set;
+ var l=D.filter(function(d){return !d._ipoRow&&d.day!=null&&+d.day>0;}).sort(function(a,b){return b.day-a.day;}).slice(0,50);
+ GN.ref=D;GN.len=D.length;GN.set=new Set(l.map(function(d){return d.sym;}));return GN.set;}
+function passes(d){var S=SCR.state;
+ var s=S.v2state;if(s&&s.size&&!(d.v2State&&s.has(d.v2State)))return false;
+ var t=S.v2t;if(t&&t.size){var mn=99;t.forEach(function(o){mn=Math.min(mn,+o);});if(!(d.v2T!=null&&d.v2T>=mn))return false;}
+ var l=S.v2last;if(l&&l.size){var mx=0;l.forEach(function(o){mx=Math.max(mx,+o);});if(!(d.v2Last!=null&&d.v2Last<=mx))return false;}
+ var g=S.gnow;if(g&&g.size&&!gset().has(d.sym))return false;
+ return true;}
+function chip(d){
+ if(!d.v2State)return (typeof DASH!=='undefined')?DASH:'<span class="scr-dash">—</span>';
+ var pc=d.v2Pct,where=pc==null?'':(pc>0?pc.toFixed(1)+'% below pivot':(-pc).toFixed(1)+'% above pivot');
+ var t='True VCP ('+d.v2State+'): '+d.v2T+' pullbacks '+d.v2Depths+'% · pivot '+d.v2Pivot+(where?' · '+where:'')+' · base '+d.v2Base+' sessions · volume in the last leg '+(d.v2Vr!=null?d.v2Vr.toFixed(2)+'× the base average':'')+'. Click for the rules.';
+ var col=d.v2State==='breakout'?'#16A34A':(d.v2State==='near'?'#D97706':'#3B82F6');
+ return '<span class="scr-chip tf-pchip tf-v2chip" style="background:'+col+'1f;color:'+col+'" title="'+esc(t)+'" onclick="event.stopPropagation();tfPatExplain(\'vcp\',\''+esc(d.sym)+'\')">'+
+  STI[d.v2State]+' 📐 '+d.v2T+'T · '+esc(d.v2Depths)+'%'+(where?' · '+where:'')+'</span>';}
+var COL={k:'v2',g:'Breakout',lbl:'True VCP',a:'l',def:1,tip:'True VCP from the nightly scan: number of shrinking pullbacks, their depths, and the distance to the pivot. Click a badge for the rules.',
+ cell:chip};
+var PB=[{id:'vcp2_near',when:'eod',grp:'Coil / Pre-Breakout',label:'📐 True VCP near pivot',fig:'vcp',set:{v2state:['near','breakout']},
+ how:'Classic Volatility Contraction Patterns (2–6 pullbacks, each shallower than the last, the last 10% or less, volume drying up, above a rising 50 and 200 EMA) that are within 3% of the pivot or broke out today/yesterday on 1.5× volume. Not yet studied — rules, not proven edge. Plan: alert at the pivot, buy the break on volume, stop under the low of the last pullback.'}];
+var WHY={v2state:'The classic Volatility Contraction Pattern (Minervini), found every night by vcp_scan.py: a run-up, then 2–6 pullbacks that keep getting smaller, the last 10% or less, volume drying up, above a rising 50 and 200 EMA. Pick where it is: forming, near the pivot, or breaking out.',
+ v2t:'How many shrinking pullbacks the True VCP base has. More pullbacks = a longer, more mature base.',
+ v2last:'Depth of the final, tightest pullback in the True VCP. Smaller = less supply left and a closer stop.',
+ gnow:'Today’s 50 biggest gainers (Day %) on this screener. One click from the 🚀 button in the tools row.'};
+var DEEP={
+ 'v2state:breakout':['True VCP — breakout','Price closed above the pivot (the high of the last pullback) for the first time today or yesterday, on at least 1.5× its 50-day average volume.','After the pullbacks have shaken out the sellers, a volume break shows real buyers arriving at the pivot.','Buy near the pivot if it is still close; avoid chasing more than ~5% above it. Stop under the low of the last pullback. If the next days fall back under the pivot on volume, cut it.','Strongest with <b>Beating the index</b> (Strength & Leaders) and a strong <b>Sector</b>.'],
+ 'v2state:near':['True VCP — near pivot','A True VCP closing within 3% under its pivot, or just above it without the breakout volume yet.','This is the coil right before the trigger: the swings are small, so the stop can be close.','Set an alert at the pivot; buy only when it clears the pivot on volume. Stop under the low of the last pullback.','Add <b>Last pullback ≤ 5%</b> for the tightest bases, or <b>3+ pullbacks</b> for mature ones.'],
+ 'v2state:forming':['True VCP — forming','The base passes every True VCP rule but price is still more than 3% under the pivot.','The structure is right but the stock still has to work back up to the pivot.','Watch list only. Revisit when it moves into “near pivot”.','Combine with <b>Base length</b> to see the most mature bases first.']};
+function flagRules(){return '<ol>'+
+ '<li><b>A quick run first:</b> in the last ~5 weeks the stock rose at least <b>20%</b> — from its lowest close of the sessions 25 to 5 days ago, to its highest close since.</li>'+
+ '<li><b>A tight pause now:</b> the last <b>5 sessions</b> traded in a range of <b>8% or less</b> of the price.</li>'+
+ '<li><b>Still near the top:</b> the close is no more than <b>15%</b> below the highest high of the last 20 sessions.</li>'+
+ '<li><b>Measured, not required:</b> volume dry-up (last 5 days vs the 10 before: <i>Yes</i> under 70%, <i>Partial</i> under 90%), tightness (how small the 5-day range is vs the run), base length (closes in a row within 5% of today).</li>'+
+ '<li><b>Pivot</b> = the high of the last 5 sessions. If the run was <b>80%+</b> in ~40 days, it is tagged <b>HTF</b> (High Tight Flag) instead.</li></ol>'+
+ '<div class="sub">This is what the dashboard called “VCP” until 13 Oct 2026. It is a short flag after a fast run (Qullamaggie style). It does not count pullbacks or check that they shrink — that is the True VCP. The Pole, Speed, Tightness and Base length filters belong to it.</div>';}
+function vcpRules(){return '<ol>'+
+ '<li><b>Uptrend:</b> close above the 50-day EMA, the 50 above the 200, and the 200 higher than a month ago.</li>'+
+ '<li><b>A run into the base:</b> the base high is at least <b>25%</b> above the low of the 60 sessions before it.</li>'+
+ '<li><b>2 to 6 pullbacks, each shallower than the one before</b> (e.g. 24% → 12% → 5%). The first no deeper than <b>35%</b>, the last <b>10% or less</b>. Small wiggles under max(2.5%, 0.8× the daily range) do not count as a pullback.</li>'+
+ '<li><b>Volume dries up:</b> average volume since the last peak is lower than the average over the whole base.</li>'+
+ '<li><b>Pivot</b> = the high of the last pullback, no more than 10% under the base high. Base at least 15 sessions old.</li>'+
+ '<li><b>State:</b> 🚀 breakout = first close above the pivot today/yesterday on 1.5× the 50-day volume · 🎯 near = within 3% of the pivot · ⏳ forming = the rest.</li></ol>'+
+ '<div class="sub">Rules: Mark Minervini’s Volatility Contraction Pattern, checked every night from stored daily prices. Not yet studied for edge.</div>';}
+function rowOf(sym){return (SCR.data||[]).filter(function(d){return d.sym===sym;})[0]||null;}
+window.tfPatExplain=function(kind,sym){
+ var el=document.getElementById('tf-px');if(!el){el=document.createElement('div');el.id='tf-px';el.onclick=function(e){if(e.target===el)el.classList.remove('open');};document.body.appendChild(el);}
+ var d=sym?rowOf(sym):null,me='',h;
+ if(kind==='vcp'){
+  if(d&&d.v2State)me='<div class="me"><b>'+esc(d.sym)+'</b> · '+STI[d.v2State]+' '+d.v2State+' · '+d.v2T+' pullbacks: '+esc(d.v2Depths)+'% · pivot '+d.v2Pivot+' ('+(d.v2Pct>0?d.v2Pct.toFixed(1)+'% below':(-d.v2Pct).toFixed(1)+'% above')+') · base '+d.v2Base+' sessions · run-up into the base '+d.v2Prior+'% · last-leg volume '+(d.v2Vr!=null?d.v2Vr.toFixed(2):'—')+'× the base average'+(d.v2BoVol!=null?' · breakout volume '+d.v2BoVol.toFixed(1)+'×':'')+'</div>';
+  h='<h3>📐 True VCP — Volatility Contraction Pattern</h3>'+me+vcpRules();
+ }else{
+  if(d&&d.qm==='VCP')me='<div class="me"><b>'+esc(d.sym)+'</b> · run '+(d.poleMovePct!=null?d.poleMovePct+'%':'—')+(d.poleDays!=null?' in '+d.poleDays+' days':'')+' · now '+(d.basePct!=null?d.basePct+'%':'—')+' off the high · tightness '+(d.contract!=null?d.contract:'—')+' · volume dry-up '+(d.volDry||'—')+' · pivot '+(d.pivot!=null?d.pivot:'—')+' · base '+(d.baseDays!=null?d.baseDays:'—')+' days</div>';
+  h='<h3>🏁 Momentum Flag</h3>'+me+flagRules();
+ }
+ var fg='';try{if(window.TF_FIGS&&TF_FIGS[kind])fg=TF_FIGS[kind]();}catch(e){}
+ el.innerHTML='<div class="bx"><span class="x" onclick="document.getElementById(\'tf-px\').classList.remove(\'open\')">✕</span>'+h+fg+'</div>';
+ el.classList.add('open');};
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var el=document.getElementById('tf-px');if(el)el.classList.remove('open');}});
+/* 🚀 Top gainers today: one click applies it alone, a second click clears it */
+window.tfGainers=function(){
+ var on=SCR.state.gnow&&SCR.state.gnow.size;
+ if(on){SCR.state.gnow=new Set();}
+ else{try{scrClearAll();}catch(e){}SCR.state.gnow=new Set(['top50']);SCR.activePreset=null;SCR.sortKey='day';SCR.sortDir=-1;}
+ try{scrSyncChecks();}catch(e){}try{scrSyncChips();}catch(e){}scrRender();};
+function btn(){
+ var bar=document.querySelector('#tab-screener .scr-bar2');if(!bar)return;
+ var b=document.getElementById('tf-gnow');
+ if(!b){b=document.createElement('button');b.id='tf-gnow';b.className='scr-tool';b.textContent='🚀 Top gainers today';
+  b.title='One click: the 50 stocks up the most today (Day %). Click again to clear.';b.onclick=tfGainers;
+  var q=bar.querySelector('.sx-qvw');if(q&&q.nextSibling)bar.insertBefore(b,q.nextSibling);else bar.appendChild(b);}
+ b.classList.toggle('on',!!(SCR.state.gnow&&SCR.state.gnow.size));}
+function renames(){
+ /* the old “VCP” is now “Momentum Flag”: its filter explanation */
+ try{SCR_DEEP['pattern:VCP']={t:'Momentum Flag (called “VCP” before 13 Oct 2026)',
+  w:'A stock that ran at least 20% in the last ~5 weeks and has now paused for 5 sessions in a tight range (8% or less), within 15% of its recent high.',
+  y:'A fast run followed by a quiet, tight pause means the holders are not selling. When the pause resolves upward, momentum stocks often run again quickly.',
+  h:'The pivot is the high of the last 5 sessions. Buy the break of the pivot on volume; stop under the low of the pause. Click a 🏁 badge in the table for the exact rules and a picture.',
+  c:'Strongest with <b>Base tightness ≥ 0.7</b>, <b>NR7</b> and volume dry-up. For the classic shrinking-pullback base, use <b>True VCP</b> instead.'};}catch(e){}
+ for(var k in DEEP){var a=DEEP[k];try{SCR_DEEP[k]={t:a[0],w:a[1],y:a[2],h:a[3],c:a[4]};}catch(e){}}
+}
+function install(){
+ if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
+ if(window._vcp2Installed)return true;window._vcp2Installed=true;
+ SCR_FILTERS.push(F_ST,F_T,F_L,F_G);['v2state','v2t','v2last','gnow'].forEach(function(k){SCR.state[k]=new Set();});
+ try{var g=SCR_FGROUPS.filter(function(x){return /Setup|Pattern|Breakout/i.test(x[0]);})[0];if(g)g[1].push('v2state','v2t','v2last');else SCR_FGROUPS.push(['True VCP',['v2state','v2t','v2last']]);
+  var gv=SCR_FGROUPS.filter(function(x){return /^Volume/.test(x[0]);})[0];if(gv)gv[1].push('gnow');}catch(e){}
+ try{for(var k in WHY)SCR_FILTER_WHY[k]=WHY[k];}catch(e){}
+ renames();
+ SCR_COLS.push(COL);SCR.vis[COL.k]=true;
+ PB.forEach(function(p){p._vcp2=true;SCR_PRESETS.push(p);});
+ var orig=scrPasses;scrPasses=function(d){if(!orig(d))return false;return passes(d);};
+ if(!scrRender._vcp2){var o=scrRender;window.scrRender=scrRender=function(){var r=o.apply(this,arguments);try{btn();}catch(e){}return r;};scrRender._vcp2=true;}
+ try{scrFillPlaybooks();}catch(e){}
+ return true;}
+var t=setInterval(function(){
+ if(install()){clearInterval(t);
+  var m=window.tfMtfMerge;
+  if(typeof m==='function'&&!m._vcp2){window.tfMtfMerge=async function(){var r=await m.apply(this,arguments);try{await load();(SCR.data||[]).forEach(apply);}catch(e){console.error('vcp2 merge',e);}return r;};window.tfMtfMerge._vcp2=true;}
+  if(typeof SCR!=='undefined'&&SCR.loaded){load().then(function(){(SCR.data||[]).forEach(apply);try{scrRender();}catch(e){}});}
+  try{btn();}catch(e){}
+ }},300);
+setTimeout(function(){clearInterval(t);},60000);
+})();
+</script>
 <!-- ═══ TrueFlow Focus v1 — today's proven playbooks, combined shortlist, playbook counts, pane jump chips ═══ -->
 <style>
 #tf-focus{border:1px solid var(--bg3);border-radius:12px;background:var(--bg2);margin:0 0 8px;font-size:12px}
@@ -17553,7 +17714,7 @@ function secStruct(o){
  h+=item('52W low',f(d.low52),'Lowest price in the last 52 weeks');
  h+=item('52W state',d.z52,'Where price sits in its 52-week range');
  h+=item('ADR',f(d.adr)+'%','Average daily range — how far it typically travels in a day. Above 3.5% averaged +0.334R in your ORB data; below 2% was -0.202R.');
- h+=item('QM pattern',d.qm,'Qullamaggie pattern detected: EP, VCP, HTF and so on');
+ h+=item('QM pattern',d.qm==='VCP'?'Momentum Flag':d.qm,'Qullamaggie pattern detected: EP, Momentum Flag, HTF and so on');
  h+=item('QM status',d.qm_status,'Where the scan thinks this pattern is in its life cycle.');
  h+=item('Pivot',f(d.pivotLvl||d.pivot),'Pattern pivot level — the trigger');
  h+=item('Base %',d.basePct!=null?f(d.basePct,1)+'%':null,'How deep the base is');
