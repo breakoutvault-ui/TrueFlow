@@ -15137,9 +15137,9 @@ window.tfTrendChip=function(sym){
 /* ── per-row derived fields ───────────────────────────────────── */
 function tfApply(d,r){
  d._mtf=!!r;
- if(!r){d.mtf=null;d.dS=d.wS=d.mS=null;d.tfUp=null;return;}
+ if(!r){d.mtf=null;d.dS=d.wS=d.mS=null;d.tfUp=null;d.p20=null;return;}
  d.mtf=r.mtf_state;d.dS=r.d_state;d.wS=r.w_state;d.mS=r.m_state;d.wDev=r.w_state_dev;d.mDev=r.m_state_dev;d.mShort=!!r.m_short_history;
- d.tfUp=r.tf_up;d.p50=num(r.pct_from_ema50);d.p200=num(r.pct_from_ema200);d.e50up=!!r.ema50_rising;
+ d.tfUp=r.tf_up;d.p20=num(r.pct_from_ema20_d);d.p50=num(r.pct_from_ema50);d.p200=num(r.pct_from_ema200);d.e50up=!!r.ema50_rising;
  d.emaBase=r.ema_base;d.eBaseDays=r.base_days;d.eBaseDepth=num(r.base_depth_pct);d.boxHigh=num(r.box_high);d.boxLow=num(r.box_low);
  d.belowBox=r.below_box_days||0;d.baseStatus=r.base_status;d.mBo=!!r.m_breakout;d.wCrossWeeks=r.w_cross_weeks;
  d.isIpo=!!r.is_ipo;d.listDate=r.listing_date;d.listedDays=r.days_listed;d.plh=num(r.post_listing_high);d.pctPlh=num(r.pct_from_plh);
@@ -16572,11 +16572,11 @@ setTimeout(function(){clearInterval(t);},60000);
 var MKT='US';
 /* ── the order, top to bottom (Mahesh, 13 Oct 2026). Keys missing in a market are skipped. ── */
 var ORDER=[
- ['🧱 Setup & Base',['pattern','v2state','v2t','v2last','entry','basemin','consolmin','contractmin','nr','polemin','polespeedmin','pole','ebase']],
+ ['🧱 Setup & Base',['pattern','v2state','v2t','v2last','entry','basemin','contractmin','nr','polemin','polespeedmin','pole','ebase']],
  ['⚡ Episodic Pivots',['eptype','epstage','epctx','epage']],
  ['🌀 Shakeouts & Reclaims',['shk','shkage','bstate','ucd','rclv','rclgrade','rclvol','rclriskmax','rcldaysmax']],
- ['🏔 52-Week Highs',['h52sig','h52q','z52']],
- ['📍 Where Price Is',['zone5','zone','wzone','e50z','e200z','e200s']],
+ ['🏔 52-Week Highs',['h52sig','h52q','z52','consolmin']],
+ ['📍 Where Price Is',['estack','zone5','zone','wzone','e50z','e200z','e200s']],
  ['🔊 Today’s Volume & Move',['gnow','vsig','rvolmin','vmove']],
  ['🌐 Market & Sector',['mkt','sec','secw','secm','align']],
  ['📈 Stock Trend',['signal','cat','dtr','wtr','mtr','tfup','mtf','conv','hold']],
@@ -16611,6 +16611,7 @@ var WHY={
  hold:'Whether the trend supports holding as a position or only a quick swing.',
  ebase:'A sideways box resting on the 20 or 50 EMA: the stock builds its base on the moving average instead of falling through it.',
  e50z:'Where today’s close sits versus the daily 50 EMA (the medium-term trend line).',
+ estack:'How price sits against all five daily EMAs (5, 9, 20, 50, 200) at once: above them, in perfect trend order, pulling back to the 20 or 50, or below them. Ticking several shows stocks matching ANY of them.',
  e200z:'Where today’s close sits versus the daily 200 EMA (the long-term trend line). Needs 200+ sessions of history, so very new listings show nothing.',
  e200s:'Long-term structure: the daily 50 EMA is above the daily 200 EMA, the classic shape of a long-term uptrend.',
  newl:'Stocks that listed on the exchange within the last 12 months, and their listing-high breakouts.',
@@ -16674,7 +16675,25 @@ var F200={key:'e200z',label:'Daily 200 EMA',opts:['above','near','below'],disp:{
  tips:{above:'Closed above the daily 200 EMA — in a long-term uptrend.',near:'Within one average daily range of the 200 EMA, above or below — testing the long-term trend line.',below:'Closed below the daily 200 EMA — in a long-term downtrend. Usually skip for longs.'}};
 var F200S={key:'e200s',label:'50 EMA vs 200 EMA',opts:['gx','dx'],disp:{gx:'50 EMA above 200 EMA',dx:'50 EMA below 200 EMA'},
  tips:{gx:'The daily 50 EMA is above the daily 200 EMA: long-term uptrend structure.',dx:'The daily 50 EMA is below the daily 200 EMA: long-term downtrend structure.'}};
+var FES={key:'estack',label:'EMA stack (5 · 9 · 20 · 50 · 200)',opts:['a3','a5','order','pb20','pb50','b3'],
+ disp:{a3:'✅ Above 20, 50 & 200',a5:'🟢 Above all 5 EMAs',order:'📶 Perfect order 5>9>20>50>200',pb20:'↩️ Pullback to 20 EMA',pb50:'↩️ Pullback to 50 EMA',b3:'🔻 Below 20, 50 & 200'},
+ tips:{a3:'Closed above the daily 20, 50 and 200 EMA: short, medium and long-term trends all up.',
+  a5:'Closed above every daily EMA: 5, 9, 20, 50 and 200. Strongest short-term position.',
+  order:'The EMAs are stacked 5 above 9 above 20 above 50 above 200: the textbook shape of a strong uptrend (price itself may be resting under the 5).',
+  pb20:'Above the 50 and 200 EMA, and price is within one average daily range (ADR) of the 20 EMA, above or below: a dip to the 20 inside an uptrend.',
+  pb50:'Above the 200 EMA, the 20 EMA above the 50, and price within one ADR of the 50 EMA: a deeper dip to the 50 inside an uptrend.',
+  b3:'Closed below the daily 20, 50 and 200 EMA: downtrend on every horizon. Avoid for longs.'}};
+/* d.pct5e / d.pct9e / d.p20 / d.p50 / d.p200 = % of close above that EMA. EMA_a > EMA_b  <=>  pct_a < pct_b */
+function esOk(d,o){var p5=d.pct5e,p9=d.pct9e,p20=d.p20,p50=d.p50,p200=d.p200,a=d.adr,N=function(x){return x==null;};
+ if(o==='a3')return !N(p20)&&!N(p50)&&!N(p200)&&p20>0&&p50>0&&p200>0;
+ if(o==='a5')return !N(p5)&&!N(p9)&&!N(p20)&&!N(p50)&&!N(p200)&&p5>0&&p9>0&&p20>0&&p50>0&&p200>0;
+ if(o==='order')return !N(p5)&&!N(p9)&&!N(p20)&&!N(p50)&&!N(p200)&&p5<p9&&p9<p20&&p20<p50&&p50<p200;
+ if(o==='pb20')return !N(p20)&&!N(p50)&&!N(p200)&&!!a&&p50>0&&p200>0&&Math.abs(p20)<=a;
+ if(o==='pb50')return !N(p20)&&!N(p50)&&!N(p200)&&!!a&&p200>0&&p20<p50&&Math.abs(p50)<=a;
+ if(o==='b3')return !N(p20)&&!N(p50)&&!N(p200)&&p20<0&&p50<0&&p200<0;
+ return true;}
 function pass200(d){var S=SCR.state;
+ var es=S.estack;if(es&&es.size){var oke=false;es.forEach(function(o){if(esOk(d,o))oke=true;});if(!oke)return false;}
  var z=S.e200z;if(z&&z.size){if(d.p200==null)return false;var ok=false;z.forEach(function(o){
   if(o==='above'&&d.p200>0)ok=true;if(o==='below'&&d.p200<0)ok=true;if(o==='near'&&d.adr&&Math.abs(d.p200)<=d.adr)ok=true;});if(!ok)return false;}
  var s=S.e200s;if(s&&s.size){if(d.p200==null||d.p50==null)return false;var gx=d.p200>d.p50,ok2=false;   // price/EMA50 < price/EMA200  <=>  EMA50 > EMA200
@@ -16748,7 +16767,7 @@ function upgradeExplain(){
 function install(){
  if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled||typeof scrFPBuild!=='function'||typeof scrPasses!=='function')return false;
  if(window._fv2)return true;window._fv2=true;
- SCR_FILTERS.push(F200,F200S);SCR.state.e200z=new Set();SCR.state.e200s=new Set();
+ SCR_FILTERS.push(F200,F200S,FES);SCR.state.e200z=new Set();SCR.state.e200s=new Set();SCR.state.estack=new Set();
  var op=scrPasses;scrPasses=function(d){if(!op(d))return false;return pass200(d);};
  var ob=scrFPBuild;window.scrFPBuild=scrFPBuild=function(){enrich();var r=ob.apply(this,arguments);try{collapse();}catch(e){console.error('filters v2',e);}return r;};
  upgradeExplain();enrich();
