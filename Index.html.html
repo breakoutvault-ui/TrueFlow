@@ -17188,6 +17188,153 @@ var t=setInterval(function(){
 setTimeout(function(){clearInterval(t);},60000);
 })();
 </script>
+<!-- ═══ TrueFlow Next-Day Picks v1 — 🎯 tick a stock for tomorrow, scored nightly (picks_score.py) vs the market and the Next Day WL ═══ -->
+<style>
+.tf-pk{border:1px solid var(--border,#d0d7de);background:transparent;border-radius:8px;cursor:pointer;font-size:12px;padding:1px 6px;line-height:1.4;opacity:.45}
+.tf-pk:hover{opacity:1}
+.tf-pk.on{opacity:1;background:rgba(6,182,212,.16);border-color:var(--cyan)}
+#tf-pkm{position:fixed;inset:0;background:rgba(2,6,23,.5);z-index:9999;display:none;align-items:center;justify-content:center;padding:12px}
+#tf-pkm.open{display:flex}
+#tf-pkm .bx{background:var(--bg2,#fff);color:var(--text,#111);border:1px solid var(--border,#ddd);border-radius:14px;width:100%;max-width:440px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+#tf-pkm textarea{width:100%;box-sizing:border-box;min-height:64px;border-radius:8px;border:1px solid var(--border,#ccc);background:var(--bg,#fff);color:var(--text,#111);padding:8px;font:inherit;font-size:13px}
+#tf-pkm .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+#tf-pkm button{border-radius:8px;padding:6px 14px;border:1px solid var(--border,#ccc);background:transparent;color:inherit;cursor:pointer;font-weight:600}
+#tf-pkm button.go{background:var(--cyan);border-color:var(--cyan);color:#03121a}
+#tab-nextpicks .pk-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 14px}
+#tab-nextpicks .pk-card{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:var(--bg2)}
+#tab-nextpicks .pk-card .k{font-size:10.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+#tab-nextpicks .pk-card .v{font-size:20px;font-weight:700;margin-top:2px}
+#tab-nextpicks .pk-card .s{font-size:11px;color:var(--muted)}
+#tab-nextpicks h4{margin:16px 0 6px;font-size:13px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+#tab-nextpicks table{width:100%;border-collapse:collapse;font-size:12.5px}
+#tab-nextpicks th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+#tab-nextpicks td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+#tab-nextpicks .tw{overflow-x:auto}
+#tab-nextpicks .up{color:#16A34A;font-weight:600}#tab-nextpicks .dn{color:#DC2626;font-weight:600}
+#tab-nextpicks .tg{display:inline-block;font-size:10.5px;border-radius:99px;padding:0 6px;margin:1px 2px 1px 0;background:var(--bg3)}
+</style>
+<script>
+(function(){
+'use strict';
+var TBL='next_picks';
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function H(x){return Object.assign({apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey},x||{});}
+function sbGet(p){return fetch(CONFIG.supabaseUrl+'/rest/v1/'+p,{headers:H()}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});}
+window.PKX={rows:[],loaded:false};
+/* IST clock: the session a pick is for = today if it is a weekday before 09:15 IST, else the next weekday */
+function istNow(){var d=new Date();return new Date(d.getTime()+d.getTimezoneOffset()*6e4+330*6e4);}
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function forDate(){var t=istNow(),wd=t.getDay(),before=(t.getHours()*60+t.getMinutes())<555;
+ if(wd>=1&&wd<=5&&before)return ymd(t);
+ var n=new Date(t);do{n.setDate(n.getDate()+1);}while(n.getDay()===0||n.getDay()===6);return ymd(n);}
+function locked(fd){var t=istNow();return ymd(t)>fd||(ymd(t)===fd&&(t.getHours()*60+t.getMinutes())>=555);}
+function load(){
+ var since=new Date(Date.now()-90*864e5).toISOString().slice(0,10);
+ return sbGet(TBL+'?select=*&for_date=gte.'+since+'&order=for_date.desc,picked_at.desc&limit=1000').then(function(r){PKX.rows=r||[];PKX.loaded=true;paint();});}
+function mine(sym){var fd=forDate();return PKX.rows.filter(function(r){return r.symbol===sym&&r.for_date===fd;})[0]||null;}
+window.tfPickHas=function(sym){return !!mine(sym);};
+function rowOf(sym){try{return (SCR.data||[]).filter(function(d){return d.sym===sym;})[0]||null;}catch(e){return null;}}
+function tagsOf(d){var t={};if(!d)return t;
+ if(d.v2State)t.vcp=d.v2State;if(d.qm)t.pattern=(d.qm==='VCP'?'Momentum Flag':d.qm);
+ if(d.h52Strong)t.h52='strong';else if(d.h52New)t.h52='new high';else if(d.h52Wk)t.h52='weekly close';
+ if(d.rclGrade)t.reclaim=d.rclGrade;if(d.mtf)t.mtf=d.mtf;if(d.cat)t.cat=d.cat;
+ if(d.fno!=null)t.fno=!!d.fno;if(d.oib)t.oi=d.oib;if(d.delp!=null)t.deliv=Math.round(d.delp);
+ if(d.day!=null)t.day=+(+d.day).toFixed(2);if(d.rvol!=null)t.rvol=+(+d.rvol).toFixed(2);
+ try{if(SCR.activePreset&&SCR.activePreset!=='all')t.playbook=SCR.activePreset;}catch(e){}
+ return t;}
+var TAGN={vcp:'True VCP',pattern:'',h52:'52W',reclaim:'Reclaim',mtf:'MTF',cat:'Cat',fno:'F&O',oi:'OI',deliv:'Deliv',playbook:'Playbook'};
+function tagList(js){var t;try{t=JSON.parse(js||'{}');}catch(e){t={};}var o=[];
+ for(var k in t){if(k==='day'||k==='rvol')continue;var v=t[k];if(k==='fno'){if(v)o.push('F&O');continue;}
+  o.push((TAGN[k]?TAGN[k]+' ':'')+v+(k==='deliv'?'%':''));}return o;}
+function modal(sym){
+ var m=document.getElementById('tf-pkm');if(!m){m=document.createElement('div');m.id='tf-pkm';m.onclick=function(e){if(e.target===m)m.classList.remove('open');};document.body.appendChild(m);}
+ var d=rowOf(sym),fd=forDate();
+ m.innerHTML='<div class="bx"><b style="font-size:15px">🎯 Pick '+esc(sym)+' for '+fd+'</b>'+
+  '<div style="font-size:12px;color:var(--muted);margin:4px 0 8px">Scored after that session closes: open→close, high/low from the open, and 5 days, against the whole market. You can remove it until 09:15 on '+fd+'.</div>'+
+  '<textarea id="tf-pkn" placeholder="Why this one? (optional) e.g. VCP near pivot, sector strong, results next week"></textarea>'+
+  '<div class="row"><button onclick="document.getElementById(\'tf-pkm\').classList.remove(\'open\')">Cancel</button><button class="go" id="tf-pkgo">🎯 Pick it</button></div></div>';
+ m.classList.add('open');setTimeout(function(){var t=document.getElementById('tf-pkn');if(t)t.focus();},50);
+ document.getElementById('tf-pkgo').onclick=function(){
+  var body={for_date:fd,symbol:sym,note:(document.getElementById('tf-pkn').value||'').trim()||null,
+   pick_price:d&&d.ltp!=null?+d.ltp:null,data_date:(typeof SCR!=='undefined'&&/^\d{4}-\d{2}-\d{2}$/.test(String(SCR.updated)))?SCR.updated:null,tags:JSON.stringify(tagsOf(d))};
+  fetch(CONFIG.supabaseUrl+'/rest/v1/'+TBL+'?on_conflict=for_date,symbol',{method:'POST',headers:H({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'}),body:JSON.stringify(body)})
+   .then(function(r){return r.ok?r.json():r.text().then(function(t){throw new Error(t);});})
+   .then(function(j){PKX.rows=PKX.rows.filter(function(x){return !(x.symbol===sym&&x.for_date===fd);}).concat(j||[]);m.classList.remove('open');paint();})
+   .catch(function(e){alertBox('Could not save the pick: '+String(e.message||e).slice(0,140));});};}
+function alertBox(t){var m=document.getElementById('tf-pkm');if(!m)return;m.innerHTML='<div class="bx">'+esc(t)+'<div class="row"><button onclick="document.getElementById(\'tf-pkm\').classList.remove(\'open\')">OK</button></div></div>';m.classList.add('open');}
+window.tfPickToggle=function(sym,el){
+ var p=mine(sym);
+ if(!p){modal(sym);return;}
+ if(locked(p.for_date)){alertBox(sym+' is locked: the '+p.for_date+' session has opened, so the pick stays on the record.');return;}
+ fetch(CONFIG.supabaseUrl+'/rest/v1/'+TBL+'?id=eq.'+p.id,{method:'DELETE',headers:H()}).then(function(r){
+  if(!r.ok)return r.text().then(function(t){throw new Error(t);});
+  PKX.rows=PKX.rows.filter(function(x){return x.id!==p.id;});if(el)el.classList.remove('on');paint();})
+ .catch(function(e){alertBox('Could not remove: '+String(e.message||e).slice(0,140));});};
+function paint(){try{if(typeof scrRender==='function'&&typeof SCR!=='undefined'&&SCR.loaded)scrRender();}catch(e){}
+ var b=document.getElementById('tab-nextpicks');if(b&&b.classList.contains('active'))view();}
+/* Screener column, right after the symbol */
+var COL={k:'npick',g:'Core',lbl:'🎯',a:'c',def:1,tip:'Tick to pick this stock for the next session. Scored every evening in the 🎯 Next-Day Picks tab.',
+ cell:function(d){var on=!!mine(d.sym);return '<button class="tf-pk'+(on?' on':'')+'" title="'+(on?'Picked for '+forDate()+' — click to remove (until 09:15)':'Pick for '+forDate())+'" onclick="event.stopPropagation();tfPickToggle(\''+esc(d.sym)+'\',this)">🎯</button>';}};
+/* ── the tab ── */
+function f2(x,s){if(x==null||x==='')return '—';x=+x;return '<span class="'+(x>0?'up':(x<0?'dn':''))+'">'+(x>0?'+':'')+x.toFixed(2)+'%</span>'+(s||'');}
+function avg(a){a=a.filter(function(x){return x!=null&&x!==''&&!isNaN(+x);}).map(Number);return a.length?a.reduce(function(p,q){return p+q;},0)/a.length:null;}
+function card(k,v,s){return '<div class="pk-card"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+(s||'')+'</div></div>';}
+function stats(rs){var n=rs.length,w=rs.filter(function(r){return +r.d1_ret>0;}).length,bt=rs.filter(function(r){return r.mkt_d1!=null&&+r.d1_ret>+r.mkt_d1;}).length;
+ return {n:n,win:n?w/n*100:null,beat:n?bt/n*100:null,d1:avg(rs.map(function(r){return r.d1_ret;})),m1:avg(rs.map(function(r){return r.mkt_d1;})),
+  up:avg(rs.map(function(r){return r.d1_up;})),dn:avg(rs.map(function(r){return r.d1_dn;})),cc:avg(rs.map(function(r){return r.d1_cc;})),mcc:avg(rs.map(function(r){return r.mkt_cc;})),
+  d5:avg(rs.map(function(r){return r.d5_ret;})),m5:avg(rs.map(function(r){return r.mkt_d5;})),n5:rs.filter(function(r){return r.d5_ret!=null;}).length};}
+function pc(x){return x==null?'—':(x>0?'+':'')+x.toFixed(2)+'%';}
+function view(){
+ var el=document.getElementById('tab-nextpicks');if(!el)return;
+ if(!PKX.loaded){el.innerHTML='<div style="padding:18px;color:var(--muted)">Loading…</div>';return;}
+ var fd=forDate(),R=PKX.rows,sc=R.filter(function(r){return r.d1_ret!=null;}),up=R.filter(function(r){return r.d1_ret==null;}),S=stats(sc);
+ var h='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><b style="font-size:16px">🎯 Next-Day Picks</b><span style="color:var(--muted);font-size:12px">Tick 🎯 in the Screener or TrueFlow Charts. Each pick is scored after its session: open→close, high/low from the open, 5 days — against the average of every stock that day.</span></div>';
+ h+='<div class="pk-cards">'+card('Scored picks',S.n,up.length+' waiting for their session')+
+  card('Open → close',S.n?pc(S.d1):'—','market '+pc(S.m1))+card('Up on the day',S.n?S.win.toFixed(0)+'%':'—','of scored picks')+
+  card('Beat the market',S.n?S.beat.toFixed(0)+'%':'—','open→close vs the average stock')+
+  card('Best move from open',S.n?pc(S.up):'—','worst dip '+pc(S.dn))+
+  card('5 days',S.n5?pc(S.d5):'—','market '+pc(S.m5)+' · '+S.n5+' with 5 days')+'</div>';
+ if(S.n&&S.n<30)h+='<div style="font-size:12px;color:#D97706;margin:-4px 0 8px">Only '+S.n+' scored picks — the numbers start to mean something around 30–50.</div>';
+ // waiting
+ h+='<h4>Waiting for their session</h4>';
+ h+=up.length?'<div class="tw"><table><tr><th>For</th><th>Stock</th><th>Price when picked</th><th>Setups</th><th>Note</th><th></th></tr>'+up.map(function(r){
+  return '<tr><td>'+r.for_date+'</td><td><b>'+esc(r.symbol)+'</b></td><td>'+(r.pick_price!=null?(+r.pick_price).toFixed(2):'—')+'</td><td>'+tagList(r.tags).map(function(t){return '<span class="tg">'+esc(t)+'</span>';}).join('')+'</td><td>'+esc(r.note||'')+'</td><td>'+
+   (locked(r.for_date)?'<span style="color:var(--muted);font-size:11px">🔒 locked</span>':'<button class="tf-pk on" title="Remove (allowed until 09:15 on '+r.for_date+')" onclick="tfPickToggle(\''+esc(r.symbol)+'\',this)">✕</button>')+'</td></tr>';}).join('')+'</table></div>'
+  :'<div style="color:var(--muted);font-size:12.5px">Nothing picked for '+fd+' yet.</div>';
+ if(sc.length){
+  // by setup
+  var by={};sc.forEach(function(r){var t=tagList(r.tags);if(!t.length)t=['(no setup tag)'];t.forEach(function(x){(by[x]=by[x]||[]).push(r);});});
+  var keys=Object.keys(by).sort(function(a,b){return by[b].length-by[a].length;});
+  h+='<h4>By setup (a pick counts under every tag it had)</h4><div class="tw"><table><tr><th>Setup</th><th>Picks</th><th>Open→close</th><th>vs market</th><th>Up on day</th><th>5 days</th></tr>'+
+   keys.map(function(k){var s=stats(by[k]);return '<tr><td>'+esc(k)+'</td><td>'+s.n+'</td><td>'+pc(s.d1)+'</td><td>'+(s.d1!=null&&s.m1!=null?pc(s.d1-s.m1):'—')+'</td><td>'+s.win.toFixed(0)+'%</td><td>'+(s.n5?pc(s.d5):'—')+'</td></tr>';}).join('')+'</table></div>';
+  // you vs the Next Day WL
+  var a1=sc.filter(function(r){return r.ndwl;}),a0=sc.filter(function(r){return !r.ndwl;}),s1=stats(a1),s0=stats(a0);
+  h+='<h4>You vs the Next Day WL (computer picks)</h4><div class="tw"><table><tr><th></th><th>Picks</th><th>Open→close</th><th>vs market</th><th>Up on day</th></tr>'+
+   '<tr><td>Your picks the Next Day WL also chose</td><td>'+s1.n+'</td><td>'+pc(s1.d1)+'</td><td>'+(s1.n?pc(s1.d1-s1.m1):'—')+'</td><td>'+(s1.n?s1.win.toFixed(0)+'%':'—')+'</td></tr>'+
+   '<tr><td>Only you chose</td><td>'+s0.n+'</td><td>'+pc(s0.d1)+'</td><td>'+(s0.n?pc(s0.d1-s0.m1):'—')+'</td><td>'+(s0.n?s0.win.toFixed(0)+'%':'—')+'</td></tr></table></div>';
+  h+='<h4>Every scored pick</h4><div class="tw"><table><tr><th>Session</th><th>Stock</th><th>Gap</th><th>Open→close</th><th>Market</th><th>High from open</th><th>Low from open</th><th>Close vs prev close</th><th>5 days</th><th>Next Day WL</th><th>ORB</th><th>Setups</th><th>Note</th></tr>'+
+   sc.map(function(r){return '<tr><td>'+r.session_date+'</td><td><b>'+esc(r.symbol)+'</b></td><td>'+f2(r.gap_pct)+'</td><td>'+f2(r.d1_ret)+'</td><td>'+f2(r.mkt_d1)+'</td><td>'+f2(r.d1_up)+'</td><td>'+f2(r.d1_dn)+'</td><td>'+f2(r.d1_cc)+'</td><td>'+(r.d5_ret!=null?f2(r.d5_ret):'<span style="color:var(--muted)">pending</span>')+'</td><td>'+(r.ndwl?'✓'+(r.ndwl_score!=null?' ('+r.ndwl_score+')':''):'—')+'</td><td>'+(r.orb?esc(r.orb):'<span style="color:var(--muted)" title="ORB results are being connected">—</span>')+'</td><td>'+tagList(r.tags).map(function(t){return '<span class="tg">'+esc(t)+'</span>';}).join('')+'</td><td>'+esc(r.note||'')+'</td></tr>';}).join('')+'</table></div>';
+ }
+ el.innerHTML='<div style="padding:4px 2px">'+h+'</div>';}
+function tab(){
+ var nav=document.getElementById('momentum-tabs'),box=document.getElementById('momentum-container');if(!nav||!box)return false;
+ if(document.getElementById('tab-nextpicks'))return true;
+ var b=document.createElement('button');b.className='nav-tab';b.textContent='🎯 Next-Day Picks';
+ b.onclick=function(){switchTab('nextpicks',b,'momentum');PKX.loaded?view():load();if(PKX.loaded)load();};
+ var after=[].filter.call(nav.querySelectorAll('.nav-tab'),function(x){return /mypicks/.test(x.getAttribute('onclick')||'');})[0];
+ if(after&&after.nextSibling)nav.insertBefore(b,after.nextSibling);else nav.appendChild(b);
+ var p=document.createElement('div');p.id='tab-nextpicks';p.className='panel';
+ var ref=document.getElementById('tab-mypicks');if(ref&&ref.parentNode)ref.parentNode.insertBefore(p,ref.nextSibling);else box.appendChild(p);
+ return true;}
+function install(){
+ if(typeof SCR_COLS==='undefined'||!window._tfInstalled)return false;
+ if(window._pkInstalled)return true;window._pkInstalled=true;
+ SCR_COLS.unshift(COL);SCR.vis[COL.k]=true;
+ return true;}
+var t=setInterval(function(){var a=tab(),b2=install();if(a&&b2){clearInterval(t);load();}},300);
+setTimeout(function(){clearInterval(t);},60000);
+})();
+</script>
 <!-- ═══ TrueFlow Focus v1 — today's proven playbooks, combined shortlist, playbook counts, pane jump chips ═══ -->
 <style>
 #tf-focus{border:1px solid var(--bg3);border-radius:12px;background:var(--bg2);margin:0 0 8px;font-size:12px}
@@ -19773,6 +19920,7 @@ function ceBar(o){
  h+='<span class="ce-sep"></span>';
  h+=btn(CE.show.pole,'ceShow(\'pole\')','Pole','Draw the rally that precedes the base, with its % and length');
  h+=btn(CE.show.box,'ceShow(\'box\')','Box','Shade the consolidation and label its depth and length');
+ h+=btn(!!(window.tfPickHas&&tfPickHas(CE.sym)),'tfPickToggle(\''+CE.sym+'\',this)','🎯 Tomorrow','Pick this stock for the next session; it is scored in the 🎯 Next-Day Picks tab.');
  h+=btn(CE.show.vcp!==false,'ceShow(\'vcp\')','VCP','True VCP: each pullback drawn peak to low with its %, the pivot (buy the break) and the stop (low of the last pullback). Only for stocks the nightly scan marks as a True VCP.');
  h+=btn(CE.show.pivots,'ceShow(\'pivots\')','Pivots','Mark prior swing highs and lows — levels the market has already reacted to');
  h+=btn(CE.show.accum,"ceShow('accum')",'Accum','Accumulation line: up-volume minus down-volume, running. A new price high without a new high here means the buying is thinning.');
