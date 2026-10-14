@@ -16,6 +16,7 @@ States:
   near        close within 3% below the pivot (or above it without the volume)
   forming     everything else that passes
 Every stock is written with is_vcp and, when it fails, the first rule it failed (reason).
+legs = JSON [[peak_date, peak_high, trough_date, trough_low, depth%], ...] for drawing on charts; base_start = date of H0.
 Prices are split/bonus-adjusted on the fly (split_adjust, shared with hi52_scan.py).
 Writes vcp_state (IN) / us_vcp_state (US). Read-only on everything else.
 
@@ -103,6 +104,8 @@ def analyse(rows, P):
     ts = [(pk, tr, (h[pk] - l[tr]) / h[pk] * 100) for pk, tr in pairs]
     if live: ts.append((live[0], live[1], (h[live[0]] - l[live[1]]) / h[live[0]] * 100))
     depths = [t[2] for t in ts]
+    out['base_start'] = ds[h0]
+    out['legs'] = json.dumps([[ds[pk], round(h[pk], 2), ds[tr], round(l[tr], 2), round(dp, 1)] for pk, tr, dp in ts]) if ts else None
     out.update(base_days=base_days, prior_adv=rd(prior, 1), adr=rd(adr), swing=rd(r),
                t_count=len(ts), depths='/'.join('%.0f' % d for d in depths) or None,
                first_depth=rd(depths[0], 1) if depths else None, last_depth=rd(depths[-1], 1) if depths else None)
@@ -189,7 +192,7 @@ def main():
         log('dry run: nothing saved'); return
     hh = dict(H, **{'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal'})
     keys = ['symbol', 'session_date', 'close', 'is_vcp', 'state', 'reason', 'trend_ok', 'base_days', 'prior_adv', 'adr', 'swing',
-            't_count', 'depths', 'first_depth', 'last_depth', 'pivot', 'pct_to_pivot', 'vol_ratio', 'bo_vol', 'computed_at']
+            't_count', 'depths', 'first_depth', 'last_depth', 'pivot', 'pct_to_pivot', 'vol_ratio', 'bo_vol', 'base_start', 'legs', 'computed_at']
     rows = [{k: x.get(k) for k in keys} for x in out]
     for j in range(0, len(rows), 500):
         r = requests.post('%s/rest/v1/%s?on_conflict=symbol' % (C.SUPABASE_URL, S['out']), headers=hh, data=json.dumps(rows[j:j + 500]), timeout=120)

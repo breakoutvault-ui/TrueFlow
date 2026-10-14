@@ -16577,6 +16577,7 @@ var ORDER=[
  ['🌀 Shakeouts & Reclaims',['shk','shkage','bstate','ucd','rclv','rclgrade','rclvol','rclriskmax','rcldaysmax']],
  ['🏔 52-Week Highs',['h52sig','h52q','z52','consolmin']],
  ['🆕 IPOs & New Listings',['newl']],
+ ['⚡ F&O',['fno','oib','delmin']],
  ['📍 Where Price Is',['estack','zone5','zone','wzone','e50z','e200z','e200s']],
  ['🔊 Today’s Volume & Move',['gnow','vsig','rvolmin','vmove']],
  ['🌐 Market & Sector',['mkt','sec','secw','secm','align']],
@@ -16805,16 +16806,62 @@ var _p=null;
 function load(){
  if(_p)return _p;
  _p=(async function(){
-  var all=[],off=0;for(var g=0;g<4;g++){var b=await sbGet(TBL+'?select=symbol,session_date,state,t_count,depths,first_depth,last_depth,base_days,pivot,pct_to_pivot,vol_ratio,prior_adv,bo_vol&is_vcp=eq.true&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}
+  var all=[],off=0;for(var g=0;g<4;g++){var b=await sbGet(TBL+'?select=symbol,session_date,state,t_count,depths,first_depth,last_depth,base_days,pivot,pct_to_pivot,vol_ratio,prior_adv,bo_vol,base_start,legs&is_vcp=eq.true&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}
   var mx='';all.forEach(function(x){if(x.session_date>mx)mx=x.session_date;});
   VCP2X.date=mx;all.forEach(function(x){if(x.session_date===mx)VCP2X.rows[x.symbol]=x;});
  })();
  return _p;
 }
 function n(x){return x==null?null:+x;}
+window.vcp2Load=function(){return load();};
+function legsOf(r){if(!r||!r.legs)return null;if(r._legs)return r._legs;try{r._legs=JSON.parse(r.legs);}catch(e){r._legs=null;}return r._legs;}
+/* the contractions drawn over real candles. X(date) -> x or null, Y(price) -> y, xEnd = right edge of the last bar */
+function vcpSvg(r,X,Y,xEnd,small){
+ var L=legsOf(r);if(!L||!L.length)return '';
+ var g='',fs=small?10:11,blue='#3B82F6',last=L[L.length-1];
+ var xs=X(r.base_start)!=null?X(r.base_start):X(L[0][0]);
+ var top=Math.max.apply(null,L.map(function(a){return a[1];})),bot=Math.min.apply(null,L.map(function(a){return a[3];}));
+ if(xs!=null)g+='<rect x="'+xs.toFixed(1)+'" y="'+Y(top).toFixed(1)+'" width="'+Math.max(2,xEnd-xs).toFixed(1)+'" height="'+Math.max(2,Y(bot)-Y(top)).toFixed(1)+'" fill="'+blue+'" opacity="0.06"><title>True VCP base: '+(r.base_days||'')+' sessions</title></rect>';
+ L.forEach(function(a,k){var x1=X(a[0]),x2=X(a[2]);if(x1==null||x2==null)return;var y1=Y(a[1]),y2=Y(a[3]);
+  g+='<g><title>Pullback '+(k+1)+': '+a[1]+' on '+a[0]+' to '+a[3]+' on '+a[2]+' = −'+a[4]+'%</title>'+
+   '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+blue+'" stroke-width="2" opacity=".9"/>'+
+   '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="3" fill="'+blue+'"/><circle cx="'+x2.toFixed(1)+'" cy="'+y2.toFixed(1)+'" r="3" fill="#DC2626"/>'+
+   (xEnd-x2<95?'<text x="'+(x2-6).toFixed(1)+'" y="'+(y2+4).toFixed(1)+'" font-size="'+fs+'" font-weight="700" fill="#DC2626" text-anchor="end">T':'<text x="'+x2.toFixed(1)+'" y="'+(y2+14).toFixed(1)+'" font-size="'+fs+'" font-weight="700" fill="#DC2626" text-anchor="middle">T')+(k+1)+' −'+Math.round(a[4])+'%</text></g>';});
+ var xp=X(last[0]),xt=X(last[2]);
+ if(xp!=null){var yp=Y(last[1]);g+='<g><title>Pivot = high of the last pullback. Buy the break on volume.</title><line x1="'+xp.toFixed(1)+'" x2="'+xEnd.toFixed(1)+'" y1="'+yp.toFixed(1)+'" y2="'+yp.toFixed(1)+'" stroke="#16A34A" stroke-width="1.4" stroke-dasharray="6 3"/>'+
+  '<text x="'+(xEnd-3).toFixed(1)+'" y="'+(yp-4).toFixed(1)+'" font-size="'+fs+'" font-weight="700" fill="#16A34A" text-anchor="end">Pivot '+last[1]+'</text></g>';}
+ if(xt!=null){var ys=Y(last[3]);g+='<g><title>Stop = low of the last pullback.</title><line x1="'+xt.toFixed(1)+'" x2="'+xEnd.toFixed(1)+'" y1="'+ys.toFixed(1)+'" y2="'+ys.toFixed(1)+'" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="4 3"/>'+
+  '<text x="'+(xEnd-3).toFixed(1)+'" y="'+(ys+12).toFixed(1)+'" font-size="'+fs+'" font-weight="700" fill="#DC2626" text-anchor="end">Stop '+last[3]+'</text></g>';}
+ return g;}
+/* called by TrueFlow Charts on every render (daily only) */
+window.tfVcpSvg=function(S,dates,tf,show,sym){
+ try{if(tf!=='D'||!show||show.vcp===false||!dates||!dates.length)return '';
+  var r=VCP2X.rows[sym];if(!r){if(!VCP2X._asked){VCP2X._asked=1;load();}return '';}
+  var ix={};dates.forEach(function(d,i){ix[d]=i;});
+  var X=function(d){return ix[d]==null?null:S.x(ix[d]);};
+  return vcpSvg(r,X,function(p){return S.y(p);},S.x(dates.length-1)+6,false);}catch(e){console.error('vcp chart',e);return '';}};
+/* the stock's own last ~6 months with the contractions marked (pop-up) */
+var OHLC=MKT==='IN'?'daily_ohlc':'us_daily_ohlc';
+function realChart(sym,r){
+ return sbGet(OHLC+'?select=d,o,h,l,c&symbol=eq.'+encodeURIComponent(sym)+'&order=d.desc&limit=130').then(function(rows){
+  rows=(rows||[]).filter(function(b){return b.h!=null&&b.l!=null&&b.c!=null;}).reverse();if(rows.length<20)return '';
+  var W=700,H=290,pl=6,pr=58,pt=14,pb=22,n=rows.length,L=legsOf(r)||[];
+  var hi=Math.max.apply(null,rows.map(function(b){return +b.h;}).concat(L.map(function(a){return a[1];}))),lo=Math.min.apply(null,rows.map(function(b){return +b.l;}).concat(L.map(function(a){return a[3];})));
+  var pad=(hi-lo)*0.06;hi+=pad;lo-=pad;
+  var cw=(W-pl-pr)/n,X=function(i){return pl+cw*(i+0.5);},Y=function(p){return pt+(hi-p)/(hi-lo)*(H-pt-pb);};
+  var ix={};rows.forEach(function(b,i){ix[b.d]=i;});
+  var g='';[0,0.5,1].forEach(function(f){var p=lo+(hi-lo)*f;g+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(p).toFixed(1)+'" y2="'+Y(p).toFixed(1)+'" stroke="var(--bg3,#e5e7eb)"/><text x="'+(W-pr+4)+'" y="'+(Y(p)+3).toFixed(1)+'" font-size="9.5" fill="var(--muted,#64748b)">'+p.toFixed(p<100?2:0)+'</text>';});
+  rows.forEach(function(b,i){var up=+b.c>=+(b.o!=null?b.o:b.c),col=up?'#22C55E':'#EF4444',x=X(i);
+   g+='<line x1="'+x.toFixed(1)+'" x2="'+x.toFixed(1)+'" y1="'+Y(+b.h).toFixed(1)+'" y2="'+Y(+b.l).toFixed(1)+'" stroke="'+col+'" stroke-width="1"/>'+
+    '<rect x="'+(x-cw*0.32).toFixed(1)+'" y="'+Y(Math.max(+b.o||+b.c,+b.c)).toFixed(1)+'" width="'+Math.max(1,cw*0.64).toFixed(1)+'" height="'+Math.max(1,Math.abs(Y(+b.o||+b.c)-Y(+b.c))).toFixed(1)+'" fill="'+col+'"/>';});
+  g+=vcpSvg(r,function(d){return ix[d]==null?null:X(ix[d]);},Y,W-pr,true);
+  g+='<text x="'+pl+'" y="'+(H-6)+'" font-size="9.5" fill="var(--muted,#64748b)">'+rows[0].d+'</text><text x="'+(W-pr)+'" y="'+(H-6)+'" font-size="9.5" fill="var(--muted,#64748b)" text-anchor="end">'+rows[n-1].d+'</text>';
+  return '<div class="sx-fig"><div class="ft">'+esc(sym)+' — ITS OWN CHART, CONTRACTIONS MARKED</div><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>'+
+   '<div class="cap">Blue lines = each pullback (peak to low), shrinking left to right. Green dashed = pivot, red dashed = stop. Hover a line for the dates.</div></div>';
+ }).catch(function(){return '';});}
 function apply(d){var r=VCP2X.rows[d.sym];
  d.v2State=r?r.state:null;d.v2T=r?n(r.t_count):null;d.v2Depths=r?r.depths:null;d.v2First=r?n(r.first_depth):null;d.v2Last=r?n(r.last_depth):null;
- d.v2Base=r?n(r.base_days):null;d.v2Pivot=r?n(r.pivot):null;d.v2Pct=r?n(r.pct_to_pivot):null;d.v2Vr=r?n(r.vol_ratio):null;d.v2Prior=r?n(r.prior_adv):null;d.v2BoVol=r?n(r.bo_vol):null;
+ d.v2Base=r?n(r.base_days):null;d.v2Pivot=r?n(r.pivot):null;d.v2Pct=r?n(r.pct_to_pivot):null;d.v2Vr=r?n(r.vol_ratio):null;d.v2Prior=r?n(r.prior_adv):null;d.v2BoVol=r?n(r.bo_vol):null;d.v2Legs=r?r.legs:null;
  d.v2=r?({breakout:300,near:200,forming:100}[r.state]||0)-(n(r.pct_to_pivot)||0):null;}
 var STI={breakout:'🚀',near:'🎯',forming:'⏳'};
 var F_ST={key:'v2state',label:'True VCP',opts:['breakout','near','forming'],
@@ -16887,7 +16934,11 @@ window.tfPatExplain=function(kind,sym){
  }
  var fg='';try{if(window.TF_FIGS&&TF_FIGS[kind])fg=TF_FIGS[kind]();}catch(e){}
  el.innerHTML='<div class="bx"><span class="x" onclick="document.getElementById(\'tf-px\').classList.remove(\'open\')">✕</span>'+h+fg+'</div>';
- el.classList.add('open');};
+ el.classList.add('open');
+ if(kind==='vcp'&&sym&&VCP2X.rows[sym]&&VCP2X.rows[sym].legs){var bx=el.querySelector('.bx'),ph=document.createElement('div');ph.className='tf-real';ph.innerHTML='<div class="sub">Loading '+esc(sym)+'’s chart…</div>';
+  var f0=bx.querySelector('.sx-fig'),me0=bx.querySelector('.me');if(me0&&me0.nextSibling)bx.insertBefore(ph,me0.nextSibling);else if(f0)bx.insertBefore(ph,f0);else bx.appendChild(ph);
+  realChart(sym,VCP2X.rows[sym]).then(function(svg){ph.innerHTML=svg||'';if(svg&&f0){f0.style.display='none';var t=document.createElement('div');t.className='sub';t.style.cursor='pointer';t.textContent='▸ Show the textbook picture';t.onclick=function(){f0.style.display=f0.style.display==='none'?'':'none';};bx.appendChild(t);}});}
+};
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){var el=document.getElementById('tf-px');if(el)el.classList.remove('open');}});
 /* 🚀 Top gainers today: one click applies it alone, a second click clears it */
 window.tfGainers=function(){
@@ -18802,6 +18853,7 @@ function ceRender(){
  CE.lastScale=S;CE.adr=num((o.scr||{}).adr);
  g+=ceAlertSvg(S);
  g+=ceAutoSvg(ceAuto(o,cndl),S);
+ if(window.tfVcpSvg)g+=window.tfVcpSvg(S,CE._winD,CE.tf,CE.show,CE.sym);
  if(CE.show.ern!==false)g+=ceErnMark(o,win,S);
  g+=ceMeasureSvg(S,win);
  if(CE.show.smart){
@@ -19499,6 +19551,7 @@ function ceBar(o){
  h+='<span class="ce-sep"></span>';
  h+=btn(CE.show.pole,'ceShow(\'pole\')','Pole','Draw the rally that precedes the base, with its % and length');
  h+=btn(CE.show.box,'ceShow(\'box\')','Box','Shade the consolidation and label its depth and length');
+ h+=btn(CE.show.vcp!==false,'ceShow(\'vcp\')','VCP','True VCP: each pullback drawn peak to low with its %, the pivot (buy the break) and the stop (low of the last pullback). Only for stocks the nightly scan marks as a True VCP.');
  h+=btn(CE.show.pivots,'ceShow(\'pivots\')','Pivots','Mark prior swing highs and lows — levels the market has already reacted to');
  h+=btn(CE.show.accum,"ceShow('accum')",'Accum','Accumulation line: up-volume minus down-volume, running. A new price high without a new high here means the buying is thinning.');
  h+=btn(CE.show.smart,"ceShow('smart')",'Smart $','Mark SEC insider buys and sells on the day they happened — green bought, red sold.');
@@ -19824,6 +19877,7 @@ window.ceOpen=function(sym){
  if(!CE.show)CE.show={};
  if(CE.show.pole===undefined)CE.show.pole=true;
  if(CE.show.box===undefined)CE.show.box=true;
+ if(CE.show.vcp===undefined)CE.show.vcp=true;
  ceAlertsLoad(sym,function(){if(CE.open&&CE.sym===sym)ceRender();});
  if(!document.getElementById('ce-panel')){
   var p=document.createElement('div');p.id='ce-panel';
