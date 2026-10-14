@@ -12,7 +12,8 @@ For every pick in next_picks that is not fully scored:
   d5_ret       close of the 5th session (session included) vs ref_close; filled once it exists
   mkt_*        the same numbers averaged over every stock in daily_ohlc that day (the market)
   ndwl         the Next Day WL (nextday_picks_v2) also picked it for that session, and its score
-  orb          not wired yet (waits for the orb_backtest / fo_alerts layout)
+  orb / orb_r  the first ORB trade that day: orb_backtest (simulated, exit A, R after costs) if it is there,
+               else the fo_alerts alert (fired, not simulated), else 'no ORB signal'
 Read-only on everything except next_picks.
 
   bin/python picks_score.py [--wait] [--weekly] [--dry-run]
@@ -62,6 +63,24 @@ def market(d, ref, d5):
     return _mkt[k]
 
 
+def orb_of(sym, d):
+    try:
+        bt = sb('orb_backtest?select=direction,status,exit_a_r,net_a_r&symbol=eq.%s&session_date=eq.%s&order=fired_at.asc&limit=1' % (sym, d))
+        if bt:
+            b = bt[0]; dr = (b.get('direction') or '').upper()
+            if b.get('net_a_r') is not None:
+                return ('%s · exit A %+.2fR · after costs %+.2fR' % (dr, float(b['exit_a_r'] or 0), float(b['net_a_r'])), round(float(b['net_a_r']), 3))
+            return ('%s · %s' % (dr, b.get('status') or 'no trade'), None)
+        fa = sb('fo_alerts?select=direction,stage,outcome,points_captured&symbol=eq.%s&session_date=eq.%s&order=fired_at.asc&limit=1' % (sym, d))
+        if fa:
+            a = fa[0]
+            return ('%s alert (stage %s)%s · not simulated' % ((a.get('direction') or '').upper(), a.get('stage'),
+                    (' · ' + a['outcome']) if a.get('outcome') else ''), None)
+        return ('no ORB signal', None)
+    except Exception as e:
+        log('  orb lookup failed %s %s: %s' % (sym, d, e)); return (None, None)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--wait', action='store_true', help="wait (up to 60 min) for today's prices")
@@ -98,7 +117,8 @@ def main():
         c5 = f(by.get(d5), 'c') if d5 else None
         m1, mcc, m5 = market(s_d, ref, d5)
         nd = sb('nextday_picks_v2?select=score&target_date=eq.%s&symbol=eq.%s&limit=1' % (s_d, p['symbol']))
-        body = {'session_date': s_d, 'ref_close': rc, 'd1_open': o, 'd1_high': h, 'd1_low': l, 'd1_close': c,
+        orb, orb_r = orb_of(p['symbol'], s_d)
+        body = {'orb': orb, 'orb_r': orb_r, 'session_date': s_d, 'ref_close': rc, 'd1_open': o, 'd1_high': h, 'd1_low': l, 'd1_close': c,
                 'gap_pct': pct(o, rc), 'd1_ret': pct(c, o), 'd1_up': pct(h, o), 'd1_dn': pct(l, o), 'd1_cc': pct(c, rc),
                 'd5_ret': pct(c5, rc), 'mkt_d1': m1, 'mkt_cc': mcc, 'mkt_d5': m5,
                 'ndwl': bool(nd), 'ndwl_score': (nd[0].get('score') if nd else None),

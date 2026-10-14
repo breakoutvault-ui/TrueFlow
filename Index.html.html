@@ -17282,7 +17282,7 @@ function card(k,v,s){return '<div class="pk-card"><div class="k">'+k+'</div><div
 function stats(rs){var n=rs.length,w=rs.filter(function(r){return +r.d1_ret>0;}).length,bt=rs.filter(function(r){return r.mkt_d1!=null&&+r.d1_ret>+r.mkt_d1;}).length;
  return {n:n,win:n?w/n*100:null,beat:n?bt/n*100:null,d1:avg(rs.map(function(r){return r.d1_ret;})),m1:avg(rs.map(function(r){return r.mkt_d1;})),
   up:avg(rs.map(function(r){return r.d1_up;})),dn:avg(rs.map(function(r){return r.d1_dn;})),cc:avg(rs.map(function(r){return r.d1_cc;})),mcc:avg(rs.map(function(r){return r.mkt_cc;})),
-  d5:avg(rs.map(function(r){return r.d5_ret;})),m5:avg(rs.map(function(r){return r.mkt_d5;})),n5:rs.filter(function(r){return r.d5_ret!=null;}).length};}
+  orbN:rs.filter(function(r){return r.orb_r!=null;}).length,orbR:avg(rs.map(function(r){return r.orb_r;})),d5:avg(rs.map(function(r){return r.d5_ret;})),m5:avg(rs.map(function(r){return r.mkt_d5;})),n5:rs.filter(function(r){return r.d5_ret!=null;}).length};}
 function pc(x){return x==null?'—':(x>0?'+':'')+x.toFixed(2)+'%';}
 function view(){
  var el=document.getElementById('tab-nextpicks');if(!el)return;
@@ -17293,7 +17293,8 @@ function view(){
   card('Open → close',S.n?pc(S.d1):'—','market '+pc(S.m1))+card('Up on the day',S.n?S.win.toFixed(0)+'%':'—','of scored picks')+
   card('Beat the market',S.n?S.beat.toFixed(0)+'%':'—','open→close vs the average stock')+
   card('Best move from open',S.n?pc(S.up):'—','worst dip '+pc(S.dn))+
-  card('5 days',S.n5?pc(S.d5):'—','market '+pc(S.m5)+' · '+S.n5+' with 5 days')+'</div>';
+  card('5 days',S.n5?pc(S.d5):'—','market '+pc(S.m5)+' · '+S.n5+' with 5 days')+
+  card('ORB trades on your picks',S.orbN?((S.orbR>0?'+':'')+S.orbR.toFixed(2)+'R'):'—',S.orbN+' simulated · average after costs')+'</div>';
  if(S.n&&S.n<30)h+='<div style="font-size:12px;color:#D97706;margin:-4px 0 8px">Only '+S.n+' scored picks — the numbers start to mean something around 30–50.</div>';
  // waiting
  h+='<h4>Waiting for their session</h4>';
