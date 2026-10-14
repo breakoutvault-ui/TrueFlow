@@ -17146,7 +17146,7 @@ function load(){
  })();
  return _p;
 }
-function apply(d){var r=FNOX.rows[d.sym];d.fno=FNOX.n?!!r:null;d.oib=r&&r.oi_buildup?r.oi_buildup:null;d.delp=r&&r.del_pct!=null&&r.del_pct!==''?+r.del_pct:null;}
+function apply(d){var r=FNOX.rows[d.sym];d.fno=FNOX.n?!!r:null;d.oib=r&&r.oi_buildup&&r.oi_buildup!=='Pending'&&r.oi_buildup!=='Unknown'?r.oi_buildup:null;d.oiPend=!!(r&&r.oi_buildup==='Pending');d.delp=r&&r.del_pct!=null&&r.del_pct!==''?+r.del_pct:null;}
 var F1={key:'fno',label:'F&O status',opts:['fo','nonfo'],disp:{fo:'🎯 F&O stocks',nonfo:'Non-F&O stocks'},
  tips:{fo:'Stocks with futures & options on NSE (the same list as the F&O tab, from the nightly EOD file).',nonfo:'Stocks without F&O: cash-market only.'}};
 var F2={key:'oib',label:'OI buildup (futures)',opts:['Long Buildup','Short Covering','Short Buildup','Long Unwinding'],
@@ -17158,7 +17158,7 @@ var F2={key:'oib',label:'OI buildup (futures)',opts:['Long Buildup','Short Cover
 var F3={key:'delmin',label:'Delivery %',opts:['50','60','70'],disp:{'50':'≥ 50%','60':'≥ 60%','70':'≥ 70%'},
  tips:{'50':'At least half of today’s traded shares were taken for delivery, not just traded intraday.','60':'60%+ delivery: strong holding interest.','70':'70%+ delivery: very high conviction — buyers are keeping the shares.'}};
 var WHY={fno:'Whether the stock has futures & options on NSE. F&O stocks are the larger, more liquid names you can also trade with options.',
- oib:'What futures traders did yesterday, from price change + open-interest change. Long Buildup and Short Covering are the bullish ones. F&O stocks only.',
+ oib:'What futures traders did, from NSE’s own F&O file (futures OI change + price change). Long Buildup and Short Covering are the bullish ones. NSE publishes the file in the evening; until it arrives the day shows “Pending”. F&O stocks only.',
  delmin:'Delivery % = shares taken for delivery ÷ shares traded. High delivery on an up day means real buyers holding, not intraday churn. From the nightly NSE delivery file; F&O stocks only.'};
 function passes(d){var S=SCR.state;
  var a=S.fno;if(a&&a.size){if(!FNOX.n)return false;var ok=(a.has('fo')&&d.fno)||(a.has('nonfo')&&d.fno===false);if(!ok)return false;}
@@ -17169,7 +17169,7 @@ var OC={'Long Buildup':'#16A34A','Short Covering':'#D97706','Short Buildup':'#DC
 var COL={k:'fno',g:'Price',lbl:'F&O',a:'l',def:1,tip:'F&O stock? Then yesterday’s futures OI buildup and delivery %.',
  cell:function(d){if(!d.fno)return (typeof DASH!=='undefined')?DASH:'<span class="scr-dash">—</span>';
   return '<span style="white-space:nowrap;font-size:11px" title="F&O stock'+(d.oib?' · '+d.oib:'')+(d.delp!=null?' · delivery '+d.delp.toFixed(1)+'%':'')+'">🎯'+
-   (d.oib?' <b style="color:'+(OC[d.oib]||'inherit')+'">'+d.oib+'</b>':'')+(d.delp!=null?' · '+d.delp.toFixed(0)+'%':'')+'</span>';}};
+   (d.oib?' <b style="color:'+(OC[d.oib]||'inherit')+'">'+d.oib+'</b>':(d.oiPend?' <span style="color:var(--muted)">OI pending</span>':''))+(d.delp!=null?' · '+d.delp.toFixed(0)+'%':'')+'</span>';}};
 function install(){
  if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
  if(window._fnoInstalled)return true;window._fnoInstalled=true;
