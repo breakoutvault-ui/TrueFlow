@@ -17039,7 +17039,7 @@ function chip(d){
   STI[d.v2State]+' 📐 '+d.v2T+'T · '+esc(d.v2Depths)+'%'+(where?' · '+where:'')+'</span>';}
 var COL={k:'v2',g:'Breakout',lbl:'True VCP',a:'l',def:1,tip:'True VCP from the nightly scan: number of shrinking pullbacks, their depths, and the distance to the pivot. Click a badge for the rules.',
  cell:chip};
-var PB=[{id:'vcp2_near',when:'eod',grp:'Coil / Pre-Breakout',label:'📐 True VCP near pivot',fig:'vcp',set:{v2state:['near','breakout']},
+var PB=[{id:'vcp2_near',when:'eod',grp:'Coil / Pre-Breakout',label:'📐 True VCP near pivot',fig:'vcp',set:{v2state:['near','breakout']},cols:['v2','qm','pv','z52','day','rvol'],
  how:'Classic Volatility Contraction Patterns (2–6 pullbacks, each shallower than the last, the last 10% or less, volume drying up, above a rising 50 and 200 EMA) that are within 3% of the pivot or broke out today/yesterday on 1.5× volume. Not yet studied — rules, not proven edge. Plan: alert at the pivot, buy the break on volume, stop under the low of the last pullback.'}];
 var WHY={v2state:'The classic Volatility Contraction Pattern (Minervini), found every night by vcp_scan.py: a run-up, then 2–6 pullbacks that keep getting smaller, the last 10% or less, volume drying up, above a rising 50 and 200 EMA. Pick where it is: forming, near the pivot, or breaking out.',
  v2t:'How many shrinking pullbacks the True VCP base has. More pullbacks = a longer, more mature base.',
@@ -17114,6 +17114,7 @@ function install(){
  try{for(var k in WHY)SCR_FILTER_WHY[k]=WHY[k];}catch(e){}
  renames();
  SCR_COLS.push(COL);SCR.vis[COL.k]=true;
+ try{SCR_FILTER_COL.v2state='v2';SCR_FILTER_COL.v2t='v2';SCR_FILTER_COL.v2last='v2';}catch(e){}
  PB.forEach(function(p){p._vcp2=true;SCR_PRESETS.push(p);});
  var orig=scrPasses;scrPasses=function(d){if(!orig(d))return false;return passes(d);};
  if(!scrRender._vcp2){var o=scrRender;window.scrRender=scrRender=function(){var r=o.apply(this,arguments);try{btn();}catch(e){}return r;};scrRender._vcp2=true;}
@@ -17330,7 +17331,10 @@ function tab(){
 function install(){
  if(typeof SCR_COLS==='undefined'||!window._tfInstalled)return false;
  if(window._pkInstalled)return true;window._pkInstalled=true;
- SCR_COLS.unshift(COL);SCR.vis[COL.k]=true;
+ SCR_COLS.unshift(COL);
+ /* Smart columns: the 🎯 column is always shown, whatever playbook or filters are applied */
+ try{if(typeof scrApplyCtxCols==='function'&&!scrApplyCtxCols._pk){var oc=scrApplyCtxCols;window.scrApplyCtxCols=scrApplyCtxCols=function(){var r=oc.apply(this,arguments);SCR.vis.npick=true;try{scrSyncColMenu();}catch(e){}return r;};scrApplyCtxCols._pk=true;}}catch(e){}
+ try{SCR_FILTER_COL.fno='fno';SCR_FILTER_COL.oib='fno';SCR_FILTER_COL.delmin='fno';}catch(e){}SCR.vis[COL.k]=true;
  return true;}
 var t=setInterval(function(){var a=tab(),b2=install();if(a&&b2){clearInterval(t);load();}},300);
 setTimeout(function(){clearInterval(t);},60000);
