@@ -17460,7 +17460,7 @@ setTimeout(function(){clearInterval(t);},60000);
 #tab-indices .ix-sep{width:1px;height:18px;background:var(--border);margin:0 2px}
 #tab-indices .ix-hint{font-size:11px;color:var(--muted);margin-left:auto}
 #tab-indices .ix-cw{position:relative;max-width:1100px;border:1px solid var(--border);border-radius:10px;padding:8px 6px 2px;background:var(--bg)}
-#tab-indices .ix-tt{display:none;position:absolute;z-index:6;pointer-events:none;max-width:270px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 10px;font-size:11.5px;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.14)}
+#tab-indices .ix-tt{display:none;position:absolute;z-index:6;pointer-events:none;width:max-content;max-width:min(290px,calc(100% - 8px));white-space:normal;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 10px;font-size:11.5px;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.14)}
 #tab-indices .ix-tt .o{font-size:10.5px;opacity:.85}#tab-indices .ix-tt .w{margin-top:3px;padding-top:3px;border-top:1px solid var(--border);color:var(--text)}
 @media (max-width:760px){#tab-indices .ix-hint{display:none}}
 #tab-indices .ix-st{overflow:auto;max-height:460px;border:1px solid var(--border);border-radius:10px}
@@ -17616,9 +17616,9 @@ function sectors(code){
  var last=ds[ds.length-1],gs=Object.keys(by).sort(function(a,b){return (val(by[b][last])||-1)-(val(by[a][last])||-1)||((by[b][last]||{}).n||0)-((by[a][last]||{}).n||0);});
  var avg=function(g){var v=ds.map(function(d){return val(by[g][d]);}).filter(function(x){return x!=null;});return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:null;};
  var q=function(g){return esc(g).replace(/'/g,"\\'");};
- var cell=function(x){if(!x)return '—';var nn=ST.mode==='ema'?emaN(x,ST.ema):(x.adv+x.dec+x.unch),k=ST.mode==='ema'?x['ab'+ST.ema]:x.adv;return nn<=3?k+'/'+nn:Math.round(pct(k,nn))+'%';};
+ var cell=function(x){if(!x)return '—';var nn=ST.mode==='ema'?emaN(x,ST.ema):(x.adv+x.dec+x.unch),k=ST.mode==='ema'?x['ab'+ST.ema]:x.adv;return Math.round(pct(k,nn))+'% <span style="opacity:.6;font-size:10px">'+k+'/'+nn+'</span>';};
  var h='<h4>'+(code==='N50'?'Inside Nifty 50':'F&O stocks')+' by sector · '+(ST.mode==='ema'?'% above '+ST.ema+' EMA':'% of stocks up')+' · '+ST.per+' · '+ds.length+' sessions</h4>'+
-  '<div class="ix-note" style="margin:-2px 0 6px">Sorted by the latest day. Sectors with 3 stocks or fewer show counts (e.g. 1/2). Click a sector name to open it in the Screener.</div>';
+  '<div class="ix-note" style="margin:-2px 0 6px">Sorted by the latest day. Each cell: % of the sector’s stocks, then the count (e.g. 50% 1/2). Click a sector name to open it in the Screener.</div>';
  h+='<div class="ix-st"><table><thead><tr><th class="sc">Date</th>'+gs.map(function(g){return '<th title="'+esc(g)+' — open in the Screener" onclick="ixScreen(\''+code+'\',\''+q(g)+'\')">'+esc(SHORT[g]||g)+'</th>';}).join('')+'</tr>'+
   '<tr class="avg"><th class="sc">'+ST.per+' average</th>'+gs.map(function(g){var a=avg(g);return '<th style="background:'+band(a)+'">'+(a==null?'—':Math.round(a)+'%')+'</th>';}).join('')+'</tr>'+
   '<tr class="cnt"><th class="sc">Stocks</th>'+gs.map(function(g){return '<th>'+((by[g][last]||{}).n||'—')+'</th>';}).join('')+'</tr></thead><tbody>';
