@@ -13814,7 +13814,7 @@ function scrPasses(d){
  if(S.sec&&S.sec.size){if(!S.sec.has(ALIGN.sectorState[d.sector]||'neutral'))return false;}
  if(S.catalyst&&S.catalyst.size){const has=(d.catalyst&&d.catalyst.length)?'yes':'no';if(!S.catalyst.has(has))return false;}
  if(S.nr&&S.nr.size){let ok=false;S.nr.forEach(v=>{if(v==='nr7'&&d.isNr7)ok=true;if(v==='nr4'&&d.isNr4)ok=true;if(v==='brokenUp'&&d.nrStatus==='expanded_up')ok=true;if(v==='brokenDown'&&d.nrStatus==='expanded_down')ok=true;if(v==='coiling'&&d.nrStatus==='coiling')ok=true;});if(!ok)return false;}
- if(S.contractmin&&S.contractmin.size){const m=Math.min(...[...S.contractmin].map(Number));if(d.contract==null||+d.contract<m)return false;}
+ if(S.contractmin&&S.contractmin.size){const m=Math.min(...[...S.contractmin].map(Number));if(d.contract==null||+d.contract<(m<=1?m*100:m))return false;}
  if(S.cat.size&&!S.cat.has(d.cat))return false;
  if(S.grade&&S.grade.size&&!S.grade.has(d.grade))return false;
  if(S.smt.size&&!S.smt.has(d.smt))return false;
@@ -14990,7 +14990,7 @@ var TF_RE={
 var TF_NEW=[
  {id:'mtf_leaders',when:'eod',grp:'Multi-Timeframe',label:'All Timeframes Up Leaders',set:{mtf:['allup'],conv:['3'],z52:['zone','base']},cols:['mtf','dwm','grid','conv','hold'],desc:'All Timeframes Up, ★★★ conviction, near or just past the 52-week high.',how:'Daily, weekly and monthly all rising, the sector strong on both daily and weekly, the market not weak, and price sitting in the breakout zone. These are the names that can be held as positions: take your usual first partial, then trail the rest on the daily 20 EMA or the weekly 9 EMA instead of the daily 9.'},
  {id:'mtf_pb9',when:'eod',grp:'Multi-Timeframe',label:'HTF Pullback to 9E',set:{mtf:['htfpb']},req:function(d){return d.near9adr;},cols:['mtf','dwm','grid','conv'],desc:'Weekly and monthly up, daily resting within 1 ADR of the 9 EMA.',how:'The big trend is intact and the daily has come back to the 9 EMA. Entry is the reclaim of the 9 or a break of the pullback high; stop under the pullback low. Exit the idea if the daily closes below the 20 and the weekly closes below its 9.'},
- {id:'mtf_coil',when:'eod',grp:'Multi-Timeframe',label:'HTF Coil',set:{mtf:['htfpb']},req:function(d){return d.isNr7||(d.contract!=null&&+d.contract>=0.7);},cols:['mtf','dwm','nr','conv'],desc:'HTF Pullback that is also coiling: NR7 today or contraction ≥0.7.',how:'The daily is compressing while the weekly and monthly push up — the spring is loaded in the direction of the bigger trend. Mark the NR day or box high as the trigger.'},
+ {id:'mtf_coil',when:'eod',grp:'Multi-Timeframe',label:'HTF Coil',set:{mtf:['htfpb']},req:function(d){return d.isNr7||(d.contract!=null&&+d.contract>=70);},cols:['mtf','dwm','nr','conv'],desc:'HTF Pullback that is also coiling: NR7 today or contraction ≥0.7.',how:'The daily is compressing while the weekly and monthly push up — the spring is loaded in the direction of the bigger trend. Mark the NR day or box high as the trigger.'},
  {id:'mtf_turn',when:'eod',grp:'Multi-Timeframe',label:'Weekly Turn Early',set:{mtf:['wkturn']},req:function(d){var v=d.wkvols||[];return v.length&&v[v.length-1]>=1.2;},cols:['mtf','dwm','grid','conv'],desc:'Weekly 9 crossed above 20 in the last 3 weeks, monthly up or flat, last week on 1.2× average weekly volume.',how:'A new weekly leg with volume behind it. Swing it now; it becomes a position candidate after two weekly closes above the weekly 9. Exit the idea on a weekly close back below the weekly 20.'},
  {id:'mtf_early',when:'eod',grp:'Multi-Timeframe',label:'Early Turnaround',set:{mtf:['earlyturn']},req:function(d){var v=d.wkvols||[];return v.length&&v[v.length-1]>=1.2;},cols:['mtf','dwm','grid','hold'],desc:'Daily up, weekly 9 crossed above 20 in the last 3 weeks, monthly still falling. Last week on 1.2× average weekly volume.',how:'The first sign a downtrend may be ending — or a bear-market rally. A long flat base before the turn and volume on the weekly turn favour the real thing. Swing only, never a position. Exit on a weekly close back below the weekly 20 EMA. It graduates to Weekly Turn once the monthly closes above its 9 EMA. Check the evidence panel to see how this state has actually performed.'},
  {id:'mtf_mbo',when:'weekend',grp:'Multi-Timeframe',label:'Monthly Breakout',set:{},req:function(d){return d.mBo&&W_UP(d);},cols:['mtf','dwm','e200','conv'],desc:'Last completed month closed above the prior 6 months, after a base no wider than 40%. Weekly up.',how:'A multi-month base resolving upward on the monthly chart. Plan entries on the daily for the week ahead; these are position-trade material if the sector agrees.'},
@@ -16715,7 +16715,7 @@ setTimeout(function(){clearInterval(t);},60000);
 var MKT='IN';
 /* ── the order, top to bottom (Mahesh, 13 Oct 2026). Keys missing in a market are skipped. ── */
 var ORDER=[
- ['🧱 Setup & Base',['pattern','v2state','v2t','v2last','entry','basemin','contractmin','nr','polemin','polespeedmin','pole','ebase']],
+ ['🧱 Setup & Base',['pattern','expst','expmin','v2state','v2t','v2last','entry','basemin','contractmin','nr','polemin','polespeedmin','pole','ebase']],
  ['⚡ Episodic Pivots',['eptype','epstage','epctx','epage']],
  ['🌀 Shakeouts & Reclaims',['shk','shkage','bstate','ucd','rclv','rclgrade','rclvol','rclriskmax','rcldaysmax']],
  ['🏔 52-Week Highs',['h52sig','h52q','z52','consolmin']],
@@ -16949,7 +16949,7 @@ var _p=null;
 function load(){
  if(_p)return _p;
  _p=(async function(){
-  var all=[],off=0;for(var g=0;g<4;g++){var b=await sbGet(TBL+'?select=symbol,session_date,state,t_count,depths,first_depth,last_depth,base_days,pivot,pct_to_pivot,vol_ratio,prior_adv,bo_vol,base_start,legs&is_vcp=eq.true&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}
+  var all=[],off=0;for(var g=0;g<4;g++){var b=await sbGet(TBL+'?select=symbol,session_date,state,t_count,depths,first_depth,last_depth,base_days,pivot,pct_to_pivot,vol_ratio,prior_adv,bo_vol,base_start,legs,is_vcp,exp_state,exp_pct,exp_days,exp_age,exp_kept,exp_tight,exp_vr,exp_high,exp_start,exp_peak&or=(is_vcp.eq.true,exp_state.not.is.null)&limit=1000&offset='+off);all=all.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}
   var mx='';all.forEach(function(x){if(x.session_date>mx)mx=x.session_date;});
   VCP2X.date=mx;all.forEach(function(x){if(x.session_date===mx)VCP2X.rows[x.symbol]=x;});
  })();
@@ -17002,11 +17002,58 @@ function realChart(sym,r){
   return '<div class="sx-fig"><div class="ft">'+esc(sym)+' — ITS OWN CHART, CONTRACTIONS MARKED</div><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>'+
    '<div class="cap">Blue lines = each pullback (peak to low), shrinking left to right. Green dashed = pivot, red dashed = stop. Hover a line for the dates.</div></div>';
  }).catch(function(){return '';});}
-function apply(d){var r=VCP2X.rows[d.sym];
+function apply(d){var r0=VCP2X.rows[d.sym],r=(r0&&r0.is_vcp!==false)?r0:null;
+ var x=r0&&r0.exp_state?r0:null;d.expSt=x?x.exp_state:null;d.expPct=x?n(x.exp_pct):null;d.expDays=x?n(x.exp_days):null;d.expAge=x?n(x.exp_age):null;
+ d.expKept=x?n(x.exp_kept):null;d.expTight=x?n(x.exp_tight):null;d.expVr=x?n(x.exp_vr):null;d.expHigh=x?n(x.exp_high):null;d.expStart=x?x.exp_start:null;d.expPeak=x?x.exp_peak:null;
+ d.exp=x?(x.exp_state==='pause'?200:100)+(n(x.exp_pct)||0)/10:null;
  d.v2State=r?r.state:null;d.v2T=r?n(r.t_count):null;d.v2Depths=r?r.depths:null;d.v2First=r?n(r.first_depth):null;d.v2Last=r?n(r.last_depth):null;
  d.v2Base=r?n(r.base_days):null;d.v2Pivot=r?n(r.pivot):null;d.v2Pct=r?n(r.pct_to_pivot):null;d.v2Vr=r?n(r.vol_ratio):null;d.v2Prior=r?n(r.prior_adv):null;d.v2BoVol=r?n(r.bo_vol):null;d.v2Legs=r?r.legs:null;
  d.v2=r?({breakout:300,near:200,forming:100}[r.state]||0)-(n(r.pct_to_pivot)||0):null;}
 var STI={breakout:'🚀',near:'🎯',forming:'⏳'};
+var F_EX={key:'expst',label:'Momentum burst / pause',opts:['burst','pause'],disp:{burst:'🚀 Burst: flying now',pause:'⏸ Pausing after a burst'},
+ tips:{burst:'Up 20%+ from a low within the last 10 sessions, the high made today or yesterday, and the close keeps 80%+ of the move.',
+  pause:'A 20%+ burst (built in 10 sessions or less) 3–20 sessions ago, now resting: gave back no more than 38% of the move, the last 5 sessions are tight (span ≤ half the move), and volume is lower than during the burst.'}};
+var F_EM={key:'expmin',label:'Burst size',opts:['20','30','50'],disp:{'20':'≥ 20%','30':'≥ 30%','50':'≥ 50%'},
+ tips:{'20':'The burst was at least 20% (low to high).','30':'At least 30%.','50':'At least 50% — a very strong burst.'}};
+function expTxt(d){if(!d.expSt)return '';return (d.expSt==='burst'?'🚀 Burst':'⏸ Pause')+' +'+Math.round(d.expPct)+'% in '+d.expDays+'d'+(d.expSt==='pause'?' · day '+d.expAge+' of pause · kept '+Math.round(d.expKept*100)+'% · vol '+(d.expVr!=null?d.expVr.toFixed(1)+'×':'—'):'');}
+var COLX={k:'exp',g:'Breakout',lbl:'Burst / Pause',a:'l',def:1,tip:'Momentum burst (20%+ in ≤10 sessions) and the pause after it. Click a badge for the exact rules.',
+ cell:function(d){if(!d.expSt)return (typeof DASH!=='undefined')?DASH:'<span class="scr-dash">—</span>';var col=d.expSt==='burst'?'#16A34A':'#3B82F6';
+  return '<span class="scr-chip tf-pchip" style="background:'+col+'1f;color:'+col+'" title="'+esc(expTxt(d))+'. Click for the rules." onclick="event.stopPropagation();tfPatExplain(\'burst\',\''+esc(d.sym)+'\')">'+esc(expTxt(d))+'</span>';}};
+/* ── exact rules, shown in the explanation box for every ticked filter / applied playbook ── */
+var RULES={
+ 'pattern:VCP':['🏁 Momentum Flag (from the nightly momentum scan)','Lowest close of the sessions 25 to 5 ago → highest close since then is at least +20%','The last 5 sessions’ range (highest high − lowest low) is ≤ 8% of the close','The close is no more than 15% below the highest high of the last 20 sessions','Pivot = highest high of the last 5 sessions','Measured but not required: volume dry-up (last 5 days vs the 10 before: Yes < 70%, Partial < 90%), tightness, base days','If the run is 80%+ (HTF rules below) the stock is tagged HTF instead'],
+ 'pattern:HTF':['🚩 High Tight Flag (from the nightly momentum scan)','Lowest close of the last 40 sessions → highest close after it is at least +80%','The close is no more than 25% below that high','The last 5 sessions’ range is ≤ 10% of the close','Pivot = highest high of the last 5 sessions · base days = closes in a row within 8% of today’s close'],
+ 'polemin':['Pole % = the run measured by the momentum scan: Momentum Flag → lowest close of sessions 25–5 ago to the highest close after it; HTF → lowest close of the last 40 sessions to the highest close after it','Only stocks tagged Momentum Flag or HTF have a pole'],
+ 'polespeedmin':['Rally speed = Pole % ÷ the number of sessions from that low to that high'],
+ 'contractmin':['Tightness = 1 − (last 5 sessions’ high-to-low range ÷ the size of the run)','Momentum Flag run = highest close of the last 20 sessions − lowest close of sessions 25–5 ago; HTF run = high after the 40-day low − that low','0.7 means the last 5 sessions span 30% of the run or less'],
+ 'basemin':['Base days = closes in a row, counting back from today, that are within 5% of today’s close (Momentum Flag, max 19) or within 8% (HTF, max 29)'],
+ 'expst:burst':['🚀 Momentum burst (nightly scan)','The highest high of the last 25 sessions was made today or yesterday','From the lowest low of the 10 sessions before that high, the stock rose at least 20%','The close keeps at least 80% of that move'],
+ 'expst:pause':['⏸ Pause after a burst (nightly scan)','A burst of at least 20%, built in 10 sessions or less, peaked 3 to 20 sessions ago','Since the peak, the lowest low kept at least 61.8% of the move (gave back ≤ 38.2%), and so does today’s close','The last 5 sessions (or fewer, since the peak) span no more than half the move','Average volume since the peak is lower than the average volume during the burst','Pivot = the burst high'],
+ 'expmin':['Burst size = burst high ÷ the lowest low of the 10 sessions before it − 1'],
+ 'v2state':['📐 True VCP (nightly vcp_scan.py)','Close > 50 EMA > 200 EMA, and the 200 EMA higher than 20 sessions ago','Base high = highest high of sessions 130–3 ago, at least 25% above the lowest low of the 60 sessions before it; base ≥ 15 sessions','2 to 6 pullbacks (swing filter max(2.5%, 0.8 × ADR)), each shallower than the one before; first ≤ 35%, last ≤ 10%','Pivot = high of the last pullback, ≥ 90% of the base high; volume since the last peak < the base average','Breakout = first close above the pivot today or yesterday on ≥ 1.5× 50-day volume · Near = within 3% · Forming = the rest'],
+ 'v2t':['Number of pullbacks in the True VCP base, each shallower than the last'],
+ 'v2last':['Depth of the last pullback = (its peak high − its lowest low) ÷ its peak high'],
+ 'h52sig':['New high = today’s high above the highest high of the previous 252 sessions','Strong close = close above that level, in the top 25% of the day’s range, on ≥ 1.5× the 20-day average volume','Weekly close above = this or last week’s close above the 52-week high as it stood before that week; on volume = that week’s average volume ≥ 1.5× the 10 weeks before'],
+ 'h52q':['Fresh = a new 52-week high in the last 5 sessions that is the first after ≥ 40 sessions without one','Not extended = close between −1% and +5% of the level it broke','Leader = 3-month return better than the index’s'],
+ 'estack':['Uses the close’s distance from each daily EMA','Perfect order = EMA5 > EMA9 > EMA20 > EMA50 > EMA200','Pullback to 20 = above the 50 and 200, and within 1 ADR of the 20 · Pullback to 50 = above the 200, EMA20 > EMA50, within 1 ADR of the 50'],
+ 'e200z':['Above / below = close vs the daily 200 EMA · Near = within 1 ADR of it'],
+ 'e200s':['Compares the daily 50 EMA with the daily 200 EMA'],
+ 'gnow':['The 50 stocks with the biggest Day % on this screener, today'],
+ 'topmv':['Ranked by % change over the chosen period, from the nightly market_movers table; the top (or bottom) 50']
+};
+if(MKT==='IN'){RULES.fno=['F&O list = the stocks in the latest ema_filter session (the F&O tab’s list)'];RULES.oib=['From NSE’s F&O bhav file: price change + futures OI change','Long Buildup: price ↑ OI ↑ · Short Covering: price ↑ OI ↓ · Short Buildup: price ↓ OI ↑ · Long Unwinding: price ↓ OI ↓'];RULES.delmin=['Delivery % = delivered shares ÷ traded shares, from NSE’s delivery file'];}
+function rulesFor(){var S=SCR.state,out=[],seen={};
+ function add(k){if(seen[k]||!RULES[k])return;seen[k]=1;out.push(RULES[k]);}
+ var keys={};for(var k in S){if(S[k]&&S[k].size)keys[k]=[...S[k]];}
+ try{var P0=SCR_PRESETS.filter(function(x){return x.id===SCR.activePreset;})[0];if(P0&&P0.set)for(var k2 in P0.set){keys[k2]=(keys[k2]||[]).concat(P0.set[k2]);}}catch(e){}
+ for(var k3 in keys){add(k3);keys[k3].forEach(function(v){add(k3+':'+v);});}
+ return out;}
+function rulesHtml(){var L=rulesFor();if(!L.length)return '';
+ return '<div class="pi-h" style="margin-top:10px">📏 Exact rules it must satisfy</div><div class="pi-b" style="line-height:1.55">'+L.map(function(r){
+  return '<div style="margin:6px 0"><b>'+esc(r[0])+'</b>'+(r.length>1?'<ul style="margin:3px 0 0 18px;padding:0">'+r.slice(1).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'')+'</div>';}).join('')+'</div>';}
+function hookExplain(){if(typeof scrExplain!=='function'||scrExplain._rules)return;var o=scrExplain;
+ window.scrExplain=scrExplain=function(){var r=o.apply(this,arguments);try{var el=document.getElementById('scr-play-info');var x=rulesHtml();
+  if(el&&x){var tgt=el.querySelector('.sx-txt')||el;var old=tgt.querySelector('.tf-rules');if(old)old.remove();var dv=document.createElement('div');dv.className='tf-rules';dv.innerHTML=x;tgt.appendChild(dv);el.style.display='block';}}catch(e){console.error('rules',e);}return r;};scrExplain._rules=true;}
 var F_ST={key:'v2state',label:'True VCP',opts:['breakout','near','forming'],
  disp:{breakout:'🚀 True VCP · breakout',near:'🎯 True VCP · near pivot',forming:'⏳ True VCP · forming'},
  tips:{breakout:'A True VCP whose first close above the pivot was today or yesterday, on at least 1.5× the 50-day average volume.',
@@ -17025,6 +17072,8 @@ function gset(){var D=SCR.data||[];if(GN.ref===D&&GN.len===D.length&&GN.set)retu
  var l=D.filter(function(d){return !d._ipoRow&&d.day!=null&&+d.day>0;}).sort(function(a,b){return b.day-a.day;}).slice(0,50);
  GN.ref=D;GN.len=D.length;GN.set=new Set(l.map(function(d){return d.sym;}));return GN.set;}
 function passes(d){var S=SCR.state;
+ var ex=S.expst;if(ex&&ex.size&&!(d.expSt&&ex.has(d.expSt)))return false;
+ var em=S.expmin;if(em&&em.size){var mn0=999;em.forEach(function(o){mn0=Math.min(mn0,+o);});if(!(d.expPct!=null&&d.expPct>=mn0))return false;}
  var s=S.v2state;if(s&&s.size&&!(d.v2State&&s.has(d.v2State)))return false;
  var t=S.v2t;if(t&&t.size){var mn=99;t.forEach(function(o){mn=Math.min(mn,+o);});if(!(d.v2T!=null&&d.v2T>=mn))return false;}
  var l=S.v2last;if(l&&l.size){var mx=0;l.forEach(function(o){mx=Math.max(mx,+o);});if(!(d.v2Last!=null&&d.v2Last<=mx))return false;}
@@ -17039,9 +17088,15 @@ function chip(d){
   STI[d.v2State]+' 📐 '+d.v2T+'T · '+esc(d.v2Depths)+'%'+(where?' · '+where:'')+'</span>';}
 var COL={k:'v2',g:'Breakout',lbl:'True VCP',a:'l',def:1,tip:'True VCP from the nightly scan: number of shrinking pullbacks, their depths, and the distance to the pivot. Click a badge for the rules.',
  cell:chip};
-var PB=[{id:'vcp2_near',when:'eod',grp:'Coil / Pre-Breakout',label:'📐 True VCP near pivot',fig:'vcp',set:{v2state:['near','breakout']},cols:['v2','qm','pv','z52','day','rvol'],
+var PB=[{id:'exp_burst',when:'eod',grp:'Momentum Burst',label:'🚀 Momentum Burst (expansion)',set:{expst:['burst']},cols:['exp','day','rvol','pv','z52'],
+ how:'Stocks flying right now: up 20%+ from a low within the last 10 sessions, high made today or yesterday, close keeping 80%+ of the move. Not yet studied. Use it as a watch list — chasing the first leg is hard; the entry usually comes in the pause that follows (next playbook).'},
+ {id:'exp_pause',when:'eod',grp:'Momentum Burst',label:'⏸ Burst → Pause (contraction)',fig:'flag',set:{expst:['pause']},cols:['exp','pv','z52','nr','day'],
+ how:'A 20%+ burst that is now resting 3–20 sessions without giving back the gains (≤ 38% given back), tight over the last 5 sessions, on lower volume than the burst. Not yet studied. Plan: alert at the burst high; buy the break on volume; stop under the pause low.'},
+ {id:'vcp2_near',when:'eod',grp:'Coil / Pre-Breakout',label:'📐 True VCP near pivot',fig:'vcp',set:{v2state:['near','breakout']},cols:['v2','qm','pv','z52','day','rvol'],
  how:'Classic Volatility Contraction Patterns (2–6 pullbacks, each shallower than the last, the last 10% or less, volume drying up, above a rising 50 and 200 EMA) that are within 3% of the pivot or broke out today/yesterday on 1.5× volume. Not yet studied — rules, not proven edge. Plan: alert at the pivot, buy the break on volume, stop under the low of the last pullback.'}];
-var WHY={v2state:'The classic Volatility Contraction Pattern (Minervini), found every night by vcp_scan.py: a run-up, then 2–6 pullbacks that keep getting smaller, the last 10% or less, volume drying up, above a rising 50 and 200 EMA. Pick where it is: forming, near the pivot, or breaking out.',
+var WHY={expst:'Momentum burst = a 20%+ rise within 10 sessions, still at the highs. Pause = the rest that follows a burst without giving back the gains, on lower volume. Click a Burst / Pause badge or see the exact rules in the explanation box.',
+ expmin:'How big the burst was, from its low to its high.',
+ v2state:'The classic Volatility Contraction Pattern (Minervini), found every night by vcp_scan.py: a run-up, then 2–6 pullbacks that keep getting smaller, the last 10% or less, volume drying up, above a rising 50 and 200 EMA. Pick where it is: forming, near the pivot, or breaking out.',
  v2t:'How many shrinking pullbacks the True VCP base has. More pullbacks = a longer, more mature base.',
  v2last:'Depth of the final, tightest pullback in the True VCP. Smaller = less supply left and a closer stop.',
  gnow:'Today’s 50 biggest gainers (Day %) on this screener. One click from the 🚀 button in the tools row.'};
@@ -17068,7 +17123,11 @@ function rowOf(sym){return (SCR.data||[]).filter(function(d){return d.sym===sym;
 window.tfPatExplain=function(kind,sym){
  var el=document.getElementById('tf-px');if(!el){el=document.createElement('div');el.id='tf-px';el.onclick=function(e){if(e.target===el)el.classList.remove('open');};document.body.appendChild(el);}
  var d=sym?rowOf(sym):null,me='',h;
- if(kind==='vcp'){
+ if(kind==='burst'){
+  if(d&&d.expSt)me='<div class="me"><b>'+esc(d.sym)+'</b> · '+esc(expTxt(d))+' · burst '+(d.expStart||'')+' → '+(d.expPeak||'')+' · burst high '+(d.expHigh!=null?d.expHigh:'—')+(d.expTight!=null?' · last 5 sessions span '+Math.round(d.expTight*100)+'% of the move':'')+'</div>';
+  h='<h3>🚀 Momentum Burst & ⏸ Pause</h3>'+me+'<div class="sub">Exact rules</div>'+['expst:burst','expst:pause'].map(function(k){var r=RULES[k];return '<div style="margin:6px 0"><b>'+esc(r[0])+'</b><ul style="margin:3px 0 0 18px;padding:0">'+r.slice(1).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';}).join('');
+  kind='flag';
+ } else if(kind==='vcp'){
   if(d&&d.v2State)me='<div class="me"><b>'+esc(d.sym)+'</b> · '+STI[d.v2State]+' '+d.v2State+' · '+d.v2T+' pullbacks: '+esc(d.v2Depths)+'% · pivot '+d.v2Pivot+' ('+(d.v2Pct>0?d.v2Pct.toFixed(1)+'% below':(-d.v2Pct).toFixed(1)+'% above')+') · base '+d.v2Base+' sessions · run-up into the base '+d.v2Prior+'% · last-leg volume '+(d.v2Vr!=null?d.v2Vr.toFixed(2):'—')+'× the base average'+(d.v2BoVol!=null?' · breakout volume '+d.v2BoVol.toFixed(1)+'×':'')+'</div>';
   h='<h3>📐 True VCP — Volatility Contraction Pattern</h3>'+me+vcpRules();
  }else{
@@ -17108,13 +17167,13 @@ function renames(){
 function install(){
  if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
  if(window._vcp2Installed)return true;window._vcp2Installed=true;
- SCR_FILTERS.push(F_ST,F_T,F_L,F_G);['v2state','v2t','v2last','gnow'].forEach(function(k){SCR.state[k]=new Set();});
+ SCR_FILTERS.push(F_EX,F_EM,F_ST,F_T,F_L,F_G);['expst','expmin','v2state','v2t','v2last','gnow'].forEach(function(k){SCR.state[k]=new Set();});
  try{var g=SCR_FGROUPS.filter(function(x){return /Setup|Pattern|Breakout/i.test(x[0]);})[0];if(g)g[1].push('v2state','v2t','v2last');else SCR_FGROUPS.push(['True VCP',['v2state','v2t','v2last']]);
   var gv=SCR_FGROUPS.filter(function(x){return /^Volume/.test(x[0]);})[0];if(gv)gv[1].push('gnow');}catch(e){}
  try{for(var k in WHY)SCR_FILTER_WHY[k]=WHY[k];}catch(e){}
  renames();
- SCR_COLS.push(COL);SCR.vis[COL.k]=true;
- try{SCR_FILTER_COL.v2state='v2';SCR_FILTER_COL.v2t='v2';SCR_FILTER_COL.v2last='v2';}catch(e){}
+ SCR_COLS.push(COL);SCR.vis[COL.k]=true;SCR_COLS.push(COLX);SCR.vis[COLX.k]=true;hookExplain();
+ try{SCR_FILTER_COL.expst='exp';SCR_FILTER_COL.expmin='exp';SCR_FILTER_COL.v2state='v2';SCR_FILTER_COL.v2t='v2';SCR_FILTER_COL.v2last='v2';}catch(e){}
  PB.forEach(function(p){p._vcp2=true;SCR_PRESETS.push(p);});
  var orig=scrPasses;scrPasses=function(d){if(!orig(d))return false;return passes(d);};
  if(!scrRender._vcp2){var o=scrRender;window.scrRender=scrRender=function(){var r=o.apply(this,arguments);try{btn();}catch(e){}return r;};scrRender._vcp2=true;}

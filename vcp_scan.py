@@ -17,6 +17,7 @@ States:
   forming     everything else that passes
 Every stock is written with is_vcp and, when it fails, the first rule it failed (reason).
 legs = JSON [[peak_date, peak_high, trough_date, trough_low, depth%], ...] for drawing on charts; base_start = date of H0.
+Also for EVERY stock: momentum burst / pause-after-burst fields (exp_*), see expansion().
 Prices are split/bonus-adjusted on the fly (split_adjust, shared with hi52_scan.py).
 Writes vcp_state (IN) / us_vcp_state (US). Read-only on everything else.
 
@@ -34,7 +35,9 @@ SETTINGS = {
 }
 BASE = dict(cal_days=520, look=130, min_base=15, prior_len=60, prior_adv=25.0, t_min=2, t_max=6,
             first_max=35.0, last_max=10.0, swing_min=2.5, swing_adr=0.8, adr_len=20, pivot_min=0.90,
-            vol_ratio_max=1.0, near_pct=3.0, bo_vol=1.5, bo_days=2, vol_avg=50, e200_rise=20)
+            vol_ratio_max=1.0, near_pct=3.0, bo_vol=1.5, bo_days=2, vol_avg=50, e200_rise=20,
+            exp_look=25, exp_days=10, exp_min=20.0, burst_age=1, burst_keep=0.8,
+            pause_min=3, pause_max=20, pause_hold=0.618, pause_tight=0.5, pause_vr=1.0)
 PARAMS = {'IN': dict(BASE), 'US': dict(BASE)}
 
 
@@ -77,6 +80,43 @@ def zigzag(h, l, a, b, r):
     return pairs, None, X
 
 
+def expansion(h, l, c, v, ds, i, P):
+    """Momentum burst (expansion) and the pause (contraction) after it.
+    H = highest high of the last exp_look sessions; L = lowest low of the exp_days sessions up to H.
+    Expansion = H/L - 1 >= exp_min %, built in 1..exp_days sessions.
+      burst : H is today or yesterday and the close keeps >= burst_keep of the move
+      pause : pause_min..pause_max sessions since H; the lowest low since H kept >= pause_hold of the move
+              (gave back <= 38.2%); the last up-to-5 sessions span <= pause_tight of the move; average volume
+              since H < pause_vr x the average volume of the expansion days"""
+    e = {'exp_state': None, 'exp_pct': None, 'exp_days': None, 'exp_age': None, 'exp_kept': None,
+         'exp_tight': None, 'exp_vr': None, 'exp_high': None, 'exp_start': None, 'exp_peak': None}
+    if i < P['exp_look'] + P['exp_days'] + 2: return e
+    H = max(range(i - P['exp_look'] + 1, i + 1), key=lambda j: (h[j], j))
+    L = min(range(max(0, H - P['exp_days']), H + 1), key=lambda j: (l[j], -j))
+    if L >= H or l[L] <= 0: return e
+    mv = h[H] - l[L]; pct = (h[H] / l[L] - 1) * 100
+    if pct < P['exp_min']: return e
+    age = i - H
+    kept = (c[i] - l[L]) / mv
+    e.update(exp_pct=round(pct, 1), exp_days=H - L, exp_age=age, exp_kept=round(kept, 2), exp_high=round(h[H], 2),
+             exp_start=ds[L], exp_peak=ds[H])
+    ve = v[L + 1:H + 1]
+    if age <= P['burst_age']:
+        if kept >= P['burst_keep']: e['exp_state'] = 'burst'
+        return e
+    if not (P['pause_min'] <= age <= P['pause_max']): return e
+    low_since = min(l[H + 1:i + 1])
+    hold = (low_since - l[L]) / mv
+    w0 = max(H + 1, i - 4)
+    tight = (max(h[w0:i + 1]) - min(l[w0:i + 1])) / mv
+    vp = v[H + 1:i + 1]
+    vr = (sum(vp) / len(vp)) / (sum(ve) / len(ve)) if ve and vp and sum(ve) > 0 else None
+    e.update(exp_tight=round(tight, 2), exp_vr=round(vr, 2) if vr is not None else None)
+    if hold >= P['pause_hold'] and kept >= P['pause_hold'] and tight <= P['pause_tight'] and vr is not None and vr < P['pause_vr']:
+        e['exp_state'] = 'pause'
+    return e
+
+
 def analyse(rows, P):
     n = len(rows)
     rd = lambda x, p=2: None if x is None else round(x, p)
@@ -85,6 +125,7 @@ def analyse(rows, P):
     split_adjust(h, l, c, v)
     i = n - 1
     out = {'session_date': ds[i], 'close': rd(c[i]), 'is_vcp': False, 'state': None, 'reason': None}
+    out.update(expansion(h, l, c, v, ds, i, P))
     def fail(why, **k):
         out.update(k); out['reason'] = why; return out
     if n < 200 + P['e200_rise'] + 1:
@@ -182,8 +223,13 @@ def main():
             % (S['flag'], last, len(out), trend, len(v), cnt('breakout'), cnt('near'), cnt('forming')))
     if top:
         summ += '\n' + '\n'.join('%s %s · %dT %s · pivot %s (%+.1f%%)' % ('🚀' if x['state'] == 'breakout' else '🎯', x['symbol'], x['t_count'], x['depths'], x['pivot'], -x['pct_to_pivot']) for x in top)
+    eb = [x for x in out if x.get('exp_state') == 'burst']; ep = [x for x in out if x.get('exp_state') == 'pause']
+    summ += '\n🚀 Momentum bursts %d · ⏸ pausing after a burst %d' % (len(eb), len(ep))
+    if ep:
+        summ += '\n' + '\n'.join('⏸ %s +%.0f%% in %dd · day %d of pause · kept %.0f%% · vol %.1f×' % (x['symbol'], x['exp_pct'], x['exp_days'], x['exp_age'], x['exp_kept'] * 100, x['exp_vr']) for x in sorted(ep, key=lambda x: -x['exp_pct'])[:8])
     log(summ)
     if a.dry_run or a.symbols:
+        for x in (eb + ep)[:10]: print(json.dumps({k: x.get(k) for k in ('symbol', 'exp_state', 'exp_pct', 'exp_days', 'exp_age', 'exp_kept', 'exp_tight', 'exp_vr', 'exp_start', 'exp_peak')}))
         for x in (v or out)[:15]: print(json.dumps(x))
         why = {}
         for x in out:
@@ -192,7 +238,8 @@ def main():
         log('dry run: nothing saved'); return
     hh = dict(H, **{'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal'})
     keys = ['symbol', 'session_date', 'close', 'is_vcp', 'state', 'reason', 'trend_ok', 'base_days', 'prior_adv', 'adr', 'swing',
-            't_count', 'depths', 'first_depth', 'last_depth', 'pivot', 'pct_to_pivot', 'vol_ratio', 'bo_vol', 'base_start', 'legs', 'computed_at']
+            't_count', 'depths', 'first_depth', 'last_depth', 'pivot', 'pct_to_pivot', 'vol_ratio', 'bo_vol', 'base_start', 'legs', 'exp_state', 'exp_pct', 'exp_days', 'exp_age',
+            'exp_kept', 'exp_tight', 'exp_vr', 'exp_high', 'exp_start', 'exp_peak', 'computed_at']
     rows = [{k: x.get(k) for k in keys} for x in out]
     for j in range(0, len(rows), 500):
         r = requests.post('%s/rest/v1/%s?on_conflict=symbol' % (C.SUPABASE_URL, S['out']), headers=hh, data=json.dumps(rows[j:j + 500]), timeout=120)
