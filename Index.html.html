@@ -17423,6 +17423,10 @@ setTimeout(function(){clearInterval(t);},60000);
 </script>
 <!-- ═══ TrueFlow Indices v1 — NSE indices, sectors and F&O: EMA breadth / advance-decline, history, Nifty 50 & F&O by sector, click → Screener (India) ═══ -->
 <style>
+@media (min-width:761px) and (max-width:1700px){#app .topbar .mode-toggle .mode-btn{padding:5px 9px}#app .topbar .mode-toggle{flex-shrink:1;min-width:0;overflow-x:auto;scrollbar-width:none}}
+@media (max-width:760px){#app .topbar{flex-wrap:wrap}#app .topbar>div:nth-child(2){flex:1 1 100%;order:3;min-width:0;max-width:100%}
+ #app .topbar .mode-toggle{overflow-x:auto;flex-shrink:1;max-width:100%;scrollbar-width:none;-webkit-overflow-scrolling:touch}#app .topbar .mode-toggle::-webkit-scrollbar{display:none}
+ #app .topbar .mode-toggle .mode-btn{flex-shrink:0}#app .topbar .nav-tabs{overflow-x:auto;max-width:100%}}
 #tab-indices .ix-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
 #tab-indices .ix-tg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
 #tab-indices .ix-tg button{background:transparent;border:0;padding:6px 12px;cursor:pointer;color:var(--muted);font-weight:600;font-size:12px}
@@ -17600,7 +17604,7 @@ window.ixEma=function(e){ST.ema=e;save();view();};
 window.ixPer=function(p){ST.per=p;save();detail();};
 window.ixSel=function(c){ST.sel=(ST.sel===c?null:c);view();if(ST.sel){setTimeout(function(){var d=document.getElementById('ix-det');if(d)d.scrollIntoView({behavior:'smooth',block:'start'});},60);}};
 window.ixScreen=function(code,ind){
- var b=document.querySelector('#momentum-tabs .nav-tab[onclick*="\'screener\'"]');switchTab('screener',b,'momentum');
+ try{switchMode('momentum');}catch(e){}var b=document.querySelector('#momentum-tabs .nav-tab[onclick*="\'screener\'"]');switchTab('screener',b,'momentum');
  setTimeout(function(){try{scrClearAll();}catch(e){}SCR.state.idx=new Set([code]);if(ind)SCR.state.idxind=new Set([code+'|'+ind]);SCR.activePreset=null;
   try{scrSyncChecks();}catch(e){}try{scrSyncChips();}catch(e){}scrRender();window.scrollTo(0,0);},250);};
 /* ── Screener filters: Index and Index sector ── */
@@ -17624,15 +17628,19 @@ function install(){
  var orig=scrPasses;scrPasses=function(d){if(!orig(d))return false;return passes(d);};
  loadMembers().then(function(){fillIS();try{if(SCR.loaded)scrRender();}catch(e){}});
  return true;}
+/* own top-level tab (first in the row, before F&O) */
+function show(){var c=document.getElementById('indices-container'),p=document.getElementById('tab-indices');if(c)c.style.display='block';if(p)p.classList.add('active');
+ if(!ST.ov){view();loadOverview().then(view);}else view();}
 function tab(){
- var nav=document.getElementById('momentum-tabs'),box=document.getElementById('momentum-container');if(!nav||!box)return false;
- if(document.getElementById('tab-indices'))return true;
- var b=document.createElement('button');b.className='nav-tab';b.textContent='🧭 Indices';
- b.onclick=function(){switchTab('indices',b,'momentum');if(!ST.ov){view();loadOverview().then(view);}else view();};
- var after=[].filter.call(nav.querySelectorAll('.nav-tab'),function(x){return /'market'/.test(x.getAttribute('onclick')||'');})[0];
- if(after&&after.nextSibling)nav.insertBefore(b,after.nextSibling);else nav.appendChild(b);
- var p=document.createElement('div');p.id='tab-indices';p.className='panel';
- var ref=document.getElementById('tab-market');if(ref&&ref.parentNode)ref.parentNode.insertBefore(p,ref.nextSibling);else box.appendChild(p);
+ var row=document.getElementById('mode-fo'),mom=document.getElementById('momentum-container');if(!row||!mom||typeof switchMode!=='function')return false;
+ if(document.getElementById('mode-indices'))return true;
+ var b=document.createElement('button');b.className='mode-btn';b.id='mode-indices';b.textContent='🧭 Indices';b.onclick=function(){switchMode('indices');};
+ row.parentNode.insertBefore(b,row);
+ var c=document.createElement('div');c.id='indices-container';c.style.display='none';
+ var p=document.createElement('div');p.id='tab-indices';p.className='panel';c.appendChild(p);
+ mom.parentNode.insertBefore(c,mom);
+ if(!switchMode._ix){var o=switchMode;window.switchMode=switchMode=function(m){var r=o.apply(this,arguments);var c2=document.getElementById('indices-container');
+   if(m==='indices')show();else if(c2)c2.style.display='none';return r;};switchMode._ix=true;}
  return true;}
 var t=setInterval(function(){var a=tab(),b2=install();if(a&&b2)clearInterval(t);},300);
 setTimeout(function(){clearInterval(t);},60000);
