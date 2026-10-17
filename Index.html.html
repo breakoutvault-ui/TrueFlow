@@ -17457,8 +17457,12 @@ setTimeout(function(){clearInterval(t);},60000);
 #tab-indices .ix-cbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 4px}
 #tab-indices .ix-lc{border:1.5px solid var(--c);color:var(--c);background:transparent;border-radius:99px;padding:2px 10px;font-size:11.5px;font-weight:700;cursor:pointer;opacity:.45}
 #tab-indices .ix-lc.on{opacity:1;background:color-mix(in srgb,var(--c) 14%,transparent)}
-#tab-indices .ix-tip{font-size:11.5px;color:var(--text2,var(--text));margin-left:auto;min-height:16px}
-#tab-indices .ix-cw{border:1px solid var(--border);border-radius:10px;padding:6px 4px 0;background:var(--bg)}
+#tab-indices .ix-sep{width:1px;height:18px;background:var(--border);margin:0 2px}
+#tab-indices .ix-hint{font-size:11px;color:var(--muted);margin-left:auto}
+#tab-indices .ix-cw{position:relative;max-width:1100px;border:1px solid var(--border);border-radius:10px;padding:8px 6px 2px;background:var(--bg)}
+#tab-indices .ix-tt{display:none;position:absolute;z-index:6;pointer-events:none;max-width:270px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 10px;font-size:11.5px;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.14)}
+#tab-indices .ix-tt .o{font-size:10.5px;opacity:.85}#tab-indices .ix-tt .w{margin-top:3px;padding-top:3px;border-top:1px solid var(--border);color:var(--text)}
+@media (max-width:760px){#tab-indices .ix-hint{display:none}}
 #tab-indices .ix-st{overflow:auto;max-height:460px;border:1px solid var(--border);border-radius:10px}
 #tab-indices .ix-st table{border-collapse:separate;border-spacing:0;font-size:11.5px;width:max-content;min-width:100%}
 #tab-indices .ix-st th,#tab-indices .ix-st td{padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap;min-width:64px}
@@ -17483,9 +17487,9 @@ var NAME={};IX.forEach(function(x){NAME[x[0]]=x[1];});
 function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function sbGet(p){return fetch(CONFIG.supabaseUrl+'/rest/v1/'+p,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});}
 async function all(p){var o=[],off=0;for(var g=0;g<40;g++){var b=await sbGet(p+'&limit=1000&offset='+off);o=o.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}return o;}
-var ST={mode:'ema',ema:20,sel:null,per:'3M',ov:null,last:null,hist:{},sub:{},mem:null,lines:{9:1,20:1,50:1,200:1},smooth:0};
-try{var sv=JSON.parse(localStorage.getItem('tf_ix')||'{}');if(sv.mode)ST.mode=sv.mode;if(sv.ema)ST.ema=sv.ema;if(sv.per)ST.per=sv.per;if(sv.lines)ST.lines=sv.lines;if(sv.smooth)ST.smooth=1;}catch(e){}
-function save(){try{localStorage.setItem('tf_ix',JSON.stringify({mode:ST.mode,ema:ST.ema,per:ST.per,lines:ST.lines,smooth:ST.smooth}));}catch(e){}}
+var ST={mode:'ema',ema:20,sel:null,per:'3M',ov:null,last:null,hist:{},sub:{},mem:null,lines:{9:1,20:1,50:1,200:1},smooth:0,px:1,br:1,cema:20};
+try{var sv=JSON.parse(localStorage.getItem('tf_ix')||'{}');if(sv.mode)ST.mode=sv.mode;if(sv.ema)ST.ema=sv.ema;if(sv.per)ST.per=sv.per;if(sv.lines)ST.lines=sv.lines;if(sv.smooth)ST.smooth=1;if(sv.px===0)ST.px=0;if(sv.br===0)ST.br=0;if(sv.cema)ST.cema=sv.cema;}catch(e){}
+function save(){try{localStorage.setItem('tf_ix',JSON.stringify({mode:ST.mode,ema:ST.ema,per:ST.per,lines:ST.lines,smooth:ST.smooth,px:ST.px,br:ST.br,cema:ST.cema}));}catch(e){}}
 window.IXD=ST;
 /* ── members (also used by the Screener's Index filter) ── */
 var _mp=null;
@@ -17503,7 +17507,8 @@ function chg(x){if(x==null)return '<span style="color:var(--muted)">—</span>';
 function card(code){
  var rs=(ST.ov&&ST.ov[code])||[],x=rs[rs.length-1];
  if(!x)return '<div class="ix-c" onclick="ixSel(\''+code+'\')"><div class="t">'+esc(NAME[code])+'</div><div class="s">no data yet</div></div>';
- var h='<div class="ix-c'+(ST.sel===code?' sel':'')+'" onclick="ixSel(\''+code+'\')"><div class="t"><span>'+esc(NAME[code])+'</span><span>'+(x.idx_chg!=null?chg(x.idx_chg):chg(x.avg_chg))+'</span></div>'+
+ var tl=NAME[code]+' · '+x.d+(x.idx_close!=null?'\nPrice '+pxf(x.idx_close)+(x.idx_chg!=null?' ('+(x.idx_chg>0?'+':'')+(+x.idx_chg).toFixed(2)+'%)':''):'')+'\n'+(ST.mode==='ema'?[9,20,50,200].map(function(e){var nn=emaN(x,e),p=pct(x['ab'+e],nn);return e+' EMA: '+x['ab'+e]+' of '+nn+' above ('+fmt(p,0)+'%) — '+word(p);}).join('\n'):x.adv+' up · '+x.dec+' down · '+x.unch+' flat — '+word(pct(x.adv,x.adv+x.dec+x.unch)))+'\nClick for the chart and history';
+ var h='<div class="ix-c'+(ST.sel===code?' sel':'')+'" title="'+esc(tl)+'" onclick="ixSel(\''+code+'\')"><div class="t"><span>'+esc(NAME[code])+'</span><span>'+(x.idx_chg!=null?chg(x.idx_chg):chg(x.avg_chg))+'</span></div>'+
   '<div class="s">'+(x.idx_close!=null?(+x.idx_close).toLocaleString('en-IN',{maximumFractionDigits:2})+' · ':'avg stock · ')+x.n+' stocks</div><div class="ix-bars">';
  if(ST.mode==='ema'){[9,20,50,200].forEach(function(e){var p=pct(x['ab'+e],emaN(x,e));h+='<span>'+e+'E</span><span class="ix-bar"><i style="width:'+(p||0)+'%;background:'+col(p)+'"></i></span><span>'+fmt(p,0)+'%</span>';});}
  else{var t=x.adv+x.dec+x.unch,p=pct(x.adv,t);h+='<span class="up">▲'+x.adv+'</span><span class="ix-bar"><i style="width:'+(p||0)+'%;background:#16A34A"></i></span><span class="dn">▼'+x.dec+'</span>';
@@ -17546,40 +17551,61 @@ var LC={9:'#06B6D4',20:'#F59E0B',50:'#8B5CF6',200:'#64748B'};
 var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function dShort(d){return +d.slice(8,10)+' '+MON[+d.slice(5,7)-1];}
 function sm(arr){if(!ST.smooth)return arr;return arr.map(function(v,i){var w=arr.slice(Math.max(0,i-4),i+1).filter(function(x){return x!=null;});return w.length?w.reduce(function(a,b){return a+b;},0)/w.length:null;});}
+function word(p){return p==null?'no data':p>=80?'very strong':p>=60?'strong':p>=40?'mixed':p>=20?'weak':'very weak';}
+function say(p,e){if(p==null)return '';var t=ST.mode==='ema'?' their '+e+' EMA':'';
+ return ST.mode==='ema'?(p>=80?'Very strong — almost every stock is above'+t+'.':p>=60?'Strong — most stocks are above'+t+'.':p>=40?'Mixed — about half the stocks are above'+t+'.':p>=20?'Weak — most stocks are below'+t+'.':'Very weak — almost every stock is below'+t+'.')
+  :(p>=80?'Broad buying — nearly every stock rose.':p>=60?'Buyers in control — most stocks rose.':p>=40?'Mixed day — gainers and losers about even.':p>=20?'Sellers in control — most stocks fell.':'Broad selling — nearly every stock fell.');}
+function pxf(c){return (+c).toLocaleString('en-IN',{maximumFractionDigits:0});}
+function bval(x){return ST.mode==='ema'?pct(x['ab'+ST.cema],emaN(x,ST.cema)):pct(x.adv,x.adv+x.dec+x.unch);}
 function chart(H){
  if(H.length<2)return '';
- var dw=(document.getElementById('ix-det')||{}).clientWidth||1000,W=Math.max(320,Math.min(1400,dw-40)),pl=40,pr=16,n=H.length,X=function(i){return pl+(W-pl-pr)*i/(n-1);};
- var cl=H.map(function(x){return x.idx_close!=null?+x.idx_close:null;}),hasPx=cl.filter(function(x){return x!=null;}).length>1;
- var PH=hasPx?(W<600?70:90):0,GAP=hasPx?14:0,BH=W<600?180:230,top=8,Ht=top+PH+GAP+BH+24,b0=top+PH+GAP;
- var Y=function(p){return b0+(100-p)/100*BH;},g='';
- // month ticks
- var lastM='',lastX=-99;H.forEach(function(x,i){var m=x.d.slice(0,7);if(m!==lastM){lastM=m;if(X(i)-lastX<38)return;lastX=X(i);g+='<line x1="'+X(i).toFixed(1)+'" x2="'+X(i).toFixed(1)+'" y1="'+top+'" y2="'+(b0+BH)+'" stroke="var(--border)" stroke-opacity=".35"/><text x="'+(X(i)+3).toFixed(1)+'" y="'+(Ht-6)+'" font-size="10.5" fill="var(--muted)">'+MON[+x.d.slice(5,7)-1]+(x.d.slice(5,7)==='01'||i===0?' '+x.d.slice(2,4):'')+'</text>';}});
- // price panel
- if(hasPx){var v=cl.filter(function(x){return x!=null;}),mn=Math.min.apply(null,v),mx=Math.max.apply(null,v),YC=function(c){return top+4+(mx-c)/((mx-mn)||1)*(PH-8);};
-  var d2='',a2='';cl.forEach(function(c,i){if(c==null)return;d2+=(d2?'L':'M')+X(i).toFixed(1)+' '+YC(c).toFixed(1)+' ';});
-  g+='<rect x="'+pl+'" y="'+top+'" width="'+(W-pl-pr)+'" height="'+PH+'" fill="var(--bg3)" opacity=".35" rx="6"/><path d="'+d2+'" fill="none" stroke="var(--text)" stroke-width="1.6"/>'+
-   '<text x="'+(pl+6)+'" y="'+(top+14)+'" font-size="10.5" fill="var(--muted)">Index · '+mx.toLocaleString('en-IN',{maximumFractionDigits:0})+' high · '+mn.toLocaleString('en-IN',{maximumFractionDigits:0})+' low</text>';}
- // breadth panel guides
- [25,50,75].forEach(function(p){g+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(p)+'" y2="'+Y(p)+'" stroke="var(--muted)" stroke-opacity="'+(p===50?'.55':'.18')+'"'+(p===50?'':' stroke-dasharray="3 4"')+'/><text x="'+(pl-6)+'" y="'+(Y(p)+3.5)+'" font-size="10.5" fill="var(--muted)" text-anchor="end">'+p+'%</text>';});
- if(ST.mode==='ema'){
-  [200,50,20,9].forEach(function(e){if(!ST.lines[e])return;var vals=sm(H.map(function(x){return pct(x['ab'+e],emaN(x,e));}));var d='',first=-1,lastI=-1;
-   vals.forEach(function(p,i){if(p==null)return;if(first<0)first=i;lastI=i;d+=(d?'L':'M')+X(i).toFixed(1)+' '+Y(p).toFixed(1)+' ';});if(!d)return;
-   if(e===ST.ema)g+='<path d="'+d+'L'+X(lastI).toFixed(1)+' '+Y(0)+' L'+X(first).toFixed(1)+' '+Y(0)+' Z" fill="'+LC[e]+'" opacity=".08"/>';
-   g+='<path d="'+d+'" fill="none" stroke="'+LC[e]+'" stroke-width="'+(e===ST.ema?2.4:1.4)+'" stroke-linejoin="round" stroke-linecap="round" opacity="'+(e===ST.ema?1:.8)+'"/>';});
- }else{var bw=Math.max(1,(W-pl-pr)/n*0.72),ups=sm(H.map(function(x){return pct(x.adv,x.adv+x.dec+x.unch);}));
-  ups.forEach(function(p,i){if(p==null)return;g+='<rect x="'+(X(i)-bw/2).toFixed(1)+'" y="'+Math.min(Y(p),Y(50)).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(.5,Math.abs(Y(p)-Y(50))).toFixed(1)+'" fill="'+(p>=50?'#16A34A':'#DC2626')+'" opacity=".7" rx="1"/>';});}
- g+='<line id="ix-hl" x1="0" x2="0" y1="'+top+'" y2="'+(b0+BH)+'" stroke="var(--text)" stroke-opacity=".35" style="display:none"/>';
- var chips=ST.mode==='ema'?[9,20,50,200].map(function(e){return '<button class="ix-lc'+(ST.lines[e]?' on':'')+'" style="--c:'+LC[e]+'" onclick="ixLine('+e+')">'+e+'E</button>';}).join(''):'<span style="font-size:11px;color:var(--muted)">Bars: share of stocks up each day (green above 50%, red below)</span>';
+ var nm=NAME[ST.sel]||'Index',cl=H.map(function(x){return x.idx_close!=null?+x.idx_close:null;}),hasPx=cl.filter(function(x){return x!=null;}).length>1;
+ var sPx=ST.px&&hasPx,sBr=ST.br;
+ var chips='<button class="ix-lc'+(ST.px?' on':'')+'" style="--c:var(--text)" onclick="ixPx()" title="Show or hide the index price line">📈 Price</button>'+
+  '<button class="ix-lc'+(ST.br?' on':'')+'" style="--c:#16A34A" onclick="ixBr()" title="Show or hide the breadth bars">📊 Breadth</button><span class="ix-sep"></span>'+
+  (ST.mode==='ema'?[9,20,50,200].map(function(e){return '<button class="ix-lc'+(ST.cema===e?' on':'')+'" style="--c:'+LC[e]+'" onclick="ixCema('+e+')" title="Bars show the share of stocks above the '+e+' EMA">'+e+'E</button>';}).join(''):'')+
+  '<button class="ix-lc'+(ST.smooth?' on':'')+'" style="--c:var(--text)" onclick="ixSmooth()" title="Show a 5-day average instead of each day’s value — easier to see the trend">〰 Smooth</button>'+
+  '<span class="ix-hint">Hover or tap a day to read it</span>';
+ if(!sPx&&!sBr)return '<div class="ix-cbar">'+chips+'</div><div class="ix-note">Chart hidden — tap 📈 Price or 📊 Breadth to show it.'+(ST.px&&!hasPx?' (No index price yet.)':'')+'</div>';
+ var dw=(document.getElementById('ix-det')||{}).clientWidth||1000,W=Math.max(300,Math.min(1100,dw-30)),ph=W<600,pl=38,pr=ph?46:62,n=H.length,step=(W-pl-pr)/n,X=function(i){return pl+step*(i+.5);};
+ var top=8,PH=sPx?(sBr?(ph?80:110):(ph?190:250)):0,GAP=sPx&&sBr?20:0,BH=sBr?(ph?160:200):0,b0=top+PH+GAP,Ht=b0+BH+22,Y=function(p){return b0+(100-p)/100*BH;},g='';
+ var lastM='',lastX=-99;H.forEach(function(x,i){var m=x.d.slice(0,7);if(m!==lastM){lastM=m;var xi=X(i)-step/2;if(xi-lastX<40)return;lastX=xi;g+='<line x1="'+xi.toFixed(1)+'" x2="'+xi.toFixed(1)+'" y1="'+top+'" y2="'+(b0+BH)+'" stroke="var(--border)" stroke-opacity=".5"/><text x="'+(xi+3).toFixed(1)+'" y="'+(Ht-6)+'" font-size="10.5" fill="var(--muted)">'+MON[+x.d.slice(5,7)-1]+(x.d.slice(5,7)==='01'||i===0?' '+x.d.slice(2,4):'')+'</text>';}});
+ if(sPx){var v=cl.filter(function(x){return x!=null;}),mn=Math.min.apply(null,v),mx=Math.max.apply(null,v),YC=function(c){return top+18+(mx-c)/((mx-mn)||1)*(PH-26);};
+  var d2='',li=-1;cl.forEach(function(c,i){if(c==null)return;li=i;d2+=(d2?'L':'M')+X(i).toFixed(1)+' '+YC(c).toFixed(1)+' ';});
+  g+='<path d="'+d2+'" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round"/>'+
+   '<circle cx="'+X(li).toFixed(1)+'" cy="'+YC(cl[li]).toFixed(1)+'" r="2.6" fill="var(--text)"/><text x="'+(X(li)+5).toFixed(1)+'" y="'+(YC(cl[li])+3.5).toFixed(1)+'" font-size="10.5" font-weight="700" fill="var(--text)">'+pxf(cl[li])+'</text>'+
+   '<text x="'+pl+'" y="'+(top+10)+'" font-size="11" fill="var(--text)" font-weight="700">'+esc(nm)+' price</text><text x="'+(W-pr)+'" y="'+(top+10)+'" font-size="10.5" fill="var(--muted)" text-anchor="end">high '+pxf(mx)+' · low '+pxf(mn)+'</text>';}
+ if(sBr){
+  g+='<text x="'+pl+'" y="'+(b0-6)+'" font-size="11" fill="var(--text)" font-weight="700">'+(ST.mode==='ema'?'% of stocks above '+ST.cema+' EMA':'% of stocks up each day')+(ST.smooth?' · 5-day avg':'')+'</text>';
+  [0,25,50,75,100].forEach(function(p){g+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(p)+'" y2="'+Y(p)+'" stroke="var(--muted)" stroke-opacity="'+(p===50?'.6':'.15')+'"/><text x="'+(pl-6)+'" y="'+(Y(p)+3.5)+'" font-size="10" fill="var(--muted)" text-anchor="end">'+p+'%</text>';});
+  var bw=Math.max(1,step*0.72),vals=sm(H.map(bval));
+  vals.forEach(function(p,i){if(p==null)return;var a=Math.min(1,Math.abs(p-50)/50);g+='<rect x="'+(X(i)-bw/2).toFixed(1)+'" y="'+Math.min(Y(p),Y(50)).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,Math.abs(Y(p)-Y(50))).toFixed(1)+'" fill="'+(p>=50?'#16A34A':'#DC2626')+'" opacity="'+(0.4+0.5*a).toFixed(2)+'" rx="'+(bw>4?1.5:0)+'"/>';});
+  var lv=vals[n-1];if(lv!=null)g+='<text x="'+(X(n-1)+5).toFixed(1)+'" y="'+(Y(lv)+3.5).toFixed(1)+'" font-size="10.5" font-weight="700" fill="'+(lv>=50?'#16A34A':'#DC2626')+'">'+Math.round(lv)+'%</text>';}
+ g+='<line id="ix-hl" x1="0" x2="0" y1="'+top+'" y2="'+(b0+BH)+'" stroke="var(--text)" stroke-opacity=".4" stroke-dasharray="3 3" style="display:none"/>';
  ST._H=H;
- return '<div class="ix-cbar">'+chips+'<button class="ix-lc'+(ST.smooth?' on':'')+'" style="--c:var(--text)" onclick="ixSmooth()" title="Show a 5-day average instead of each day’s value — easier to see the trend">〰 Smooth</button><span id="ix-tip" class="ix-tip"></span></div>'+
-  '<div class="ix-cw"><svg id="ix-svg" viewBox="0 0 '+W+' '+Ht+'" style="width:100%;height:auto;color:var(--text)" onmousemove="ixHover(event)" onmouseleave="ixHover(null)" data-pl="'+pl+'" data-pr="'+pr+'" data-w="'+W+'">'+g+'</svg></div>';}
-window.ixLine=function(e){ST.lines[e]=ST.lines[e]?0:1;save();detail();};
+ return '<div class="ix-cbar">'+chips+'</div><div class="ix-cw" id="ix-cw"><svg id="ix-svg" viewBox="0 0 '+W+' '+Ht+'" style="width:100%;height:auto;display:block" onmousemove="ixHover(event)" onmouseleave="ixHover(null)" ontouchstart="ixHover(event.touches[0])" ontouchmove="ixHover(event.touches[0])" data-pl="'+pl+'" data-pr="'+pr+'" data-w="'+W+'">'+g+'</svg><div id="ix-tt" class="ix-tt"></div></div>';}
+window.ixPx=function(){ST.px=ST.px?0:1;save();detail();};
+window.ixBr=function(){ST.br=ST.br?0:1;save();detail();};
+window.ixCema=function(e){ST.cema=e;save();detail();};
 window.ixSmooth=function(){ST.smooth=ST.smooth?0:1;save();detail();};
-window.ixHover=function(ev){var svg=document.getElementById('ix-svg'),tip=document.getElementById('ix-tip'),hl=document.getElementById('ix-hl');if(!svg||!ST._H)return;
- if(!ev){if(hl)hl.style.display='none';if(tip)tip.textContent='';return;}
- var r=svg.getBoundingClientRect(),W=+svg.dataset.w,pl=+svg.dataset.pl,pr=+svg.dataset.pr,x=(ev.clientX-r.left)/r.width*W,n=ST._H.length,i=Math.round((x-pl)/(W-pl-pr)*(n-1));
- if(i<0||i>=n){hl.style.display='none';return;}var d=ST._H[i],xx=pl+(W-pl-pr)*i/(n-1);hl.setAttribute('x1',xx);hl.setAttribute('x2',xx);hl.style.display='';
- tip.innerHTML='<b>'+dShort(d.d)+' '+d.d.slice(0,4)+'</b>'+(d.idx_chg!=null?' · index '+(d.idx_chg>0?'+':'')+(+d.idx_chg).toFixed(2)+'%':'')+' · '+(ST.mode==='ema'?[9,20,50,200].map(function(e){var p=pct(d['ab'+e],emaN(d,e));return '<span style="color:'+LC[e]+'">'+e+'E '+fmt(p,0)+'%</span>';}).join(' · '):'<span class="up">▲'+d.adv+'</span> <span class="dn">▼'+d.dec+'</span>');};
+window.ixHover=function(ev){var svg=document.getElementById('ix-svg'),tt=document.getElementById('ix-tt'),hl=document.getElementById('ix-hl'),cw=document.getElementById('ix-cw');if(!svg||!ST._H||!tt)return;
+ if(!ev){hl.style.display='none';tt.style.display='none';return;}
+ var r=svg.getBoundingClientRect(),W=+svg.dataset.w,pl=+svg.dataset.pl,pr=+svg.dataset.pr,x=(ev.clientX-r.left)/r.width*W,n=ST._H.length,step=(W-pl-pr)/n,i=Math.floor((x-pl)/step);
+ if(i<0||i>=n){hl.style.display='none';tt.style.display='none';return;}
+ var d=ST._H[i],xx=pl+step*(i+.5);hl.setAttribute('x1',xx);hl.setAttribute('x2',xx);hl.style.display='';
+ var h='<b>'+dShort(d.d)+' '+d.d.slice(0,4)+'</b>';
+ if(d.idx_close!=null)h+='<div>'+esc(NAME[ST.sel]||'Index')+' '+pxf(d.idx_close)+(d.idx_chg!=null?' <span class="'+(d.idx_chg>0?'up':d.idx_chg<0?'dn':'')+'">('+(d.idx_chg>0?'+':'')+(+d.idx_chg).toFixed(2)+'%)</span>':'')+'</div>';
+ else if(d.idx_chg!=null)h+='<div>Index '+chg(d.idx_chg)+'</div>';
+ var p;
+ if(ST.mode==='ema'){var e=ST.cema,nn=emaN(d,e);p=pct(d['ab'+e],nn);
+  h+='<div><b style="color:'+LC[e]+'">'+d['ab'+e]+' of '+nn+'</b> stocks above '+e+' EMA (<b>'+fmt(p,0)+'%</b>)'+(ST.smooth?' · 5-day avg '+fmt(sm(ST._H.map(bval))[i],0)+'%':'')+'</div>';
+  h+='<div class="o">'+[9,20,50,200].filter(function(k){return k!==e;}).map(function(k){return '<span style="color:'+LC[k]+'">'+k+'E '+fmt(pct(d['ab'+k],emaN(d,k)),0)+'%</span>';}).join(' · ')+'</div>';}
+ else{var t=d.adv+d.dec+d.unch;p=pct(d.adv,t);h+='<div><span class="up">▲ '+d.adv+' up</span> · <span class="dn">▼ '+d.dec+' down</span>'+(d.unch?' · '+d.unch+' flat':'')+' (<b>'+fmt(p,0)+'%</b> up)</div>';}
+ var s=say(p,ST.cema);
+ if(d.idx_chg!=null&&p!=null){if(d.idx_chg>=0.5&&p<40)s+=' Index rose but few stocks joined — a narrow move.';else if(d.idx_chg<=-0.5&&p>=60)s+=' Index fell but most stocks held up.';}
+ h+='<div class="w">'+s+'</div>';
+ tt.innerHTML=h;tt.style.display='block';
+ var cr=cw.getBoundingClientRect(),px=ev.clientX-cr.left,tw=tt.offsetWidth;tt.style.left=Math.max(4,Math.min(cr.width-tw-4,px>cr.width/2?px-tw-14:px+14))+'px';tt.style.top='6px';};
 var SHORT={'Automobile and Auto Components':'Auto','Fast Moving Consumer Goods':'FMCG','Oil Gas & Consumable Fuels':'Oil & Gas','Information Technology':'IT','Financial Services':'Financials',
  'Construction Materials':'Cement & Materials','Consumer Durables':'Cons. Durables','Consumer Services':'Cons. Services','Metals & Mining':'Metals','Telecommunication':'Telecom','Capital Goods':'Cap. Goods','Healthcare':'Healthcare','Power':'Power','Construction':'Construction','Services':'Services','Realty':'Realty','Chemicals':'Chemicals','Media Entertainment & Publication':'Media','Textiles':'Textiles','Diversified':'Diversified','Forest Materials':'Forest'};
 function band(p){if(p==null)return 'transparent';return p>=80?'rgba(22,163,74,.55)':p>=60?'rgba(22,163,74,.3)':p>=40?'rgba(148,163,184,.18)':p>=20?'rgba(220,38,38,.28)':'rgba(220,38,38,.5)';}
