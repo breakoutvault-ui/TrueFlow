@@ -176,6 +176,8 @@ def cycle(h, l, c, v, ds, i, P):
             if st != 'expansion': st, st_i = 'expansion', j
             continue
         mv = hi - lo
+        if b20 >= P['cyc_fail_e20'] or c[j] < lo + P['cyc_fail_ret'] * mv:
+            st, fail_i, st_i = 'failed', j, j; continue
         if j - hi_i < P['cyc_ctr_min']:
             continue  # still counted as the expansion
         if st == 'expansion': st, st_i = 'contraction', j
@@ -188,8 +190,6 @@ def cycle(h, l, c, v, ds, i, P):
             else:
                 hi, hi_i = h[j], j
             continue
-        if b20 >= P['cyc_fail_e20'] or c[j] < lo + P['cyc_fail_ret'] * mv:
-            st, fail_i, st_i = 'failed', j, j; continue
         below9 = e9[j] is not None and c[j] < e9[j]
         above20 = e20[j] is not None and c[j] > e20[j]
         if below9 and above20:
@@ -316,6 +316,8 @@ def main():
             x = analyse(rs, P)
         except Exception as e:
             log('  %s: %s' % (sym, e)); continue
+        if ' ' in sym:  # indices such as INDIA VIX / NIFTY 50 are not stocks: no cycle
+            for k in [k for k in x if k.startswith('cyc_')]: x[k] = None
         x['symbol'] = sym; x['computed_at'] = now; out.append(x)
     v = [x for x in out if x['is_vcp']]
     cnt = lambda s: sum(1 for x in v if x['state'] == s)
