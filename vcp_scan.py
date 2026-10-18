@@ -17,7 +17,10 @@ States:
   forming     everything else that passes
 Every stock is written with is_vcp and, when it fails, the first rule it failed (reason).
 legs = JSON [[peak_date, peak_high, trough_date, trough_low, depth%], ...] for drawing on charts; base_start = date of H0.
-Also for EVERY stock: momentum burst / pause-after-burst fields (exp_*), see expansion().
+Also for EVERY stock: momentum burst / pause-after-burst fields (exp_*), see expansion() - shown on the
+dashboard as 'Fast expansion' and 'Tight contraction'.
+And the ONE cycle model for EVERY stock (cyc_*), see cycle():
+  Expansion -> Contraction -> Shakeout -> Reclaimed -> Breakout (-> next Expansion = next cycle) or Failed.
 Prices are split/bonus-adjusted on the fly (split_adjust, shared with hi52_scan.py).
 Writes vcp_state (IN) / us_vcp_state (US). Read-only on everything else.
 
@@ -37,7 +40,9 @@ BASE = dict(cal_days=520, look=130, min_base=15, prior_len=60, prior_adv=25.0, t
             first_max=35.0, last_max=10.0, swing_min=2.5, swing_adr=0.8, adr_len=20, pivot_min=0.90,
             vol_ratio_max=1.0, near_pct=3.0, bo_vol=1.5, bo_days=2, vol_avg=50, e200_rise=20,
             exp_look=25, exp_days=10, exp_min=20.0, burst_age=1, burst_keep=0.8,
-            pause_min=3, pause_max=20, pause_hold=0.618, pause_tight=0.5, pause_vr=1.0)
+            pause_min=3, pause_max=20, pause_hold=0.618, pause_tight=0.5, pause_vr=1.0,
+            cyc_min=20.0, cyc_days=20, cyc_look=140, cyc_ctr_min=3, cyc_fail_ret=0.5, cyc_fail_e20=2,
+            cyc_bo_hold=10, cyc_rcl_show=3, cyc_fail_show=5)
 PARAMS = {'IN': dict(BASE), 'US': dict(BASE)}
 
 
@@ -117,6 +122,102 @@ def expansion(h, l, c, v, ds, i, P):
     return e
 
 
+def cycle(h, l, c, v, ds, i, P):
+    """The one cycle model, walked day by day over the last cyc_look sessions.
+    Expansion : a rise of >= cyc_min % from the lowest low of the previous cyc_days sessions to today's high,
+                with today's high the highest since that low. New highs within cyc_ctr_min-1 sessions extend it.
+    Contraction: from cyc_ctr_min sessions after the expansion high, no time limit, until it breaks either way.
+    Shakeout  : during contraction, a close below the 9 EMA but above the 20 EMA.
+    Reclaimed : after a shakeout, a close back above the 9 EMA (shown for cyc_rcl_show sessions, then Contraction).
+    Breakout  : a close above the contraction high (the expansion high) in the upper half of the day's range.
+                A new >= cyc_min % rise from the contraction low within cyc_days sessions = the next cycle (Expansion).
+                No new leg within cyc_bo_hold sessions -> back to Contraction under the new high.
+    Failed    : cyc_fail_e20 closes in a row below the 20 EMA, or a close giving back > cyc_fail_ret of the expansion.
+                Shown for cyc_fail_show sessions; the next expansion starts again at cycle 1."""
+    out = {k: None for k in ('cyc_stage', 'cyc_no', 'cyc_pct', 'cyc_days', 'cyc_speed', 'cyc_lo', 'cyc_hi', 'cyc_start',
+                             'cyc_peak', 'cyc_age', 'cyc_kept', 'cyc_tight', 'cyc_vr', 'cyc_clow', 'cyc_shk_low',
+                             'cyc_shk_n', 'cyc_since')}
+    if i < 60: return out
+    e9, e20 = ema(c, 9), ema(c, 20)
+    st = None; cyc = 0; lo = hi = None; lo_i = hi_i = None; st_i = 0; b20 = 0
+    shk_low = None; shk_n = 0; rcl_i = None; bo_i = None; fail_i = None; clow = None
+
+    def leg(j, after):
+        a0 = max(after, j - P['cyc_days'])
+        if a0 >= j: return None
+        L = min(range(a0, j), key=lambda k: (l[k], -k))
+        if l[L] <= 0 or max(h[L:j + 1]) > h[j]: return None
+        return L if (h[j] / l[L] - 1) * 100 >= P['cyc_min'] else None
+
+    def start(L, j, n):
+        return 'expansion', n, l[L], h[j], L, j, j
+
+    for j in range(max(P['cyc_days'] + 1, i - P['cyc_look']), i + 1):
+        b20 = b20 + 1 if (e20[j] is not None and c[j] < e20[j]) else 0
+        if st in (None, 'failed'):
+            if st == 'failed' and j - fail_i > P['cyc_fail_show']: st = None
+            L = leg(j, 0)
+            if L is not None:
+                st, cyc, lo, hi, lo_i, hi_i, st_i = start(L, j, 1); shk_low = None; shk_n = 0
+            continue
+        if st == 'breakout':
+            L = leg(j, clow_i + 0)
+            if L is not None and L >= clow_i:
+                st, cyc, lo, hi, lo_i, hi_i, st_i = start(L, j, cyc + 1); shk_low = None; shk_n = 0
+                continue
+            if h[j] > hi: hi, hi_i = h[j], j
+            if b20 >= P['cyc_fail_e20'] or c[j] < clow:
+                st, fail_i, st_i = 'failed', j, j; continue
+            if j - bo_i >= P['cyc_bo_hold']: st, st_i = 'contraction', j
+            continue
+        # expansion or contraction family
+        if h[j] > hi and j - hi_i < P['cyc_ctr_min']:
+            hi, hi_i = h[j], j
+            if st != 'expansion': st, st_i = 'expansion', j
+            continue
+        mv = hi - lo
+        if j - hi_i < P['cyc_ctr_min']:
+            continue  # still counted as the expansion
+        if st == 'expansion': st, st_i = 'contraction', j
+        if c[j] > hi and (h[j] - l[j] <= 0 or (c[j] - l[j]) >= 0.5 * (h[j] - l[j])):
+            clow_i = min(range(hi_i + 1, j + 1), key=lambda k: (l[k], -k)); clow = l[clow_i]
+            bo_i = j; st, st_i = 'breakout', j
+            L = leg(j, clow_i)
+            if L is not None and L >= clow_i:
+                st, cyc, lo, hi, lo_i, hi_i, st_i = start(L, j, cyc + 1); shk_low = None; shk_n = 0
+            else:
+                hi, hi_i = h[j], j
+            continue
+        if b20 >= P['cyc_fail_e20'] or c[j] < lo + P['cyc_fail_ret'] * mv:
+            st, fail_i, st_i = 'failed', j, j; continue
+        below9 = e9[j] is not None and c[j] < e9[j]
+        above20 = e20[j] is not None and c[j] > e20[j]
+        if below9 and above20:
+            if st != 'shakeout': st, st_i = 'shakeout', j; shk_n += 1; shk_low = l[j]
+            else: shk_low = min(shk_low, l[j])
+        elif st == 'shakeout' and not below9:
+            st, st_i, rcl_i = 'reclaimed', j, j
+        elif st == 'reclaimed' and j - rcl_i >= P['cyc_rcl_show']:
+            st, st_i = 'contraction', j
+    if st is None: return out
+    rd = lambda x, p=2: None if x is None else round(x, p)
+    out.update(cyc_stage=st, cyc_no=cyc, cyc_since=i - st_i)
+    if lo is not None and hi is not None and lo_i is not None and lo > 0:
+        mv = hi - lo; pct = (hi / lo - 1) * 100; days = max(1, hi_i - lo_i)
+        out.update(cyc_pct=rd(pct, 1), cyc_days=days, cyc_speed=rd(pct / days, 2), cyc_lo=rd(lo), cyc_hi=rd(hi),
+                   cyc_start=ds[lo_i], cyc_peak=ds[hi_i], cyc_age=i - hi_i, cyc_kept=rd((c[i] - lo) / mv if mv else None))
+        if i > hi_i:
+            w0 = max(hi_i + 1, i - 4)
+            out['cyc_tight'] = rd((max(h[w0:i + 1]) - min(l[w0:i + 1])) / mv if mv else None)
+            ve = v[lo_i + 1:hi_i + 1]; vp = v[hi_i + 1:i + 1]
+            if ve and vp and sum(ve) > 0: out['cyc_vr'] = rd((sum(vp) / len(vp)) / (sum(ve) / len(ve)))
+            out['cyc_clow'] = rd(min(l[hi_i + 1:i + 1]))
+    if st in ('shakeout', 'reclaimed', 'contraction') and shk_low is not None:
+        out.update(cyc_shk_low=rd(shk_low), cyc_shk_n=shk_n)
+    if st == 'breakout' and clow is not None: out['cyc_clow'] = rd(clow)
+    return out
+
+
 def analyse(rows, P):
     n = len(rows)
     rd = lambda x, p=2: None if x is None else round(x, p)
@@ -126,6 +227,7 @@ def analyse(rows, P):
     i = n - 1
     out = {'session_date': ds[i], 'close': rd(c[i]), 'is_vcp': False, 'state': None, 'reason': None}
     out.update(expansion(h, l, c, v, ds, i, P))
+    out.update(cycle(h, l, c, v, ds, i, P))
     def fail(why, **k):
         out.update(k); out['reason'] = why; return out
     if n < 200 + P['e200_rise'] + 1:
@@ -224,11 +326,20 @@ def main():
     if top:
         summ += '\n' + '\n'.join('%s %s · %dT %s · pivot %s (%+.1f%%)' % ('🚀' if x['state'] == 'breakout' else '🎯', x['symbol'], x['t_count'], x['depths'], x['pivot'], -x['pct_to_pivot']) for x in top)
     eb = [x for x in out if x.get('exp_state') == 'burst']; ep = [x for x in out if x.get('exp_state') == 'pause']
-    summ += '\n🚀 Momentum bursts %d · ⏸ pausing after a burst %d' % (len(eb), len(ep))
+    cc = {}
+    for x in out:
+        if x.get('cyc_stage'): cc[x['cyc_stage']] = cc.get(x['cyc_stage'], 0) + 1
+    summ += ('\n🔄 Cycle: expansion %d · contraction %d · shakeout %d · reclaimed %d · breakout %d · failed %d'
+             % tuple(cc.get(k, 0) for k in ('expansion', 'contraction', 'shakeout', 'reclaimed', 'breakout', 'failed')))
+    shk = sorted([x for x in out if x.get('cyc_stage') == 'shakeout'], key=lambda x: -(x.get('cyc_pct') or 0))[:8]
+    if shk:
+        summ += '\n' + '\n'.join('⚠️ %s cycle %d · +%.0f%% in %dd · contraction day %d · below 9 EMA, above 20' % (x['symbol'], x['cyc_no'], x['cyc_pct'], x['cyc_days'], x['cyc_age']) for x in shk)
+    summ += '\n🚀 Fast expansions %d · ⏸ tight contractions %d' % (len(eb), len(ep))
     if ep:
-        summ += '\n' + '\n'.join('⏸ %s +%.0f%% in %dd · day %d of pause · kept %.0f%% · vol %.1f×' % (x['symbol'], x['exp_pct'], x['exp_days'], x['exp_age'], x['exp_kept'] * 100, x['exp_vr']) for x in sorted(ep, key=lambda x: -x['exp_pct'])[:8])
+        summ += '\n' + '\n'.join('⏸ %s +%.0f%% in %dd · day %d of tight contraction · kept %.0f%% · vol %.1f×' % (x['symbol'], x['exp_pct'], x['exp_days'], x['exp_age'], x['exp_kept'] * 100, x['exp_vr']) for x in sorted(ep, key=lambda x: -x['exp_pct'])[:8])
     log(summ)
     if a.dry_run or a.symbols:
+        for x in [y for y in out if y.get('cyc_stage')][:15]: print(json.dumps({k: x.get(k) for k in ('symbol', 'cyc_stage', 'cyc_no', 'cyc_pct', 'cyc_days', 'cyc_age', 'cyc_kept', 'cyc_since', 'cyc_shk_low')}))
         for x in (eb + ep)[:10]: print(json.dumps({k: x.get(k) for k in ('symbol', 'exp_state', 'exp_pct', 'exp_days', 'exp_age', 'exp_kept', 'exp_tight', 'exp_vr', 'exp_start', 'exp_peak')}))
         for x in (v or out)[:15]: print(json.dumps(x))
         why = {}
@@ -239,7 +350,9 @@ def main():
     hh = dict(H, **{'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal'})
     keys = ['symbol', 'session_date', 'close', 'is_vcp', 'state', 'reason', 'trend_ok', 'base_days', 'prior_adv', 'adr', 'swing',
             't_count', 'depths', 'first_depth', 'last_depth', 'pivot', 'pct_to_pivot', 'vol_ratio', 'bo_vol', 'base_start', 'legs', 'exp_state', 'exp_pct', 'exp_days', 'exp_age',
-            'exp_kept', 'exp_tight', 'exp_vr', 'exp_high', 'exp_start', 'exp_peak', 'computed_at']
+            'exp_kept', 'exp_tight', 'exp_vr', 'exp_high', 'exp_start', 'exp_peak', 'cyc_stage', 'cyc_no', 'cyc_pct', 'cyc_days',
+            'cyc_speed', 'cyc_lo', 'cyc_hi', 'cyc_start', 'cyc_peak', 'cyc_age', 'cyc_kept', 'cyc_tight', 'cyc_vr', 'cyc_clow',
+            'cyc_shk_low', 'cyc_shk_n', 'cyc_since', 'computed_at']
     rows = [{k: x.get(k) for k in keys} for x in out]
     for j in range(0, len(rows), 500):
         r = requests.post('%s/rest/v1/%s?on_conflict=symbol' % (C.SUPABASE_URL, S['out']), headers=hh, data=json.dumps(rows[j:j + 500]), timeout=120)
