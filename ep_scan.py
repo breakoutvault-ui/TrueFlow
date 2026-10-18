@@ -19,7 +19,9 @@ depend on the results trackers.
     fresh     event today or yesterday
     drifting  still pushing to new highs after the event
     basing    pulled back, but holding above the event-day low
-    coiling   basing AND the last week is tight on drying volume -> delayed-EP watchlist
+    coiling   basing AND tight at the top: the last 5 sessions span <= half the base, on drying
+              volume, AND (18 Oct 2026) the close is within 8% of the base high, the 5-session
+              range is <= 1.5x ADR, and the close is above the 20 and 50 EMA -> delayed-EP watchlist
     resumed   broke above the base high after basing -> DELAYED EP trigger
     faded     closed below the event-day low -> failed
 
@@ -50,6 +52,7 @@ BASE = dict(
     run_pct=8.0, run_adr=3.0, run_days=3, run_vol=1.5,   # ignition (2-3 days): >= max(8%, 3x ADR), each day upper half
     neglect_pct=8.0,                     # neglected = moved less than 8% either way in the 20 sessions before
     fresh_days=1, base_min=3, coil_days=5, coil_range=0.5, coil_vol=0.85,
+    coil_near=8.0, coil_adr=1.5,         # coiling also: close within 8% of the base high, 5-day range <= 1.5x ADR, above 20 & 50 EMA
     max_age=60, resume_window=2, horizons=(5, 10, 20), evidence_days=500,
 )
 PARAMS = {"IN": dict(BASE), "US": dict(BASE)}
@@ -89,7 +92,7 @@ def analyse(bars, P, results_days):
         return [], None
     o = [b["o"] for b in bars]; h = [b["h"] for b in bars]; l = [b["l"] for b in bars]
     c = [b["c"] for b in bars]; v = [b["v"] or 0 for b in bars]
-    e50 = ema(c, 50)
+    e50 = ema(c, 50); e20 = ema(c, 20)
     adr = [None] * n
     for i in range(20, n):
         adr[i] = sum((h[j] - l[j]) / l[j] * 100 for j in range(i - 19, i + 1) if l[j] > 0) / 20.0
@@ -171,7 +174,10 @@ def analyse(bars, P, results_days):
                 rng = max(h[j - P["coil_days"] + 1:j + 1]) - min(l[j - P["coil_days"] + 1:j + 1])
                 full = (base_hi - base_lo) if base_hi and base_lo else rng
                 vdry = (sum(v[j - P["coil_days"] + 1:j + 1]) / P["coil_days"]) <= P["coil_vol"] * (v20[j] or 1)
-                st = "coiling" if (full > 0 and rng <= P["coil_range"] * full and vdry) else "basing"
+                top = base_hi and (base_hi - c[j]) / base_hi * 100 <= P["coil_near"]
+                tight = adr[j] is not None and c[j] > 0 and rng / c[j] * 100 <= P["coil_adr"] * adr[j]
+                trend = c[j] > e20[j] and c[j] > e50[j]
+                st = "coiling" if (full > 0 and rng <= P["coil_range"] * full and vdry and top and tight and trend) else "basing"
         return st, trig, base_hi, base_lo, (upto - based_since) if based_since is not None else None
 
     # evidence: event days and delayed triggers
