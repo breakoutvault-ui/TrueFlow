@@ -4,6 +4,7 @@
 shakeout_scan.py - every kind of shakeout, for India and US, every night
 
   EMA shakeouts   ema9  - lose the daily 9 EMA for 1-3 closes, then close back above
+                          (held20 = every close of the dip and the reclaim stayed above the 20 EMA)
                   ema20 - the same against the 20 EMA
   Box shakeouts   ur     - Undercut & Rally: low breaks the box low, close back inside in 1-3 sessions
                   spring - a U&R whose undercut day had heavy volume and closed in its upper half
@@ -250,7 +251,7 @@ def analyse(bars, P):
                 s0 = i - below9
                 if s0 - P["ema9_above_before"] >= 0 and all(c[j] > e9[j] for j in range(s0 - P["ema9_above_before"], s0)) \
                         and e9[s0 - 1] > e20[s0 - 1]:
-                    add(i, "ema9", {"low": min(l[s0:i + 1])})
+                    add(i, "ema9", {"low": min(l[s0:i + 1]), "held20": all(c[j] > e20[j] for j in range(s0, i + 1))})
             below9 = 0
         if c[i] < e20[i]:
             below20 += 1
@@ -339,7 +340,8 @@ def analyse(bars, P):
           "shake_low": round(last[2].get("low"), 4) if last and last[2].get("low") else None,
           "uc_depth_adr": round(last[2]["depth"], 2) if last and last[2].get("depth") is not None else None,
           "reclaim_rvol": round(last[2]["rvol"], 2) if last and last[2].get("rvol") else None,
-          "shk_bo": False, "shk_near": False}
+          "shk_bo": False, "shk_near": False,
+          "shake_held20": (bool(last[2].get("held20")) if last and last[1] == "ema9" else None)}
     # the box the stock is in now: before today's bar (so today's break can be seen)
     bx = cur
     if bx:
@@ -445,11 +447,13 @@ def main():
         for k in ("box_state", "shake_type"):
             if st.get(k):
                 cnt[(k, st[k])] = cnt.get((k, st[k]), 0) + 1
+        if st.get("shake_held20"):
+            cnt[("shake_type", "ema9 held 20")] = cnt.get(("shake_type", "ema9 held 20"), 0) + 1
         if st["shk_bo"]:
             cnt[("playbook", "shakeout->breakout")] = cnt.get(("playbook", "shakeout->breakout"), 0) + 1
         if a.symbols:
             log("  %s %s" % (sym, {k: st[k] for k in ("box_state", "box_hi", "box_lo", "box_days", "shake_type",
-                                                    "shake_age", "shake_low", "shk_bo", "shk_near", "trend_ok")}))
+                                                    "shake_age", "shake_low", "shake_held20", "shk_bo", "shk_near", "trend_ok")}))
     today = datetime.now(timezone.utc).date().isoformat()
     ev = []
     for (typ, hz), vals in sorted(acc.items()):

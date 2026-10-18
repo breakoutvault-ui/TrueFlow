@@ -15719,11 +15719,12 @@ function apply(d){
  d.skState=r?r.box_state:null;d.skUc=r?n(r.uc_depth_adr):null;d.skRvol=r?n(r.reclaim_rvol):null;
  d.skBo=!!(r&&r.shk_bo);d.skNear=!!(r&&r.shk_near);d.skTrend=!!(r&&r.trend_ok);
  d.skHits=(r&&r.pb_hits)?String(r.pb_hits).split(','):[];d.skRs=!!(r&&r.rs_top30);
+ d.skHeld20=r&&r.shake_held20!=null?!!r.shake_held20:null;
 }
 
 /* ── filters ──────────────────────────────────────── */
 var SK_FILTERS=[
- {key:'shk',label:'Shakeout Type',opts:['any','ema9','ema20','ur','spring','top'],
+ {key:'shk',label:'Shakeout Type',opts:['any','ema9','ema9h','ema20','ur','spring','top'],
   disp:{any:'Any shakeout',ema9:'〰️ 9 EMA',ema20:'〰️ 20 EMA',ur:'📦 Box U&R',spring:'🌱 Spring',top:'🔁 Top shakeout'},
   tips:{any:'Any of the shakeouts below.',ema9:'Lost the daily 9 EMA for 1–3 closes, then closed back above it.',ema20:'The same against the 20 EMA.',
    ur:'Undercut the box low, then closed back inside within 1–3 sessions.',spring:'A U&R whose undercut day had heavy volume and closed in the upper half of its range.',
@@ -15739,7 +15740,7 @@ var SK_FILTERS=[
 ];
 function passes(d){
  var S=SCR.state;
- if(S.shk&&S.shk.size){if(!d.skType)return false;if(!S.shk.has('any')&&!S.shk.has(d.skType))return false;}
+ if(S.shk&&S.shk.size){if(!d.skType)return false;if(!S.shk.has('any')&&!S.shk.has(d.skType)&&!(S.shk.has('ema9h')&&d.skType==='ema9'&&d.skHeld20===true))return false;}
  if(S.shkage&&S.shkage.size){var m=0;S.shkage.forEach(function(v){m=Math.max(m,+v);});if(d.skAge==null||d.skAge>m)return false;}
  if(S.bstate&&S.bstate.size&&!S.bstate.has(d.skState))return false;
  if(S.ucd&&S.ucd.size){var u=0;S.ucd.forEach(function(v){u=Math.max(u,+v);});if(d.skUc==null||d.skUc>u)return false;}
@@ -17068,7 +17069,8 @@ var RULES={
  'epctx':['💤 From neglect = moved less than 8% either way in the 20 sessions before the event','🏃 Already moving = moved more than that','📋 On results = the event day or the day before is a results date'],
  'epstage':['Stage of the latest event (last 60 sessions), read from the stock’s own prices','Fresh = event today or yesterday','Drifting (expansion continues) = still making new highs after the event','Basing (contraction) = 3+ sessions since the high, still above the event-day low','Coiling (tight contraction) = basing AND the last 5 sessions span no more than half the base, on ≤ 0.85× the 20-day volume','Resumed = closed above the base high after 3+ sessions of basing — the delayed-EP trigger (shown 2 sessions)','Faded = closed below the event-day low'],
  'epage':['Sessions since the event day'],
- 'shk:ema9':['〰️ 9 EMA shakeout (nightly shakeout_scan.py)','At least 5 closes in a row above the 9 EMA, and the 9 EMA above the 20 EMA the day before the dip','Then 1 to 3 closes below the 9 EMA, then a close back above it','It does not check that price stayed above the 20 EMA during the dip — for that strict version use Reclaim = A, or Cycle stage = Shakeout / Reclaimed','The studied playbooks also need an uptrend: close above a 50 EMA that is higher than 10 sessions ago'],
+ 'shk:ema9':['〰️ 9 EMA shakeout (nightly shakeout_scan.py)','At least 5 closes in a row above the 9 EMA, and the 9 EMA above the 20 EMA the day before the dip','Then 1 to 3 closes below the 9 EMA, then a close back above it','It does not check that price stayed above the 20 EMA during the dip — for that, pick “9 EMA · held the 20 EMA”','The studied playbooks also need an uptrend: close above a 50 EMA that is higher than 10 sessions ago'],
+ 'shk:ema9h':['〰️ 9 EMA shakeout · held the 20 EMA (nightly shakeout_scan.py)','At least 5 closes in a row above the 9 EMA, and the 9 EMA above the 20 EMA the day before the dip','Then 1 to 3 closes below the 9 EMA, then a close back above it','Every close of the dip and the reclaim close stayed above the 20 EMA','Shown while it is the stock’s latest shakeout (see Shakeout Age)'],
  'shk:ema20':['〰️ 20 EMA shakeout','At least 10 closes in a row above the 20 EMA, then 1 to 3 closes below it, then a close back above'],
  'shk:ur':['📦 Box Undercut & Rally','Box = a sideways range of 10–60 sessions, no deeper than 15% and 6 × ADR, with at least 2 touches of its top and 2 of its bottom (within 0.5 ADR), starting and ending at a similar level','Undercut = a low under the box low, no deeper than 1.5 × ADR','Rally = a close back inside the box within 3 sessions'],
  'shk:spring':['🌱 Spring = a Box U&R whose undercut day had at least 1.5× the 20-day volume and closed in the upper half of its range'],
@@ -17280,7 +17282,9 @@ function vocab(){
  set('epstage','basing','🧱 Basing — contraction',null);
  set('epstage','coiling','🌀 Coiling — tight contraction',null);
  set('nr','coiling','⏳ Inside the NR range','Still inside the range of a recent narrow-range (NR4/NR7) day, waiting for the break either way. (Not the same as the EP “Coiling” stage.)');
- set('shk','ema9',null,'After 5+ closes above the 9 EMA (with the 9 above the 20), 1–3 closes below the 9 EMA, then a close back above. It does not check that price held the 20 EMA — for that, use Reclaim = A or Cycle stage = Shakeout / Reclaimed.');
+ set('shk','ema9',null,'After 5+ closes above the 9 EMA (with the 9 above the 20), 1–3 closes below the 9 EMA, then a close back above. It does not check that price held the 20 EMA — for that, pick “9 EMA · held the 20 EMA”.');
+ set('shk','ema9h','〰️ 9 EMA · held the 20 EMA','The strict 9 EMA shakeout: after 5+ closes above the 9 EMA (with the 9 above the 20), 1–3 closes below the 9 EMA, then a close back above — and every one of those closes stayed ABOVE the 20 EMA. No minimum rise before it (for the same idea after a 20%+ expansion, see Cycle stage = Shakeout / Reclaimed, or Reclaim = A).');
+ try{SCR_DEEP['shk:ema9h']={t:'9 EMA shakeout that held the 20 EMA',w:'A stock in an uptrend closes below its daily 9 EMA for one to three sessions, never closes below the 20 EMA during the dip, then closes back above the 9 EMA.',y:'The 9 EMA is where short-term traders keep their stops; losing it flushes them out. Holding the 20 EMA shows the bigger trend never broke, so the dip was a shakeout, not a turn.',h:'Enter on the reclaim close; the stop goes under the shakeout low. If it later closes below the 20 EMA twice, the idea is wrong.',c:'Strongest with: a 20%+ expansion before it (Expansion size), a weekly uptrend, and a contraction near the high (Cycle stage = Reclaimed).'};}catch(e){}
  if(MKT==='IN')set('rclgrade','A',null,'Was rising (9 EMA above 20, both rising, 20%+ up before the dip), lost the 9 EMA for 1–5 closes but never closed below the 20, and has now closed back above the 9. The same pattern as Cycle stage = Reclaimed, measured by the momentum scan.');
  try{var g=SCR_FGROUPS.filter(function(x){return x[1].indexOf('expst')>=0;})[0];if(g){if(g[1].indexOf('cycno')<0)g[1].splice(g[1].indexOf('expmin')+1,0,'cycno');}
   var gr=SCR_FGROUPS.filter(function(x){return x[1].indexOf('rclgrade')>=0;})[0];if(gr&&F_PM&&gr[1].indexOf('rclprior')<0)gr[1].splice(gr[1].indexOf('rclgrade')+1,0,'rclprior');}catch(e){}
