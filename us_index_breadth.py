@@ -6,7 +6,7 @@ Indices (code: name)
   SPX  S&P 500        members: Wikipedia "List of S&P 500 companies" (with GICS sector)   price ^GSPC
   NDX  Nasdaq 100     members: Wikipedia "Nasdaq-100" (with GICS sector)                    price ^NDX
   DJI  Dow 30         members: Wikipedia "Dow Jones Industrial Average"                     price ^DJI
-  RUT  Russell 2000   members: iShares IWM holdings file (with sector)                      price ^RUT
+  SML  US Small Caps  members: our us_universe with market cap $300M-$2B (with Yahoo sector)  no index price
   S_*  the 11 S&P 500 sectors = S&P 500 members by GICS sector                             price = SPDR sector ETF
 A list can be supplied by hand as us_index_lists/<CODE>.csv (columns: symbol, industry) if a source blocks the server.
 
@@ -30,19 +30,22 @@ from index_breadth import ema_flags
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 EMAS = (9, 20, 50, 200)
-UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36'}
+UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36',
+      'Accept': 'text/html,text/csv,application/xhtml+xml,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9'}
 WIKI = 'https://en.wikipedia.org/wiki/'
 BROAD = [('SPX', 'S&P 500', WIKI + 'List_of_S%26P_500_companies', '^GSPC'),
          ('NDX', 'Nasdaq 100', WIKI + 'Nasdaq-100', '^NDX'),
-         ('DJI', 'Dow 30', WIKI + 'Dow_Jones_Industrial_Average', '^DJI'),
-         ('RUT', 'Russell 2000', 'https://www.ishares.com/us/products/239710/ishares-russell-2000-etf/1467271812596.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund', '^RUT')]
+         ('DJI', 'Dow 30', WIKI + 'Dow_Jones_Industrial_Average', '^DJI')]
+# US Small Caps = OUR universe (us_universe) with market cap $300M-$2B. The official Russell 2000 list (iShares IWM file)
+# answers 403 to the server, so this is our own, clearly-labelled small-cap list. No index price (avg stock instead).
+SMALL = ('SML', 'US Small Caps ($300M–$2B, our list)', 300e6, 2e9)
 # GICS sector -> (code, ETF)
 SECTORS = {'Information Technology': ('S_IT', 'XLK'), 'Financials': ('S_FIN', 'XLF'), 'Health Care': ('S_HC', 'XLV'),
            'Consumer Discretionary': ('S_CD', 'XLY'), 'Consumer Staples': ('S_CS', 'XLP'), 'Industrials': ('S_IND', 'XLI'),
            'Energy': ('S_EN', 'XLE'), 'Materials': ('S_MAT', 'XLB'), 'Utilities': ('S_UT', 'XLU'),
            'Real Estate': ('S_RE', 'XLRE'), 'Communication Services': ('S_COM', 'XLC')}
-SECTOR_IDX = ('SPX', 'NDX')          # indices that also get per-sector rows
-SUMMARY = ('SPX', 'NDX', 'DJI', 'RUT')
+SECTOR_IDX = ('SPX', 'NDX', 'SML')   # indices that also get per-sector rows
+SUMMARY = ('SPX', 'NDX', 'DJI', 'SML')
 
 
 class Tables(HTMLParser):
@@ -69,20 +72,29 @@ def norm(s):
     return s.strip().upper().replace('.', '-').replace('/', '-')
 
 
-def wiki_members(url):
+def wiki_members(url, debug=False):
     r = requests.get(url, headers=UA, timeout=30); r.raise_for_status()
     p = Tables(); p.feed(r.text)
     best = None
     for t in p.tables:
-        if not t['rows']: continue
-        hd = [h.lower() for h in t['rows'][0]]
-        si = next((k for k, h in enumerate(hd) if h in ('symbol', 'ticker')), None)
-        if si is None: continue
-        gi = next((k for k, h in enumerate(hd) if 'gics sector' in h or h == 'sector'), None)
-        rows = [(norm(x[si]), x[gi].strip() if gi is not None and gi < len(x) else '') for x in t['rows'][1:] if len(x) > si and x[si].strip()]
-        if t['id'] == 'constituents' or (best is None or len(rows) > len(best)):
-            best = rows
-            if t['id'] == 'constituents': break
+        rows = t['rows']
+        if debug and rows: log('    table id=%r rows=%d first=%s' % (t['id'], len(rows), rows[0][:6]))
+        # the header row is the first row with a Symbol / Ticker cell (footnote marks ignored)
+        hi = next((i for i, x in enumerate(rows[:3]) if any(c.lower().split('[')[0].strip() in ('symbol', 'ticker', 'ticker symbol') for c in x)), None)
+        if hi is None: continue
+        hd = [c.lower().split('[')[0].strip() for c in rows[hi]]
+        si = next(k for k, h in enumerate(hd) if h in ('symbol', 'ticker', 'ticker symbol'))
+        gi = next((k for k, h in enumerate(hd) if 'gics sector' in h), None)
+        if gi is None: gi = next((k for k, h in enumerate(hd) if h in ('sector', 'industry', 'icb industry')), None)
+        got = []
+        for x in rows[hi + 1:]:
+            if len(x) <= si: continue
+            tk = x[si].split('[')[0].strip()
+            if not tk or len(tk) > 7 or ' ' in tk: continue
+            got.append((norm(tk), x[gi].strip() if gi is not None and gi < len(x) else ''))
+        if t['id'] == 'constituents' and got:
+            return got
+        if got and (best is None or len(got) > len(best)): best = got
     return best or []
 
 
@@ -99,7 +111,7 @@ def ishares_members(url):
     return out
 
 
-def members(code, url):
+def members(code, url, debug=False):
     local = os.path.join(BASE, 'us_index_lists', code + '.csv')
     if os.path.exists(local):
         rows = [(norm(x.get('symbol') or x.get('Symbol') or ''), (x.get('industry') or x.get('sector') or '').strip())
@@ -108,7 +120,7 @@ def members(code, url):
         if rows: return rows, 'file'
     for k in range(2):
         try:
-            m = ishares_members(url) if 'ishares' in url else wiki_members(url)
+            m = ishares_members(url) if 'ishares' in url else wiki_members(url, debug)
             if m: return m, url.split('/')[2]
         except Exception as e:
             log('  %s: %s' % (code, str(e)[:120])); time.sleep(3)
@@ -141,14 +153,20 @@ def main():
     ap.add_argument('--days', type=int, default=5, help='sessions to (re)write on a normal run')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--no-prices', action='store_true', help='skip the Yahoo index closes')
+    ap.add_argument('--debug-lists', action='store_true', help='print every table found on the member pages')
     a = ap.parse_args()
     # 1) members
     mem, names, ticker = {}, {}, {}
     for code, name, url, tk in BROAD:
-        m, src = members(code, url)
+        m, src = members(code, url, a.debug_lists)
         if m: mem[code] = m
         names[code] = name; ticker[code] = tk
         log('  %-5s %-14s %4d members%s' % (code, name, len(m), (' (' + src + ')') if src else '  ✗ not loaded'))
+    uni = get_all('us_universe?select=symbol,sector,market_cap')
+    sm = [(norm(u['symbol']), u.get('sector') or 'Other') for u in uni if u.get('market_cap') and SMALL[2] <= float(u['market_cap']) < SMALL[3]]
+    if sm: mem[SMALL[0]] = sm
+    names[SMALL[0]] = SMALL[1]
+    log('  %-5s %-14s %4d members (us_universe, %d stocks in the universe)' % (SMALL[0], 'US Small Caps', len(sm), len(uni)))
     for sec, (code, etf) in SECTORS.items():
         names[code] = 'S&P 500 ' + sec; ticker[code] = etf
         if 'SPX' in mem:
@@ -180,7 +198,7 @@ def main():
     else: days = days[200:] if len(days) > 260 else days
     log('%d sessions to write' % len(days))
     # 3) index closes
-    yc = {} if (a.no_prices or not days) else yahoo_closes({c0: ticker[c0] for c0 in mem}, (datetime.strptime(days[0], '%Y-%m-%d') - timedelta(days=10)).strftime('%Y-%m-%d'))
+    yc = {} if (a.no_prices or not days) else yahoo_closes({c0: ticker[c0] for c0 in mem if c0 in ticker}, (datetime.strptime(days[0], '%Y-%m-%d') - timedelta(days=10)).strftime('%Y-%m-%d'))
     # 4) breadth
     alld = sorted({dd for d in info.values() for dd in d})
     prev = {alld[k]: alld[k - 1] for k in range(1, len(alld))}

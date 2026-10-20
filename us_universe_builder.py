@@ -2,7 +2,8 @@
 """
 TrueFlow US - Universe Builder
 Filters Nasdaq + NYSE to a QM-tradeable universe:
-price > $10, market cap > $2B, avg dollar volume > $25M, common stocks only.
+price > $5, market cap > $300M, avg dollar volume > $5M, common stocks only
+(widened 20 Oct 2026 from $10 / $2B / $25M so small caps are covered).
 Writes to Supabase table: us_universe. Run weekly. No login needed.
 """
 import io, re, sys, time
@@ -15,9 +16,9 @@ from supabase import create_client
 CONFIG = {
     "supabase_url": "https://tsgltaqbxtisebqmbffg.supabase.co",
     "supabase_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzZ2x0YXFieHRpc2VicW1iZmZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NTEyMDEsImV4cCI6MjA5MTEyNzIwMX0.SQGq9E67S7j977RUA-oJqDGV8KgEhQZb0nHfAvHcFys",
-    "min_price": 10.0,
-    "min_market_cap": 2_000_000_000,
-    "min_dollar_vol": 25_000_000,
+    "min_price": 5.0,
+    "min_market_cap": 300_000_000,
+    "min_dollar_vol": 5_000_000,
     "batch_size": 150,
     "info_threads": 8,
 }
@@ -149,8 +150,12 @@ def write_supabase(final, listings):
     for i in range(0, len(payload), 500):
         sb.table("us_universe").upsert(payload[i:i + 500]).execute()
     # remove symbols that dropped out of the universe
-    existing = sb.table("us_universe").select("symbol").execute()
-    old = {r["symbol"] for r in existing.data}
+    old, off = set(), 0                      # page through: one select returns at most 1,000 rows
+    while True:
+        page = sb.table("us_universe").select("symbol").range(off, off + 999).execute().data or []
+        old |= {r["symbol"] for r in page}
+        if len(page) < 1000: break
+        off += 1000
     stale = list(old - set(final.keys()))
     for i in range(0, len(stale), 200):
         chunk = stale[i:i + 200]
@@ -165,7 +170,7 @@ def main():
     listings = get_listings()
     rows = price_volume_screen(listings["symbol"].tolist())
     final = enrich_and_filter(rows)
-    if len(final) < 300:
+    if len(final) < 1000:
         log(f"WARNING: only {len(final)} stocks passed - not writing (safety guard).")
         sys.exit(1)
     write_supabase(final, listings)

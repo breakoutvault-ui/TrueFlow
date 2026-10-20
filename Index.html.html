@@ -17596,14 +17596,14 @@ setTimeout(function(){clearInterval(t);},21600000); /* wait up to 6 h: the Scree
 (function(){
 'use strict';
 var MKT='IN',PFX=MKT==='US'?'us_':'',LOC=MKT==='US'?'en-US':'en-IN';
-var IX=MKT==='US'?[['SPX','S&P 500','broad'],['NDX','Nasdaq 100','broad'],['DJI','Dow 30','broad'],['RUT','Russell 2000','broad'],
+var IX=MKT==='US'?[['SPX','S&P 500','broad'],['NDX','Nasdaq 100','broad'],['DJI','Dow 30','broad'],['SML','US Small Caps','broad'],
  ['S_IT','Tech (XLK)','sector'],['S_FIN','Financials (XLF)','sector'],['S_HC','Health Care (XLV)','sector'],['S_CD','Cons. Discretionary (XLY)','sector'],['S_CS','Cons. Staples (XLP)','sector'],['S_IND','Industrials (XLI)','sector'],
  ['S_EN','Energy (XLE)','sector'],['S_MAT','Materials (XLB)','sector'],['S_UT','Utilities (XLU)','sector'],['S_RE','Real Estate (XLRE)','sector'],['S_COM','Communication (XLC)','sector']]:[['N50','Nifty 50','broad'],['BANK','Bank Nifty','broad'],['MID100','Nifty Midcap 100','broad'],['MIDSML400','Nifty MidSmallcap 400','broad'],['SML100','Nifty Smallcap 100','broad'],
  ['PVTBANK','Nifty Private Bank','sector'],['PSUBANK','Nifty PSU Bank','sector'],['FIN','Nifty Financial Services','sector'],['IT','Nifty IT','sector'],['PHARMA','Nifty Pharma','sector'],
  ['HEALTH','Nifty Healthcare','sector'],['AUTO','Nifty Auto','sector'],['FMCG','Nifty FMCG','sector'],['METAL','Nifty Metal','sector'],['REALTY','Nifty Realty','sector'],['ENERGY','Nifty Energy','sector'],
  ['OILGAS','Nifty Oil & Gas','sector'],['CONSDUR','Nifty Consumer Durables','sector'],['MEDIA','Nifty Media','sector'],['CAPMKT','Nifty Capital Markets','sector'],['DEFENCE','Nifty India Defence','sector'],
  ['INFRA','Nifty Infrastructure','sector'],['FNO','F&O stocks','fno']];
-var SUBX=MKT==='US'?['SPX','NDX']:['N50','MID100','SML100','MIDSML400','FNO'];
+var SUBX=MKT==='US'?['SPX','NDX','SML']:['N50','MID100','SML100','MIDSML400','FNO'];
 var NAME={};IX.forEach(function(x){NAME[x[0]]=x[1];});
 function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function sbGet(p){return fetch(CONFIG.supabaseUrl+'/rest/v1/'+p,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});}
@@ -17787,7 +17787,7 @@ window.ixScreenCell=function(code,ind,isToday){
   if(!isToday){try{var n=document.createElement('div');n.textContent='Opened from an older date: this list uses today’s prices, so it can differ from that day’s %.';n.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:9px 14px;border-radius:10px;font-size:12.5px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.3)';document.body.appendChild(n);setTimeout(function(){n.remove();},5000);}catch(e){}}},250);};
 /* ── Screener filters: Index and Index sector ── */
 var F_I={key:'idx',label:'Index',opts:IX.map(function(x){return x[0];}),disp:NAME,tips:{}};
-IX.forEach(function(x){F_I.tips[x[0]]='Stocks that are members of the '+x[1]+(x[0]==='FNO'?' list (the F&O tab’s list)':MKT==='US'?(x[0].indexOf('S_')===0?' sector of the S&P 500 today':' index today'):' index today (NSE’s list)')+'.';});
+IX.forEach(function(x){F_I.tips[x[0]]='Stocks that are members of the '+x[1]+(x[0]==='FNO'?' list (the F&O tab’s list)':MKT==='US'?(x[0].indexOf('S_')===0?' sector of the S&P 500 today':x[0]==='SML'?' list: our US stocks worth $300M–$2B (the official Russell 2000 list is not available to us)':' index today'):' index today (NSE’s list)')+'.';});
 var F_IS={key:'idxind',label:'Index sector',opts:[],disp:{},tips:{}};
 var F_IE={key:'ixema',label:'Above daily EMA (today)',opts:['9','20','50','200','up'],disp:{'9':'Above 9 EMA','20':'Above 20 EMA','50':'Above 50 EMA','200':'Above 200 EMA','up':'Up today'},
  tips:{'9':'Today’s close is above the daily 9 EMA.','20':'Today’s close is above the daily 20 EMA.','50':'Today’s close is above the daily 50 EMA.','200':'Today’s close is above the daily 200 EMA.','up':'Closed higher than yesterday.'}};
@@ -17805,8 +17805,8 @@ function install(){
  if(window._ixInstalled)return true;window._ixInstalled=true;
  SCR_FILTERS.push(F_I,F_IS,F_IE);SCR.state.idx=new Set();SCR.state.idxind=new Set();SCR.state.ixema=new Set();
  try{var g=SCR_FGROUPS.filter(function(x){return /^Market|Sector/i.test(x[0]);})[0];if(g)g[1].push('idx','idxind','ixema');}catch(e){}
- try{SCR_FILTER_WHY.idx=MKT==='US'?'Membership of a US index (S&P 500, Nasdaq 100, Dow 30, Russell 2000) or an S&P 500 sector, today’s list.':'Membership of an NSE index (today’s list from NSE), or the F&O list. Click any card in the 🧭 Indices tab to land here with it set.';
-  SCR_FILTER_WHY.idxind=MKT==='US'?'A GICS sector inside the S&P 500 or the Nasdaq 100.':'A sector inside Nifty 50, Midcap 100, Smallcap 100, MidSmallcap 400 (NSE’s industry) or the F&O list. Set by clicking a sector in the 🧭 Indices tab.';
+ try{SCR_FILTER_WHY.idx=MKT==='US'?'Membership of a US index (S&P 500, Nasdaq 100, Dow 30), an S&P 500 sector, or US Small Caps (our stocks worth $300M–$2B), today’s list.':'Membership of an NSE index (today’s list from NSE), or the F&O list. Click any card in the 🧭 Indices tab to land here with it set.';
+  SCR_FILTER_WHY.idxind=MKT==='US'?'A sector inside the S&P 500 (GICS), the Nasdaq 100 (ICB) or US Small Caps (Yahoo sector).':'A sector inside Nifty 50, Midcap 100, Smallcap 100, MidSmallcap 400 (NSE’s industry) or the F&O list. Set by clicking a sector in the 🧭 Indices tab.';
   SCR_FILTER_WHY.ixema='Is today’s close above that daily EMA? Set when you click a % cell in a sector table of the 🧭 Indices tab.';}catch(e){}
  var orig=scrPasses;scrPasses=function(d){if(!orig(d))return false;return passes(d);};
  loadMembers().then(function(){fillIS();try{if(SCR.loaded)scrRender();}catch(e){}});
