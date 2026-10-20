@@ -4,8 +4,8 @@ us_index_breadth.py - daily breadth for US indices and the 11 S&P 500 sectors (t
 
 Indices (code: name)
   SPX  S&P 500        members: Wikipedia "List of S&P 500 companies" (with GICS sector)   price ^GSPC
-  NDX  Nasdaq 100     members: Wikipedia "Nasdaq-100" (with GICS sector)                    price ^NDX
-  DJI  Dow 30         members: Wikipedia "Dow Jones Industrial Average"                     price ^DJI
+  NDX  Nasdaq 100     members: Wikipedia "List of NASDAQ-100 companies" (ICB industry)        price ^NDX
+  DJI  Dow 30         members: Wikipedia "List of Dow Jones Industrial Average companies"    price ^DJI
   SML  US Small Caps  members: our us_universe with market cap $300M-$2B (with Yahoo sector)  no index price
   S_*  the 11 S&P 500 sectors = S&P 500 members by GICS sector                             price = SPDR sector ETF
 A list can be supplied by hand as us_index_lists/<CODE>.csv (columns: symbol, industry) if a source blocks the server.
@@ -34,8 +34,8 @@ UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
       'Accept': 'text/html,text/csv,application/xhtml+xml,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9'}
 WIKI = 'https://en.wikipedia.org/wiki/'
 BROAD = [('SPX', 'S&P 500', WIKI + 'List_of_S%26P_500_companies', '^GSPC'),
-         ('NDX', 'Nasdaq 100', WIKI + 'Nasdaq-100', '^NDX'),
-         ('DJI', 'Dow 30', WIKI + 'Dow_Jones_Industrial_Average', '^DJI')]
+         ('NDX', 'Nasdaq 100', WIKI + 'List_of_NASDAQ-100_companies', '^NDX'),
+         ('DJI', 'Dow 30', WIKI + 'List_of_Dow_Jones_Industrial_Average_companies', '^DJI')]
 # US Small Caps = OUR universe (us_universe) with market cap $300M-$2B. The official Russell 2000 list (iShares IWM file)
 # answers 403 to the server, so this is our own, clearly-labelled small-cap list. No index price (avg stock instead).
 SMALL = ('SML', 'US Small Caps ($300M–$2B, our list)', 300e6, 2e9)
