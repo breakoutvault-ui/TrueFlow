@@ -8,7 +8,8 @@ For every index (and sub-group) and every session:
   ab9..ab200   members closing above their daily 9 / 20 / 50 / 200 EMA (n200 = members with 200 sessions of history)
   avg_chg      average % change of the members
   idx_close/idx_chg  the index's own close and % change (Kite), when available
-Groups: grp='ALL' for the whole index; Nifty 50 also per NSE industry; F&O (idx='FNO') per our sector.
+Groups: grp='ALL' for the whole index; Nifty 50, Midcap 100, Smallcap 100 and MidSmallcap 400 also per NSE industry
+(SECTOR_IDX); F&O (idx='FNO') per our sector.
 Members = TODAY's index lists (niftyindices.com CSVs), so history uses today's members (survivorship).
 A list can be supplied by hand as index_lists/<CODE>.csv (same columns as NSE's file) if NSE blocks the server.
 Prices: daily_ohlc (split-adjusted on the fly). Writes index_members and index_breadth. Read-only on everything else.
@@ -52,6 +53,8 @@ EMAS = (9, 20, 50, 200)
 UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36',
       'Accept': 'text/csv,*/*', 'Referer': 'https://www.niftyindices.com/'}
 
+
+SECTOR_IDX = ('N50', 'FNO', 'MID100', 'SML100', 'MIDSML400')   # indices that also get per-sector rows
 
 def parse_list(text):
     out = []
@@ -195,7 +198,7 @@ def main():
     prev = {alld[k]: alld[k - 1] for k in range(1, len(alld))}
     for code, m in mem.items():
         groups = {'ALL': [s for s, _ in m]}
-        if code in ('N50', 'FNO'):
+        if code in SECTOR_IDX:
             for s, ind in m: groups.setdefault(ind or 'Other', []).append(s)
         for d in days:
             for g, ss in groups.items():

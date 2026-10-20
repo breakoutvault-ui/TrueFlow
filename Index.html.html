@@ -16726,7 +16726,7 @@ var ORDER=[
  ['⚡ F&O',['fno','oib','delmin']],
  ['📍 Where Price Is',['estack','zone5','zone','wzone','e50z','e200z','e200s']],
  ['🔊 Today’s Volume & Move',['gnow','bigday','vsig','rvolmin','vmove']],
- ['🌐 Market & Sector',['idx','idxind','mkt','sec','secw','secm','align']],
+ ['🌐 Market & Sector',['idx','idxind','ixema','mkt','sec','secw','secm','align']],
  ['📈 Stock Trend',['signal','cat','dtr','wtr','mtr','tfup','mtf','conv','hold']],
  ['🏆 Strength & Leaders',['topmv','rsr','rshi']],
  ['📋 Results',['erwin','erstat','erverd','errv','erreact','catalyst','ersurp','erstage','erep']],
@@ -17136,10 +17136,14 @@ function passes(d){var S=SCR.state;
  var g=S.gnow;if(g&&g.size&&!gset().has(d.sym))return false;
  var bd=S.bigday;if(bd&&bd.size&&!(d.day!=null&&+d.day>=5.5&&d.rvol!=null&&+d.rvol>=3))return false;
  return true;}
+function dTxt(x){if(!x)return '';var m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];x=String(x);return +x.slice(8,10)+' '+m[+x.slice(5,7)-1]+' '+x.slice(2,4);}
+/* the pullbacks with their dates, for hovers: T1: 12 Aug 26 high 1,240 → 28 Aug 26 low 1,010 (−18%) */
+function legsTxt(r){var L=legsOf(r);if(!L||!L.length)return '';
+ return (r.base_start?'\nBase started '+dTxt(r.base_start)+'.':'')+L.map(function(a,k){return '\nT'+(k+1)+': '+dTxt(a[0])+' high '+a[1]+' → '+dTxt(a[2])+' low '+a[3]+' (−'+(+a[4]).toFixed(1)+'%)';}).join('');}
 function chip(d){
  if(!d.v2State)return (typeof DASH!=='undefined')?DASH:'<span class="scr-dash">—</span>';
  var pc=d.v2Pct,where=pc==null?'':(pc>0?pc.toFixed(1)+'% below pivot':(-pc).toFixed(1)+'% above pivot');
- var t='True VCP ('+d.v2State+'): '+d.v2T+' pullbacks '+d.v2Depths+'% · pivot '+d.v2Pivot+(where?' · '+where:'')+' · base '+d.v2Base+' sessions · volume in the last leg '+(d.v2Vr!=null?d.v2Vr.toFixed(2)+'× the base average':'')+'. Click for the rules.';
+ var t='True VCP ('+d.v2State+'): '+d.v2T+' pullbacks '+d.v2Depths+'% · pivot '+d.v2Pivot+(where?' · '+where:'')+' · base '+d.v2Base+' sessions · volume in the last leg '+(d.v2Vr!=null?d.v2Vr.toFixed(2)+'× the base average':'')+'.'+legsTxt(VCP2X.rows[d.sym])+'\nClick for the rules and the chart.';
  var col=d.v2State==='breakout'?'#16A34A':(d.v2State==='near'?'#D97706':'#3B82F6');
  return '<span class="scr-chip tf-pchip tf-v2chip" style="background:'+col+'1f;color:'+col+'" title="'+esc(t)+'" onclick="event.stopPropagation();tfPatExplain(\'vcp\',\''+esc(d.sym)+'\')">'+
   STI[d.v2State]+' 📐 '+d.v2T+'T · '+esc(d.v2Depths)+'%'+(where?' · '+where:'')+'</span>';}
@@ -17229,7 +17233,7 @@ window.tfPatExplain=function(kind,sym){
   h='<h3>🚀 Momentum Burst & ⏸ Pause</h3>'+me+'<div class="sub">Exact rules</div>'+['expst:burst','expst:pause'].map(function(k){var r=RULES[k];return '<div style="margin:6px 0"><b>'+esc(r[0])+'</b><ul style="margin:3px 0 0 18px;padding:0">'+r.slice(1).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';}).join('');
   kind='flag';
  } else if(kind==='vcp'){
-  if(d&&d.v2State)me='<div class="me"><b>'+esc(d.sym)+'</b> · '+STI[d.v2State]+' '+d.v2State+' · '+d.v2T+' pullbacks: '+esc(d.v2Depths)+'% · pivot '+d.v2Pivot+' ('+(d.v2Pct>0?d.v2Pct.toFixed(1)+'% below':(-d.v2Pct).toFixed(1)+'% above')+') · base '+d.v2Base+' sessions · run-up into the base '+d.v2Prior+'% · last-leg volume '+(d.v2Vr!=null?d.v2Vr.toFixed(2):'—')+'× the base average'+(d.v2BoVol!=null?' · breakout volume '+d.v2BoVol.toFixed(1)+'×':'')+'</div>';
+  if(d&&d.v2State)me='<div class="me"><b>'+esc(d.sym)+'</b> · '+STI[d.v2State]+' '+d.v2State+' · '+d.v2T+' pullbacks: '+esc(d.v2Depths)+'% · pivot '+d.v2Pivot+' ('+(d.v2Pct>0?d.v2Pct.toFixed(1)+'% below':(-d.v2Pct).toFixed(1)+'% above')+') · base '+d.v2Base+' sessions · run-up into the base '+d.v2Prior+'% · last-leg volume '+(d.v2Vr!=null?d.v2Vr.toFixed(2):'—')+'× the base average'+(d.v2BoVol!=null?' · breakout volume '+d.v2BoVol.toFixed(1)+'×':'')+'<div style="margin-top:4px;white-space:pre-line">'+esc(legsTxt(VCP2X.rows[d.sym]).replace(/^\n/,''))+'</div></div>';
   h='<h3>📐 True VCP — Volatility Contraction Pattern</h3>'+me+vcpRules();
  }else{
   if(d&&d.qm==='VCP')me='<div class="me"><b>'+esc(d.sym)+'</b> · run '+(d.poleMovePct!=null?d.poleMovePct+'%':'—')+(d.poleDays!=null?' in '+d.poleDays+' days':'')+' · now '+(d.basePct!=null?d.basePct+'%':'—')+' off the high · tightness '+(d.contract!=null?d.contract:'—')+' · volume dry-up '+(d.volDry||'—')+' · pivot '+(d.pivot!=null?d.pivot:'—')+' · base '+(d.baseDays!=null?d.baseDays:'—')+' days</div>';
@@ -17582,6 +17586,7 @@ setTimeout(function(){clearInterval(t);},21600000); /* wait up to 6 h: the Scree
 #tab-indices .ix-st .sc{position:sticky;left:0;background:var(--bg2);z-index:3;text-align:left;color:var(--text);min-width:78px;cursor:default}
 #tab-indices .ix-st thead .sc{z-index:4}
 #tab-indices .ix-st tr.wk td{border-top:2px solid var(--border)}
+#tab-indices td.ixc[onclick]{cursor:pointer}#tab-indices td.ixc[onclick]:hover{outline:2px solid var(--cyan);outline-offset:-2px}
 #tab-indices .ix-note{font-size:11px;color:var(--muted);margin-top:6px}
 </style>
 <script>
@@ -17592,20 +17597,21 @@ var IX=[['N50','Nifty 50','broad'],['BANK','Bank Nifty','broad'],['MID100','Nift
  ['HEALTH','Nifty Healthcare','sector'],['AUTO','Nifty Auto','sector'],['FMCG','Nifty FMCG','sector'],['METAL','Nifty Metal','sector'],['REALTY','Nifty Realty','sector'],['ENERGY','Nifty Energy','sector'],
  ['OILGAS','Nifty Oil & Gas','sector'],['CONSDUR','Nifty Consumer Durables','sector'],['MEDIA','Nifty Media','sector'],['CAPMKT','Nifty Capital Markets','sector'],['DEFENCE','Nifty India Defence','sector'],
  ['INFRA','Nifty Infrastructure','sector'],['FNO','F&O stocks','fno']];
+var SUBX=['N50','MID100','SML100','MIDSML400','FNO'];
 var NAME={};IX.forEach(function(x){NAME[x[0]]=x[1];});
 function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function sbGet(p){return fetch(CONFIG.supabaseUrl+'/rest/v1/'+p,{headers:{apikey:CONFIG.supabaseKey,Authorization:'Bearer '+CONFIG.supabaseKey}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});}
 async function all(p){var o=[],off=0;for(var g=0;g<40;g++){var b=await sbGet(p+'&limit=1000&offset='+off);o=o.concat(b||[]);if(!b||b.length<1000)break;off+=1000;}return o;}
-var ST={mode:'ema',ema:20,sel:null,per:'3M',ov:null,last:null,hist:{},sub:{},mem:null,lines:{9:1,20:1,50:1,200:1},smooth:0,px:1,br:1,cema:20};
-try{var sv=JSON.parse(localStorage.getItem('tf_ix')||'{}');if(sv.mode)ST.mode=sv.mode;if(sv.ema)ST.ema=sv.ema;if(sv.per)ST.per=sv.per;if(sv.lines)ST.lines=sv.lines;if(sv.smooth)ST.smooth=1;if(sv.px===0)ST.px=0;if(sv.br===0)ST.br=0;if(sv.cema)ST.cema=sv.cema;}catch(e){}
-function save(){try{localStorage.setItem('tf_ix',JSON.stringify({mode:ST.mode,ema:ST.ema,per:ST.per,lines:ST.lines,smooth:ST.smooth,px:ST.px,br:ST.br,cema:ST.cema}));}catch(e){}}
+var ST={mode:'ema',ema:20,sel:null,per:'3M',ov:null,last:null,hist:{},sub:{},mem:null,lines:{9:1,20:1,50:1,200:1},smooth:0,px:1,br:1,cema:20,pf:'1D',sort:'perf'};
+try{var sv=JSON.parse(localStorage.getItem('tf_ix')||'{}');if(sv.mode)ST.mode=sv.mode;if(sv.ema)ST.ema=sv.ema;if(sv.per)ST.per=sv.per;if(sv.lines)ST.lines=sv.lines;if(sv.smooth)ST.smooth=1;if(sv.px===0)ST.px=0;if(sv.br===0)ST.br=0;if(sv.cema)ST.cema=sv.cema;if(sv.pf)ST.pf=sv.pf;if(sv.sort)ST.sort=sv.sort;}catch(e){}
+function save(){try{localStorage.setItem('tf_ix',JSON.stringify({mode:ST.mode,ema:ST.ema,per:ST.per,lines:ST.lines,smooth:ST.smooth,px:ST.px,br:ST.br,cema:ST.cema,pf:ST.pf,sort:ST.sort}));}catch(e){}}
 window.IXD=ST;
 /* ── members (also used by the Screener's Index filter) ── */
 var _mp=null;
 function loadMembers(){if(_mp)return _mp;_mp=all('index_members?select=idx,symbol,industry').then(function(r){var m={};(r||[]).forEach(function(x){(m[x.idx]=m[x.idx]||[]).push(x);});ST.mem=m;return m;});return _mp;}
 async function loadOverview(){
  var l=await sbGet('index_breadth?select=d&order=d.desc&limit=1');ST.last=l&&l[0]?l[0].d:null;if(!ST.last){ST.ov=[];return;}
- var since=new Date(new Date(ST.last).getTime()-45*864e5).toISOString().slice(0,10);
+ var since=new Date(new Date(ST.last).getTime()-110*864e5).toISOString().slice(0,10);
  var r=await all('index_breadth?select=*&grp=eq.ALL&d=gte.'+since+'&order=d.asc');var by={};(r||[]).forEach(function(x){(by[x.idx]=by[x.idx]||[]).push(x);});ST.ov=by;}
 function pct(a,b){return b?a/b*100:null;}
 function emaN(x,e){return e===200?(x.n200||x.n):x.n;}
@@ -17613,28 +17619,37 @@ function col(p){if(p==null)return 'var(--bg3)';return p>=60?'#16A34A':(p>=40?'#D
 function heat(p){if(p==null)return 'transparent';var a=Math.min(1,Math.abs(p-50)/50);return p>=50?'rgba(22,163,74,'+(0.15+0.55*a)+')':'rgba(220,38,38,'+(0.15+0.55*a)+')';}
 function fmt(x,d){return x==null?'—':(+x).toFixed(d==null?1:d);}
 function chg(x){if(x==null)return '<span style="color:var(--muted)">—</span>';x=+x;return '<span class="'+(x>0?'up':(x<0?'dn':''))+'">'+(x>0?'+':'')+x.toFixed(2)+'%</span>';}
+var PFN={'1D':1,'1W':5,'1M':21,'3M':63};
+/* index % change over the chosen period: from the index close (Kite); without a close (F&O list), the average stock compounded */
+function perf(code,pf){var rs=(ST.ov&&ST.ov[code])||[],n=rs.length;if(!n)return null;var k=PFN[pf||ST.pf]||1,x=rs[n-1];
+ if(k===1)return x.idx_chg!=null?+x.idx_chg:(x.avg_chg!=null?+x.avg_chg:null);
+ if(x.idx_close!=null){var j=n-1-k;if(j<0||rs[j].idx_close==null)return null;return (x.idx_close/rs[j].idx_close-1)*100;}
+ if(n-k<1)return null;var m=1;for(var i=n-k;i<n;i++){if(rs[i].avg_chg==null)return null;m*=1+rs[i].avg_chg/100;}return (m-1)*100;}
 function card(code){
  var rs=(ST.ov&&ST.ov[code])||[],x=rs[rs.length-1];
  if(!x)return '<div class="ix-c" onclick="ixSel(\''+code+'\')"><div class="t">'+esc(NAME[code])+'</div><div class="s">no data yet</div></div>';
- var tl=NAME[code]+' · '+x.d+(x.idx_close!=null?'\nPrice '+pxf(x.idx_close)+(x.idx_chg!=null?' ('+(x.idx_chg>0?'+':'')+(+x.idx_chg).toFixed(2)+'%)':''):'')+'\n'+(ST.mode==='ema'?[9,20,50,200].map(function(e){var nn=emaN(x,e),p=pct(x['ab'+e],nn);return e+' EMA: '+x['ab'+e]+' of '+nn+' above ('+fmt(p,0)+'%) — '+word(p);}).join('\n'):x.adv+' up · '+x.dec+' down · '+x.unch+' flat — '+word(pct(x.adv,x.adv+x.dec+x.unch)))+'\nClick for the chart and history';
- var h='<div class="ix-c'+(ST.sel===code?' sel':'')+'" title="'+esc(tl)+'" onclick="ixSel(\''+code+'\')"><div class="t"><span>'+esc(NAME[code])+'</span><span>'+(x.idx_chg!=null?chg(x.idx_chg):chg(x.avg_chg))+'</span></div>'+
+ var pfl=['1D','1W','1M','3M'].map(function(q){var v=perf(code,q);return q+' '+(v==null?'—':(v>0?'+':'')+v.toFixed(2)+'%');}).join(' · ');
+ var tl=NAME[code]+' · '+x.d+(x.idx_close!=null?'\nPrice '+pxf(x.idx_close):'\nAverage stock (no index price)')+'\n'+pfl+'\n'+(ST.mode==='ema'?[9,20,50,200].map(function(e){var nn=emaN(x,e),p=pct(x['ab'+e],nn);return e+' EMA: '+x['ab'+e]+' of '+nn+' above ('+fmt(p,0)+'%) — '+word(p);}).join('\n'):x.adv+' up · '+x.dec+' down · '+x.unch+' flat — '+word(pct(x.adv,x.adv+x.dec+x.unch)))+'\nClick for the chart and history';
+ var h='<div class="ix-c'+(ST.sel===code?' sel':'')+'" title="'+esc(tl)+'" onclick="ixSel(\''+code+'\')"><div class="t"><span>'+esc(NAME[code])+'</span><span title="'+(x.idx_close!=null?'Index':'Average stock')+' change over '+ST.pf+'">'+chg(perf(code))+' <small style="color:var(--muted);font-weight:500">'+ST.pf+'</small></span></div>'+
   '<div class="s">'+(x.idx_close!=null?(+x.idx_close).toLocaleString('en-IN',{maximumFractionDigits:2})+' · ':'avg stock · ')+x.n+' stocks</div><div class="ix-bars">';
  if(ST.mode==='ema'){[9,20,50,200].forEach(function(e){var p=pct(x['ab'+e],emaN(x,e));h+='<span>'+e+'E</span><span class="ix-bar"><i style="width:'+(p||0)+'%;background:'+col(p)+'"></i></span><span>'+fmt(p,0)+'%</span>';});}
  else{var t=x.adv+x.dec+x.unch,p=pct(x.adv,t);h+='<span class="up">▲'+x.adv+'</span><span class="ix-bar"><i style="width:'+(p||0)+'%;background:#16A34A"></i></span><span class="dn">▼'+x.dec+'</span>';
   var w=rs.slice(-5),wa=w.reduce(function(s,y){return s+y.adv;},0),wd=w.reduce(function(s,y){return s+y.dec;},0);h+='<span>5d</span><span class="ix-bar"><i style="width:'+(pct(wa,wa+wd)||0)+'%;background:#16A34A;opacity:.6"></i></span><span>'+fmt(pct(wa,wa+wd),0)+'%</span>';}
  return h+'</div></div>';}
-function score(code){var rs=(ST.ov&&ST.ov[code])||[],x=rs[rs.length-1];if(!x)return -1;return ST.mode==='ema'?(pct(x['ab'+ST.ema],emaN(x,ST.ema))||0):(pct(x.adv,x.adv+x.dec+x.unch)||0);}
+function score(code){var rs=(ST.ov&&ST.ov[code])||[],x=rs[rs.length-1];if(!x)return -1;if(ST.sort==='perf'){var v=perf(code);return v==null?-999:v;}return ST.mode==='ema'?(pct(x['ab'+ST.ema],emaN(x,ST.ema))||0):(pct(x.adv,x.adv+x.dec+x.unch)||0);}
 function view(){
  var el=document.getElementById('tab-indices');if(!el)return;
  if(!ST.ov){el.innerHTML='<div style="padding:18px;color:var(--muted)">Loading indices…</div>';return;}
  if(!ST.last){el.innerHTML='<div style="padding:18px;color:var(--muted)">No index data yet — the nightly index scan has not run.</div>';return;}
  var h='<div class="ix-top"><b style="font-size:16px">🧭 Indices</b><span class="ix-tg"><button class="'+(ST.mode==='ema'?'on':'')+'" onclick="ixMode(\'ema\')">EMA</button><button class="'+(ST.mode==='ad'?'on':'')+'" onclick="ixMode(\'ad\')">Advance / Decline</button></span>'+
-  (ST.mode==='ema'?'<span style="font-size:12px;color:var(--muted)">sort sectors by</span>'+[9,20,50,200].map(function(e){return '<button class="ix-chip'+(ST.ema===e?' on':'')+'" onclick="ixEma('+e+')">'+e+' EMA</button>';}).join(''):'')+
+  '<span style="font-size:12px;color:var(--muted)">change</span>'+['1D','1W','1M','3M'].map(function(q){return '<button class="ix-chip'+(ST.pf===q?' on':'')+'" title="Show each index’s % change over '+q+'" onclick="ixPf(\''+q+'\')">'+q+'</button>';}).join('')+
+  '<span style="font-size:12px;color:var(--muted)">sort sectors by</span><button class="ix-chip'+(ST.sort==='perf'?' on':'')+'" title="Strongest % change first, for the period chosen" onclick="ixSort()">% change</button>'+
+  (ST.mode==='ema'?[9,20,50,200].map(function(e){return '<button class="ix-chip'+(ST.sort!=='perf'&&ST.ema===e?' on':'')+'" title="Most stocks above the '+e+' EMA first" onclick="ixEma('+e+')">'+e+' EMA</button>';}).join(''):'<button class="ix-chip'+(ST.sort!=='perf'?' on':'')+'" onclick="ixEma(ST_E())">% up</button>')+
   '<span style="margin-left:auto;font-size:11.5px;color:var(--muted)">data '+ST.last+' · members = today\'s index lists</span></div>';
  var grp=function(kind){return IX.filter(function(x){return x[2]===kind;}).map(function(x){return x[0];});};
  h+='<h4>Broad indices</h4><div class="ix-grid">'+grp('broad').map(card).join('')+'</div>';
  if(ST.sel&&IX.filter(function(x){return x[0]===ST.sel;})[0][2]==='broad')h+='<div id="ix-det"></div>';
- h+='<h4>Sector indices · strongest first</h4><div class="ix-grid">'+grp('sector').sort(function(a,b){return score(b)-score(a);}).map(card).join('')+'</div>';
+ h+='<h4>Sector indices · '+(ST.sort==='perf'?'best '+ST.pf+' change first':'strongest breadth first')+'</h4><div class="ix-grid">'+grp('sector').sort(function(a,b){return score(b)-score(a);}).map(card).join('')+'</div>';
  if(ST.sel&&IX.filter(function(x){return x[0]===ST.sel;})[0][2]==='sector')h+='<div id="ix-det"></div>';
  h+='<h4>F&O universe</h4><div class="ix-grid">'+card('FNO')+'</div>';
  if(ST.sel==='FNO')h+='<div id="ix-det"></div>';
@@ -17644,13 +17659,13 @@ var PER={'1M':22,'3M':66,'6M':130,'1Y':252,'All':99999};
 async function detail(){
  var el=document.getElementById('ix-det');if(!el)return;var code=ST.sel;
  if(!ST.hist[code]){el.className='ix-det';el.innerHTML='Loading '+esc(NAME[code])+'…';ST.hist[code]=await all('index_breadth?select=*&idx=eq.'+code+'&grp=eq.ALL&order=d.asc');}
- if((code==='N50'||code==='FNO')&&!ST.sub[code]){ST.sub[code]=await all('index_breadth?select=grp,d,n,adv,dec,unch,ab9,ab20,ab50,ab200,n200&idx=eq.'+code+'&grp=neq.ALL&order=d.asc');}
+ if(SUBX.indexOf(code)>=0&&!ST.sub[code]){ST.sub[code]=await all('index_breadth?select=grp,d,n,adv,dec,unch,ab9,ab20,ab50,ab200,n200&idx=eq.'+code+'&grp=neq.ALL&order=d.asc');}
  el=document.getElementById('ix-det');if(!el||ST.sel!==code)return;
  var H=ST.hist[code].slice(-PER[ST.per]);
  var h='<div class="hd"><b>'+esc(NAME[code])+'</b>'+Object.keys(PER).map(function(p){return '<button class="ix-chip'+(ST.per===p?' on':'')+'" onclick="ixPer(\''+p+'\')">'+p+'</button>';}).join('')+
   '<button class="ix-go" onclick="ixScreen(\''+code+'\')">Open these stocks in the Screener ›</button><span style="margin-left:auto;cursor:pointer;color:var(--muted)" onclick="ixSel(null)">✕</span></div>';
  h+=chart(H);
- if(code==='N50'||code==='FNO')h+=sectors(code);
+ if(SUBX.indexOf(code)>=0)h+=sectors(code);
  h+='<h4>Day by day</h4><div class="ix-st"><table><thead><tr><th class="sc">Date</th><th>Index</th>'+(ST.mode==='ema'?'<th>Above 9E</th><th>Above 20E</th><th>Above 50E</th><th>Above 200E</th>':'<th>Up</th><th>Down</th><th>Flat</th><th>% up</th>')+'<th>Avg stock</th></tr></thead><tbody>'+
   H.slice().reverse().map(function(x){return '<tr><td class="sc">'+dShort(x.d)+' '+x.d.slice(2,4)+'</td><td>'+chg(x.idx_chg)+'</td>'+(ST.mode==='ema'?[9,20,50,200].map(function(e){var nn=emaN(x,e),p=pct(x['ab'+e],nn);return '<td style="background:'+band(p)+'" title="'+x['ab'+e]+' of '+nn+'">'+fmt(p,0)+'% <span style="opacity:.6;font-size:10px">'+x['ab'+e]+'/'+nn+'</span></td>';}).join(''):
    '<td class="up">'+x.adv+'</td><td class="dn">'+x.dec+'</td><td>'+x.unch+'</td><td style="background:'+band(pct(x.adv,x.adv+x.dec+x.unch))+'">'+fmt(pct(x.adv,x.adv+x.dec+x.unch),0)+'%</td>')+'<td>'+chg(x.avg_chg)+'</td></tr>';}).join('')+'</tbody></table></div>';
@@ -17726,40 +17741,54 @@ function sectors(code){
  var avg=function(g){var v=ds.map(function(d){return val(by[g][d]);}).filter(function(x){return x!=null;});return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:null;};
  var q=function(g){return esc(g).replace(/'/g,"\\'");};
  var cell=function(x){if(!x)return '—';var nn=ST.mode==='ema'?emaN(x,ST.ema):(x.adv+x.dec+x.unch),k=ST.mode==='ema'?x['ab'+ST.ema]:x.adv;return Math.round(pct(k,nn))+'% <span style="opacity:.6;font-size:10px">'+k+'/'+nn+'</span>';};
- var h='<h4>'+(code==='N50'?'Inside Nifty 50':'F&O stocks')+' by sector · '+(ST.mode==='ema'?'% above '+ST.ema+' EMA':'% of stocks up')+' · '+ST.per+' · '+ds.length+' sessions</h4>'+
-  '<div class="ix-note" style="margin:-2px 0 6px">Sorted by the latest day. Each cell: % of the sector’s stocks, then the count (e.g. 50% 1/2). Click a sector name to open it in the Screener.</div>';
+ var h='<h4>'+(code==='FNO'?'F&O stocks':'Inside '+esc(NAME[code]))+' by sector · '+(ST.mode==='ema'?'% above '+ST.ema+' EMA':'% of stocks up')+' · '+ST.per+' · '+ds.length+' sessions</h4>'+
+  '<div class="ix-note" style="margin:-2px 0 6px">Sorted by the latest day. Each cell: % of the sector’s stocks, then the count (e.g. 50% 1/2). Click a sector name to open all its stocks, or a cell to open the ones above that EMA (in Advance/Decline: the ones up today). Cells use today’s data — on older rows the list is today’s.</div>';
  h+='<div class="ix-st"><table><thead><tr><th class="sc">Date</th>'+gs.map(function(g){return '<th title="'+esc(g)+' — open in the Screener" onclick="ixScreen(\''+code+'\',\''+q(g)+'\')">'+esc(SHORT[g]||g)+'</th>';}).join('')+'</tr>'+
   '<tr class="avg"><th class="sc">'+ST.per+' average</th>'+gs.map(function(g){var a=avg(g);return '<th style="background:'+band(a)+'">'+(a==null?'—':Math.round(a)+'%')+'</th>';}).join('')+'</tr>'+
   '<tr class="cnt"><th class="sc">Stocks</th>'+gs.map(function(g){return '<th>'+((by[g][last]||{}).n||'—')+'</th>';}).join('')+'</tr></thead><tbody>';
  var prevW=null;ds.slice().reverse().forEach(function(d){var wk=new Date(d+'T00:00:00Z');wk=Math.floor((wk.getTime()/864e5+3)/7);var sep=prevW!==null&&wk!==prevW;prevW=wk;
-  h+='<tr'+(sep?' class="wk"':'')+'><td class="sc">'+dShort(d)+'</td>'+gs.map(function(g){var x=by[g][d];return '<td style="background:'+band(val(x))+'" title="'+esc(g)+' · '+d+(x?(ST.mode==='ema'?': '+x['ab'+ST.ema]+' of '+emaN(x,ST.ema)+' above '+ST.ema+'E':': '+x.adv+' up / '+x.dec+' down'):'')+'">'+cell(x)+'</td>';}).join('')+'</tr>';});
+  h+='<tr'+(sep?' class="wk"':'')+'><td class="sc">'+dShort(d)+'</td>'+gs.map(function(g){var x=by[g][d];return '<td class="ixc" style="background:'+band(val(x))+'" title="'+esc(g)+' · '+d+(x?(ST.mode==='ema'?': '+x['ab'+ST.ema]+' of '+emaN(x,ST.ema)+' above '+ST.ema+'E':': '+x.adv+' up / '+x.dec+' down'):'')+'. Click: open these stocks in the Screener'+(d===last?'':' (as they stand today)')+'."'+(x?' onclick="ixScreenCell(\''+code+'\',\''+q(g)+'\','+(d===last?1:0)+')"':'')+'>'+cell(x)+'</td>';}).join('')+'</tr>';});
  return h+'</tbody></table></div>';}
 window.ixMode=function(m){ST.mode=m;save();view();};
-window.ixEma=function(e){ST.ema=e;save();view();};
+window.ixEma=function(e){ST.ema=e;ST.sort='ema';save();view();};
+window.ixSort=function(){ST.sort='perf';save();view();};
+window.ixPf=function(q){ST.pf=q;save();view();};
+window.ST_E=function(){return ST.ema;};
 window.ixPer=function(p){ST.per=p;save();detail();};
 window.ixSel=function(c){ST.sel=(ST.sel===c?null:c);view();if(ST.sel){setTimeout(function(){var d=document.getElementById('ix-det');if(d)d.scrollIntoView({behavior:'smooth',block:'start'});},60);}};
 window.ixScreen=function(code,ind){
  try{switchMode('momentum');}catch(e){}var b=document.querySelector('#momentum-tabs .nav-tab[onclick*="\'screener\'"]');switchTab('screener',b,'momentum');
  setTimeout(function(){try{scrClearAll();}catch(e){}SCR.state.idx=new Set([code]);if(ind)SCR.state.idxind=new Set([code+'|'+ind]);SCR.activePreset=null;
   try{scrSyncChecks();}catch(e){}try{scrSyncChips();}catch(e){}scrRender();window.scrollTo(0,0);},250);};
+window.ixScreenCell=function(code,ind,isToday){
+ try{switchMode('momentum');}catch(e){}var b=document.querySelector('#momentum-tabs .nav-tab[onclick*="\'screener\'"]');switchTab('screener',b,'momentum');
+ var opt=ST.mode==='ema'?String(ST.ema):'up';
+ setTimeout(function(){try{scrClearAll();}catch(e){}SCR.state.idx=new Set([code]);SCR.state.idxind=new Set([code+'|'+ind]);SCR.state.ixema=new Set([opt]);SCR.activePreset=null;
+  try{scrSyncChecks();}catch(e){}try{scrSyncChips();}catch(e){}scrRender();window.scrollTo(0,0);
+  if(!isToday){try{var n=document.createElement('div');n.textContent='Opened from an older date: this list uses today’s prices, so it can differ from that day’s %.';n.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:9px 14px;border-radius:10px;font-size:12.5px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.3)';document.body.appendChild(n);setTimeout(function(){n.remove();},5000);}catch(e){}}},250);};
 /* ── Screener filters: Index and Index sector ── */
 var F_I={key:'idx',label:'Index',opts:IX.map(function(x){return x[0];}),disp:NAME,tips:{}};
 IX.forEach(function(x){F_I.tips[x[0]]='Stocks that are members of the '+x[1]+(x[0]==='FNO'?' list (the F&O tab’s list)':' index today (NSE’s list)')+'.';});
 var F_IS={key:'idxind',label:'Index sector',opts:[],disp:{},tips:{}};
-function fillIS(){if(!ST.mem)return;var o=[];['N50','FNO'].forEach(function(c){var s={};(ST.mem[c]||[]).forEach(function(m){s[m.industry||'Other']=1;});Object.keys(s).sort().forEach(function(i){var k=c+'|'+i;o.push(k);F_IS.disp[k]=(c==='N50'?'Nifty 50 · ':'F&O · ')+i;F_IS.tips[k]=(c==='N50'?'Nifty 50 members in the NSE industry “':'F&O stocks in the sector “')+i+'”.';});});F_IS.opts=o;}
+var F_IE={key:'ixema',label:'Above daily EMA (today)',opts:['9','20','50','200','up'],disp:{'9':'Above 9 EMA','20':'Above 20 EMA','50':'Above 50 EMA','200':'Above 200 EMA','up':'Up today'},
+ tips:{'9':'Today’s close is above the daily 9 EMA.','20':'Today’s close is above the daily 20 EMA.','50':'Today’s close is above the daily 50 EMA.','200':'Today’s close is above the daily 200 EMA.','up':'Closed higher than yesterday.'}};
+function ieOk(d,o){var v=o==='9'?d.pct9e:o==='20'?d.p20:o==='50'?d.p50:o==='200'?d.p200:d.day;return v!=null&&+v>0;}
+function fillIS(){if(!ST.mem)return;var o=[];SUBX.forEach(function(c){var s={};(ST.mem[c]||[]).forEach(function(m){s[m.industry||'Other']=1;});var lab=c==='FNO'?'F&O':NAME[c];Object.keys(s).sort().forEach(function(i){var k=c+'|'+i;o.push(k);F_IS.disp[k]=lab+' · '+i;F_IS.tips[k]=(c==='FNO'?'F&O stocks in the sector “':lab+' members in the NSE industry “')+i+'”.';});});F_IS.opts=o;}
 var SETS={};
 function setOf(c){if(SETS[c])return SETS[c];var s=new Set(((ST.mem||{})[c]||[]).map(function(m){return m.symbol;}));if(ST.mem)SETS[c]=s;return s;}
 function passes(d){var S=SCR.state;
  var a=S.idx;if(a&&a.size){var ok=false;a.forEach(function(c){if(setOf(c).has(d.sym))ok=true;});if(!ok)return false;}
+ var ie=S.ixema;if(ie&&ie.size){var ok3=false;ie.forEach(function(o){if(ieOk(d,o))ok3=true;});if(!ok3)return false;}
  var b=S.idxind;if(b&&b.size){var ok2=false;b.forEach(function(k){var p=k.split('|'),c=p[0],ind=p.slice(1).join('|');((ST.mem||{})[c]||[]).forEach(function(m){if(m.symbol===d.sym&&(m.industry||'Other')===ind)ok2=true;});});if(!ok2)return false;}
  return true;}
 function install(){
  if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
  if(window._ixInstalled)return true;window._ixInstalled=true;
- SCR_FILTERS.push(F_I,F_IS);SCR.state.idx=new Set();SCR.state.idxind=new Set();
- try{var g=SCR_FGROUPS.filter(function(x){return /^Market|Sector/i.test(x[0]);})[0];if(g)g[1].push('idx','idxind');}catch(e){}
+ SCR_FILTERS.push(F_I,F_IS,F_IE);SCR.state.idx=new Set();SCR.state.idxind=new Set();SCR.state.ixema=new Set();
+ try{var g=SCR_FGROUPS.filter(function(x){return /^Market|Sector/i.test(x[0]);})[0];if(g)g[1].push('idx','idxind','ixema');}catch(e){}
  try{SCR_FILTER_WHY.idx='Membership of an NSE index (today’s list from NSE), or the F&O list. Click any card in the 🧭 Indices tab to land here with it set.';
-  SCR_FILTER_WHY.idxind='A sector inside Nifty 50 (NSE’s industry) or inside the F&O list. Set by clicking a sector row in the 🧭 Indices tab.';}catch(e){}
+  SCR_FILTER_WHY.idxind='A sector inside Nifty 50, Midcap 100, Smallcap 100, MidSmallcap 400 (NSE’s industry) or the F&O list. Set by clicking a sector in the 🧭 Indices tab.';
+  SCR_FILTER_WHY.ixema='Is today’s close above that daily EMA? Set when you click a % cell in a sector table of the 🧭 Indices tab.';}catch(e){}
  var orig=scrPasses;scrPasses=function(d){if(!orig(d))return false;return passes(d);};
  loadMembers().then(function(){fillIS();try{if(SCR.loaded)scrRender();}catch(e){}});
  return true;}

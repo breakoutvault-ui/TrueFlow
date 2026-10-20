@@ -16583,7 +16583,7 @@ var ORDER=[
  ['⚡ F&O',['fno','oib','delmin']],
  ['📍 Where Price Is',['estack','zone5','zone','wzone','e50z','e200z','e200s']],
  ['🔊 Today’s Volume & Move',['gnow','bigday','vsig','rvolmin','vmove']],
- ['🌐 Market & Sector',['idx','idxind','mkt','sec','secw','secm','align']],
+ ['🌐 Market & Sector',['idx','idxind','ixema','mkt','sec','secw','secm','align']],
  ['📈 Stock Trend',['signal','cat','dtr','wtr','mtr','tfup','mtf','conv','hold']],
  ['🏆 Strength & Leaders',['topmv','rsr','rshi']],
  ['📋 Results',['erwin','erstat','erverd','errv','erreact','catalyst','ersurp','erstage','erep']],
@@ -16993,10 +16993,14 @@ function passes(d){var S=SCR.state;
  var g=S.gnow;if(g&&g.size&&!gset().has(d.sym))return false;
  var bd=S.bigday;if(bd&&bd.size&&!(d.day!=null&&+d.day>=5.5&&d.rvol!=null&&+d.rvol>=3))return false;
  return true;}
+function dTxt(x){if(!x)return '';var m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];x=String(x);return +x.slice(8,10)+' '+m[+x.slice(5,7)-1]+' '+x.slice(2,4);}
+/* the pullbacks with their dates, for hovers: T1: 12 Aug 26 high 1,240 → 28 Aug 26 low 1,010 (−18%) */
+function legsTxt(r){var L=legsOf(r);if(!L||!L.length)return '';
+ return (r.base_start?'\nBase started '+dTxt(r.base_start)+'.':'')+L.map(function(a,k){return '\nT'+(k+1)+': '+dTxt(a[0])+' high '+a[1]+' → '+dTxt(a[2])+' low '+a[3]+' (−'+(+a[4]).toFixed(1)+'%)';}).join('');}
 function chip(d){
  if(!d.v2State)return (typeof DASH!=='undefined')?DASH:'<span class="scr-dash">—</span>';
  var pc=d.v2Pct,where=pc==null?'':(pc>0?pc.toFixed(1)+'% below pivot':(-pc).toFixed(1)+'% above pivot');
- var t='True VCP ('+d.v2State+'): '+d.v2T+' pullbacks '+d.v2Depths+'% · pivot '+d.v2Pivot+(where?' · '+where:'')+' · base '+d.v2Base+' sessions · volume in the last leg '+(d.v2Vr!=null?d.v2Vr.toFixed(2)+'× the base average':'')+'. Click for the rules.';
+ var t='True VCP ('+d.v2State+'): '+d.v2T+' pullbacks '+d.v2Depths+'% · pivot '+d.v2Pivot+(where?' · '+where:'')+' · base '+d.v2Base+' sessions · volume in the last leg '+(d.v2Vr!=null?d.v2Vr.toFixed(2)+'× the base average':'')+'.'+legsTxt(VCP2X.rows[d.sym])+'\nClick for the rules and the chart.';
  var col=d.v2State==='breakout'?'#16A34A':(d.v2State==='near'?'#D97706':'#3B82F6');
  return '<span class="scr-chip tf-pchip tf-v2chip" style="background:'+col+'1f;color:'+col+'" title="'+esc(t)+'" onclick="event.stopPropagation();tfPatExplain(\'vcp\',\''+esc(d.sym)+'\')">'+
   STI[d.v2State]+' 📐 '+d.v2T+'T · '+esc(d.v2Depths)+'%'+(where?' · '+where:'')+'</span>';}
@@ -17086,7 +17090,7 @@ window.tfPatExplain=function(kind,sym){
   h='<h3>🚀 Momentum Burst & ⏸ Pause</h3>'+me+'<div class="sub">Exact rules</div>'+['expst:burst','expst:pause'].map(function(k){var r=RULES[k];return '<div style="margin:6px 0"><b>'+esc(r[0])+'</b><ul style="margin:3px 0 0 18px;padding:0">'+r.slice(1).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';}).join('');
   kind='flag';
  } else if(kind==='vcp'){
-  if(d&&d.v2State)me='<div class="me"><b>'+esc(d.sym)+'</b> · '+STI[d.v2State]+' '+d.v2State+' · '+d.v2T+' pullbacks: '+esc(d.v2Depths)+'% · pivot '+d.v2Pivot+' ('+(d.v2Pct>0?d.v2Pct.toFixed(1)+'% below':(-d.v2Pct).toFixed(1)+'% above')+') · base '+d.v2Base+' sessions · run-up into the base '+d.v2Prior+'% · last-leg volume '+(d.v2Vr!=null?d.v2Vr.toFixed(2):'—')+'× the base average'+(d.v2BoVol!=null?' · breakout volume '+d.v2BoVol.toFixed(1)+'×':'')+'</div>';
+  if(d&&d.v2State)me='<div class="me"><b>'+esc(d.sym)+'</b> · '+STI[d.v2State]+' '+d.v2State+' · '+d.v2T+' pullbacks: '+esc(d.v2Depths)+'% · pivot '+d.v2Pivot+' ('+(d.v2Pct>0?d.v2Pct.toFixed(1)+'% below':(-d.v2Pct).toFixed(1)+'% above')+') · base '+d.v2Base+' sessions · run-up into the base '+d.v2Prior+'% · last-leg volume '+(d.v2Vr!=null?d.v2Vr.toFixed(2):'—')+'× the base average'+(d.v2BoVol!=null?' · breakout volume '+d.v2BoVol.toFixed(1)+'×':'')+'<div style="margin-top:4px;white-space:pre-line">'+esc(legsTxt(VCP2X.rows[d.sym]).replace(/^\n/,''))+'</div></div>';
   h='<h3>📐 True VCP — Volatility Contraction Pattern</h3>'+me+vcpRules();
  }else{
   if(d&&d.qm==='VCP')me='<div class="me"><b>'+esc(d.sym)+'</b> · run '+(d.poleMovePct!=null?d.poleMovePct+'%':'—')+(d.poleDays!=null?' in '+d.poleDays+' days':'')+' · now '+(d.basePct!=null?d.basePct+'%':'—')+' off the high · tightness '+(d.contract!=null?d.contract:'—')+' · volume dry-up '+(d.volDry||'—')+' · pivot '+(d.pivot!=null?d.pivot:'—')+' · base '+(d.baseDays!=null?d.baseDays:'—')+' days</div>';
