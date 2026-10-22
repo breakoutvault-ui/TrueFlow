@@ -16728,7 +16728,7 @@ var ORDER=[
  ['🔊 Today’s Volume & Move',['gnow','bigday','vsig','rvolmin','vmove']],
  ['🌐 Market & Sector',['idx','idxind','ixema','mkt','sec','secw','secm','align']],
  ['📈 Stock Trend',['signal','cat','dtr','wtr','mtr','tfup','mtf','conv','hold']],
- ['🏆 Strength & Leaders',['topmv','rsr','rshi']],
+ ['🏆 Strength & Leaders',['topmv','retq','rsr','rshi']],
  ['📋 Results',['erwin','erstat','erverd','errv','erreact','catalyst','ersurp','erstage','erep']],
  ['🏦 Big-Investor Buying',['smt','clust','stake','cgbuyersmin','cgrecent','cgconf','cgconv','cgparty','cgretmin']],
  ['⚙ Basics',['price','adrmin']]
@@ -16938,7 +16938,7 @@ setTimeout(function(){try{enrich();}catch(e){}},4000);setTimeout(function(){try{
 #tf-px .x{float:right;cursor:pointer;color:var(--muted);font-size:18px;line-height:1}
 #tf-px .sx-fig{margin-top:8px}
 .tf-pchip{cursor:pointer!important;text-decoration:underline dotted;text-underline-offset:2px}
-#tf-gnow.on,#tf-bigday.on{background:var(--cyan);color:#03121a;border-color:var(--cyan)}
+#tf-gnow.on,#tf-bigday.on,[id^=tf-rq-].on{background:var(--cyan);color:#03121a;border-color:var(--cyan)}
 </style>
 <script>
 (function(){
@@ -17090,6 +17090,7 @@ var RULES={
  'e200s':['Compares the daily 50 EMA with the daily 200 EMA'],
  'gnow':['The 50 stocks with the biggest Day % on this screener, today'],
  'bigday':['Day % ≥ +5.5% today','Today’s volume ≥ 3× its average volume (RVOL ≥ 3)'],
+ 'retq:1m20':['1-month change ≥ +20% (market_movers r1m)'],'retq:3m30':['3-month change ≥ +30% (market_movers r3m)'],'retq:both':['1-month change ≥ +20% AND 3-month change ≥ +30%'],
  'topmv':['Ranked by % change over the chosen period, from the nightly market_movers table; the top (or bottom) 50']
 };
 if(MKT==='IN'){RULES.rclgrade=['↩ Reclaim (nightly momentum scan)','Before the dip: the 9 EMA above the 20, close above the 50 EMA, and both the 9 and 20 EMA rising over the 5 sessions before','A real rise before it: at least 15% from the lowest close of the 30 sessions before the dip (the dashboard asks for 20% — see Prior move)','The dip: 1 to 5 closes in a row below the 9 or the 20 EMA; today closes back above','A = lost only the 9 EMA, now back above it · B = lost the 20 too, now back above both · C = lost the 20, back above the 9 but still under the 20 · D = lost the 20, back above the 20 but not yet the 9'];RULES.rcldaysmax=['Days below = closes in a row below the EMA before today’s reclaim'];RULES.rclvol=['Ideal = average volume during the dip under 0.9× the pre-dip 20-day average AND reclaim-day volume over 1.2×','Expansion = reclaim-day volume over 1.2×, whatever happened during the dip'];RULES.rclriskmax=['Risk = (close − the lowest low of the dip) ÷ close: how far away the stop is'];RULES.fno=['F&O list = the stocks in the latest ema_filter session (the F&O tab’s list)'];RULES.oib=['From NSE’s F&O bhav file: price change + futures OI change','Long Buildup: price ↑ OI ↑ · Short Covering: price ↑ OI ↓ · Short Buildup: price ↓ OI ↑ · Long Unwinding: price ↓ OI ↓'];RULES.delmin=['Delivery % = delivered shares ÷ traded shares, from NSE’s delivery file'];}
@@ -17121,6 +17122,15 @@ var F_BD={key:'bigday',label:'Big up day on volume',opts:['55x3'],disp:{'55x3':'
  tips:{'55x3':'Day % of +5.5% or more AND today’s volume at least 3× its average (the RVOL column). Same as the 🔥 button in the tools row.'}};
 var F_G={key:'gnow',label:'Top gainers today',opts:['top50'],disp:{top50:'🚀 Top 50 gainers today'},
  tips:{top50:'The 50 stocks up the most today (the Day % column), from the stocks on this screener. Same as the 🚀 button in the tools row.'}};
+var F_RQ={key:'retq',label:'Run-up (1 month / 3 months)',opts:['1m20','3m30','both'],disp:{'1m20':'📈 Up 20%+ in 1 month','3m30':'📈 Up 30%+ in 3 months','both':'⭐ Both: 20%+ in 1M and 30%+ in 3M'},
+ tips:{'1m20':'The stock’s 1-month change is +20% or more (the same 1-month figure as the Top 50 Movers “Month” list, from the nightly market_movers table).','3m30':'The stock’s 3-month change is +30% or more (same source, “3 months”).','both':'Up 20%+ over 1 month AND 30%+ over 3 months: still running hard after a strong quarter.'}};
+var RQ={n:-1,m:null,asked:false};
+function rqRow(sym){var M=window.MH;if(!M||!M.mv)return null;if(RQ.n!==M.mv.length){RQ.m={};M.mv.forEach(function(x){RQ.m[x.symbol]=x;});RQ.n=M.mv.length;}return RQ.m[sym]||null;}
+function rqOk(d,o){var x=rqRow(d.sym);if(!x)return false;var a=x.r1m!=null&&+x.r1m>=20,b=x.r3m!=null&&+x.r3m>=30;return o==='1m20'?a:o==='3m30'?b:(a&&b);}
+function rqEnsure(){var M=window.MH;if(M&&M.loaded)return true;if(!RQ.asked&&typeof window.mhLoad==='function'){RQ.asked=true;try{Promise.resolve(window.mhLoad()).then(function(){RQ.n=-1;try{scrRender();}catch(e){}});}catch(e){}}return false;}
+window.tfRunUp=function(o){var on=SCR.state.retq&&SCR.state.retq.has(o)&&SCR.state.retq.size===1;
+ try{scrClearAll();}catch(e){}SCR.state.retq=new Set(on?[]:[o]);SCR.activePreset=null;if(!on){SCR.sortKey='day';SCR.sortDir=-1;}
+ rqEnsure();try{scrSyncChecks();}catch(e){}try{scrSyncChips();}catch(e){}scrRender();};
 var GN={ref:null,len:0,set:null};
 function gset(){var D=SCR.data||[];if(GN.ref===D&&GN.len===D.length&&GN.set)return GN.set;
  var l=D.filter(function(d){return !d._ipoRow&&d.day!=null&&+d.day>0;}).sort(function(a,b){return b.day-a.day;}).slice(0,50);
@@ -17135,6 +17145,7 @@ function passes(d){var S=SCR.state;
  var l=S.v2last;if(l&&l.size){var mx=0;l.forEach(function(o){mx=Math.max(mx,+o);});if(!(d.v2Last!=null&&d.v2Last<=mx))return false;}
  var g=S.gnow;if(g&&g.size&&!gset().has(d.sym))return false;
  var bd=S.bigday;if(bd&&bd.size&&!(d.day!=null&&+d.day>=5.5&&d.rvol!=null&&+d.rvol>=3))return false;
+ var rq=S.retq;if(rq&&rq.size){rqEnsure();var okq=false;rq.forEach(function(o){if(rqOk(d,o))okq=true;});if(!okq)return false;}
  return true;}
 function dTxt(x){if(!x)return '';var m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];x=String(x);return +x.slice(8,10)+' '+m[+x.slice(5,7)-1]+' '+x.slice(2,4);}
 /* the pullbacks with their dates, for hovers: T1: 12 Aug 26 high 1,240 → 28 Aug 26 low 1,010 (−18%) */
@@ -17175,6 +17186,7 @@ var WHY={expst:'The one momentum cycle every stock goes through: 🚀 Expansion 
  v2state:'The classic Volatility Contraction Pattern (Minervini), found every night by vcp_scan.py: a run-up, then 2–6 pullbacks that keep getting smaller, the last 10% or less, volume drying up, above a rising 50 and 200 EMA. Pick where it is: forming, near the pivot, or breaking out.',
  v2t:'How many shrinking pullbacks the True VCP base has. More pullbacks = a longer, more mature base.',
  v2last:'Depth of the final, tightest pullback in the True VCP. Smaller = less supply left and a closer stop.',
+ retq:'Stocks that have already run: up 20%+ over 1 month, 30%+ over 3 months, or both. Same as the 📈 / ⭐ buttons in the tools row. The 1M / 3M changes come from the nightly market_movers table (the Top 50 Movers lists).',
  bigday:'Stocks up 5.5% or more today on at least 3× their usual volume — a momentum burst day. One click from the 🔥 button in the tools row.',
  gnow:'Today’s 50 biggest gainers (Day %) on this screener. One click from the 🚀 button in the tools row.'};
 var DEEP={
@@ -17269,7 +17281,14 @@ function btn(){
  if(!c){c=document.createElement('button');c.id='tf-bigday';c.className='scr-tool';c.textContent='🔥 5.5%+ on 3× vol';
   c.title='One click: stocks up 5.5% or more today on at least 3× their average volume. Click again to clear.';c.onclick=tfBigDay;
   if(b.nextSibling)bar.insertBefore(c,b.nextSibling);else bar.appendChild(c);}
- c.classList.toggle('on',!!(SCR.state.bigday&&SCR.state.bigday.size));}
+ c.classList.toggle('on',!!(SCR.state.bigday&&SCR.state.bigday.size));
+ var prev=c,cnt=null;if(window.MH&&MH.loaded){cnt={'1m20':0,'3m30':0,both:0};(SCR.data||[]).forEach(function(d){['1m20','3m30','both'].forEach(function(o){if(rqOk(d,o))cnt[o]++;});});}
+ [['1m20','📈 1M +20%','One click: stocks up 20% or more over the last month. Click again to clear.'],['3m30','📈 3M +30%','One click: stocks up 30% or more over the last 3 months. Click again to clear.'],['both','⭐ 1M & 3M','One click: stocks in BOTH lists — up 20%+ in 1 month and 30%+ in 3 months. Click again to clear.']].forEach(function(z){
+  var id='tf-rq-'+z[0],e=document.getElementById(id);
+  if(!e){e=document.createElement('button');e.id=id;e.className='scr-tool';e.title=z[2];e.onclick=function(){tfRunUp(z[0]);};if(prev.nextSibling)bar.insertBefore(e,prev.nextSibling);else bar.appendChild(e);}
+  var t=z[1]+(cnt?' ('+cnt[z[0]]+')':'');if(e.textContent!==t)e.textContent=t;
+  e.classList.toggle('on',!!(SCR.state.retq&&SCR.state.retq.has(z[0])));prev=e;});
+ if(!(window.MH&&MH.loaded))rqEnsure();}
 function renames(){
  /* the old “VCP” is now “Momentum Flag”: its filter explanation */
  try{SCR_DEEP['pattern:VCP']={t:'Momentum Flag (called “VCP” before 13 Oct 2026)',
@@ -17299,7 +17318,7 @@ function vocab(){
 function install(){
  if(typeof SCR_FILTERS==='undefined'||!window._tfInstalled)return false;
  if(window._vcp2Installed)return true;window._vcp2Installed=true;
- SCR_FILTERS.push(F_EX,F_EM,F_CN,F_ST,F_T,F_L,F_G,F_BD);['expst','expmin','cycno','v2state','v2t','v2last','gnow','bigday'].forEach(function(k){SCR.state[k]=new Set();});
+ SCR_FILTERS.push(F_EX,F_EM,F_CN,F_ST,F_T,F_L,F_G,F_BD,F_RQ);['expst','expmin','cycno','v2state','v2t','v2last','gnow','bigday','retq'].forEach(function(k){SCR.state[k]=new Set();});
  if(SCR_FILTERS.some(function(f){return f.key==='rclgrade';})){SCR_FILTERS.push(F_PM);SCR.state.rclprior=new Set();}
  try{if(window.TF_FIGS)TF_FIGS.cycle=cycleFig;}catch(e){}
  vocab();
