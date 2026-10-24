@@ -18187,6 +18187,225 @@ setTimeout(function(){clearInterval(t);},21600000); /* wait up to 6 h: the Scree
 })();
 </script>
 
+<!-- ═══ TrueFlow F&O Live v1 — Live Alerts: sector ribbon + live screener of every F&O stock (fo_live.py, every minute) ═══ -->
+<style>
+#fl-wrap{display:flex;flex-direction:column;gap:8px;margin:0 0 10px}
+#fl-ribbon{display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:thin}
+#fl-ribbon .rc{flex:0 0 auto;border:1px solid var(--border);border-radius:10px;padding:5px 9px;cursor:pointer;font-size:11.5px;line-height:1.25;background:var(--bg2);white-space:nowrap}
+#fl-ribbon .rc b{display:block;font-size:12px}
+#fl-ribbon .rc.up{border-color:rgba(22,163,74,.55);background:rgba(22,163,74,.12)}
+#fl-ribbon .rc.dn{border-color:rgba(220,38,38,.55);background:rgba(220,38,38,.12)}
+#fl-ribbon .rc.mx{border-color:rgba(59,130,246,.45);background:rgba(59,130,246,.08)}
+#fl-box{border:1px solid var(--border);border-radius:var(--radius,10px);background:var(--bg1);padding:10px 12px}
+#fl-box .hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+#fl-box .hd .tt{font-weight:800;font-size:13.5px}
+#fl-box .hd .st{font-size:11px;color:var(--muted)}
+#fl-box .grp{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:3px 0}
+#fl-box .gl{font-size:10px;color:var(--muted);min-width:96px;text-transform:uppercase;letter-spacing:.4px}
+#fl-box .ch{border:1px solid var(--border2,var(--border));background:transparent;color:inherit;border-radius:14px;padding:3px 9px;font-size:11px;cursor:pointer}
+#fl-box .ch.on{background:var(--cyan);border-color:var(--cyan);color:#03121a;font-weight:700}
+#fl-box .ch.pre{font-weight:800}
+#fl-box .ch.pre.put{color:#EF4444;border-color:rgba(239,68,68,.6)}
+#fl-box .ch.pre.call{color:#16A34A;border-color:rgba(22,163,74,.6)}
+#fl-box .ch.pre.on{color:#03121a}
+#fl-box .ch i{font-style:normal;opacity:.75;margin-left:3px}
+#fl-tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+#fl-tbl th{position:sticky;top:0;background:var(--bg2);text-align:left;padding:5px 6px;font-size:10px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:1px solid var(--border)}
+#fl-tbl td{padding:4px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
+#fl-tbl tr:hover td{background:rgba(59,130,246,.06)}
+#fl-scroll{max-height:460px;overflow:auto;margin-top:6px;border:1px solid var(--border);border-radius:8px}
+.fl-g{color:#16A34A}.fl-r{color:#EF4444}.fl-m{color:var(--muted)}
+.fl-tag{display:inline-block;border-radius:8px;padding:1px 6px;font-size:10.5px;font-weight:700}
+.fl-tag.g{background:rgba(22,163,74,.14);color:#16A34A}.fl-tag.r{background:rgba(239,68,68,.14);color:#EF4444}.fl-tag.n{background:rgba(148,163,184,.18);color:var(--muted)}.fl-tag.a{background:rgba(245,158,11,.16);color:#D97706}
+#fl-rules{display:none;font-size:11px;line-height:1.7;color:var(--muted);border:1px dashed var(--border);border-radius:8px;padding:8px 10px;margin-top:6px}
+#fl-rules b{color:var(--text)}
+#fl-box input.cut{width:46px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;padding:2px 4px}
+@media (max-width:760px){#fl-box .gl{min-width:100%}#fl-scroll{max-height:380px}}
+</style>
+<script>
+(function(){
+'use strict';
+var FL={rows:[],nifty:null,sel:{},sort:'rs',dir:1,cut:{near:0.25,or15:30,or60:50},loaded:false,ts:null};
+try{var sv=JSON.parse(localStorage.getItem('fl_cut')||'null');if(sv)FL.cut=Object.assign(FL.cut,sv);}catch(e){}
+function H(){return{'apikey':CONFIG.supabaseKey,'Authorization':'Bearer '+CONFIG.supabaseKey};}
+function n(v){return v===null||v===undefined||v===''?null:Number(v);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+/* ---------- derived fields ---------- */
+function derive(r){
+ var d={};var ltp=n(r.ltp),atr=n(r.atr),pdh=n(r.pdh),pdl=n(r.pdl),o=n(r.open),hi=n(r.high),lo=n(r.low);
+ d.chg=n(r.chg_pct);d.rs=(d.chg!=null&&FL.nifty!=null)?d.chg-FL.nifty:null;
+ d.trend=r.trend||null;
+ var e9=n(r.e9_live),e20=n(r.e20_live);
+ d.ema=(ltp!=null&&e9!=null&&e20!=null)?(ltp<e9&&ltp<e20?'below':ltp>e9&&ltp>e20?'above':'between'):null;
+ d.day=d.chg==null?null:d.chg<0?'red':'green';
+ var k=FL.cut.near*(atr||0);d.lv=[];
+ if(ltp!=null&&pdl!=null&&atr){if(ltp<pdl)d.lv.push('belowpdl');else if(ltp-pdl<=k)d.lv.push('nearpdl');}
+ if(ltp!=null&&pdh!=null&&atr){if(ltp>pdh)d.lv.push('abovepdh');else if(pdh-ltp<=k)d.lv.push('nearpdh');}
+ var tol=o?Math.max(0.05,o*0.001):0;d.oh=[];
+ if(o!=null&&hi!=null&&Math.abs(hi-o)<=tol)d.oh.push('oh');
+ if(o!=null&&lo!=null&&Math.abs(o-lo)<=tol)d.oh.push('ol');
+ function rng(h,l,cut){if(n(h)==null||n(l)==null||ltp==null)return null;var w=atr?(h-l)/atr*100:null;return{st:ltp>h?'above':ltp<l?'below':'inside',w:w,nar:w!=null&&w<cut};}
+ d.or15=rng(n(r.or15_h),n(r.or15_l),FL.cut.or15);d.or60=rng(n(r.or60_h),n(r.or60_l),FL.cut.or60);
+ d.oi=r.oi_stage||null;d.oic=n(r.oi_chg_pct);
+ return d;
+}
+/* ---------- filters ---------- */
+var G=[
+ {k:'setup',lab:'One-click setups',opts:[
+  ['put','🔻 PUT setup','Down trend on the daily chart + price below the live 9 and 20 EMA + red today + trading below yesterday\u2019s low. All four together.'],
+  ['call','🔺 CALL setup','Up trend on the daily chart + price above the live 9 and 20 EMA + green today + trading above yesterday\u2019s high. All four together.']],
+  f:function(d,v){return v==='put'?(d.trend==='down'&&d.ema==='below'&&d.day==='red'&&d.lv.indexOf('belowpdl')>=0):(d.trend==='up'&&d.ema==='above'&&d.day==='green'&&d.lv.indexOf('abovepdh')>=0);}},
+ {k:'trend',lab:'Daily trend',opts:[
+  ['up','▲ Up','Daily chart, up to yesterday: 9 EMA above the 20 EMA and both higher than 3 sessions ago.'],
+  ['down','▼ Down','Daily chart, up to yesterday: 9 EMA below the 20 EMA and both lower than 3 sessions ago.'],
+  ['neutral','≈ Neutral','The 9 and 20 EMA crossed each other 2 or more times in the last 10 sessions (choppy), or they point different ways.']],
+  f:function(d,v){return d.trend===v;}},
+ {k:'ema',lab:'Daily 9 / 20 EMA',opts:[
+  ['below','Below both','Price now is below today\u2019s daily 9 EMA and 20 EMA (yesterday\u2019s EMA moved by today\u2019s price).'],
+  ['above','Above both','Price now is above today\u2019s daily 9 EMA and 20 EMA.'],
+  ['between','In between','Price is between the 9 and 20 EMA.']],
+  f:function(d,v){return d.ema===v;}},
+ {k:'day',lab:'Today',opts:[['red','Red','Below yesterday\u2019s close.'],['green','Green','At or above yesterday\u2019s close.']],f:function(d,v){return d.day===v;}},
+ {k:'lv',lab:'Yesterday H / L',opts:[
+  ['belowpdl','Below PDL','Trading below yesterday\u2019s low right now.'],
+  ['nearpdl','Near PDL','Above yesterday\u2019s low but within the "near" distance (a fraction of the stock\u2019s daily ATR, set below).'],
+  ['nearpdh','Near PDH','Below yesterday\u2019s high but within the "near" distance.'],
+  ['abovepdh','Above PDH','Trading above yesterday\u2019s high right now.']],
+  f:function(d,v){return d.lv.indexOf(v)>=0;}},
+ {k:'oh',lab:'Open',opts:[['oh','Open = High','Today\u2019s open is the day\u2019s high so far (within 0.1%): sellers from the first tick.'],['ol','Open = Low','Today\u2019s open is the day\u2019s low so far (within 0.1%): buyers from the first tick.']],f:function(d,v){return d.oh.indexOf(v)>=0;}},
+ {k:'or15',lab:'ORB 9:15–9:30',opts:[
+  ['above','Broke up','Price above the 9:15–9:30 high.'],['below','Broke down','Price below the 9:15–9:30 low.'],['inside','Inside','Still inside the 9:15–9:30 range.'],
+  ['nar','Narrow','9:15–9:30 range smaller than the cut-off % of daily ATR (set below).'],['wide','Wide','9:15–9:30 range at or above the cut-off % of daily ATR.']],
+  f:function(d,v){if(!d.or15)return false;return v==='nar'?d.or15.nar:v==='wide'?(d.or15.w!=null&&!d.or15.nar):d.or15.st===v;}},
+ {k:'or60',lab:'First hour 9:15–10:15',opts:[
+  ['above','Broke up','Price above the 9:15–10:15 high (shown after 10:15).'],['below','Broke down','Price below the 9:15–10:15 low.'],['inside','Inside','Still inside the first-hour range.'],
+  ['nar','Narrow','First-hour range smaller than its cut-off % of daily ATR (set below).'],['wide','Wide','First-hour range at or above its cut-off.']],
+  f:function(d,v){if(!d.or60)return false;return v==='nar'?d.or60.nar:v==='wide'?(d.or60.w!=null&&!d.or60.nar):d.or60.st===v;}},
+ {k:'oi',lab:'Live OI (futures)',opts:[
+  ['Long Buildup','Long Buildup','Price up + futures OI up since yesterday: fresh buying.'],
+  ['Short Buildup','Short Buildup','Price down + futures OI up: fresh selling.'],
+  ['Short Covering','Short Covering','Price up + OI down: shorts exiting.'],
+  ['Long Unwinding','Long Unwinding','Price down + OI down: longs exiting.']],
+  f:function(d,v){return d.oi===v;}}
+];
+function pass(r,d,skip){
+ for(var i=0;i<G.length;i++){var g=G[i];if(g.k===skip)continue;var s=FL.sel[g.k];if(!s||!s.size)continue;var ok=false;s.forEach(function(v){if(g.f(d,v))ok=true;});if(!ok)return false;}
+ var sec=FL.sel.sector;if(sec&&sec!=='all'&&r.sector!==sec)return false;
+ return true;
+}
+/* ---------- render ---------- */
+function tag(cls,t,tip){return '<span class="fl-tag '+cls+'"'+(tip?' title="'+esc(tip)+'"':'')+'>'+t+'</span>';}
+function pct(v){if(v==null)return '<span class="fl-m">—</span>';return '<span class="'+(v>=0?'fl-g':'fl-r')+'">'+(v>=0?'+':'')+v.toFixed(2)+'%</span>';}
+function rngCell(x,lab){if(!x)return '<span class="fl-m" title="Shown once the range is complete">—</span>';var c=x.st==='above'?'g':x.st==='below'?'r':'n';var t=x.st==='above'?'▲ up':x.st==='below'?'▼ down':'inside';return tag(c,t)+' '+(x.w==null?'':tag(x.nar?'a':'n',(x.nar?'N ':'W ')+Math.round(x.w)+'%',lab+' range = '+Math.round(x.w)+'% of daily ATR'));}
+function render(){
+ var box=document.getElementById('fl-box');if(!box)return;
+ var rows=FL.rows.map(function(r){return{r:r,d:derive(r)};});
+ var list=rows.filter(function(x){return pass(x.r,x.d);});
+ /* chips with counts (count = matches if this option were added to the other active filters) */
+ var h='';
+ G.forEach(function(g){
+  h+='<div class="grp"><span class="gl">'+g.lab+'</span>';
+  g.opts.forEach(function(o){
+   var on=FL.sel[g.k]&&FL.sel[g.k].has(o[0]);
+   var c=rows.filter(function(x){return pass(x.r,x.d,g.k)&&g.f(x.d,o[0]);}).length;
+   h+='<button class="ch'+(g.k==='setup'?' pre '+o[0]:'')+(on?' on':'')+'" title="'+esc(o[2])+'" onclick="flTog(\''+g.k+'\',\''+o[0].replace(/'/g,"\\'")+'\')">'+o[1]+'<i>'+c+'</i></button>';
+  });
+  h+='</div>';
+ });
+ document.getElementById('fl-chips').innerHTML=h;
+ var secs={};FL.rows.forEach(function(r){if(r.sector)secs[r.sector]=1;});
+ var ss=document.getElementById('fl-sec');var cur=FL.sel.sector||'all';
+ ss.innerHTML='<option value="all">All sectors</option>'+Object.keys(secs).sort().map(function(s){return '<option'+(s===cur?' selected':'')+'>'+esc(s)+'</option>';}).join('');
+ var key=FL.sort,dir=FL.dir;
+ var val={sym:function(x){return x.r.symbol;},chg:function(x){return x.d.chg;},rs:function(x){return x.d.rs;},oic:function(x){return x.d.oic;},sec:function(x){return x.r.sector||'';}}[key]||function(x){return x.d.rs;};
+ list.sort(function(a,b){var p=val(a),q=val(b);if(p==null)return 1;if(q==null)return -1;return (p>q?1:p<q?-1:0)*dir;});
+ var tr=list.map(function(x){var r=x.r,d=x.d;
+  var tcol=d.trend==='up'?'g':d.trend==='down'?'r':'n';
+  var lv=d.lv.map(function(v){return v==='belowpdl'?tag('r','below PDL'):v==='nearpdl'?tag('a','near PDL'):v==='abovepdh'?tag('g','above PDH'):tag('a','near PDH');}).join(' ')||'<span class="fl-m">—</span>';
+  var oh=d.oh.map(function(v){return v==='oh'?tag('r','O=H'):tag('g','O=L');}).join(' ');
+  var oic=d.oi?tag(d.oi==='Long Buildup'?'g':d.oi==='Short Buildup'?'r':d.oi==='Short Covering'?'a':d.oi==='Long Unwinding'?'a':'n',esc(d.oi)+(d.oic!=null?' '+(d.oic>=0?'+':'')+d.oic.toFixed(1)+'%':''),'Futures OI (near + next month) now vs yesterday: '+(d.oic!=null?d.oic.toFixed(2)+'%':'—')):'<span class="fl-m">—</span>';
+  return '<tr><td><b style="cursor:pointer" onclick="window.open(\'https://www.tradingview.com/chart/?symbol=NSE:'+encodeURIComponent(r.symbol)+'\',\'_blank\')" title="Open in TradingView">'+esc(r.symbol)+'</b></td>'+
+   '<td class="fl-m">'+esc(r.sector||'')+'</td><td>'+(n(r.ltp)!=null?n(r.ltp).toLocaleString('en-IN'):'—')+'</td><td>'+pct(d.chg)+'</td><td title="Stock % today minus Nifty % today">'+pct(d.rs)+'</td>'+
+   '<td>'+tag(tcol,d.trend==='up'?'▲ Up':d.trend==='down'?'▼ Down':'≈ Neutral')+'</td>'+
+   '<td>'+(d.ema==='below'?tag('r','below 9 & 20'):d.ema==='above'?tag('g','above 9 & 20'):d.ema?tag('n','between'):'—')+'</td>'+
+   '<td>'+lv+'</td><td>'+(oh||'<span class="fl-m">—</span>')+'</td><td>'+rngCell(d.or15,'9:15–9:30')+'</td><td>'+rngCell(d.or60,'9:15–10:15')+'</td><td>'+oic+'</td></tr>';}).join('');
+ document.getElementById('fl-body').innerHTML=tr||'<tr><td colspan="12" style="text-align:center;padding:24px" class="fl-m">'+(FL.rows.length?'No stock matches these filters.':'No live data yet today. It starts after 9:15 once Kite is logged in.')+'</td></tr>';
+ document.getElementById('fl-count').textContent=list.length+' of '+FL.rows.length+' F&O stocks';
+ ribbon();
+}
+function ribbon(){
+ var el=document.getElementById('fl-ribbon');if(!el)return;
+ var m={};FL.rows.forEach(function(r){var c=n(r.chg_pct);if(!r.sector||c==null)return;var s=m[r.sector]||(m[r.sector]={n:0,up:0,dn:0,sum:0});s.n++;s.sum+=c;if(c>0)s.up++;else if(c<0)s.dn++;});
+ var a=Object.keys(m).map(function(k){var s=m[k];s.k=k;s.avg=s.sum/s.n;return s;}).filter(function(s){return s.n>=2;}).sort(function(x,y){return y.avg-x.avg;});
+ var nf=FL.nifty;
+ el.innerHTML=(nf!=null?'<div class="rc '+(nf>=0?'up':'dn')+'" title="Nifty 50 today"><b>NIFTY 50</b>'+(nf>=0?'+':'')+nf.toFixed(2)+'%</div>':'')+
+  a.map(function(s){var cls=(s.avg>=0.3&&s.up>=0.6*s.n)?'up':(s.avg<=-0.3&&s.dn>=0.6*s.n)?'dn':'mx';
+   return '<div class="rc '+cls+'" title="'+esc(s.k)+': average '+s.avg.toFixed(2)+'% · '+s.up+' up, '+s.dn+' down of '+s.n+' F&O stocks. Green = average ≥ +0.3% and 60%+ up; red = ≤ −0.3% and 60%+ down; blue = mixed. Click → Sector Pulse." onclick="flSec(\''+esc(s.k).replace(/'/g,"\\'")+'\')"><b>'+esc(s.k)+'</b>'+(s.avg>=0?'+':'')+s.avg.toFixed(2)+'% · '+s.up+'▲ '+s.dn+'▼</div>';}).join('');
+}
+window.flTog=function(k,v){var s=FL.sel[k]||(FL.sel[k]=new Set());if(s.has(v))s.delete(v);else{if(k==='setup')s.clear();s.add(v);}render();};
+window.flSort=function(k){if(FL.sort===k)FL.dir=-FL.dir;else{FL.sort=k;FL.dir=(k==='sym'||k==='sec')?1:(k==='rs'||k==='chg')?1:-1;}render();};
+window.flClear=function(){FL.sel={};render();};
+window.flCut=function(k,v){var x=parseFloat(v);if(!isNaN(x)&&x>0){FL.cut[k]=x;try{localStorage.setItem('fl_cut',JSON.stringify(FL.cut));}catch(e){}render();}};
+window.flSecSel=function(v){FL.sel.sector=v;render();};
+window.flSec=function(sec){
+ var b=Array.from(document.querySelectorAll('#fo-tabs .nav-tab')).find(function(x){return /Sector Pulse/.test(x.textContent);});
+ try{switchTab('sectorpulse',b,'fo');}catch(e){}
+ setTimeout(function(){try{if(typeof spClickSecLive==='function')spClickSecLive(sec);}catch(e){}},400);
+};
+async function load(){
+ try{
+  var r=await fetch(CONFIG.supabaseUrl+'/rest/v1/fo_live?select=*&order=symbol.asc&limit=1000',{headers:H()});
+  var d=await r.json();if(!Array.isArray(d))return;
+  var nf=d.find(function(x){return x.symbol==='NIFTY 50';});
+  FL.nifty=nf?n(nf.chg_pct):null;
+  FL.rows=d.filter(function(x){return x.symbol!=='NIFTY 50';});
+  var ts=d.reduce(function(m,x){return x.ts&&x.ts>m?x.ts:m;},'');FL.ts=ts;
+  var st=document.getElementById('fl-upd');
+  if(st){var today=new Date(Date.now()+330*60000).toISOString().slice(0,10);var dd=d[0]&&d[0].d;
+   st.innerHTML=!ts?'':(dd!==today?'<span class="fl-r">Not live today — showing '+esc(dd)+'</span>':'Updated '+new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));}
+  render();
+ }catch(e){console.error('fo_live load',e);}
+}
+function rulesHTML(){return '<b>Data</b>: every F&O stock refreshed every minute 9:15–3:30 (fo_live.py on the server: one Kite quote for all stocks and their futures). Daily values are from yesterday\u2019s close.<br>'+
+ '<b>Daily trend</b>: Neutral if the 9 and 20 EMA crossed 2+ times in the last 10 sessions; else Up if 9 EMA > 20 EMA and both higher than 3 sessions ago; Down if 9 < 20 and both lower; otherwise Neutral.<br>'+
+ '<b>9 / 20 EMA now</b>: yesterday\u2019s daily EMA moved by today\u2019s live price (what the EMA will be if the day closed now).<br>'+
+ '<b>Near PDH / PDL</b>: within '+FL.cut.near+' × the stock\u2019s 14-day daily ATR of yesterday\u2019s high / low (e.g. ATR ₹12 → within ₹'+(12*FL.cut.near).toFixed(1)+'). Below PDL / Above PDH = trading beyond it now.<br>'+
+ '<b>Open = High / Low</b>: open within 0.1% of the day\u2019s high / low so far.<br>'+
+ '<b>ORB 9:15–9:30</b> and <b>First hour 9:15–10:15</b>: high/low of the first 15-minute / 60-minute Kite candle; Narrow when the range is below '+FL.cut.or15+'% / '+FL.cut.or60+'% of daily ATR (same idea as the TradingView ORB label).<br>'+
+ '<b>Live OI</b>: futures OI (near + next month) now vs yesterday\u2019s close; price up + OI up = Long Buildup, price down + OI up = Short Buildup, price up + OI down = Short Covering, price down + OI down = Long Unwinding; under 0.5% change = Flat.<br>'+
+ '<b>vs Nifty</b>: stock % today minus Nifty 50 % today. Sort ascending = weakest first (puts), descending = strongest (calls).<br>'+
+ '<b>Sector ribbon</b>: average % of the sector\u2019s F&O stocks; green = avg ≥ +0.3% and 60%+ up, red = ≤ −0.3% and 60%+ down, blue = mixed.';}
+function build(){
+ var tab=document.getElementById('tab-alerts');if(!tab||document.getElementById('fl-wrap'))return !!tab;
+ var panel=tab.querySelector('.fo-panel');if(!panel)return false;
+ var w=document.createElement('div');w.id='fl-wrap';
+ w.innerHTML='<div id="fl-ribbon"></div>'+
+ '<div id="fl-box"><div class="hd"><span class="tt">📡 All F&O live</span><span class="st" id="fl-count"></span><span class="st" id="fl-upd"></span>'+
+ '<select id="fl-sec" onchange="flSecSel(this.value)" style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:3px 8px;color:var(--text);font-size:11px"></select>'+
+ '<button class="ch" onclick="flClear()" title="Remove every filter">✕ Clear</button>'+
+ '<button class="ch" onclick="var e=document.getElementById(\'fl-rules\');e.innerHTML=window.flRules();e.style.display=e.style.display===\'block\'?\'none\':\'block\'" title="Exact rules for every filter and column">📏 Rules</button>'+
+ '<span class="st" style="margin-left:auto" title="Change the cut-offs; saved on this device">Near <input class="cut" value="'+FL.cut.near+'" onchange="flCut(\'near\',this.value)">×ATR · ORB narrow <input class="cut" value="'+FL.cut.or15+'" onchange="flCut(\'or15\',this.value)">% · 1-hr narrow <input class="cut" value="'+FL.cut.or60+'" onchange="flCut(\'or60\',this.value)">%</span></div>'+
+ '<div id="fl-chips"></div><div id="fl-rules"></div>'+
+ '<div id="fl-scroll"><table id="fl-tbl"><thead><tr>'+
+ '<th onclick="flSort(\'sym\')" title="Click to sort">Symbol</th><th onclick="flSort(\'sec\')">Sector</th><th>LTP</th><th onclick="flSort(\'chg\')" title="% vs yesterday\u2019s close. Click to sort">Day %</th><th onclick="flSort(\'rs\')" title="Stock % minus Nifty %. Click to sort (weakest first, click again for strongest)">vs Nifty</th>'+
+ '<th title="Daily 9/20 EMA trend up to yesterday">Daily trend</th><th title="Live price vs today\u2019s daily 9 and 20 EMA">9 / 20 EMA</th><th title="Yesterday\u2019s high / low">PDH / PDL</th><th title="Open = High / Open = Low">Open</th><th title="9:15–9:30 range: where price is now, and its size vs daily ATR (N = narrow, W = wide)">ORB 15m</th><th title="9:15–10:15 range">1st hour</th><th onclick="flSort(\'oic\')" title="Futures OI stage and OI change since yesterday. Click to sort">Live OI</th>'+
+ '</tr></thead><tbody id="fl-body"></tbody></table></div></div>';
+ panel.insertBefore(w,panel.firstChild);
+ return true;
+}
+window.flRules=rulesHTML;
+window.flLoad=load;
+function start(){
+ if(typeof CONFIG==='undefined'||!build())return false;
+ load();
+ setInterval(function(){var t=document.getElementById('tab-alerts');if(t&&t.classList.contains('active'))load();},60000);
+ if(typeof window.switchTab==='function'&&!window.switchTab._fl){var o=window.switchTab;window.switchTab=switchTab=function(tab){var r=o.apply(this,arguments);if(tab==='alerts')load();return r;};window.switchTab._fl=true;}
+ return true;
+}
+var t=setInterval(function(){if(start())clearInterval(t);},500);
+setTimeout(function(){clearInterval(t);},21600000);
+})();
+</script>
 <!-- ═══ TrueFlow Stock Card v1 — one stock, every data point, slide-over ═══ -->
 <style>
 #sc-back{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:none}
