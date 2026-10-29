@@ -20940,6 +20940,14 @@ function ceCoords(ev){
  var svg=document.getElementById('ce-canvas');if(!svg)return null;
  var r=svg.getBoundingClientRect();
  var px=(ev.clientX-r.left)/r.width*CE_W,py=(ev.clientY-r.top)/r.height*CE_H;
+ /* CE fix v1 (29 Oct): map the mouse through the SAME window and scale the
+    chart just drew. The old code rebuilt a default window (last N days, auto
+    price fit), so after a wheel-zoom, pan or 3M/6M/1Y button the crosshair,
+    price label, clicks and drawings landed on the wrong bar and price. */
+ var _LS=CE.lastScale,_WL=(CE._winDates||[]).length;
+ if(_LS&&_WL){
+  return {i:Math.max(0,Math.min(_WL-1,_LS.xInv(px))),p:+_LS.yInv(py).toFixed(2),len:_WL};
+ }
  var o=gather(CE.sym),hist=o.hist||[];
  var n=Math.min(CE.days,hist.length);
  var cndl=(CE.style==='candle'&&o.ohlc&&o.ohlc.length>=5)?o.ohlc.slice(-Math.min(n,o.ohlc.length)):null;
@@ -21359,7 +21367,7 @@ function tfDlg(o,cb){
   if(o.input){
    var el=document.getElementById('tf-dlgin');
    v=el?el.value:'';
-   if(o.input==='text'&&!String(v).trim()){el&&el.focus();return;}
+   if(o.input==='text'&&!o.allowEmpty&&!String(v).trim()){el&&el.focus();return;}
   }
   close();cb&&cb(v);
  }
@@ -21407,9 +21415,27 @@ function wlApi(path,opts){
  return fetch(CONFIG.supabaseUrl+'/rest/v1/'+path,opts||{headers:wlHdr()})
   .then(function(r){
    if(r.status===204)return null;
+   if(!r.ok){
+    /* WL fix v1 (29 Oct): before this, an error looked like "saved" or
+       "no watchlists yet". Now it says what failed. */
+    return r.text().then(function(x){
+     var m='Watchlist '+((opts&&opts.method)||'load')+' failed ('+r.status+'): '+String(x||'').slice(0,120);
+     wlToast(m);throw new Error(m);
+    });
+   }
    return r.json().catch(function(){return null;});
   });
 }
+/* Make a normal list on the spot, then carry on with whatever was asked.
+   Used when a tool needs a list and none exists yet. */
+function wlQuickNew(cb){
+ tfDlg({title:'Create a watchlist first',msg:'You have no normal watchlist yet. Name one and the stocks go straight into it.',
+   input:'text',value:'My Watchlist',ok:'Create'},function(name){
+  name=String(name||'').trim();if(!name)return;
+  wlNew2(name,'static',null,cb);
+ });
+}
+function wlHasStatic(){return (WL.lists||[]).some(function(x){return x.kind!=='live';});}
 function wlToast(m){try{scrToast(m);}catch(e){try{showToast(m,'info');}catch(e2){}}}
 
 function wlLoad(){
@@ -21525,7 +21551,11 @@ function wlRender(){
    '<b>⬇ From playbook</b> and <b>⬇ From filter</b> to pull in whatever a playbook or the Screener is showing, '+
    '<b>⬇ Import</b> to paste a list, and sections and colour tags to organise it. '+
    'Or make it a <b>⚡ Live list</b> - it follows a playbook and rebuilds itself from each night\u2019s scan.</div>'+
-   '<button class="scr-tool" style="margin-top:12px;border-color:var(--cyan);color:var(--cyan)" onclick="wlNew()">+ Create a watchlist</button></div>';
+   '<button class="scr-tool" style="margin-top:12px;border-color:var(--cyan);color:var(--cyan)" onclick="wlNew()">+ Create a watchlist</button>'+
+   '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+
+   '<button class="scr-tool" onclick="wlFromFilter()" title="Creates a list, then adds whatever the Screener is showing (or the rows you ticked)">\u2b07 From filter</button>'+
+   '<button class="scr-tool" onclick="wlFromPlaybook()" title="Creates a list, then copies a playbook\'s current matches into it">\u2b07 From playbook</button>'+
+   '<button class="scr-tool" onclick="wlImport()" title="Creates a list, then lets you paste symbols in">\u2b07 Import</button></div></div>';
   return;
  }
  var syms=wlSymbols(list);
@@ -21730,11 +21760,19 @@ window.wlQuickAdd=function(sym){
  if(!sym){wlToast('No stock selected');return;}
  var go=function(){
   var statics=WL.lists.filter(function(l){return l.kind!=='live';});
-  if(!statics.length){wlToast('Create a watchlist first, in the Charts tab');return;}
+  var _add1=function(wl){
+   wlApi('watchlist_items',{method:'POST',
+     headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+     body:JSON.stringify([{wl_id:wl.id,symbol:sym}])})
+    .then(function(){wlToast(sym+' added to '+wl.name);WL._px=null;wlLoad();})
+    .catch(function(){});
+  };
+  if(!statics.length){wlQuickNew(_add1);return;}
   tfDlg({title:'Add '+sym+' to\u2026',
     choices:statics.map(function(l){
      return {v:String(l.id),label:l.name,note:((WL.items[l.id]||[]).length)+' stocks'};
-    })},function(id){
+    }).concat([{v:'__new',label:'+ New watchlist',note:'create one and add it'}])},function(id){
+   if(id==='__new'){wlQuickNew(_add1);return;}
    var wl=statics.filter(function(l){return String(l.id)===String(id);})[0];
    if(!wl)return;
    wlApi('watchlist_items',{method:'POST',
@@ -21751,7 +21789,9 @@ window.wlQuickAdd=function(sym){
    that rewrites itself every night. */
 window.wlFromPlaybook=function(){
  var l=wlActive();
- if(!l||l.kind==='live'){wlToast('Pick a normal list first');return;}
+ if(!l||l.kind==='live'){
+  if(!wlHasStatic()){wlQuickNew(function(){window.wlFromPlaybook();});return;}
+  wlToast('Pick a normal list first');return;}
  if(typeof SCR==='undefined'||!SCR.data||!SCR.data.length){
   wlToast('Open the Screener once first, so today\'s scan is loaded');return;}
  var ps=(typeof SCR_PRESETS!=='undefined')?SCR_PRESETS.filter(function(p){return p.grp;}):[];
@@ -21766,7 +21806,7 @@ window.wlFromPlaybook=function(){
   if(!pb)return;
   var syms=wlLiveSyms(pb.id)||[];
   if(!syms.length){wlToast('Nothing matches '+pb.label+' today');return;}
-  tfDlg({title:'Heading for them?',input:'text',value:pb.label,ok:'Add'},function(secIn){
+  tfDlg({title:'Heading for them?',input:'text',value:pb.label,ok:'Add',allowEmpty:true},function(secIn){
    var sec=String(secIn||'').trim()||null;
    var rows=syms.map(function(x,i){return {wl_id:l.id,symbol:x,section:sec,sort_order:i};});
    wlApi('watchlist_items',{method:'POST',
@@ -21821,7 +21861,9 @@ window.wlDrop2=function(ev){
    something by hand and want to keep it". */
 window.wlFromFilter=function(){
  var l=wlActive();
- if(!l||l.kind==='live'){wlToast('Pick a normal list first');return;}
+ if(!l||l.kind==='live'){
+  if(!wlHasStatic()){wlQuickNew(function(){window.wlFromFilter();});return;}
+  wlToast('Pick a normal list first');return;}
  if(typeof SCR==='undefined'||!SCR.last||!SCR.last.length){
   wlToast('Nothing on the Screener right now - filter something first');return;}
  var sel=(SCR.sel&&SCR.sel.size)?SCR.last.filter(function(d){return SCR.sel.has(d.sym);}):null;
@@ -21835,7 +21877,7 @@ window.wlFromFilter=function(){
  tfAsk('Add '+rows.length+' '+what+' stock'+(rows.length>1?'s':'')+'?',warn,'Add',function(){
   tfDlg({title:'Group them under a heading?',
     msg:'A HEADING shown above them in the list \u2014 not a search.\nLeave blank for none.',
-    input:'text',placeholder:'e.g. TODAY\u2019S FILTER',ok:'Add'},function(secIn){
+    input:'text',placeholder:'e.g. TODAY\u2019S FILTER',ok:'Add',allowEmpty:true},function(secIn){
    var sec=String(secIn||'').trim()||null;
    var body=rows.map(function(d,i){return {wl_id:l.id,symbol:d.sym,section:sec,sort_order:i};});
    wlApi('watchlist_items',{method:'POST',
@@ -21858,14 +21900,16 @@ window.wlCopyList=function(){
    stripped, so a list copied out of TradingView pastes straight back. */
 window.wlImport=function(){
  var l=wlActive();
- if(!l||l.kind==='live'){wlToast('Pick a normal list first');return;}
+ if(!l||l.kind==='live'){
+  if(!wlHasStatic()){wlQuickNew(function(){window.wlImport();});return;}
+  wlToast('Pick a normal list first');return;}
  tfDlg({title:'Import symbols',
    msg:'Paste them separated by commas, spaces or new lines.\nNSE: prefixes are stripped automatically.',
    input:'textarea',placeholder:'NSE:SUZLON, NSE:IDEA\nTATAPOWER',ok:'Next'},function(raw){
   if(!raw)return;
   tfDlg({title:'Group them under a heading?',
     msg:'This is a HEADING shown above them in the list \u2014 not a search.\nLeave it blank for no heading.',
-    input:'text',placeholder:'e.g. BIG BASES',ok:'Import'},function(secIn){
+    input:'text',placeholder:'e.g. BIG BASES',ok:'Import',allowEmpty:true},function(secIn){
    wlImport2(raw,String(secIn||'').trim()||null);
   });
  });
@@ -21992,11 +22036,19 @@ window.wlNew=function(){
   });
  });
 };
-function wlNew2(name,kind,pid){
+function wlNew2(name,kind,pid,cb){
  wlApi('watchlists',{method:'POST',headers:wlHdr({Prefer:'return=representation'}),
   body:JSON.stringify({name:name,kind:kind,playbook:pid,market:'IN',
                        sort_order:WL.lists.length})})
- .then(function(r){if(r&&r[0])WL.active=r[0].id;wlToast('Created '+name);wlLoad();});
+ .then(function(r){
+  if(!r||!r[0]){wlToast('Could not create "'+name+'" - nothing was saved');return;}
+  WL.active=r[0].id;wlToast('Created '+name);
+  if(typeof cb==='function'){
+   if(!WL.lists.some(function(x){return x.id===r[0].id;}))WL.lists.push(r[0]);
+   WL.items[r[0].id]=WL.items[r[0].id]||[];
+   cb(r[0]);
+  }else wlLoad();
+ }).catch(function(){});
 };
 
 window.wlRename=function(){
@@ -22046,11 +22098,20 @@ window.wlAddFromScreener=function(){
  if(!list.length){wlToast('Nothing to add');return;}
  var go=function(){
   var statics=WL.lists.filter(function(l){return l.kind!=='live';});
-  if(!statics.length){wlToast('Create a normal watchlist first (Charts tab)');return;}
+  var _addTo=function(wl){
+   var rows=list.map(function(d){return {wl_id:wl.id,symbol:d.sym};});
+   wlApi('watchlist_items',{method:'POST',
+     headers:wlHdr({Prefer:'resolution=merge-duplicates,return=minimal'}),
+     body:JSON.stringify(rows)})
+    .then(function(){wlToast('Added '+rows.length+' to '+wl.name+' \u2014 open it in the Charts tab');WL._px=null;wlLoad();})
+    .catch(function(){});
+  };
+  if(!statics.length){wlQuickNew(_addTo);return;}
   tfDlg({title:'Add '+list.length+' stock'+(list.length>1?'s':'')+' to\u2026',
     choices:statics.map(function(l){
      return {v:String(l.id),label:l.name,note:((WL.items[l.id]||[]).length)+' stocks'};
-    })},function(id){
+    }).concat([{v:'__new',label:'+ New watchlist',note:'create one and add these'}])},function(id){
+   if(id==='__new'){wlQuickNew(_addTo);return;}
    var wl=statics.filter(function(l){return String(l.id)===String(id);})[0];
    if(!wl)return;
    var rows=list.map(function(d){return {wl_id:wl.id,symbol:d.sym};});
